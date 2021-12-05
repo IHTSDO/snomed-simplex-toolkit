@@ -1,0 +1,111 @@
+package com.snomed.derivativemanagementtool.service;
+
+import com.snomed.derivativemanagementtool.client.SnowstormClient;
+import com.snomed.derivativemanagementtool.domain.CodeSystem;
+import com.snomed.derivativemanagementtool.domain.Product;
+import com.snomed.derivativemanagementtool.domain.RefsetMember;
+import com.snomed.derivativemanagementtool.exceptions.ServiceException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.function.Predicate.not;
+
+@Service
+public class RefsetProductUpdateService {
+
+	public static final String LINE_BREAK = "------------------------------------";
+
+	@Autowired
+	private SnowstormClient snowstormClient;
+
+	public void update(Product product) {
+		System.out.println(LINE_BREAK);
+		try {
+			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(product.getCodesystem());
+
+			System.out.printf("Processing product '%s'.%n", product.getName());
+			File productDir = product.getProductDir();
+
+			// Read members from file
+			List<String> inputMembers = readMembers(productDir);
+			System.out.printf("Read %s members from input file.%n", inputMembers.size());
+			System.out.println();
+
+			// Read members from store
+			String branchPath = codeSystem.getBranchPath();
+			System.out.printf("Reading members from store...%n");
+			List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(branchPath, product.getRefsetId());
+			System.out.printf("Read %s members from store.%n", allStoredMembers.size());
+			System.out.println();
+
+			Map<String, List<RefsetMember>> storedMemberMap = new HashMap<>();
+			for (RefsetMember storedMember : allStoredMembers) {
+				storedMemberMap.computeIfAbsent(storedMember.getReferencedComponentId(), key -> new ArrayList<>()).add(storedMember);
+			}
+
+			// Members to create
+			List<RefsetMember> membersToCreate = new ArrayList<>();
+			List<RefsetMember> membersToRemove = new ArrayList<>();
+			List<RefsetMember> membersToKeep = new ArrayList<>();
+
+			for (String inputMember : inputMembers) {
+				// Lookup existing member(s) for component
+				List<RefsetMember> storedMembers = storedMemberMap.getOrDefault(inputMember, Collections.emptyList());
+				if (storedMembers.isEmpty()) {
+					// None exist, create
+					membersToCreate.add(new RefsetMember(product.getRefsetId(), product.getModule(), inputMember));
+				} else {
+					// No member updates for simple type refset. Map updates would go here.
+					while (storedMembers.size() > 1) {
+						// Remove any duplicate refset member entries from store.
+						membersToRemove.add(storedMembers.remove(0));
+					}
+					// Keep remaining member
+					membersToKeep.add(storedMembers.iterator().next());
+				}
+			}
+
+			membersToRemove.addAll(allStoredMembers.stream().filter(not(membersToKeep::contains)).collect(Collectors.toList()));
+
+			List<RefsetMember> membersToInactivate = membersToRemove.stream().filter(RefsetMember::isReleased).collect(Collectors.toList());
+			List<RefsetMember> membersToDelete = membersToRemove.stream().filter(not(RefsetMember::isReleased)).collect(Collectors.toList());
+
+			System.out.printf("%s members need to be created.%n", membersToCreate.size());
+			System.out.printf("%s members need to be deleted.%n", membersToDelete.size());
+			System.out.printf("%s members need to be inactivated.%n", membersToInactivate.size());
+
+			System.out.printf("Processing product '%s' complete.%n", product.getName());
+		} catch (ServiceException e) {
+			System.out.println();
+			System.err.printf("Processing product '%s' failed.%n", product.getName());
+			System.out.println(e.getMessage());
+			System.out.println();
+		}
+		System.out.println(LINE_BREAK);
+	}
+
+	private List<String> readMembers(File productDir) {
+		List<String> inputMembers = new ArrayList<>();
+		File membersFile = new File(productDir, "members.txt");
+		if (!membersFile.isFile()) {
+			System.err.printf("'members.txt' file missing from product directory %s%n.", productDir.getAbsolutePath());
+		}
+		try (BufferedReader reader = new BufferedReader(new FileReader(membersFile))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				inputMembers.add(line);
+			}
+		} catch (IOException e) {
+			System.err.printf("Failed to read file %s%n.", membersFile.getAbsoluteFile());
+			e.printStackTrace();
+		}
+		return inputMembers;
+	}
+}
