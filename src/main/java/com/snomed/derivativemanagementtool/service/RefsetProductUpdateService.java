@@ -52,7 +52,7 @@ public class RefsetProductUpdateService {
 
 			// Members to create
 			List<RefsetMember> membersToCreate = new ArrayList<>();
-			List<RefsetMember> membersToRemove = new ArrayList<>();
+			List<RefsetMember> membersToUpdate = new ArrayList<>();
 			List<RefsetMember> membersToKeep = new ArrayList<>();
 
 			for (String inputMember : inputMembers) {
@@ -62,17 +62,27 @@ public class RefsetProductUpdateService {
 					// None exist, create
 					membersToCreate.add(new RefsetMember(product.getRefsetId(), product.getModule(), inputMember));
 				} else {
-					// No member updates for simple type refset. Map updates would go here.
-					while (storedMembers.size() > 1) {
-						// Remove any duplicate refset member entries from store.
-						membersToRemove.add(storedMembers.remove(0));
+					RefsetMember memberToKeep;
+					if (storedMembers.size() == 1) {
+						memberToKeep = storedMembers.get(0);
+					} else {
+						// Find best member
+						storedMembers.sort(Comparator.comparing(RefsetMember::isReleased).thenComparing(RefsetMember::isActive));
+						memberToKeep = storedMembers.get(0);
 					}
 					// Keep remaining member
-					membersToKeep.add(storedMembers.iterator().next());
+					if (!memberToKeep.isActive()) {
+						// Not active, update to make active
+						memberToKeep.setActive(true);
+						membersToUpdate.add(memberToKeep);
+					} else {
+						// Keep as-is
+						membersToKeep.add(memberToKeep);
+					}
 				}
 			}
 
-			membersToRemove.addAll(allStoredMembers.stream().filter(not(membersToKeep::contains)).collect(Collectors.toList()));
+			List<RefsetMember> membersToRemove = allStoredMembers.stream().filter(not(membersToKeep::contains)).collect(Collectors.toList());
 
 			List<RefsetMember> membersToInactivate = membersToRemove.stream().filter(RefsetMember::isReleased).collect(Collectors.toList());
 			List<RefsetMember> membersToDelete = membersToRemove.stream().filter(not(RefsetMember::isReleased)).collect(Collectors.toList());
@@ -80,6 +90,23 @@ public class RefsetProductUpdateService {
 			System.out.printf("%s members need to be created.%n", membersToCreate.size());
 			System.out.printf("%s members need to be deleted.%n", membersToDelete.size());
 			System.out.printf("%s members need to be inactivated.%n", membersToInactivate.size());
+
+			// Assemble create / update / inactivate members
+			List<RefsetMember> membersToUpdateCreate = new ArrayList<>(membersToCreate);
+			membersToUpdateCreate.addAll(membersToUpdate);
+			membersToInactivate.forEach(memberToInactivate -> memberToInactivate.setActive(false));
+			membersToUpdateCreate.addAll(membersToInactivate);
+			if (!membersToUpdateCreate.isEmpty()) {
+				// Send all as batch
+				System.out.print("Running bulk create/update... ");
+				snowstormClient.createUpdateRefsetMembers(branchPath, membersToUpdateCreate);
+				System.out.println("done");
+			}
+			if (!membersToDelete.isEmpty()) {
+				System.out.print("Running bulk delete... ");
+				snowstormClient.deleteRefsetMembers(branchPath, membersToDelete);
+				System.out.println("done");
+			}
 
 			System.out.printf("Processing product '%s' complete.%n", product.getName());
 		} catch (ServiceException e) {

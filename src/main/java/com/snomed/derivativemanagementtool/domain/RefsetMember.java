@@ -1,5 +1,6 @@
 package com.snomed.derivativemanagementtool.domain;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -21,9 +22,11 @@ public class RefsetMember {
 
 	public RefsetMember(String refsetId, String moduleId, String referencedComponentId) {
 		this.memberId = UUID.randomUUID().toString();
+		this.active = true;
 		this.refsetId = refsetId;
 		this.moduleId = moduleId;
 		this.referencedComponentId = referencedComponentId;
+		additionalFields = new HashMap<>();
 	}
 
 	public String getMemberId() {
@@ -36,6 +39,10 @@ public class RefsetMember {
 
 	public boolean isActive() {
 		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
 	}
 
 	public String getModuleId() {
@@ -70,4 +77,5 @@ public class RefsetMember {
 	public int hashCode() {
 		return Objects.hash(memberId);
 	}
+
 }

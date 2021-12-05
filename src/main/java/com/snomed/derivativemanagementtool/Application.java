@@ -55,6 +55,7 @@ public class Application implements CommandLineRunner {
 	}
 
 	private void runUpdate(Product product) {
+		// Assume simple refset for now
 		refsetProductUpdateService.update(product);
 	}
 
