@@ -5,13 +5,16 @@ import com.snomed.derivativemanagementtool.domain.CodeSystem;
 import com.snomed.derivativemanagementtool.domain.Product;
 import com.snomed.derivativemanagementtool.domain.RefsetMember;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -118,12 +121,55 @@ public class RefsetProductUpdateService {
 		System.out.println(LINE_BREAK);
 	}
 
-	private List<String> readMembers(File productDir) {
+	private List<String> readMembers(File productDir) throws ServiceException {
 		List<String> inputMembers = new ArrayList<>();
-		File membersFile = new File(productDir, "members.txt");
-		if (!membersFile.isFile()) {
-			System.err.printf("'members.txt' file missing from product directory %s%n.", productDir.getAbsolutePath());
+		File[] fileList = productDir.listFiles();
+		if (fileList != null) {
+			Optional<File> excelFile = Arrays.stream(fileList).filter(file -> file.isFile() && file.getName().endsWith(".xlsx")).findFirst();
+			if (excelFile.isPresent()) {
+				System.out.printf("Reading member file %s%n", excelFile.get().getName());
+				readExcelFile(excelFile.get(), inputMembers);
+				return inputMembers;
+			}
+
+			Optional<File> txtFile = Arrays.stream(fileList).filter(file -> file.isFile() && file.getName().endsWith(".txt")).findFirst();
+			if (txtFile.isPresent()) {
+				System.out.printf("Reading member file %s%n", txtFile.get().getName());
+				readTextFile(txtFile.get(), inputMembers);
+				return inputMembers;
+			}
 		}
+		throw new ServiceException("No refset members file found.");
+	}
+
+	private void readExcelFile(File excelFile, List<String> inputMembers) throws ServiceException {
+		try {
+			Workbook workbook = new XSSFWorkbook(excelFile);
+			Sheet sheet = workbook.getSheetAt(0);
+			boolean readingHeader = true;
+			for (Row cells : sheet) {
+				if (readingHeader) {
+					Cell headerCell = cells.getCell(0);
+					if (!"conceptId".equals(headerCell.getStringCellValue())) {
+						throw new ServiceException(String.format("Unexpected first row of members file '%s'", excelFile.getAbsolutePath()));
+					}
+					readingHeader = false;
+				} else {
+					Cell cell = cells.getCell(0);
+					if (cell != null) {
+						String cellValue = cell.getStringCellValue();
+						if (cellValue != null && !cellValue.isBlank()) {
+							inputMembers.add(cellValue);
+						}
+					}
+				}
+			}
+		} catch (IOException | InvalidFormatException e) {
+			throw new ServiceException(String.format("Failed to read members file '%s', %s", excelFile.getAbsolutePath(), e.getMessage()));
+		}
+	}
+
+	private void readTextFile(File membersFile, List<String> inputMembers) {
 		try (BufferedReader reader = new BufferedReader(new FileReader(membersFile))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
@@ -133,6 +179,5 @@ public class RefsetProductUpdateService {
 			System.err.printf("Failed to read file %s%n.", membersFile.getAbsoluteFile());
 			e.printStackTrace();
 		}
-		return inputMembers;
 	}
 }
