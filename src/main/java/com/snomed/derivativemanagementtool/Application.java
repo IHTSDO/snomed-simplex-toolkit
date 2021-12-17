@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -65,13 +66,36 @@ public class Application implements CommandLineRunner {
 		if (files != null) {
 			for (File productDir : files) {
 				File config = new File(productDir, "config.properties");
-				if (config.isFile()) {
+				File[] productFiles = productDir.listFiles();
+				if (config.isFile() && productFiles != null) {
 					Properties properties = new Properties();
 					properties.load(new FileReader(config));
 					String name = properties.getProperty("name");
 					String codesystem = properties.getProperty("codesystem");
 					String module = properties.getProperty("module");
 					String refsetId = properties.getProperty("refsetId");
+
+					// Refset or Translation?
+					boolean descriptionSnapshotFound = false;
+					boolean otherRefsetFound = false;
+					for (File productFile : productFiles) {
+						if (productFile.isFile()) {
+							String productFilename = productFile.getName();
+							if (productFilename.startsWith("sct2_Description_Snapshot") && productFilename.endsWith(".txt")) {
+								descriptionSnapshotFound = true;
+							} else if (productFilename.endsWith(".txt") || productFilename.endsWith(".xlsx")) {
+								otherRefsetFound = true;
+							} else if (productFilename.endsWith(".xls")) {
+								System.err.println("Warning: Old style Excel files with file extension '.xls' can not be processed. " +
+										"Please use the newer XLSX filetype (Excel 2007 and later).");
+							}
+						}
+					}
+
+					if (!descriptionSnapshotFound && !otherRefsetFound) {
+						System.err.println("Product does not appear to have any input files. Can not detect product type.");
+					}
+
 					products.add(new Product(productDir, name, codesystem, module, refsetId));
 				}
 			}
