@@ -11,7 +11,11 @@
       </v-tab-item>
       <v-tab href="#three">Translation</v-tab>
       <v-tab-item value="three">
-        Tres
+        <TranslationManager/>
+      </v-tab-item>
+      <v-tab href="#four">Export</v-tab>
+      <v-tab-item value="four">
+        <ExportManager/>
       </v-tab-item>
     </v-tabs>
     <v-tabs-items>
@@ -23,6 +27,9 @@
 <script>
   import ConnectToTermServer from './ConnectToTermServer.vue';
   import RefsetsManager from './refsets/RefsetsManager.vue';
+  import TranslationManager from './translation/TranslationManager.vue';
+  import ExportManager from './export/ExportManager.vue'
+
 
   export default {
     name: 'MainTabs',
@@ -31,7 +38,9 @@
     components: {
       // HelloWorld,
       ConnectToTermServer,
-      RefsetsManager
+      RefsetsManager,
+      TranslationManager,
+      ExportManager
     },
   }
 </script>
