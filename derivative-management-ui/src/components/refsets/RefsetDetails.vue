@@ -7,8 +7,8 @@
         <div class="text-overline mb-4">
           Refset
         </div>
-        <v-list-item-title class="text-h5 mb-1" v-text="refset.name"></v-list-item-title>
-        <v-list-item-subtitle v-text="refset.subtitle"></v-list-item-subtitle>
+        <v-list-item-title class="text-h5 mb-1" v-text="refsetName"></v-list-item-title>
+        <v-list-item-subtitle v-text="refsetSubt"></v-list-item-subtitle>
       </v-list-item-content>
       <v-card-actions class="mt-4">
       <v-btn
@@ -29,9 +29,12 @@
 
 <script>
   export default {
+    name: 'RefsetDetails',
+    props: {
+      refsetName: String,
+      refsetSubt: String,
+    },
     data: () => ({
-      name: 'RefsetDetails',
-      refset: {name: 'COVID Vaccines', subtitle: '14 concepts, last update Dec. 12th 2021'}
     }),
   }
 </script>

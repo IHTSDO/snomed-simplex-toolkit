@@ -5,7 +5,7 @@
     </v-row>
     <v-row>
       <v-col cols="12" md="6">
-        <RefsetsList/>
+        <RefsetsList @selectedRefset="captureSelection" />
         <br>
         <v-btn
           depressed
@@ -15,7 +15,10 @@
         </v-btn>
       </v-col>
       <v-col md="6">
-        <RefsetDetails/>
+        <RefsetDetails v-if="selectedRefset != null" 
+        :refsetName= "selectedRefset.name" 
+        :refsetSubt= "selectedRefset.subtitle"
+        />
       </v-col>
     </v-row>
   </v-container>
@@ -27,11 +30,18 @@
 
   export default {
     data: () => ({
-      name: 'RefsetsManager'
+      name: 'RefsetsManager',
+      selectedRefset: null,
     }),
     components: {
       RefsetsList,
       RefsetDetails
     },
+    methods: {
+      captureSelection(refset) {
+        this.selectedRefset = refset;
+        // alert(this.selectedRefset.name)
+      }
+    }
   }
 </script>
