@@ -14,7 +14,7 @@
           transition="scale-transition"
           width="40"
         /> -->
-        <h1>SNOMED CT Extension Manager</h1>
+        <h1>SNOMED CT Extension Management Toolkit</h1>
       </div>
 
       <v-spacer></v-spacer>
@@ -22,19 +22,21 @@
     </v-app-bar>
 
     <v-main>
-      <HelloWorld/>
+      <MainTabs/>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld';
+// import HelloWorld from './components/HelloWorld';
+import MainTabs from './components/MainTabs.vue';
 
 export default {
   name: 'App',
 
   components: {
-    HelloWorld,
+    // HelloWorld,
+    MainTabs,
   },
 
   data: () => ({
