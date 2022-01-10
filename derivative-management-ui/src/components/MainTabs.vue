@@ -9,6 +9,10 @@
       <v-tab-item value="two">
         <RefsetsManager/>
       </v-tab-item>
+      <v-tab href="#five">Maps</v-tab>
+      <v-tab-item value="five">
+        <MapsManager/>
+      </v-tab-item>
       <v-tab href="#three">Translation</v-tab>
       <v-tab-item value="three">
         <TranslationManager/>
@@ -29,6 +33,7 @@
   import RefsetsManager from './refsets/RefsetsManager.vue';
   import TranslationManager from './translation/TranslationManager.vue';
   import ExportManager from './export/ExportManager.vue'
+  import MapsManager from './maps/MapsManager.vue'
 
 
   export default {
@@ -40,7 +45,8 @@
       ConnectToTermServer,
       RefsetsManager,
       TranslationManager,
-      ExportManager
+      ExportManager,
+      MapsManager
     },
   }
 </script>

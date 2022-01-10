@@ -1,24 +1,24 @@
 <template>
   <v-container>
     <v-row>
-      <h3 class="mt-4">Refsets Manager</h3>
+      <h3 class="mt-4">Maps Manager</h3>
     </v-row>
     <v-row>
       <v-col cols="12" md="6">
-        <RefsetsList @selectedRefset="captureSelection" />
+        <RefsetsList @selectedRefset="captureSelection" mode="maps"/>
         <br>
         <v-btn
           depressed
           color="primary"
         >
-          Create new Refset
+          Create new Map
         </v-btn>
       </v-col>
       <v-col md="6">
         <RefsetDetails v-if="selectedRefset != null" 
         :refsetName= "selectedRefset.name" 
         :refsetSubt= "selectedRefset.subtitle"
-        mode="refset"
+        mode="map"
         />
       </v-col>
     </v-row>
@@ -26,12 +26,12 @@
 </template>
 
 <script>
-  import RefsetsList from './RefsetsList.vue';
-  import RefsetDetails from './RefsetDetails.vue'
+  import RefsetsList from '../refsets/RefsetsList.vue';
+  import RefsetDetails from '../refsets/RefsetDetails.vue'
 
   export default {
     data: () => ({
-      name: 'RefsetsManager',
+      name: 'MapsManager',
       selectedRefset: null,
     }),
     components: {

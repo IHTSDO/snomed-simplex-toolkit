@@ -4,9 +4,7 @@
     outlined
   >
     <v-list-item-content>
-        <div class="text-overline mb-4">
-          Refset
-        </div>
+        <div class="text-overline mb-4" v-text="mode"></div>
         <v-list-item-title class="text-h5 mb-1" v-text="refsetName"></v-list-item-title>
         <v-list-item-subtitle v-text="refsetSubt"></v-list-item-subtitle>
       </v-list-item-content>
@@ -15,7 +13,7 @@
         depressed
         color="primary"
       >
-        Donwload refset (XLSX)
+        Donwload {{ mode }} (XLSX)
       </v-btn>
       <v-btn
         depressed
@@ -33,6 +31,10 @@
     props: {
       refsetName: String,
       refsetSubt: String,
+      mode: {
+        type: String,
+        default: 'refset'
+      }
     },
     data: () => ({
     }),
