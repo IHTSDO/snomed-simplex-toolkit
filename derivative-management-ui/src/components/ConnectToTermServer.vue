@@ -10,6 +10,7 @@
             v-model="serverUrl"
             :rules="urlRules"
             label="Server URL:"
+            :disabled="connected"
             required
           ></v-text-field>
           <v-combobox
@@ -19,6 +20,7 @@
           :rules="[required]"
           outlined
           dense
+          :disabled="connected"
         ></v-combobox>
         <v-combobox
           v-model="authoringCodeSystem"
@@ -27,6 +29,7 @@
           :rules="[required]"
           outlined
           dense
+          :disabled="connected"
         ></v-combobox>
         <v-row v-if="authoringCodeSystem == 'New Code System'">
            <v-col>
@@ -35,6 +38,7 @@
               :rules="newCodeSystemNameRules"
               label="New Code System Name:"
               required
+              :disabled="connected"
             ></v-text-field>
             <v-text-field
               v-model="newCodeSystemShortName"
@@ -42,6 +46,7 @@
               label="New Code System Short Name:"
               :counter=20
               required
+              :disabled="connected"
             ></v-text-field>
             <v-text-field
               v-model="namespace"
@@ -50,16 +55,28 @@
               :counter=7
               type="number"
               required
+              :disabled="connected"
             ></v-text-field>
            </v-col>
         </v-row>
         <br><br><br>
         <v-btn
+          v-if="!connected"
           :disabled="!valid"
           depressed
           color="primary"
+          @click="connect(true)"
         >
           Connect to Snowstorm
+        </v-btn>
+        <v-btn
+          v-if="connected"
+          :disabled="!valid"
+          depressed
+          color="error"
+          @click="connect(false)"
+        >
+          Disconnect from Snowstorm
         </v-btn>
         </v-col>
       </v-row>
@@ -92,6 +109,7 @@
       newCodeSystemShortNameRules: [v => v.length <= 20 || 'Max 20 characters long'],
       namespace: '',
       namespaceRules: [v => v.length == 7 || 'Must be 7 nums long'],
+      connected: false
     }),
     methods: {
     required(value) {
@@ -100,6 +118,10 @@
       }
       return !!value || 'Required.';
     },
+    connect(val) {
+      this.connected = val;
+      this.$emit('connected', this.connected);
+    }
   },
   }
 </script>

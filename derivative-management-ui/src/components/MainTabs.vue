@@ -3,21 +3,29 @@
     <v-tabs>
       <v-tab href="#one">Snowstorm</v-tab>
       <v-tab-item value="one">
-        <ConnectToTermServer/>
+        <ConnectToTermServer @connected="connect"/>
       </v-tab-item>
-      <v-tab href="#two">Simple Type Refsets</v-tab>
+      <v-tab href="#two" :disabled="!connected">
+          Simple Type Refsets
+        </v-tab>
       <v-tab-item value="two">
         <RefsetsManager/>
       </v-tab-item>
-      <v-tab href="#five">Maps</v-tab>
+      <v-tab href="#five" :disabled="!connected">
+        Maps
+      </v-tab>
       <v-tab-item value="five">
         <MapsManager/>
       </v-tab-item>
-      <v-tab href="#three">Translation</v-tab>
+      <v-tab href="#three" :disabled="!connected">
+        Translation
+      </v-tab>
       <v-tab-item value="three">
         <TranslationManager/>
       </v-tab-item>
-      <v-tab href="#four">Export</v-tab>
+      <v-tab href="#four" :disabled="!connected">
+        Export
+      </v-tab>
       <v-tab-item value="four">
         <ExportManager/>
       </v-tab-item>
@@ -39,6 +47,7 @@
   export default {
     name: 'MainTabs',
     data: () => ({
+      connected: false
     }),
     components: {
       // HelloWorld,
@@ -48,6 +57,11 @@
       ExportManager,
       MapsManager
     },
+    methods: {
+      connect(val) {
+        this.connected = val;
+      }
+    }
   }
 </script>
 <style scoped>
