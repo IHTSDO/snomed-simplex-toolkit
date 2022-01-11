@@ -27,7 +27,7 @@
           color="primary"
           :disabled="!selectedRefsets || !selectedRefsets.length"
         >
-          Donwload Translation Template for selected Refsets
+          Donwload Translation Template for selected Refsets ({{selectedRefsets.length}})
         </v-btn>
         <br><br>
         <v-btn
@@ -47,7 +47,7 @@
   export default {
     name: 'TranslationManager',
     data: () => ({
-      selectedRefsets: null,
+      selectedRefsets: [],
     }),
     components: {
       SelectableRefsetsList,
