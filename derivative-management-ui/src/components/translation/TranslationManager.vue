@@ -11,6 +11,12 @@
           outlined
         >
           <v-col cols="12" md="12">
+            <div v-if="connectionDetails !== null">
+              <b>
+                <p>Language Refset: {{connectionDetails.extensionLanguageRefset}}</p>
+                <p>Language Code: {{connectionDetails.extensionLanguageCode}}</p>
+              </b>
+            </div>
             <p>Number of translated concepts: 1209</p>
             <p>Number of FSNs: 845</p>
             <p>Number of preferred synonyms: 1209</p>
@@ -57,6 +63,11 @@
         this.selectedRefsets = refsets;
         // alert(this.selectedRefsets)
       }
-    }
+    },
+    props: {
+      connectionDetails: {
+        type: Object
+      }
+    },
   }
 </script>

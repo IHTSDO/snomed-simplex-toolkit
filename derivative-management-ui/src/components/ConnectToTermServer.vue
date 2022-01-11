@@ -60,6 +60,24 @@
             ></v-text-field>
            </v-col>
         </v-row>
+         <v-combobox
+          v-model="extensionLanguageRefset"
+          :items="languageRefsets"
+          label="Language Refset"
+          :rules="[required]"
+          outlined
+          dense
+          :disabled="connected"
+        ></v-combobox>
+        <v-text-field
+          v-model="extensionLanguageCode"
+          :rules="extensionLanguageCodeRules"
+          label="Language Code:"
+          :counter=2
+          type="text"
+          required
+          :disabled="connected"
+        ></v-text-field>
         <br><br><br>
         <v-btn
           v-if="!connected && !connecting"
@@ -75,6 +93,7 @@
           indeterminate
           color="amber"
         ></v-progress-circular>
+        <span class="mx-4 amber--text" transition="slide-x-transition">{{connectingMessage}}</span>
         <v-btn
           v-if="connected && !connecting"
           :disabled="!valid"
@@ -103,6 +122,20 @@
         'SCT Australia Edition',
         'SCT Argentina Edition'
       ],
+      languageRefsets: [
+        'US English',
+        'GB English',
+        'English',
+        'French [International Organization for Standardization 639-1 code fr] language reference set',
+        'German [International Organization for Standardization 639-1 code de] language reference set',
+        'Japanese [International Organization for Standardization 639-1 code ja] language reference set',
+        'Chinese [International Organization for Standardization 639-1 code zh] language reference set',
+        'GMDN language reference set',
+        'Spanish language reference set'
+      ],
+      extensionLanguageRefset: '',
+      extensionLanguageCode: '',
+      extensionLanguageCodeRules: [v => v.length == 2 || 'Must be 2 chars long (ISO Language Code)'],
       serverUrl: '',
       urlRules: [
         v => !!v || 'URL is required',
@@ -116,7 +149,8 @@
       namespace: '',
       namespaceRules: [v => v.length == 7 || 'Must be 7 nums long'],
       connected: false,
-      connecting: false
+      connecting: false,
+      connectingMessage: ''
     }),
     methods: {
     required(value) {
@@ -126,13 +160,61 @@
       return !!value || 'Required.';
     },
     connect(val) {
-      this.connecting = true;
       var context = this;
-      setTimeout(function() {
-        context.connected = val;
-        context.connecting = false;
-        context.$emit('connected', context.connected);
-      }, 1000);
+      if (val) {
+        if (this.authoringCodeSystem == 'New Code System') {
+          this.connecting = true;
+          this.connectingMessage = 'Creating Kernel...';
+          setTimeout(function() {
+            context.connectingMessage = 'Connecting...';
+            setTimeout(function() {
+              context.connectingMessage = 'Uploading kernel...';
+              setTimeout(function() {
+                context.connected = val;
+                context.connecting = false;
+                context.connectingMessage = '';
+                context.$emit('connected', context.connected);
+                var connectionDetails = {
+                  serverUrl: context.serverUrl,
+                  dependency: context.dependency,
+                  authoringCodeSystem: context.authoringCodeSystem,
+                  newCodeSystemName: context.newCodeSystemName,
+                  newCodeSystemShortName: context.newCodeSystemShortName,
+                  extensionLanguageRefset: context.extensionLanguageRefset,
+                  extensionLanguageCode: context.extensionLanguageCode
+                }
+                context.$emit('connectionDetails', connectionDetails);
+              }, 1000);
+            }, 1000);
+          }, 1000);
+        } else {
+          this.connecting = true;
+          this.connectingMessage = 'Connecting...';
+          setTimeout(function() {
+            context.connected = val;
+            context.connecting = false;
+            context.connectingMessage = '';
+            context.$emit('connected', context.connected);
+            var connectionDetails = {
+                  serverUrl: context.serverUrl,
+                  dependency: context.dependency,
+                  authoringCodeSystem: context.authoringCodeSystem,
+                  extensionLanguageRefset: context.extensionLanguageRefset,
+                  extensionLanguageCode: context.extensionLanguageCode
+                }
+                context.$emit('connectionDetails', connectionDetails);
+          }, 1000);
+        }
+      } else {
+        this.connecting = true;
+        this.connectingMessage = 'Disconnecting...';
+        setTimeout(function() {
+          context.connected = val;
+          context.connecting = false;
+          context.connectingMessage = '';
+          context.$emit('connected', context.connected);
+        }, 1000);
+      }
     }
   },
   }

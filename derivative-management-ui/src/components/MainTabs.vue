@@ -3,7 +3,7 @@
     <v-tabs>
       <v-tab href="#one">Snowstorm</v-tab>
       <v-tab-item value="one">
-        <ConnectToTermServer @connected="connect"/>
+        <ConnectToTermServer @connected="connect" @connectionDetails="updateConnectionDetails"/>
       </v-tab-item>
       <v-tab href="#two" :disabled="!connected">
           Simple Type Refsets
@@ -21,7 +21,7 @@
         Translation
       </v-tab>
       <v-tab-item value="three">
-        <TranslationManager/>
+        <TranslationManager :connectionDetails="connectionDetails"/>
       </v-tab-item>
       <v-tab href="#four" :disabled="!connected">
         Export
@@ -47,7 +47,8 @@
   export default {
     name: 'MainTabs',
     data: () => ({
-      connected: false
+      connected: false,
+      connectionDetails: {}
     }),
     components: {
       // HelloWorld,
@@ -60,6 +61,9 @@
     methods: {
       connect(val) {
         this.connected = val;
+      },
+      updateConnectionDetails(val) {
+        this.connectionDetails = val;
       }
     }
   }
