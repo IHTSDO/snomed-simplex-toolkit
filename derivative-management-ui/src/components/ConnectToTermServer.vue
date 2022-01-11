@@ -2,7 +2,8 @@
   <v-form v-model="valid">
     <v-container>
       <v-row>
-        <h3 class="mt-4">Connect to Snowstorm server</h3>
+        <h3 class="mt-4" v-if="!connected">Connect to Snowstorm server</h3>
+        <h3 class="mt-4" v-if="connected">Connected!</h3>
       </v-row>
       <v-row>
         <v-col cols="12" md="6">
@@ -61,7 +62,7 @@
         </v-row>
         <br><br><br>
         <v-btn
-          v-if="!connected"
+          v-if="!connected && !connecting"
           :disabled="!valid"
           depressed
           color="primary"
@@ -69,8 +70,13 @@
         >
           Connect to Snowstorm
         </v-btn>
+        <v-progress-circular
+          v-if="connecting"
+          indeterminate
+          color="amber"
+        ></v-progress-circular>
         <v-btn
-          v-if="connected"
+          v-if="connected && !connecting"
           :disabled="!valid"
           depressed
           color="error"
@@ -109,7 +115,8 @@
       newCodeSystemShortNameRules: [v => v.length <= 20 || 'Max 20 characters long'],
       namespace: '',
       namespaceRules: [v => v.length == 7 || 'Must be 7 nums long'],
-      connected: false
+      connected: false,
+      connecting: false
     }),
     methods: {
     required(value) {
@@ -119,8 +126,13 @@
       return !!value || 'Required.';
     },
     connect(val) {
-      this.connected = val;
-      this.$emit('connected', this.connected);
+      this.connecting = true;
+      var context = this;
+      setTimeout(function() {
+        context.connected = val;
+        context.connecting = false;
+        context.$emit('connected', context.connected);
+      }, 1000);
     }
   },
   }
