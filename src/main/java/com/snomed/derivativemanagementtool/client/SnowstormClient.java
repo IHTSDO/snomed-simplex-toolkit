@@ -90,6 +90,14 @@ public class SnowstormClient {
 		}
 	}
 
+	public List<ConceptMini> getRefsets(String type) {
+		String url = String.format("/browser/%s/members?active=true&module=%s&referenceSet=%s", codeSystem.getBranchPath(), defaultModule, type);
+		ResponseEntity<RefsetAggregationPage> response = restTemplate.exchange(url, HttpMethod.GET, null, RefsetAggregationPage.class);
+		return response.getBody().getRefsets().stream()
+				// Filter required when running against older versions of Snowstorm
+				.filter(conceptMini -> conceptMini.getModuleId().equals(defaultModule)).collect(Collectors.toList());
+	}
+
 	public List<RefsetMember> loadAllRefsetMembers(String branchPath, String refsetId) throws ServiceException {
 		try {
 			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(String.format("/%s/members?referenceSet=%s&limit=%s", branchPath, refsetId, MAX_PAGE_SIZE),
