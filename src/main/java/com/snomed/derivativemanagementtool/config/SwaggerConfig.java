@@ -11,8 +11,6 @@ import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.ApiSelectorBuilder;
 import springfox.documentation.spring.web.plugins.Docket;
 
-import java.util.Collections;
-
 import static com.google.common.base.Predicates.not;
 import static springfox.documentation.builders.PathSelectors.regex;
 

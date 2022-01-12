@@ -1,6 +1,6 @@
 target/
 
-products/*
+local-files/*
 
 ### STS ###
 .apt_generated
