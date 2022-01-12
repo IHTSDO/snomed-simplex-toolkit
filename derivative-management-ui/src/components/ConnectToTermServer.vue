@@ -17,7 +17,7 @@
           <v-combobox
           v-model="dependency"
           :items="codeSystems"
-          label="Dependenciy (Select Code System)"
+          label="Dependency (Select Code System)"
           :rules="[required]"
           outlined
           dense
@@ -26,7 +26,7 @@
         <v-combobox
           v-model="authoringCodeSystem"
           :items="['New Code System'].concat(codeSystems)"
-          label="Auhtoring Code System"
+          label="Authoring Code System"
           :rules="[required]"
           outlined
           dense
