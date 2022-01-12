@@ -3,12 +3,14 @@ package com.snomed.derivativemanagementtool.service;
 import com.snomed.derivativemanagementtool.client.SnowstormClient;
 import com.snomed.derivativemanagementtool.domain.CodeSystemProperties;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
-import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Properties;
 
 @Service
@@ -23,19 +25,17 @@ public class CodeSystemConfigService {
 	public synchronized SnowstormClient getSnowstormClient() throws ServiceException {
 		if (snowstormClient == null) {
 			CodeSystemProperties config = getConfig();
-			String snowstormUrl = config.getSnowstormUrl();
-			if (Strings.isBlank(snowstormUrl)) {
-				throw new IllegalStateException("Snowstorm URL is not yet configured");
-			}
-			snowstormClient = new SnowstormClient(snowstormUrl);
+			snowstormClient = new SnowstormClient(config);
 		}
 		snowstormClient.ping();
 		return snowstormClient;
 	}
 
-	private void updateSnowstormUrl(String snowstormUrl) {
-		if (!Strings.isBlank(snowstormUrl) && snowstormClient != null) {
-			snowstormClient.updateUrl(snowstormUrl);
+	private void updateSnowstormClient(CodeSystemProperties config) throws ServiceException {
+		if (snowstormClient == null) {
+			snowstormClient = new SnowstormClient(config);
+		} else {
+			snowstormClient.update(config);
 		}
 	}
 
@@ -56,7 +56,7 @@ public class CodeSystemConfigService {
 		Properties properties = codeSystemProperties.createProperties();
 		try (FileOutputStream outputStream = new FileOutputStream(propertiesFile)) {
 			properties.store(outputStream, null);
-			updateSnowstormUrl(codeSystemProperties.getSnowstormUrl());
+			updateSnowstormClient(codeSystemProperties);
 			logger.debug("Stored '{}' file.", CODE_SYSTEM_PROPERTIES);
 		} catch (IOException e) {
 			throw new ServiceException("Failed to save properties file.", e);
