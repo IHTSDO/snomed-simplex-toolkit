@@ -4,7 +4,10 @@ import com.snomed.derivativemanagementtool.domain.CodeSystem;
 import com.snomed.derivativemanagementtool.domain.Page;
 import com.snomed.derivativemanagementtool.domain.RefsetMember;
 import com.snomed.derivativemanagementtool.domain.StatusHolder;
+import com.snomed.derivativemanagementtool.exceptions.ClientException;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
@@ -25,13 +28,20 @@ import java.util.stream.Collectors;
 public class SnowstormClient {
 
 	public static final String MAX_PAGE_SIZE = "10000";
-
-	private final RestTemplate restTemplate;
 	private final ParameterizedTypeReference<Map<String, Object>> responseTypeMap = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
+	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
+
+	private RestTemplate restTemplate;
+	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public SnowstormClient(@Value("${snowstorm.url}") String snowstormUrl) {
+		updateUrl(snowstormUrl);
+	}
+
+	public void updateUrl(String snowstormUrl) {
 		restTemplate = new RestTemplateBuilder().rootUri(snowstormUrl).build();
+		logger.info("Snowstorm URL set as '{}'", snowstormUrl);
 	}
 
 	public void ping() throws ServiceException {
@@ -42,7 +52,16 @@ public class SnowstormClient {
 				System.out.printf("Pinged Snowstorm successfully, version %s%n", body != null ? body.get("version") : "body is null");
 			}
 		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "connect to Snowstorm");
+			throw new IllegalStateException("Could not connect to Snowstorm");
+		}
+	}
+
+	public Page<CodeSystem> getCodeSystems() throws ServiceException {
+		try {
+			ResponseEntity<Page<CodeSystem>> response = restTemplate.exchange("/codesystems", HttpMethod.GET, null, responseTypeCodeSystemPage);
+			return response.getBody();
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "list code systems");
 		}
 	}
 
@@ -112,7 +131,7 @@ public class SnowstormClient {
 		}
 	}
 
-	private ServiceException getServiceException(HttpStatusCodeException e, String action) {
-		return new ServiceException(String.format("Failed to " + action + " - %s - %s.", e.getStatusCode(), e.getMessage()));
+	private ClientException getServiceException(HttpStatusCodeException e, String action) {
+		return new ClientException(String.format("Failed to %s", action), e);
 	}
 }

@@ -1,7 +1,9 @@
 package com.snomed.derivativemanagementtool.service;
 
+import com.snomed.derivativemanagementtool.client.SnowstormClient;
 import com.snomed.derivativemanagementtool.domain.CodeSystemProperties;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,8 +16,28 @@ public class CodeSystemConfigService {
 
 	public static final String LOCAL_FILES_PATH = "local-files";
 	public static final String CODE_SYSTEM_PROPERTIES = "code-system.properties";
+	private SnowstormClient snowstormClient;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	public synchronized SnowstormClient getSnowstormClient() throws ServiceException {
+		if (snowstormClient == null) {
+			CodeSystemProperties config = getConfig();
+			String snowstormUrl = config.getSnowstormUrl();
+			if (Strings.isBlank(snowstormUrl)) {
+				throw new IllegalStateException("Snowstorm URL is not yet configured");
+			}
+			snowstormClient = new SnowstormClient(snowstormUrl);
+		}
+		snowstormClient.ping();
+		return snowstormClient;
+	}
+
+	private void updateSnowstormUrl(String snowstormUrl) {
+		if (!Strings.isBlank(snowstormUrl) && snowstormClient != null) {
+			snowstormClient.updateUrl(snowstormUrl);
+		}
+	}
 
 	public CodeSystemProperties getConfig() throws ServiceException {
 		Properties properties = new Properties();
@@ -34,6 +56,7 @@ public class CodeSystemConfigService {
 		Properties properties = codeSystemProperties.createProperties();
 		try (FileOutputStream outputStream = new FileOutputStream(propertiesFile)) {
 			properties.store(outputStream, null);
+			updateSnowstormUrl(codeSystemProperties.getSnowstormUrl());
 			logger.debug("Stored '{}' file.", CODE_SYSTEM_PROPERTIES);
 		} catch (IOException e) {
 			throw new ServiceException("Failed to save properties file.", e);
