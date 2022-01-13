@@ -13,7 +13,7 @@
         depressed
         color="primary"
       >
-        Donwload {{ mode }} (XLSX)
+        Download {{ mode }} (XLSX)
       </v-btn>
       <v-btn
         depressed

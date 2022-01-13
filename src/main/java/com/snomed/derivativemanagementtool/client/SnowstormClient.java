@@ -1,16 +1,14 @@
 package com.snomed.derivativemanagementtool.client;
 
-import com.snomed.derivativemanagementtool.domain.CodeSystem;
-import com.snomed.derivativemanagementtool.domain.Page;
-import com.snomed.derivativemanagementtool.domain.RefsetMember;
-import com.snomed.derivativemanagementtool.domain.StatusHolder;
+import com.snomed.derivativemanagementtool.domain.*;
+import com.snomed.derivativemanagementtool.exceptions.ClientException;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.logging.log4j.util.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
@@ -21,17 +19,36 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Service
 public class SnowstormClient {
 
 	public static final String MAX_PAGE_SIZE = "10000";
-
-	private final RestTemplate restTemplate;
 	private final ParameterizedTypeReference<Map<String, Object>> responseTypeMap = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
+	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
 
-	public SnowstormClient(@Value("${snowstorm.url}") String snowstormUrl) {
-		restTemplate = new RestTemplateBuilder().rootUri(snowstormUrl).build();
+	private RestTemplate restTemplate;
+	private String codesystemShortname;
+	private CodeSystem codeSystem;
+	private String defaultModule;
+
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	public SnowstormClient(CodeSystemProperties config) {
+		update(config);
+	}
+
+	public void update(CodeSystemProperties codeSystemProperties) {
+		if (Strings.isBlank(codeSystemProperties.getSnowstormUrl())) {
+			throw new IllegalStateException("Snowstorm URL is not yet configured");
+		}
+		restTemplate = new RestTemplateBuilder().rootUri(codeSystemProperties.getSnowstormUrl()).build();
+		logger.info("Snowstorm URL set as '{}'", codeSystemProperties.getSnowstormUrl());
+		if (codeSystemProperties.getCodesystem() != null) {
+			this.codesystemShortname = codeSystemProperties.getCodesystem();
+		}
+		if (codeSystemProperties.getDefaultModule() != null) {
+			this.defaultModule = codeSystemProperties.getDefaultModule();
+		}
 	}
 
 	public void ping() throws ServiceException {
@@ -42,7 +59,25 @@ public class SnowstormClient {
 				System.out.printf("Pinged Snowstorm successfully, version %s%n", body != null ? body.get("version") : "body is null");
 			}
 		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "connect to Snowstorm");
+			throw new IllegalStateException("Could not connect to Snowstorm");
+		}
+		fetchCodeSystem();
+	}
+
+	private void fetchCodeSystem() throws ServiceException {
+		if (codesystemShortname == null) {
+			codeSystem = null;
+		} else if (codeSystem == null || !codesystemShortname.equals(codeSystem.getShortName())) {
+			codeSystem = getCodeSystemOrThrow(codesystemShortname);
+		}
+	}
+
+	public Page<CodeSystem> getCodeSystems() throws ServiceException {
+		try {
+			ResponseEntity<Page<CodeSystem>> response = restTemplate.exchange("/codesystems", HttpMethod.GET, null, responseTypeCodeSystemPage);
+			return response.getBody();
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "list code systems");
 		}
 	}
 
@@ -53,6 +88,14 @@ public class SnowstormClient {
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "load code system");
 		}
+	}
+
+	public List<ConceptMini> getRefsets(String type) {
+		String url = String.format("/browser/%s/members?active=true&module=%s&referenceSet=%s", codeSystem.getBranchPath(), defaultModule, type);
+		ResponseEntity<RefsetAggregationPage> response = restTemplate.exchange(url, HttpMethod.GET, null, RefsetAggregationPage.class);
+		return response.getBody().getRefsets().stream()
+				// Filter required when running against older versions of Snowstorm
+				.filter(conceptMini -> conceptMini.getModuleId().equals(defaultModule)).collect(Collectors.toList());
 	}
 
 	public List<RefsetMember> loadAllRefsetMembers(String branchPath, String refsetId) throws ServiceException {
@@ -112,7 +155,7 @@ public class SnowstormClient {
 		}
 	}
 
-	private ServiceException getServiceException(HttpStatusCodeException e, String action) {
-		return new ServiceException(String.format("Failed to " + action + " - %s - %s.", e.getStatusCode(), e.getMessage()));
+	private ClientException getServiceException(HttpStatusCodeException e, String action) {
+		return new ClientException(String.format("Failed to %s", action), e);
 	}
 }

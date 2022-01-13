@@ -11,7 +11,6 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -21,14 +20,11 @@ import java.util.stream.Collectors;
 import static java.util.function.Predicate.not;
 
 @Service
-public class RefsetProductUpdateService {
+public class RefsetUpdateService {
 
 	public static final String LINE_BREAK = "------------------------------------";
 
-	@Autowired
-	private SnowstormClient snowstormClient;
-
-	public void update(Product product) {
+	public void update(Product product, SnowstormClient snowstormClient) {
 		System.out.println(LINE_BREAK);
 		try {
 			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(product.getCodesystem());
@@ -128,7 +124,7 @@ public class RefsetProductUpdateService {
 			Optional<File> excelFile = Arrays.stream(fileList).filter(file -> file.isFile() && file.getName().endsWith(".xlsx")).findFirst();
 			if (excelFile.isPresent()) {
 				System.out.printf("Reading member file %s%n", excelFile.get().getName());
-				readExcelFile(excelFile.get(), inputMembers);
+				readSpreadsheetFile(excelFile.get(), inputMembers);
 				return inputMembers;
 			}
 
@@ -142,16 +138,16 @@ public class RefsetProductUpdateService {
 		throw new ServiceException("No refset members file found.");
 	}
 
-	private void readExcelFile(File excelFile, List<String> inputMembers) throws ServiceException {
+	private void readSpreadsheetFile(File spreadsheet, List<String> inputMembers) throws ServiceException {
 		try {
-			Workbook workbook = new XSSFWorkbook(excelFile);
+			Workbook workbook = new XSSFWorkbook(spreadsheet);
 			Sheet sheet = workbook.getSheetAt(0);
 			boolean readingHeader = true;
 			for (Row cells : sheet) {
 				if (readingHeader) {
 					Cell headerCell = cells.getCell(0);
 					if (!"conceptId".equals(headerCell.getStringCellValue())) {
-						throw new ServiceException(String.format("Unexpected first row of members file '%s'", excelFile.getAbsolutePath()));
+						throw new ServiceException(String.format("Unexpected first row of members file '%s'", spreadsheet.getAbsolutePath()));
 					}
 					readingHeader = false;
 				} else {
@@ -165,7 +161,7 @@ public class RefsetProductUpdateService {
 				}
 			}
 		} catch (IOException | InvalidFormatException e) {
-			throw new ServiceException(String.format("Failed to read members file '%s', %s", excelFile.getAbsolutePath(), e.getMessage()));
+			throw new ServiceException(String.format("Failed to read members file '%s', %s", spreadsheet.getAbsolutePath(), e.getMessage()));
 		}
 	}
 

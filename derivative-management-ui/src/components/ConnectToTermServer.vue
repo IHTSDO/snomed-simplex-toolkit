@@ -34,7 +34,7 @@
         <v-combobox
           v-model="authoringCodeSystem"
           :items="['New Code System'].concat(codeSystems)"
-          label="Auhtoring Code System"
+          label="Authoring Code System"
           :rules="[required]"
           outlined
           dense
