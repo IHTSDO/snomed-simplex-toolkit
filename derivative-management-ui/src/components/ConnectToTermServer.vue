@@ -31,9 +31,11 @@
               </v-btn>
             </v-col>
           </v-row>
+        
+        <!-- :items="['New Code System'].concat(codeSystems)" -->
         <v-combobox
           v-model="authoringCodeSystem"
-          :items="['New Code System'].concat(codeSystems)"
+          :items="codeSystems"
           label="Authoring Code System"
           :rules="[required]"
           outlined
