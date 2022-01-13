@@ -6,23 +6,31 @@
         <h3 class="mt-4" v-if="connected">Connected!</h3>
       </v-row>
       <v-row>
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="serverUrl"
-            :rules="urlRules"
-            label="Server URL:"
-            :disabled="connected"
-            required
-          ></v-text-field>
-          <v-combobox
-          v-model="dependency"
-          :items="codeSystems"
-          label="Dependency (Select Code System)"
-          :rules="[required]"
-          outlined
-          dense
-          :disabled="connected"
-        ></v-combobox>
+        <v-col cols="6" md="6">
+          <v-row class="mt-4">
+            <v-col cols="10" md="10">
+              <v-text-field
+                v-model="serverUrl"
+                :rules="urlRules"
+                label="Server URL:"
+                :disabled="connected"
+                required
+              ></v-text-field>
+            </v-col>
+            <v-col cols="2" md="2">
+              <v-btn
+                depressed
+                small
+                color="accent"
+                @click="getData()"
+                class="mt-4"
+                :disabled="dataRetrieved || serverUrl == ''"
+                :loading="retrievingData"
+              >
+                Get data
+              </v-btn>
+            </v-col>
+          </v-row>
         <v-combobox
           v-model="authoringCodeSystem"
           :items="['New Code System'].concat(codeSystems)"
@@ -30,16 +38,25 @@
           :rules="[required]"
           outlined
           dense
-          :disabled="connected"
+          :disabled="connected || !dataRetrieved"
         ></v-combobox>
         <v-row v-if="authoringCodeSystem == 'New Code System'">
            <v-col>
+            <v-combobox
+              v-model="dependency"
+              :items="codeSystems"
+              label="Dependenciy (Select Code System)"
+              :rules="[required]"
+              outlined
+              dense
+              :disabled="connected || !dataRetrieved"
+            ></v-combobox>
             <v-text-field
               v-model="newCodeSystemName"
               :rules="newCodeSystemNameRules"
               label="New Code System Name:"
               required
-              :disabled="connected"
+              :disabled="connected || !dataRetrieved"
             ></v-text-field>
             <v-text-field
               v-model="newCodeSystemShortName"
@@ -47,7 +64,7 @@
               label="New Code System Short Name:"
               :counter=20
               required
-              :disabled="connected"
+              :disabled="connected || !dataRetrieved"
             ></v-text-field>
             <v-text-field
               v-model="namespace"
@@ -56,7 +73,7 @@
               :counter=7
               type="number"
               required
-              :disabled="connected"
+              :disabled="connected || !dataRetrieved"
             ></v-text-field>
            </v-col>
         </v-row>
@@ -67,7 +84,7 @@
           :rules="[required]"
           outlined
           dense
-          :disabled="connected"
+          :disabled="connected || !dataRetrieved"
         ></v-combobox>
         <v-text-field
           v-model="extensionLanguageCode"
@@ -76,7 +93,7 @@
           :counter=2
           type="text"
           required
-          :disabled="connected"
+          :disabled="connected || !dataRetrieved"
         ></v-text-field>
         <br><br><br>
         <v-btn
@@ -106,6 +123,23 @@
         </v-col>
       </v-row>
     </v-container>
+    <v-snackbar
+      v-model="snackbar"
+      :timeout="timeout"
+    >
+      {{ snackText }}
+
+      <template v-slot:action="{ attrs }">
+        <v-btn
+          color="blue"
+          text
+          v-bind="attrs"
+          @click="snackbar = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-form>
 </template>
 
@@ -114,25 +148,8 @@
     data: () => ({
       valid: false,
       dependency: '',
-      codeSystems: [
-        'SCT International Edition',
-        'SCT Spanish Edition',
-        'SCT US Edition',
-        'SCT UK Edition',
-        'SCT Australia Edition',
-        'SCT Argentina Edition'
-      ],
-      languageRefsets: [
-        'US English',
-        'GB English',
-        'English',
-        'French [International Organization for Standardization 639-1 code fr] language reference set',
-        'German [International Organization for Standardization 639-1 code de] language reference set',
-        'Japanese [International Organization for Standardization 639-1 code ja] language reference set',
-        'Chinese [International Organization for Standardization 639-1 code zh] language reference set',
-        'GMDN language reference set',
-        'Spanish language reference set'
-      ],
+      codeSystems: [],
+      languageRefsets: [],
       extensionLanguageRefset: '',
       extensionLanguageCode: '',
       extensionLanguageCodeRules: [v => v.length == 2 || 'Must be 2 chars long (ISO Language Code)'],
@@ -150,7 +167,12 @@
       namespaceRules: [v => v.length == 7 || 'Must be 7 nums long'],
       connected: false,
       connecting: false,
-      connectingMessage: ''
+      connectingMessage: '',
+      dataRetrieved: false,
+      retrievingData: false,
+      snackbar: false,
+      snackText: 'My timeout is set to 2000.',
+      timeout: 2000,
     }),
     methods: {
     required(value) {
@@ -158,6 +180,35 @@
         return 'Required.';
       }
       return !!value || 'Required.';
+    },
+    getData() {
+      var context = this;
+      this.retrievingData = true;
+      setTimeout(function() {
+        context.retrievingData = false;
+        context.dataRetrieved = true;
+        context.snackText = 'Data retrieved'
+        context.snackbar = true;
+        context.languageRefsets = [
+          'US English',
+          'GB English',
+          'English',
+          'French [International Organization for Standardization 639-1 code fr] language reference set',
+          'German [International Organization for Standardization 639-1 code de] language reference set',
+          'Japanese [International Organization for Standardization 639-1 code ja] language reference set',
+          'Chinese [International Organization for Standardization 639-1 code zh] language reference set',
+          'GMDN language reference set',
+          'Spanish language reference set'
+        ];
+        context.codeSystems = [
+          'SCT International Edition',
+          'SCT Spanish Edition',
+          'SCT US Edition',
+          'SCT UK Edition',
+          'SCT Australia Edition',
+          'SCT Argentina Edition'
+        ];
+      }, 1000);
     },
     connect(val) {
       var context = this;
@@ -184,6 +235,8 @@
                   extensionLanguageCode: context.extensionLanguageCode
                 }
                 context.$emit('connectionDetails', connectionDetails);
+                context.snackText = 'Connected'
+                context.snackbar = true;
               }, 1000);
             }, 1000);
           }, 1000);
@@ -203,6 +256,8 @@
                   extensionLanguageCode: context.extensionLanguageCode
                 }
                 context.$emit('connectionDetails', connectionDetails);
+                context.snackText = 'Connected'
+                context.snackbar = true;
           }, 1000);
         }
       } else {
@@ -213,6 +268,8 @@
           context.connecting = false;
           context.connectingMessage = '';
           context.$emit('connected', context.connected);
+          context.snackText = 'Disconnected'
+          context.snackbar = true;
         }, 1000);
       }
     }
