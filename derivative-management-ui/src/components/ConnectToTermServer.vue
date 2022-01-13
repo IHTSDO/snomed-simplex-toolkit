@@ -51,6 +51,15 @@
               dense
               :disabled="connected || !dataRetrieved"
             ></v-combobox>
+            <v-combobox
+              v-model="dependencyVersion"
+              :items="versions"
+              label="Dependenciy Version"
+              :rules="[required]"
+              outlined
+              dense
+              :disabled="connected || !dataRetrieved"
+            ></v-combobox>
             <v-text-field
               v-model="newCodeSystemName"
               :rules="newCodeSystemNameRules"
@@ -148,6 +157,8 @@
     data: () => ({
       valid: false,
       dependency: '',
+      dependencyVersion: '',
+      versions: [],
       codeSystems: [],
       languageRefsets: [],
       extensionLanguageRefset: '',
@@ -208,6 +219,13 @@
           'SCT Australia Edition',
           'SCT Argentina Edition'
         ];
+        context.versions = [
+          '20220131',
+          '20210731',
+          '20210131',
+          '20200731',
+          '20200131'
+        ]
       }, 1000);
     },
     connect(val) {
