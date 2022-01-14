@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
-import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
@@ -90,17 +89,25 @@ public class SnowstormClient {
 		}
 	}
 
-	public List<ConceptMini> getRefsets(String type) {
-		String url = String.format("/browser/%s/members?active=true&module=%s&referenceSet=%s", codeSystem.getBranchPath(), defaultModule, type);
+	public ConceptMini getRefset(String refsetId) {
+		List<ConceptMini> refsets = getRefsets(refsetId);
+		if (!refsets.isEmpty()) {
+			return refsets.get(0);
+		}
+		return null;
+	}
+
+	public List<ConceptMini> getRefsets(String refsetEcl) {
+		String url = String.format("/browser/%s/members?active=true&module=%s&referenceSet=%s", getBranch(), defaultModule, refsetEcl);
 		ResponseEntity<RefsetAggregationPage> response = restTemplate.exchange(url, HttpMethod.GET, null, RefsetAggregationPage.class);
 		return response.getBody().getRefsets().stream()
 				// Filter required when running against older versions of Snowstorm
 				.filter(conceptMini -> conceptMini.getModuleId().equals(defaultModule)).collect(Collectors.toList());
 	}
 
-	public List<RefsetMember> loadAllRefsetMembers(String branchPath, String refsetId) throws ServiceException {
+	public List<RefsetMember> loadAllRefsetMembers(String refsetId) throws ServiceException {
 		try {
-			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(String.format("/%s/members?referenceSet=%s&limit=%s", branchPath, refsetId, MAX_PAGE_SIZE),
+			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(String.format("/%s/members?referenceSet=%s&limit=%s", getBranch(), refsetId, MAX_PAGE_SIZE),
 					HttpMethod.GET,null, responseTypeRefsetPage);
 			Page<RefsetMember> page = response.getBody();
 			if (page.getTotal() > page.getItems().size()) {
@@ -113,10 +120,10 @@ public class SnowstormClient {
 		}
 	}
 
-	public void createUpdateRefsetMembers(String branchPath, List<RefsetMember> membersToCreateUpdate) throws ServiceException {
+	public void createUpdateRefsetMembers(List<RefsetMember> membersToCreateUpdate) throws ServiceException {
 		URI bulkJobUri;
 		try {
-			bulkJobUri = restTemplate.postForLocation(String.format("/%s/members/bulk", branchPath), membersToCreateUpdate);
+			bulkJobUri = restTemplate.postForLocation(String.format("/%s/members/bulk", getBranch()), membersToCreateUpdate);
 			if (bulkJobUri == null) {
 				throw new ServiceException("Failed to start bulk create/update refset member job - response location is null.");
 			}
@@ -144,18 +151,32 @@ public class SnowstormClient {
 		}
 	}
 
-	public void deleteRefsetMembers(String branchPath, List<RefsetMember> membersToDelete) throws ServiceException {
+	public void deleteRefsetMembers(List<RefsetMember> membersToDelete) throws ServiceException {
 		List<String> memberIds = membersToDelete.stream().map(RefsetMember::getMemberId).collect(Collectors.toList());
 		Map<String, List<String>> bulkDeleteRequest = new HashMap<>();
 		bulkDeleteRequest.put("memberIds", memberIds);
 		try {
-			restTemplate.exchange(String.format("/%s/members", branchPath), HttpMethod.DELETE, new HttpEntity<>(bulkDeleteRequest), Void.class);
+			restTemplate.exchange(String.format("/%s/members", getBranch()), HttpMethod.DELETE, new HttpEntity<>(bulkDeleteRequest), Void.class);
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "bulk delete refset members");
 		}
 	}
 
+	public CodeSystem getCodeSystem() {
+		return codeSystem;
+	}
+
 	private ClientException getServiceException(HttpStatusCodeException e, String action) {
 		return new ClientException(String.format("Failed to %s", action), e);
+	}
+
+	public String getBranch() {
+		if (codeSystem == null) {
+			throw new IllegalStateException("Code System is not yet set.");
+		}
+		if (codeSystem.getBranchPath() == null) {
+			throw new IllegalStateException("Code System branch path is not yet set.");
+		}
+		return codeSystem.getBranchPath();
 	}
 }

@@ -11,10 +11,12 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.function.Predicate.not;
@@ -23,6 +25,9 @@ import static java.util.function.Predicate.not;
 public class RefsetUpdateService {
 
 	public static final String LINE_BREAK = "------------------------------------";
+
+	@Autowired
+	private CodeSystemConfigService configService;
 
 	public void update(Product product, SnowstormClient snowstormClient) {
 		System.out.println(LINE_BREAK);
@@ -40,7 +45,7 @@ public class RefsetUpdateService {
 			// Read members from store
 			String branchPath = codeSystem.getBranchPath();
 			System.out.printf("Reading members from store...%n");
-			List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(branchPath, product.getRefsetId());
+			List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(branchPath);
 			System.out.printf("Read %s members from store.%n", allStoredMembers.size());
 			System.out.println();
 
@@ -98,12 +103,12 @@ public class RefsetUpdateService {
 			if (!membersToUpdateCreate.isEmpty()) {
 				// Send all as batch
 				System.out.print("Running bulk create/update... ");
-				snowstormClient.createUpdateRefsetMembers(branchPath, membersToUpdateCreate);
+				snowstormClient.createUpdateRefsetMembers(membersToUpdateCreate);
 				System.out.println("done");
 			}
 			if (!membersToDelete.isEmpty()) {
 				System.out.print("Running bulk delete... ");
-				snowstormClient.deleteRefsetMembers(branchPath, membersToDelete);
+				snowstormClient.deleteRefsetMembers(membersToDelete);
 				System.out.println("done");
 			}
 
@@ -175,5 +180,40 @@ public class RefsetUpdateService {
 			System.err.printf("Failed to read file %s%n.", membersFile.getAbsoluteFile());
 			e.printStackTrace();
 		}
+	}
+
+	public void downloadSimpleRefset(String refsetId, OutputStream outputStream) throws ServiceException, IOException {
+		SnowstormClient snowstormClient = configService.getSnowstormClient();
+		List<RefsetMember> members = snowstormClient.loadAllRefsetMembers(refsetId);
+		sortSimpleRefset(members);
+
+		Map<String, Function<RefsetMember, String>> simpleRefsetColumns = new LinkedHashMap<>();
+		simpleRefsetColumns.put("conceptId", RefsetMember::getReferencedComponentId);
+
+		Workbook workbook = createSpreadsheet(members, simpleRefsetColumns);
+		workbook.write(outputStream);
+	}
+
+	private Workbook createSpreadsheet(List<RefsetMember> members, Map<String, Function<RefsetMember, String>> simpleRefsetColumns) {
+		Workbook workbook = new XSSFWorkbook();
+		Sheet sheet = workbook.createSheet();
+		int rowOffset = 0;
+		Row headerRow = sheet.createRow(rowOffset++);
+		int columnOffset = 0;
+		for (String columnName : simpleRefsetColumns.keySet()) {
+			headerRow.createCell(columnOffset++).setCellValue(columnName);
+		}
+		for (RefsetMember member : members) {
+			columnOffset = 0;
+			Row row = sheet.createRow(rowOffset++);
+			for (Map.Entry<String, Function<RefsetMember, String>> column : simpleRefsetColumns.entrySet()) {
+				row.createCell(columnOffset++).setCellValue(column.getValue().apply(member));
+			}
+		}
+		return workbook;
+	}
+
+	private void sortSimpleRefset(List<RefsetMember> members) {
+		members.sort(Comparator.comparing(RefsetMember::getReferencedComponentId));
 	}
 }
