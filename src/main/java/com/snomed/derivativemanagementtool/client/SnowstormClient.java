@@ -89,6 +89,14 @@ public class SnowstormClient {
 		}
 	}
 
+	public ConceptMini getRefsetOrThrow(String refsetId) {
+		ConceptMini refset = getRefset(refsetId);
+		if (refset == null) {
+			throw new IllegalArgumentException("Refset not found.");
+		}
+		return refset;
+	}
+
 	public ConceptMini getRefset(String refsetId) {
 		List<ConceptMini> refsets = getRefsets(refsetId);
 		if (!refsets.isEmpty()) {
