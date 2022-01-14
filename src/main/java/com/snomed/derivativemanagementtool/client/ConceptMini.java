@@ -1,5 +1,7 @@
 package com.snomed.derivativemanagementtool.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class ConceptMini {
 
 	private String conceptId;
@@ -8,6 +10,16 @@ public class ConceptMini {
 	private DescriptionMini pt;
 	private String moduleId;
 	private Long activeMemberCount;
+
+	@JsonIgnore
+	public String getTerm() {
+		if (pt != null) {
+			return pt.getTerm();
+		} else if (fsn != null) {
+			return fsn.getTerm();
+		}
+		return conceptId;
+	}
 
 	public String getConceptId() {
 		return conceptId;
@@ -35,6 +47,11 @@ public class ConceptMini {
 
 	public void setActiveMemberCount(Long activeMemberCount) {
 		this.activeMemberCount = activeMemberCount;
+	}
+
+	public String getIdAndFsnTerm() {
+		DescriptionMini fsn = getFsn();
+		return String.format("%s |%s|", conceptId, fsn != null ? fsn.getTerm() : "");
 	}
 
 	public static final class DescriptionMini {

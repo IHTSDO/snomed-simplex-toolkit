@@ -22,7 +22,7 @@
                 depressed
                 small
                 color="accent"
-                @click="getData()"
+                @click="saveConfigLoadCodeSystems()"
                 class="mt-4"
                 :loading="retrievingData"
               >
@@ -31,8 +31,8 @@
             </v-col>
           </v-row>
           <v-row>
-            <v-combobox
-              v-model="authoringCodeSystem"
+            <v-autocomplete
+              v-model="appConfig.codesystem"
               :items="codeSystems"
               label="Authoring Code System"
               item-text="label"
@@ -41,7 +41,20 @@
               outlined
               dense
               :disabled="codeSystems.length === 0"
-            ></v-combobox>
+            ></v-autocomplete>
+          </v-row>
+          <v-row>
+            <v-autocomplete
+              v-model="appConfig.defaultModule"
+              :items="modules"
+              label="Authoring Module"
+              item-text="idAndFsnTerm"
+              item-value="conceptId"
+              :rules="[required]"
+              outlined
+              dense
+              :disabled="modules.length === 0"
+            ></v-autocomplete>
           </v-row>
           <v-row>
             <v-progress-circular
@@ -53,7 +66,7 @@
           </v-row>
           <v-row>
             <v-btn
-            :disabled="!authoringCodeSystem || this.codeSystems.length == 0"
+            :disabled="!this.appConfig.codesystem || this.codeSystems.length == 0 || !this.appConfig.defaultModule || this.modules.length == 0"
             @click="completeSetup()"
             >
               Save Configuration
@@ -92,10 +105,12 @@
         codesystem: ''
       },
       valid: false,
+
+      codeSystems: [],
+
       dependency: '',
       dependencyVersion: '',
       versions: [],
-      codeSystems: [],
       languageRefsets: [],
       extensionLanguageRefset: '',
       extensionLanguageCode: '',
@@ -104,7 +119,6 @@
         v => !!v || 'URL is required',
         // v => /.+\..+/.test(v) || 'URL must be valid',
       ],
-      authoringCodeSystem: '',
       newCodeSystemName: '',
       newCodeSystemNameRules: [v => v.length >= 5 && v.length <= 255 || 'Min 5 characters, max 255 characters'],
       newCodeSystemShortName: '',
@@ -121,6 +135,21 @@
       snackText: 'My timeout is set to 2000.',
       timeout: 2000,
     }),
+    computed: {
+      authoringCodeSystem: function() {
+        if (this.codeSystems && this.appConfig.codesystem) {
+          return this.codeSystems.find(item => item.shortName === this.appConfig.codesystem);
+        }
+        return null;
+      },
+      modules: function() {
+        if (this.authoringCodeSystem && this.authoringCodeSystem.modules) {
+          return this.authoringCodeSystem.modules;
+        } else {
+          return [];
+        }
+      }
+    },
     mounted: function() {
       this.loadConfig();
     },
@@ -137,15 +166,15 @@
         .then(data => {
           this.appConfig = data;
           if (this.appConfig.codesystem) {
-            this.getData();
+            this.loadCodeSystems();
           }
         });
     },
     saveConfig() {
       return new Promise((resolve, reject) => {
-        if (this.authoringCodeSystem) {
-          this.appConfig.codesystem = this.authoringCodeSystem.shortName;
-        }
+        // if (this.authoringCodeSystem) {
+        //   this.appConfig.codesystem = this.authoringCodeSystem.shortName;
+        // }
         const requestOptions = {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -160,39 +189,34 @@
           })
       });
     },
-    getData() {
-      // var context = this;
-      this.retrievingData = true;
-
+    saveConfigLoadCodeSystems() {
       this.saveConfig()
-        .then(() => {
-          axios
-            .get("/api/codesystems")
-            .then(response => {
-              this.codeSystems = response.data.items;
-              this.codeSystems.forEach(codesystem => {
-                codesystem.label = codesystem.shortName;
-                if (!codesystem.name && codesystem.shortName === "SNOMEDCT") {
-                  codesystem.name = "International Edition"
-                }
-                if (codesystem.name) {
-                  codesystem.label += ", " + codesystem.name;
-                }
-                if (codesystem.shortName === this.appConfig.codesystem) {
-                  this.authoringCodeSystem = codesystem;
-                }
-              })
-
-              this.retrievingData = false;
-              this.dataRetrieved = true;
-              this.connected = true;
-              this.connectFailed = false;
-            })
-            .catch(() => {
-              this.retrievingData = false;
-              this.connectFailed = true;
-              this.codeSystems = [];
-            })
+        .then(this.loadCodeSystems);
+    },
+    loadCodeSystems() {
+      this.retrievingData = true;
+      axios
+        .get("/api/codesystems")
+        .then(response => {
+          this.codeSystems = response.data.items;
+          this.codeSystems.forEach(codesystem => {
+            codesystem.label = codesystem.shortName;
+            if (!codesystem.name && codesystem.shortName === "SNOMEDCT") {
+              codesystem.name = "International Edition"
+            }
+            if (codesystem.name) {
+              codesystem.label += ", " + codesystem.name;
+            }
+          })
+          this.retrievingData = false;
+          this.dataRetrieved = true;
+          this.connected = true;
+          this.connectFailed = false;
+        })
+        .catch(() => {
+          this.retrievingData = false;
+          this.connectFailed = true;
+          this.codeSystems = [];
         })
     },
     completeSetup() {
