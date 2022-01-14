@@ -11,7 +11,7 @@
       <v-tab-item value="two">
         <RefsetsManager/>
       </v-tab-item>
-      <v-tab href="#five" :disabled="!connected">
+      <!-- <v-tab href="#five" :disabled="!connected">
         Maps
       </v-tab>
       <v-tab-item value="five">
@@ -25,7 +25,7 @@
       </v-tab-item>
       <v-tab href="#four" :disabled="!connected">
         Export
-      </v-tab>
+      </v-tab> -->
       <v-tab-item value="four">
         <ExportManager/>
       </v-tab-item>
@@ -39,9 +39,9 @@
 <script>
   import ConnectToTermServer from './ConnectToTermServer.vue';
   import RefsetsManager from './refsets/RefsetsManager.vue';
-  import TranslationManager from './translation/TranslationManager.vue';
-  import ExportManager from './export/ExportManager.vue'
-  import MapsManager from './maps/MapsManager.vue'
+  // import TranslationManager from './translation/TranslationManager.vue';
+  // import ExportManager from './export/ExportManager.vue'
+  // import MapsManager from './maps/MapsManager.vue'
 
 
   export default {
@@ -54,9 +54,9 @@
       // HelloWorld,
       ConnectToTermServer,
       RefsetsManager,
-      TranslationManager,
-      ExportManager,
-      MapsManager
+      // TranslationManager,
+      // ExportManager,
+      // MapsManager
     },
     methods: {
       connect(val) {
