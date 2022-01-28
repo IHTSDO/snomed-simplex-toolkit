@@ -4,6 +4,7 @@ import com.snomed.derivativemanagementtool.client.ConceptMini;
 import com.snomed.derivativemanagementtool.client.SnowstormClient;
 import com.snomed.derivativemanagementtool.domain.Concepts;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
+import com.snomed.derivativemanagementtool.service.ChangeSummary;
 import com.snomed.derivativemanagementtool.service.CodeSystemConfigService;
 import com.snomed.derivativemanagementtool.service.RefsetUpdateService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,9 +39,9 @@ public class RefsetController {
 	}
 
 	@PutMapping(path = "simple/{refsetId}/spreadsheet", consumes = "multipart/form-data")
-	public void uploadSimpleRefsetSpreadsheet(@PathVariable String refsetId, @RequestParam MultipartFile file) throws ServiceException {
+	public ChangeSummary uploadSimpleRefsetSpreadsheet(@PathVariable String refsetId, @RequestParam MultipartFile file) throws ServiceException {
 		try {
-			refsetUpdateService.updateSimpleRefsetViaSpreadsheet(refsetId, file.getInputStream());
+			return refsetUpdateService.updateSimpleRefsetViaSpreadsheet(refsetId, file.getInputStream());
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Failed to open uploaded file.");
 		}

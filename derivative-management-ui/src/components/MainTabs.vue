@@ -1,15 +1,15 @@
 <template>
   <v-container>
     <v-tabs>
-      <v-tab href="#one">Snowstorm</v-tab>
+      <v-tab href="#one">Setup</v-tab>
       <v-tab-item value="one">
-        <ConnectToTermServer @connected="connect" @connectionDetails="updateConnectionDetails"/>
+        <ConnectToTermServer @connected="connect" @updateAppConfig="updateAppConfig"/>
       </v-tab-item>
       <v-tab href="#two" :disabled="!connected">
           Simple Type Refsets
         </v-tab>
       <v-tab-item value="two">
-        <RefsetsManager/>
+        <RefsetsManager v-bind:connected="connected"/>
       </v-tab-item>
       <!-- <v-tab href="#five" :disabled="!connected">
         Maps
@@ -48,7 +48,8 @@
     name: 'MainTabs',
     data: () => ({
       connected: false,
-      connectionDetails: {}
+      connectionDetails: {},
+      topAppConfig: {}
     }),
     components: {
       // HelloWorld,
@@ -60,10 +61,12 @@
     },
     methods: {
       connect(val) {
+        console.log('event handler - connect');
         this.connected = val;
       },
-      updateConnectionDetails(val) {
-        this.connectionDetails = val;
+      updateAppConfig(val) {
+        console.log('event handler - updateAppConfig', val);
+        this.topAppConfig = val;
       }
     }
   }

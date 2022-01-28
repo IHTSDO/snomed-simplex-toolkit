@@ -1,5 +1,9 @@
 package com.snomed.derivativemanagementtool.client;
 
+import com.snomed.derivativemanagementtool.client.domain.Axiom;
+import com.snomed.derivativemanagementtool.client.domain.Concept;
+import com.snomed.derivativemanagementtool.client.domain.Description;
+import com.snomed.derivativemanagementtool.client.domain.Relationship;
 import com.snomed.derivativemanagementtool.domain.*;
 import com.snomed.derivativemanagementtool.exceptions.ClientException;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
@@ -13,9 +17,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SnowstormClient {
@@ -24,6 +27,7 @@ public class SnowstormClient {
 	private final ParameterizedTypeReference<Map<String, Object>> responseTypeMap = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
+	private final ParameterizedTypeReference<Page<ConceptMini>> responseTypeConceptMiniPage = new ParameterizedTypeReference<>(){};
 
 	private RestTemplate restTemplate;
 	private String codesystemShortname;
@@ -89,7 +93,7 @@ public class SnowstormClient {
 		}
 	}
 
-	public ConceptMini getRefsetOrThrow(String refsetId) {
+	public ConceptMini getRefsetOrThrow(String refsetId) throws ClientException {
 		ConceptMini refset = getRefset(refsetId);
 		if (refset == null) {
 			throw new IllegalArgumentException("Refset not found.");
@@ -97,7 +101,7 @@ public class SnowstormClient {
 		return refset;
 	}
 
-	public ConceptMini getRefset(String refsetId) {
+	public ConceptMini getRefset(String refsetId) throws ClientException {
 		List<ConceptMini> refsets = getRefsets(refsetId);
 		if (!refsets.isEmpty()) {
 			return refsets.get(0);
@@ -105,12 +109,37 @@ public class SnowstormClient {
 		return null;
 	}
 
-	public List<ConceptMini> getRefsets(String refsetEcl) {
+	public List<ConceptMini> getRefsets(String refsetEcl) throws ClientException {
+		Map<String, ConceptMini> refsetConceptMap = getConcepts(refsetEcl, defaultModule).getItems().stream()
+				.peek(conceptMini -> conceptMini.setActiveMemberCount(0L))
+				.collect(Collectors.toMap(ConceptMini::getConceptId, Function.identity()));
+
+		// Join active refset counts
 		String url = String.format("/browser/%s/members?active=true&module=%s&referenceSet=%s", getBranch(), defaultModule, refsetEcl);
-		ResponseEntity<RefsetAggregationPage> response = restTemplate.exchange(url, HttpMethod.GET, null, RefsetAggregationPage.class);
-		return response.getBody().getRefsets().stream()
-				// Filter required when running against older versions of Snowstorm
-				.filter(conceptMini -> conceptMini.getModuleId().equals(defaultModule)).collect(Collectors.toList());
+		try {
+			ResponseEntity<RefsetAggregationPage> response = restTemplate.exchange(url, HttpMethod.GET, null, RefsetAggregationPage.class);
+			for (ConceptMini refset : response.getBody().getRefsetsWithActiveMemberCount()) {
+				if (refsetConceptMap.containsKey(refset.getConceptId())) {
+					refsetConceptMap.get(refset.getConceptId()).setActiveMemberCount(refset.getActiveMemberCount());
+				}
+			}
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "fetch refset list");
+		}
+
+		ArrayList<ConceptMini> refsetConcepts = new ArrayList<>(refsetConceptMap.values());
+		refsetConcepts.sort(Comparator.comparing(ConceptMini::getTerm));
+		return refsetConcepts;
+	}
+
+	private Page<ConceptMini> getConcepts(String ecl, String moduleId) throws ClientException {
+		try {
+			String url = String.format("/%s/concepts?ecl=%s&limit=300&module=%s", getBranch(), ecl, moduleId != null ? moduleId : "");
+			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(url, HttpMethod.GET, null, responseTypeConceptMiniPage);
+			return response.getBody();
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "fetch concepts");
+		}
 	}
 
 	public List<RefsetMember> loadAllRefsetMembers(String refsetId) throws ServiceException {
@@ -129,6 +158,15 @@ public class SnowstormClient {
 	}
 
 	public void createUpdateRefsetMembers(List<RefsetMember> membersToCreateUpdate) throws ServiceException {
+
+		List<String> memberIds = membersToCreateUpdate.stream().map(RefsetMember::getMemberId).collect(Collectors.toList());
+		Set<String> memberIdSet = new HashSet<>();
+		for (String memberId : memberIds) {
+			if (!memberIdSet.add(memberId)) {
+				throw new IllegalArgumentException("create/update request contains a duplicate member id " + memberId);
+			}
+		}
+
 		URI bulkJobUri;
 		try {
 			bulkJobUri = restTemplate.postForLocation(String.format("/%s/members/bulk", getBranch()), membersToCreateUpdate);
@@ -186,5 +224,11 @@ public class SnowstormClient {
 			throw new IllegalStateException("Code System branch path is not yet set.");
 		}
 		return codeSystem.getBranchPath();
+	}
+
+	private String guessCaseSensitivity(String name) {
+		String termWithoutFirstChar = name.substring(1);
+		String caseSens = termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? "CASE_INSENSITIVE" : "ENTIRE_TERM_CASE_SENSITIVE";
+		return caseSens;
 	}
 }

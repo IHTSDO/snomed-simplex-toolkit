@@ -14,7 +14,7 @@
           transition="scale-transition"
           width="40"
         /> -->
-        <h1>SNOMED CT Extension Management Toolkit</h1>
+        <h1>SNOMED CT Simple Extension Toolkit</h1>
       </div>
 
       <v-spacer></v-spacer>
@@ -28,7 +28,6 @@
 </template>
 
 <script>
-// import HelloWorld from './components/HelloWorld';
 import MainTabs from './components/MainTabs.vue';
 
 export default {

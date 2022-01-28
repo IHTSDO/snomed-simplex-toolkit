@@ -11,7 +11,6 @@ public class Application implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) throws Exception {
-		System.out.println("Starting SNOMED-CT derivative management process..");
 	}
 
 	public static void main(String[] args) {

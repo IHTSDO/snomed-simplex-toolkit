@@ -9,7 +9,7 @@ public class RefsetAggregationPage {
 	private Map<String, Long> memberCountsByReferenceSet;
 	private Map<String, ConceptMini> referenceSets;
 
-	public List<ConceptMini> getRefsets() {
+	public List<ConceptMini> getRefsetsWithActiveMemberCount() {
 		return referenceSets.values().stream()
 				.peek(refset -> refset.setActiveMemberCount(memberCountsByReferenceSet.getOrDefault(refset.getConceptId(), 0L)))
 				.collect(Collectors.toList());

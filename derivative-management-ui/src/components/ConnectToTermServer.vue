@@ -171,10 +171,8 @@
         });
     },
     saveConfig() {
+      this.$emit('connected', false);
       return new Promise((resolve, reject) => {
-        // if (this.authoringCodeSystem) {
-        //   this.appConfig.codesystem = this.authoringCodeSystem.shortName;
-        // }
         const requestOptions = {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -195,11 +193,12 @@
     },
     loadCodeSystems() {
       this.retrievingData = true;
+      var context = this;
       axios
         .get("/api/codesystems")
         .then(response => {
-          this.codeSystems = response.data.items;
-          this.codeSystems.forEach(codesystem => {
+          context.codeSystems = response.data.items;
+          context.codeSystems.forEach(codesystem => {
             codesystem.label = codesystem.shortName;
             if (!codesystem.name && codesystem.shortName === "SNOMEDCT") {
               codesystem.name = "International Edition"
@@ -208,10 +207,16 @@
               codesystem.label += ", " + codesystem.name;
             }
           })
-          this.retrievingData = false;
-          this.dataRetrieved = true;
-          this.connected = true;
-          this.connectFailed = false;
+          context.retrievingData = false;
+          context.dataRetrieved = true;
+          context.connected = true;
+          context.connectFailed = false;
+          if (context.appConfig.codesystem && 
+                context.codeSystems.length != 0 && 
+                context.appConfig.defaultModule && 
+                context.modules.length != 0) {
+            context.completeSetup();
+          }
         })
         .catch(() => {
           this.retrievingData = false;

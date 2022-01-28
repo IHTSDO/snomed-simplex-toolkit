@@ -31,7 +31,7 @@ public class CodeSystemConfigService {
 		return snowstormClient;
 	}
 
-	private void updateSnowstormClient(CodeSystemProperties config) throws ServiceException {
+	private void updateSnowstormClient(CodeSystemProperties config) {
 		if (snowstormClient == null) {
 			snowstormClient = new SnowstormClient(config);
 		} else {

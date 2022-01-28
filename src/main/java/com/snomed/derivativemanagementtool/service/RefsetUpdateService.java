@@ -43,14 +43,14 @@ public class RefsetUpdateService {
 		workbook.write(outputStream);
 	}
 
-	public void updateSimpleRefsetViaSpreadsheet(String refsetId, InputStream inputStream) throws ServiceException {
+	public ChangeSummary updateSimpleRefsetViaSpreadsheet(String refsetId, InputStream inputStream) throws ServiceException {
 		// Check refset exists
 		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId);
 		List<String> conceptIds = spreadsheetService.readSimpleRefsetSpreadsheet(inputStream);
-		update(refset, conceptIds);
+		return update(refset, conceptIds);
 	}
 
-	private void update(ConceptMini refset, List<String> inputMembers) throws ServiceException {
+	private ChangeSummary update(ConceptMini refset, List<String> inputMembers) throws ServiceException {
 		String refsetId = refset.getConceptId();
 		String refsetTerm = refset.getTerm();
 		try {
@@ -62,7 +62,11 @@ public class RefsetUpdateService {
 			logger.info("Updating refset {} \"{}\", loaded {} members from Snowstorm for comparison.", refsetId, refsetTerm, allStoredMembers.size());
 
 			Map<String, List<RefsetMember>> storedMemberMap = new HashMap<>();
+			int activeMembersBefore = 0;
 			for (RefsetMember storedMember : allStoredMembers) {
+				if (storedMember.isActive()) {
+					activeMembersBefore++;
+				}
 				storedMemberMap.computeIfAbsent(storedMember.getReferencedComponentId(), key -> new ArrayList<>()).add(storedMember);
 			}
 
@@ -71,6 +75,9 @@ public class RefsetUpdateService {
 			List<RefsetMember> membersToUpdate = new ArrayList<>();
 			List<RefsetMember> membersToKeep = new ArrayList<>();
 
+			int added = 0;
+			int removed;
+
 			CodeSystemProperties config = configService.getConfig();
 			for (String inputMember : inputMembers) {
 				// Lookup existing member(s) for component
@@ -78,6 +85,7 @@ public class RefsetUpdateService {
 				if (storedMembers.isEmpty()) {
 					// None exist, create
 					membersToCreate.add(new RefsetMember(refsetId, config.getDefaultModule(), inputMember));
+					added++;
 				} else {
 					RefsetMember memberToKeep;
 					if (storedMembers.size() == 1) {
@@ -92,6 +100,7 @@ public class RefsetUpdateService {
 						// Not active, update to make active
 						memberToKeep.setActive(true);
 						membersToUpdate.add(memberToKeep);
+						added++;
 					} else {
 						// Keep as-is
 						membersToKeep.add(memberToKeep);
@@ -100,6 +109,7 @@ public class RefsetUpdateService {
 			}
 
 			List<RefsetMember> membersToRemove = allStoredMembers.stream().filter(not(membersToKeep::contains)).collect(Collectors.toList());
+			removed = membersToRemove.size();
 
 			List<RefsetMember> membersToInactivate = membersToRemove.stream().filter(RefsetMember::isReleased).collect(Collectors.toList());
 			List<RefsetMember> membersToDelete = membersToRemove.stream().filter(not(RefsetMember::isReleased)).collect(Collectors.toList());
@@ -122,6 +132,7 @@ public class RefsetUpdateService {
 			}
 
 			logger.info("Processing refset {} \"{}\" complete.", refsetId, refsetTerm);
+			return new ChangeSummary(added, removed, (activeMembersBefore + added) - removed);
 		} catch (ServiceException e) {
 			throw new ServiceException(String.format("Processing refset %s \"%s\" failed.", refsetId, refsetTerm), e);
 		}
