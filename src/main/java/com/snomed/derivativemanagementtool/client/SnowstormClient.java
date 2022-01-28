@@ -208,6 +208,21 @@ public class SnowstormClient {
 		}
 	}
 
+	public Concept createSimpleMetadataConcept(String parentConceptId, String preferredTerm, String tag) throws ClientException {
+		String caseSens = guessCaseSensitivity(preferredTerm);
+		Concept concept = new Concept()
+				.addDescription(new Description(Concepts.FSN, "en", String.format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
+				.addDescription(new Description(Concepts.SYNONYM, "en", preferredTerm, caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
+				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(Concepts.IS_A, parentConceptId))))
+				.addRelationship(Relationship.inferred(Concepts.IS_A, parentConceptId));
+		try {
+			ResponseEntity<Concept> response = restTemplate.exchange(String.format("/browser/%s/concepts", getBranch()), HttpMethod.POST, new HttpEntity<>(concept), Concept.class);
+			return response.getBody();
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "create concept");
+		}
+	}
+
 	public CodeSystem getCodeSystem() {
 		return codeSystem;
 	}

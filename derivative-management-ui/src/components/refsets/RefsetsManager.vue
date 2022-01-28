@@ -1,24 +1,48 @@
 <template>
   <v-container>
     <v-row>
-      <h3 class="mt-4">Refsets Manager - connected {{connected}}</h3>
+      <h3 class="mt-4">Refsets Manager</h3>
     </v-row>
     <v-row>
       <v-col cols="12" md="6">
         <RefsetsList @selectedRefset="captureSelection" v-bind:refsets="refsets" />
         <br>
-        <!-- <v-btn
+        <v-btn
           depressed
           color="primary"
+          @click="showCreateForm = true"
+          v-if="!showCreateForm"
         >
           Create new Refset
-        </v-btn> -->
+        </v-btn>
       </v-col>
       <v-col md="6">
-        <RefsetDetails v-if="selectedRefset != null" 
+        <RefsetDetails v-if="!showCreateForm && selectedRefset != null" 
           mode="refset"
           v-bind:selectedRefset="selectedRefset"
         />
+        <v-card class="px-4" outlined v-if="showCreateForm">
+          <v-form>
+            <v-container>
+              <h4>Create new reference set</h4>
+              <v-text-field
+                v-model="newRefsetTerm"
+                :counter="200"
+                label="Reference set name"
+                hint="Example: Dentistry reference set"
+                persistent-hint
+                required
+                style="margin-bottom: 30px;"
+              ></v-text-field>
+              <v-btn
+                color="success"
+                @click="createConcept"
+              >
+                Create refset concept
+              </v-btn>
+            </v-container>
+          </v-form>
+        </v-card>
       </v-col>
     </v-row>
   </v-container>
@@ -34,7 +58,9 @@
     data: () => ({
       name: 'RefsetsManager',
       refsets: [],
-      selectedRefset: null
+      selectedRefset: null,
+      showCreateForm: false,
+      newRefsetTerm: ""
     }),
     components: {
       RefsetsList,
@@ -60,8 +86,21 @@
           })
       },
       captureSelection(refset) {
+        this.showCreateForm = false;
         this.selectedRefset = refset;
-        // alert(this.selectedRefset.name)
+      },
+      createForm() {
+        this.selectedRefset = null
+      },
+      createConcept() {
+        axios
+          .post('/api/refsets/simple', {preferredTerm: this.newRefsetTerm})
+          .then(response => {
+            response.data;
+            this.showCreateForm = false;
+            this.newRefsetTerm = null;
+            this.loadList();
+          })
       }
     }
   }

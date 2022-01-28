@@ -2,8 +2,10 @@ package com.snomed.derivativemanagementtool.rest;
 
 import com.snomed.derivativemanagementtool.client.ConceptMini;
 import com.snomed.derivativemanagementtool.client.SnowstormClient;
+import com.snomed.derivativemanagementtool.client.domain.Concept;
 import com.snomed.derivativemanagementtool.domain.Concepts;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
+import com.snomed.derivativemanagementtool.rest.pojos.CreateConceptRequest;
 import com.snomed.derivativemanagementtool.service.ChangeSummary;
 import com.snomed.derivativemanagementtool.service.CodeSystemConfigService;
 import com.snomed.derivativemanagementtool.service.RefsetUpdateService;
@@ -28,6 +30,14 @@ public class RefsetController {
 	@GetMapping("simple")
 	public List<ConceptMini> listSimpleRefsets() throws ServiceException {
 		return getSnowstormClient().getRefsets("<" + Concepts.SIMPLE_TYPE_REFSET);
+	}
+
+	@PostMapping("simple")
+	public ConceptMini createSimpleRefset(@RequestBody CreateConceptRequest createConceptRequest) throws ServiceException {
+		SnowstormClient snowstormClient = getSnowstormClient();
+		Concept concept = snowstormClient.createSimpleMetadataConcept(Concepts.SIMPLE_TYPE_REFSET, createConceptRequest.getPreferredTerm(), "foundation metadata concept");
+		ConceptMini refset = snowstormClient.getRefset(concept.getConceptId());
+		return refset;
 	}
 
 	@GetMapping(path = "simple/{refsetId}/spreadsheet", produces="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
