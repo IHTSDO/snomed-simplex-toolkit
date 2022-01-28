@@ -2,10 +2,7 @@ package com.snomed.derivativemanagementtool.service;
 
 import com.snomed.derivativemanagementtool.domain.RefsetMember;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
@@ -54,7 +51,14 @@ public class SpreadsheetService {
 				} else {
 					Cell cell = cells.getCell(0);
 					if (cell != null) {
-						String cellValue = cell.getStringCellValue();
+						CellType cellType = cell.getCellType();
+						String cellValue = "";
+						if (cellType == CellType.STRING) {
+							cellValue = cell.getStringCellValue();
+						} else if (cellType == CellType.NUMERIC) {
+							int value = (int) cell.getNumericCellValue();
+							cellValue = Integer.toString(value);
+						}
 						if (cellValue != null && !cellValue.isBlank()) {
 							members.add(cellValue);
 						}
