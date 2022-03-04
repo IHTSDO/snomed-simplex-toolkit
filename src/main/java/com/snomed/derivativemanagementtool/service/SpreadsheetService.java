@@ -3,6 +3,7 @@ package com.snomed.derivativemanagementtool.service;
 import com.snomed.derivativemanagementtool.domain.RefsetMember;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class SpreadsheetService {
@@ -55,11 +58,33 @@ public class SpreadsheetService {
 						String cellValue = "";
 						if (cellType == CellType.STRING) {
 							cellValue = cell.getStringCellValue();
+							if (cellValue != null && cellValue.contains("|")) {
+								cellValue = cellValue.substring(cellValue.indexOf("|")).trim();
+							}
 						} else if (cellType == CellType.NUMERIC) {
-							int value = (int) cell.getNumericCellValue();
-							cellValue = Integer.toString(value);
+							String rawValue = ((XSSFCell) cell).getRawValue();
+							if (rawValue.contains("E")) {
+								Pattern pattern = Pattern.compile("([0-9.]+)E\\+([0-9]+)");
+								Matcher matcher = pattern.matcher(rawValue);
+								if (matcher.matches()) {
+									System.out.println("Converting raw value " + rawValue);
+									String part = matcher.group(1).replace(".", "");
+									part = part + "10";
+									char checkSum = VerhoeffCheck.calculateChecksum(part, false);
+									rawValue = part + checkSum;
+									System.out.println("Raw value " + rawValue);
+								}
+							}
+
+							long value = (long) cell.getNumericCellValue();
+							cellValue = Long.toString(value);
+//							System.out.println("Cell value " + cellValue);
 						}
+
 						if (cellValue != null && !cellValue.isBlank()) {
+							// Fix checksum
+							char checkDigit = VerhoeffCheck.calculateChecksum(cellValue, true);
+							cellValue = cellValue.substring(0, cellValue.length() - 1) + checkDigit;
 							members.add(cellValue);
 						}
 					}
