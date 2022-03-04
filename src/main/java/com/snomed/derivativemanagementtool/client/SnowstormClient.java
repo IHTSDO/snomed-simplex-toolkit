@@ -1,9 +1,6 @@
 package com.snomed.derivativemanagementtool.client;
 
-import com.snomed.derivativemanagementtool.client.domain.Axiom;
-import com.snomed.derivativemanagementtool.client.domain.Concept;
-import com.snomed.derivativemanagementtool.client.domain.Description;
-import com.snomed.derivativemanagementtool.client.domain.Relationship;
+import com.snomed.derivativemanagementtool.client.domain.*;
 import com.snomed.derivativemanagementtool.domain.*;
 import com.snomed.derivativemanagementtool.exceptions.ClientException;
 import com.snomed.derivativemanagementtool.exceptions.ServiceException;
@@ -28,6 +25,7 @@ public class SnowstormClient {
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<ConceptMini>> responseTypeConceptMiniPage = new ParameterizedTypeReference<>(){};
+	private final ParameterizedTypeReference<Page<Long>> responseTypeSCTIDPage = new ParameterizedTypeReference<>(){};
 
 	private RestTemplate restTemplate;
 	private String codesystemShortname;
@@ -220,6 +218,23 @@ public class SnowstormClient {
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "create concept");
+		}
+	}
+
+	public List<Long> getConceptIds(List<String> conceptIds) throws ServiceException {
+		// FIXME: Limited to 10K
+		ConceptSearchRequest searchRequest = new ConceptSearchRequest(conceptIds);
+		searchRequest.setReturnIdOnly(true);
+		try {
+			ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(String.format("/%s/concepts/search", getBranch()), HttpMethod.POST,
+					new HttpEntity<>(searchRequest), responseTypeSCTIDPage);
+			Page<Long> page = pageOfIds.getBody();
+			if (page != null && page.getTotal() > page.getItems().size()) {
+				throw new ServiceException("Failed to load concept list greater than 10K");
+			}
+			return page.getItems();
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "fetch concept ids");
 		}
 	}
 

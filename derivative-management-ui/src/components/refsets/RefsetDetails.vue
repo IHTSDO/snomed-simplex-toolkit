@@ -15,7 +15,7 @@
         @click="downloadSpreadsheet"
         style="margin: 8px"
       >
-        Download {{ mode }} (XLSX)
+        Download as Spreadsheet
       </v-btn>
     </v-card-actions>
     <v-card-actions class="mt-4">
@@ -33,7 +33,17 @@
         @click="handleFileUpload"
       >
         Upload Spreadsheet
-        <v-icon right dark>mdi-cloud-upload</v-icon>
+        <!-- <v-icon right dark>mdi-cloud-upload</v-icon> -->
+      </v-btn>
+    </v-card-actions>
+    <v-card-actions class="mt-4">
+      <v-btn
+        depressed
+        color="primary"
+        @click="downloadSpreadsheet"
+        style="margin: 8px"
+      >
+        Migrate inactive members
       </v-btn>
     </v-card-actions>
     <v-snackbar v-model="infoSnackbar">

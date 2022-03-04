@@ -61,6 +61,15 @@ public class RefsetUpdateService {
 			List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(refsetId);
 			logger.info("Updating refset {} \"{}\", loaded {} members from Snowstorm for comparison.", refsetId, refsetTerm, allStoredMembers.size());
 
+			List<String> conceptsExist = snowstormClient.getConceptIds(inputMembers).stream().map(Object::toString).collect(Collectors.toList());
+			List<String> conceptsDoNotExist = new ArrayList<>(inputMembers);
+			conceptsDoNotExist.removeAll(conceptsExist);
+			if (!conceptsDoNotExist.isEmpty()) {
+				logger.error("{} concepts do not exist: {}", conceptsDoNotExist.size(), conceptsDoNotExist);
+				// TODO: Should we alert the user?
+				inputMembers = conceptsExist;
+			}
+
 			Map<String, List<RefsetMember>> storedMemberMap = new HashMap<>();
 			int activeMembersBefore = 0;
 			for (RefsetMember storedMember : allStoredMembers) {

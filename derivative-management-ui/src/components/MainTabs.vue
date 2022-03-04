@@ -6,12 +6,12 @@
         <ConnectToTermServer @connected="connect" @updateAppConfig="updateAppConfig"/>
       </v-tab-item>
       <v-tab href="#two" :disabled="!connected">
-          Simple Type Refsets
+          Simple Refsets
         </v-tab>
       <v-tab-item value="two">
         <RefsetsManager v-bind:connected="connected"/>
       </v-tab-item>
-      <!-- <v-tab href="#five" :disabled="!connected">
+      <v-tab href="#five" :disabled="!connected">
         Maps
       </v-tab>
       <v-tab-item value="five">
@@ -24,8 +24,8 @@
         <TranslationManager :connectionDetails="connectionDetails"/>
       </v-tab-item>
       <v-tab href="#four" :disabled="!connected">
-        Export
-      </v-tab> -->
+        Release &amp; Export
+      </v-tab>
       <v-tab-item value="four">
         <ExportManager/>
       </v-tab-item>
