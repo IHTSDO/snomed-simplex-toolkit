@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("refsets")
+@RequestMapping("api/refsets")
 public class RefsetController {
 
 	@Autowired

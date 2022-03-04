@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Api(tags = "Version", description = "Build Version")
+@RequestMapping("api")
 public class VersionController {
 
 	@Autowired(required = false)
