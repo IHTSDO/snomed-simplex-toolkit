@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.snomed</groupId>
-	<artifactId>derivative-management-tool</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>derivative-management-tool</name>
-	<description>SNOMED CT Derivative Management Tool</description>
+	<artifactId>simple-extension-toolkit</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<name>Simple Extension Toolkit</name>
+	<description>Toolkit for the creation and maintenance of simple SNOMED CT Extensions</description>
 	<properties>
 		<java.version>11</java.version>
 	</properties>
@@ -90,7 +90,7 @@
 									<outputDirectory>${basedir}/target/classes/static</outputDirectory>
 									<resources>
 										<resource>
-											<directory>derivative-management-ui/dist</directory>
+											<directory>simple-extension-toolkit-ui/dist</directory>
 										</resource>
 									</resources>
 								</configuration>
@@ -102,7 +102,7 @@
 						<artifactId>frontend-maven-plugin</artifactId>
 						<version>1.6</version>
 						<configuration>
-							<workingDirectory>derivative-management-ui</workingDirectory>
+							<workingDirectory>simple-extension-toolkit-ui</workingDirectory>
 						</configuration>
 						<executions>
 							<execution>
