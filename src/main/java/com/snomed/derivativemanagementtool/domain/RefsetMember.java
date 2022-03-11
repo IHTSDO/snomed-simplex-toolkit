@@ -1,5 +1,7 @@
 package com.snomed.derivativemanagementtool.domain;
 
+import com.snomed.derivativemanagementtool.client.ConceptMini;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -15,6 +17,7 @@ public class RefsetMember {
 	private String referencedComponentId;
 	private Map<String, String> additionalFields;
 	private boolean released;
+	private ConceptMini referencedComponent;
 
 	public RefsetMember() {
 		// Used by object mapper
@@ -27,6 +30,19 @@ public class RefsetMember {
 		this.moduleId = moduleId;
 		this.referencedComponentId = referencedComponentId;
 		additionalFields = new HashMap<>();
+	}
+
+	public RefsetMember setAdditionalField(String fieldName, String value) {
+		additionalFields.put(fieldName, value);
+		return this;
+	}
+
+	public String getReferencedComponentFsnOrBlank() {
+		String fsn = null;
+		if (referencedComponent != null && referencedComponent.getFsn() != null) {
+			fsn = referencedComponent.getFsn().getTerm();
+		}
+		return fsn != null ? fsn : "";
 	}
 
 	public String getMemberId() {
@@ -65,6 +81,10 @@ public class RefsetMember {
 		return released;
 	}
 
+	public ConceptMini getReferencedComponent() {
+		return referencedComponent;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
@@ -77,5 +97,4 @@ public class RefsetMember {
 	public int hashCode() {
 		return Objects.hash(memberId);
 	}
-
 }

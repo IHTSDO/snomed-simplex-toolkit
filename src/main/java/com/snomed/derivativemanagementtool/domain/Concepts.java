@@ -5,6 +5,9 @@ public class Concepts {
 	// 446609009 |Simple type reference set (foundation metadata concept)|
 	public static final String SIMPLE_TYPE_REFSET = "446609009";
 
+	// 1193543008 |Simple map with correlation to SNOMED CT type reference set (foundation metadata concept)|
+	public static final String SIMPLE_MAP_WITH_CORRELATION_TO_SNOMEDCT_REFSET = "1193543008";
+
 	// 900000000000003001 |Fully specified name (core metadata concept)|
 	public static final String FSN = "900000000000003001";
 

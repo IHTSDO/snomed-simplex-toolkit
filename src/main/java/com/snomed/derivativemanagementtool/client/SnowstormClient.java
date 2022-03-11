@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 public class SnowstormClient {
 
-	public static final String MAX_PAGE_SIZE = "10000";
+	public static final int MAX_PAGE_SIZE = 10_000;
 	private final ParameterizedTypeReference<Map<String, Object>> responseTypeMap = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
@@ -126,7 +126,7 @@ public class SnowstormClient {
 		}
 
 		ArrayList<ConceptMini> refsetConcepts = new ArrayList<>(refsetConceptMap.values());
-		refsetConcepts.sort(Comparator.comparing(ConceptMini::getTerm));
+		refsetConcepts.sort(Comparator.comparing(ConceptMini::getPtOrFsnOrConceptId));
 		return refsetConcepts;
 	}
 
@@ -153,6 +153,13 @@ public class SnowstormClient {
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "load refset");
 		}
+	}
+
+	public int countAllActiveRefsetMembers(String refsetId) {
+		ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(String.format("/%s/members?referenceSet=%s&active=true&limit=1", getBranch(), refsetId),
+				HttpMethod.GET,null, responseTypeRefsetPage);
+		Page<RefsetMember> page = response.getBody();
+		return Math.toIntExact(page.getTotal());
 	}
 
 	public void createUpdateRefsetMembers(List<RefsetMember> membersToCreateUpdate) throws ServiceException {
@@ -222,9 +229,21 @@ public class SnowstormClient {
 	}
 
 	public List<Long> getConceptIds(List<String> conceptIds) throws ServiceException {
+
+		if (conceptIds.isEmpty()) {
+			return new ArrayList<>();
+		}
+
 		// FIXME: Limited to 10K
 		ConceptSearchRequest searchRequest = new ConceptSearchRequest(conceptIds);
 		searchRequest.setReturnIdOnly(true);
+		searchRequest.setActiveFilter(true);
+		searchRequest.setLimit(MAX_PAGE_SIZE);
+		System.out.print("[");
+		for (String conceptId : conceptIds) {
+			System.out.print("\"" + conceptId + "\",");
+		}
+		System.out.println("\"1\"]");
 		try {
 			ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(String.format("/%s/concepts/search", getBranch()), HttpMethod.POST,
 					new HttpEntity<>(searchRequest), responseTypeSCTIDPage);

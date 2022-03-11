@@ -12,7 +12,7 @@ public class ConceptMini {
 	private Long activeMemberCount;
 
 	@JsonIgnore
-	public String getTerm() {
+	public String getPtOrFsnOrConceptId() {
 		if (pt != null) {
 			return pt.getTerm();
 		} else if (fsn != null) {

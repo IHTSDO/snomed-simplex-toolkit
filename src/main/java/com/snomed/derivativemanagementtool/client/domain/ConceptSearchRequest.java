@@ -7,6 +7,7 @@ public class ConceptSearchRequest {
 	private Collection<String> conceptIds;
 	private Boolean activeFilter;
 	private boolean returnIdOnly;
+	private int limit;
 
 	public ConceptSearchRequest(Collection<String> conceptIds) {
 		this.conceptIds = conceptIds;
@@ -34,5 +35,13 @@ public class ConceptSearchRequest {
 
 	public void setReturnIdOnly(boolean returnIdOnly) {
 		this.returnIdOnly = returnIdOnly;
+	}
+
+	public void setLimit(Integer limit) {
+		this.limit = limit;
+	}
+
+	public int getLimit() {
+		return limit;
 	}
 }
