@@ -1,32 +1,32 @@
 <template>
   <v-container>
     <v-tabs>
-      <v-tab href="#one">Setup</v-tab>
-      <v-tab-item value="one">
+      <v-tab href="#setup">Setup</v-tab>
+      <v-tab-item value="setup">
         <ConnectToTermServer @connected="connect" @updateAppConfig="updateAppConfig"/>
       </v-tab-item>
-      <v-tab href="#two" :disabled="!connected">
+      <v-tab href="#simple" :disabled="!connected">
           Simple Refsets
         </v-tab>
-      <v-tab-item value="two">
-        <RefsetsManager v-bind:connected="connected"/>
+      <v-tab-item value="simple">
+        <RefsetsManager v-bind:connected="connected" :refsetEndpoint="'simple'"/>
       </v-tab-item>
-      <v-tab href="#five" :disabled="!connected">
-        Maps
+      <v-tab href="#simple-map-to-snomed-with-correlation" :disabled="!connected">
+        Simple Map to SNOMED with Correlation
       </v-tab>
-      <v-tab-item value="five">
-        <MapsManager/>
+      <v-tab-item value="simple-map-to-snomed-with-correlation">
+        <RefsetsManager v-bind:connected="connected" :refsetEndpoint="'simple-map-to-snomed-with-correlation'"/>
       </v-tab-item>
-      <v-tab href="#three" :disabled="!connected">
+      <v-tab href="#translation" :disabled="!connected">
         Translation
       </v-tab>
-      <v-tab-item value="three">
+      <v-tab-item value="translation">
         <TranslationManager :connectionDetails="connectionDetails"/>
       </v-tab-item>
-      <v-tab href="#four" :disabled="!connected">
+      <v-tab href="#release" :disabled="!connected">
         Release &amp; Export
       </v-tab>
-      <v-tab-item value="four">
+      <v-tab-item value="release">
         <ExportManager/>
       </v-tab-item>
     </v-tabs>

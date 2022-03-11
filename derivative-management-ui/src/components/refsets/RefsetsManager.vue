@@ -1,7 +1,7 @@
 <template>
   <v-container>
     <v-row>
-      <h3 class="mt-4">Refsets Manager</h3>
+      <h3 class="mt-4">Refset Manager</h3>
     </v-row>
     <v-row>
       <v-col cols="12" md="6">
@@ -19,6 +19,7 @@
       <v-col md="6">
         <RefsetDetails v-if="!showCreateForm && selectedRefset != null" 
           mode="refset"
+          :refsetEndpoint="refsetEndpoint"
           v-bind:selectedRefset="selectedRefset"
         />
         <v-card class="px-4" outlined v-if="showCreateForm">
@@ -54,7 +55,14 @@
   import axios from 'axios';
 
   export default {
-    props: ['connected', 'appConfig'],
+    props: {
+      connected: {
+        type: Boolean
+      },
+      refsetEndpoint: {
+        type: String
+      }
+    },
     data: () => ({
       name: 'RefsetsManager',
       refsets: [],
@@ -80,7 +88,7 @@
       loadList() {
         console.log('refset manager - load list');
         axios
-          .get('/api/refsets/simple')
+          .get('/api/refsets/' + this.refsetEndpoint)
           .then(response => {
             this.refsets = response.data;
           })
@@ -94,7 +102,7 @@
       },
       createConcept() {
         axios
-          .post('/api/refsets/simple', {preferredTerm: this.newRefsetTerm})
+          .post('/api/refsets/' + this.refsetEndpoint, {preferredTerm: this.newRefsetTerm})
           .then(response => {
             response.data;
             this.showCreateForm = false;

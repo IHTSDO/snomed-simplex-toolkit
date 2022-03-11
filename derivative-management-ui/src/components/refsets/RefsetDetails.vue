@@ -71,7 +71,8 @@
       mode: {
         type: String,
         default: 'refset'
-      }
+      },
+      refsetEndpoint: String
     },
     data: () => ({
       uploading: false,
@@ -88,7 +89,7 @@
     },
     methods: {
       downloadSpreadsheet() {
-        window.open('/api/refsets/simple/' + this.selectedRefset.conceptId + '/spreadsheet');
+        window.open('/api/refsets/' + this.refsetEndpoint + '/' + this.selectedRefset.conceptId + '/spreadsheet');
       },
       onFileChange(event) {
         if (event && event.lastModified) {
@@ -105,7 +106,7 @@
         this.infoSnackbar = false;
         this.errorSnackbar = false;
         var context = this;
-        axios.put('/api/refsets/simple/' + this.selectedRefset.conceptId + '/spreadsheet',
+        axios.put('/api/refsets/' + this.refsetEndpoint + '/' + this.selectedRefset.conceptId + '/spreadsheet',
           formData,
           {
             headers: {
@@ -116,7 +117,7 @@
           console.log('SUCCESS!!');
           context.uploading = false;
           context.infoSnackbar = true;
-          context.infoMessage = "Successful upload. " + response.data.added + " members added, " + response.data.removed + " removed.";
+          context.infoMessage = "Successful upload. " + response.data.added + " members added, " + response.data.updated + " updated, " + response.data.removed + " removed.";
           context.selectedRefset.activeMemberCount = response.data.newTotal;
         })
         .catch(function(e){
