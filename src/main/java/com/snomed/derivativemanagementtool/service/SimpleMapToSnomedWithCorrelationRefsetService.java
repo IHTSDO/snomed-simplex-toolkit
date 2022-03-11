@@ -21,6 +21,9 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	public static final String NO_MAP_FLAG = "No map flag";
 	public static final String STATUS = "Status";
 	public static final String ACCEPTED = "ACCEPTED";
+	public static final String MAP_SOURCE = "mapSource";
+	public static final String CORRELATION_ID = "correlationId";
+	public static final String NO_SCT_MAP_TARGET_CONCEPT = "1193545001";// 1193545001 |No SNOMED CT map target (foundation metadata concept)|
 
 	@Override
 	protected List<SheetHeader> getInputSheetExpectedHeaders() {
@@ -47,6 +50,9 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 
 			// Convert accepted correlation
 			MapCorrelation correlation = snap2snomedRelationshipTypeToCorrelationOrThrow(relationshipType, noMapFlag, rowNumber);
+			if (correlation == MapCorrelation.TARGET_NOT_MAPPABLE) {
+				targetCode = NO_SCT_MAP_TARGET_CONCEPT;
+			}
 			return new SheetRefsetMemberSimpleMapToSnomedWithCorrelation(sourceCode, targetCode, correlation);
 		};
 	}
@@ -55,12 +61,12 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	protected Map<String, Function<RefsetMember, String>> getRefsetToSpreadsheetConversionMap() {
 		Map<String, Function<RefsetMember, String>> simpleRefsetSheetColumns = new LinkedHashMap<>();
 		// Source code	Source display	Target code	Target display	Relationship type code	Relationship type display	No map flag	Status
-		simpleRefsetSheetColumns.put(SOURCE_CODE, member -> member.getAdditionalFields().get("mapSource"));
+		simpleRefsetSheetColumns.put(SOURCE_CODE, member -> member.getAdditionalFields().get(MAP_SOURCE));
 		simpleRefsetSheetColumns.put(SOURCE_DISPLAY, member -> "");// Not stored in Snowstorm
 		simpleRefsetSheetColumns.put(TARGET_CODE, RefsetMember::getReferencedComponentId);
 		simpleRefsetSheetColumns.put(TARGET_DISPLAY, RefsetMember::getReferencedComponentFsnOrBlank);
 		simpleRefsetSheetColumns.put(RELATIONSHIP_TYPE_CODE, member -> {
-			MapCorrelation correlation = MapCorrelation.fromConceptId(member.getAdditionalFields().get("correlationId"));
+			MapCorrelation correlation = MapCorrelation.fromConceptId(member.getAdditionalFields().get(CORRELATION_ID));
 			return correlation != null ? correlation.name() : null;
 		});
 		return simpleRefsetSheetColumns;
@@ -70,19 +76,19 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	protected RefsetMember convertToMember(String refsetId, CodeSystemProperties config, SheetRefsetMember inputMember) {
 		SheetRefsetMemberSimpleMapToSnomedWithCorrelation mapInputMember = (SheetRefsetMemberSimpleMapToSnomedWithCorrelation) inputMember;
 		return new RefsetMember(refsetId, config.getDefaultModule(), inputMember.getReferenceComponentId())
-				.setAdditionalField("mapSource", mapInputMember.getSourceCode())
-				.setAdditionalField("correlationId", mapInputMember.getCorrelationIdOrNull());
+				.setAdditionalField(MAP_SOURCE, mapInputMember.getSourceCode())
+				.setAdditionalField(CORRELATION_ID, mapInputMember.getCorrelationIdOrNull());
 	}
 
 	@Override
 	protected boolean matchMember(RefsetMember wantedRefsetMember, RefsetMember storedMember) {
-		return true;
+		return Objects.equals(wantedRefsetMember.getAdditionalFields().get(MAP_SOURCE), storedMember.getAdditionalFields().get(MAP_SOURCE));
 	}
 
 	@Override
 	protected boolean applyMember(RefsetMember wantedRefsetMember, RefsetMember storedMember) {
 		boolean changed = false;
-		for (String s : Arrays.asList("mapSource", "correlationId")) {
+		for (String s : Arrays.asList(MAP_SOURCE, CORRELATION_ID)) {
 			if (applyField(s, wantedRefsetMember, storedMember)) {
 				changed = true;
 			}
@@ -102,7 +108,7 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 
 	private MapCorrelation snap2snomedRelationshipTypeToCorrelationOrThrow(String relationshipType, String noMapFlag, Integer rowNumber) throws ServiceException {
 		if ("1".equals(noMapFlag)) {
-			return MapCorrelation.NOT_SPECIFIED;
+			return MapCorrelation.TARGET_NOT_MAPPABLE;
 		}
 		if (relationshipType == null) {
 			throw throwMapCorrelationNotRecognised(null, rowNumber);

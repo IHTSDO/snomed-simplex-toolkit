@@ -9,7 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
@@ -228,27 +230,21 @@ public class SnowstormClient {
 		}
 	}
 
-	public List<Long> getConceptIds(List<String> conceptIds) throws ServiceException {
-
+	public List<Long> getConceptIds(Collection<String> conceptIds) throws ServiceException {
 		if (conceptIds.isEmpty()) {
 			return new ArrayList<>();
 		}
 
-		// FIXME: Limited to 10K
 		ConceptSearchRequest searchRequest = new ConceptSearchRequest(conceptIds);
 		searchRequest.setReturnIdOnly(true);
 		searchRequest.setActiveFilter(true);
 		searchRequest.setLimit(MAX_PAGE_SIZE);
-		System.out.print("[");
-		for (String conceptId : conceptIds) {
-			System.out.print("\"" + conceptId + "\",");
-		}
-		System.out.println("\"1\"]");
 		try {
 			ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(String.format("/%s/concepts/search", getBranch()), HttpMethod.POST,
 					new HttpEntity<>(searchRequest), responseTypeSCTIDPage);
 			Page<Long> page = pageOfIds.getBody();
 			if (page != null && page.getTotal() > page.getItems().size()) {
+				// FIXME: Limited to 10K
 				throw new ServiceException("Failed to load concept list greater than 10K");
 			}
 			return page.getItems();

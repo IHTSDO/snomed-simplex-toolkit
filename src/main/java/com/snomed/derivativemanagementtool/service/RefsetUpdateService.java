@@ -59,7 +59,7 @@ public abstract class RefsetUpdateService {
 			logger.info("Updating refset {} \"{}\", loaded {} members from Snowstorm for comparison.", refsetId, refsetTerm, allStoredMembers.size());
 
 			// Ignore sheet members where concept does not exist
-			List<String> inputMemberConceptIds = inputMembers.stream().map(SheetRefsetMember::getReferenceComponentId).collect(Collectors.toList());
+			Set<String> inputMemberConceptIds = inputMembers.stream().map(SheetRefsetMember::getReferenceComponentId).collect(Collectors.toSet());
 			List<String> conceptsExist = snowstormClient.getConceptIds(inputMemberConceptIds).stream().map(Object::toString).collect(Collectors.toList());
 			List<String> conceptsDoNotExist = new ArrayList<>(inputMemberConceptIds);
 			conceptsDoNotExist.removeAll(conceptsExist);
@@ -71,11 +71,7 @@ public abstract class RefsetUpdateService {
 
 			// Create map of existing members
 			Map<String, List<RefsetMember>> storedMemberMap = new HashMap<>();
-			int activeMembersBefore = 0;
 			for (RefsetMember storedMember : allStoredMembers) {
-				if (storedMember.isActive()) {
-					activeMembersBefore++;
-				}
 				storedMemberMap.computeIfAbsent(storedMember.getReferencedComponentId(), key -> new ArrayList<>()).add(storedMember);
 			}
 
