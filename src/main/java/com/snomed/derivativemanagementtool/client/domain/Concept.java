@@ -6,27 +6,43 @@ import java.util.List;
 public class Concept {
 
 	private String conceptId;
+	private String moduleId;
 	private List<Description> descriptions;
 	private List<Axiom> classAxioms;
 	private List<Relationship> relationships;
 
-	public Concept() {
+	@SuppressWarnings("unused")
+	private Concept() {
+		// For Jackson library
+	}
+
+	public Concept(String moduleId) {
+		this.moduleId = moduleId;
 		descriptions = new ArrayList<>();
 		classAxioms = new ArrayList<>();
 		relationships = new ArrayList<>();
 	}
 
 	public Concept addDescription(Description description) {
+		if (description.getModuleId() == null) {
+			description.setModuleId(moduleId);
+		}
 		descriptions.add(description);
 		return this;
 	}
 
 	public Concept addAxiom(Axiom axiom) {
+		if (axiom.getModuleId() == null) {
+			axiom.setModuleId(moduleId);
+		}
 		classAxioms.add(axiom);
 		return this;
 	}
 
 	public Concept addRelationship(Relationship relationship) {
+		if (relationship.getModuleId() == null) {
+			relationship.setModuleId(moduleId);
+		}
 		relationships.add(relationship);
 		return this;
 	}
@@ -37,6 +53,14 @@ public class Concept {
 
 	public void setConceptId(String conceptId) {
 		this.conceptId = conceptId;
+	}
+
+	public String getModuleId() {
+		return moduleId;
+	}
+
+	public void setModuleId(String moduleId) {
+		this.moduleId = moduleId;
 	}
 
 	public List<Description> getDescriptions() {

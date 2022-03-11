@@ -4,6 +4,7 @@ import java.util.Map;
 
 public class Description {
 
+	private String moduleId;
 	private String typeId;
 	private String lang;
 	private String term;
@@ -23,6 +24,14 @@ public class Description {
 		this.term = term;
 		this.caseSignificance = caseSignificance;
 		this.acceptabilityMap = acceptabilityMap;
+	}
+
+	public String getModuleId() {
+		return moduleId;
+	}
+
+	public void setModuleId(String moduleId) {
+		this.moduleId = moduleId;
 	}
 
 	public String getTypeId() {

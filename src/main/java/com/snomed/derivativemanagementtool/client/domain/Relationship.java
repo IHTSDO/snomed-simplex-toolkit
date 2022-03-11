@@ -2,6 +2,7 @@ package com.snomed.derivativemanagementtool.client.domain;
 
 public class Relationship {
 
+	private String moduleId;
 	private String typeId;
 	private String destinationId;
 	private String modifier;
@@ -25,6 +26,14 @@ public class Relationship {
 	}
 
 	public Relationship() {
+	}
+
+	public String getModuleId() {
+		return moduleId;
+	}
+
+	public void setModuleId(String moduleId) {
+		this.moduleId = moduleId;
 	}
 
 	public String getTypeId() {

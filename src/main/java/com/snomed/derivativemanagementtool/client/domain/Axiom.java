@@ -4,6 +4,7 @@ import java.util.List;
 
 public class Axiom {
 
+	private String moduleId;
 	private String definitionStatus;
 	private List<Relationship> relationships;
 
@@ -13,6 +14,14 @@ public class Axiom {
 	public Axiom(String definitionStatus, List<Relationship> relationships) {
 		this.definitionStatus = definitionStatus;
 		this.relationships = relationships;
+	}
+
+	public String getModuleId() {
+		return moduleId;
+	}
+
+	public void setModuleId(String moduleId) {
+		this.moduleId = moduleId;
 	}
 
 	public String getDefinitionStatus() {
