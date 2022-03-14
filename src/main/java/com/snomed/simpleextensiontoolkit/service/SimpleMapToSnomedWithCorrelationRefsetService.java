@@ -40,6 +40,9 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 		return (cells, rowNumber, headerConfiguration) -> {
 
 			String sourceCode = readGenericCode(cells, headerConfiguration.getColumn(SOURCE_CODE), rowNumber);
+			if (sourceCode == null) {
+				return null;
+			}
 			String targetCode = readSnomedConcept(cells, headerConfiguration.getColumn(TARGET_CODE), rowNumber);
 			String relationshipType = readGenericCode(cells, headerConfiguration.getColumn(RELATIONSHIP_TYPE_CODE), rowNumber);
 			String noMapFlag = readGenericCode(cells, headerConfiguration.getColumn(NO_MAP_FLAG), rowNumber);
