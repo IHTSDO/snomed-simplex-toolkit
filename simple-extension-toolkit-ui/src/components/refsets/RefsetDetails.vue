@@ -89,7 +89,7 @@
     },
     methods: {
       downloadSpreadsheet() {
-        window.open('/api/refsets/' + this.refsetEndpoint + '/' + this.selectedRefset.conceptId + '/spreadsheet');
+        window.open('api/refsets/' + this.refsetEndpoint + '/' + this.selectedRefset.conceptId + '/spreadsheet');
       },
       onFileChange(event) {
         if (event && event.lastModified) {
@@ -106,7 +106,7 @@
         this.infoSnackbar = false;
         this.errorSnackbar = false;
         var context = this;
-        axios.put('/api/refsets/' + this.refsetEndpoint + '/' + this.selectedRefset.conceptId + '/spreadsheet',
+        axios.put('api/refsets/' + this.refsetEndpoint + '/' + this.selectedRefset.conceptId + '/spreadsheet',
           formData,
           {
             headers: {

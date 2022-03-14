@@ -88,7 +88,7 @@
       loadList() {
         console.log('refset manager - load list');
         axios
-          .get('/api/refsets/' + this.refsetEndpoint)
+          .get('api/refsets/' + this.refsetEndpoint)
           .then(response => {
             this.refsets = response.data;
           })
@@ -102,7 +102,7 @@
       },
       createConcept() {
         axios
-          .post('/api/refsets/' + this.refsetEndpoint, {preferredTerm: this.newRefsetTerm})
+          .post('api/refsets/' + this.refsetEndpoint, {preferredTerm: this.newRefsetTerm})
           .then(response => {
             response.data;
             this.showCreateForm = false;

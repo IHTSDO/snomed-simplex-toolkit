@@ -52,7 +52,6 @@
       topAppConfig: {}
     }),
     components: {
-      // HelloWorld,
       ConnectToTermServer,
       RefsetsManager,
       // TranslationManager,

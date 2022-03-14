@@ -161,7 +161,7 @@
       return !!value || 'Required.';
     },
     loadConfig() {
-      fetch("/api/app-config")
+      fetch("api/app-config")
         .then(response => response.json())
         .then(data => {
           this.appConfig = data;
@@ -178,7 +178,7 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(this.appConfig)
           };
-        fetch("/api/app-config", requestOptions)
+        fetch("api/app-config", requestOptions)
           .then(({data}) => {
             resolve(data);
           })
@@ -195,7 +195,7 @@
       this.retrievingData = true;
       var context = this;
       axios
-        .get("/api/codesystems")
+        .get("api/codesystems")
         .then(response => {
           context.codeSystems = response.data.items;
           context.codeSystems.forEach(codesystem => {
