@@ -110,7 +110,7 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	}
 
 	private MapCorrelation snap2snomedRelationshipTypeToCorrelationOrThrow(String relationshipType, String noMapFlag, Integer rowNumber) throws ServiceException {
-		if ("1".equals(noMapFlag)) {
+		if ("1".equals(noMapFlag) || "TRUE".equals(noMapFlag)) {
 			return MapCorrelation.TARGET_NOT_MAPPABLE;
 		}
 		if (relationshipType == null) {
