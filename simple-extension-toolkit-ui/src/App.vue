@@ -6,7 +6,7 @@
       dark
     >
       <v-container>
-          <h1>SNOMED CT Simple Extension Toolkit</h1>
+          <h1>SNOMED CT Simplex Toolkit</h1>
       </v-container>
 
 
@@ -23,7 +23,6 @@ import MainTabs from './components/MainTabs.vue';
 
 export default {
   name: 'App',
-
   components: {
     // HelloWorld,
     MainTabs,
@@ -32,5 +31,8 @@ export default {
   data: () => ({
     //
   }),
+  created () {
+    document.title = "SNOMED CT Simplex Toolkit";
+  }
 };
 </script>

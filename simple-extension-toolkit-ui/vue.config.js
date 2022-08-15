@@ -2,7 +2,7 @@ module.exports = {
   transpileDependencies: [
     'vuetify'
   ],
-  publicPath: '/simple-extension-toolkit/',
+  publicPath: '/simplex-toolkit/',
   devServer: {
     port: 8085,
     proxy: {
