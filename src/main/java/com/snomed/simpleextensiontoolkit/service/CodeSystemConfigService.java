@@ -1,10 +1,12 @@
 package com.snomed.simpleextensiontoolkit.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snomed.simpleextensiontoolkit.client.SnowstormClient;
 import com.snomed.simpleextensiontoolkit.domain.CodeSystemProperties;
 import com.snomed.simpleextensiontoolkit.exceptions.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -20,12 +22,15 @@ public class CodeSystemConfigService {
 	public static final String CODE_SYSTEM_PROPERTIES = "code-system.properties";
 	private SnowstormClient snowstormClient;
 
+	@Autowired
+	private ObjectMapper objectMapper;
+
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public synchronized SnowstormClient getSnowstormClient() throws ServiceException {
 		if (snowstormClient == null) {
 			CodeSystemProperties config = getConfig();
-			snowstormClient = new SnowstormClient(config);
+			snowstormClient = new SnowstormClient(config, objectMapper);
 		}
 		snowstormClient.ping();
 		return snowstormClient;
@@ -33,7 +38,7 @@ public class CodeSystemConfigService {
 
 	private void updateSnowstormClient(CodeSystemProperties config) {
 		if (snowstormClient == null) {
-			snowstormClient = new SnowstormClient(config);
+			snowstormClient = new SnowstormClient(config, objectMapper);
 		} else {
 			snowstormClient.update(config);
 		}

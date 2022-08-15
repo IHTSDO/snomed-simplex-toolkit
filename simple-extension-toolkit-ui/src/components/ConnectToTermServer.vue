@@ -1,40 +1,23 @@
 <template>
-  <v-form v-model="valid">
+  <div>
+    <b class="mt-4" v-if="!connectFailed && !connected">Connect to Snowstorm server</b>
+    <h3 class="mt-4" v-if="connectFailed">Connection to Snowstorm failed. Please check configuration.</h3>
+    <!-- <b class="mt-4" v-if="connected">Connected to Snowstorm <v-icon>mdi-check</v-icon></b> -->
+  </div>
+  <!-- <v-form v-model="valid">
     <v-container>
       <v-row>
-        <h3 class="mt-4" v-if="!connectFailed && !connected">Connect to Snowstorm server</h3>
-        <h3 class="mt-4" v-if="connectFailed">Connection to Snowstorm failed. Please check URL.</h3>
-        <h3 class="mt-4" v-if="connected">Connected to Snowstorm</h3>
+        <b class="mt-4" v-if="!connectFailed && !connected">Connect to Snowstorm server</b>
+        <h3 class="mt-4" v-if="connectFailed">Connection to Snowstorm failed. Please check configuration.</h3>
+        <b class="mt-4" v-if="connected">Connected to Snowstorm <v-icon>mdi-check</v-icon></b>
       </v-row>
       <v-row>
         <v-col cols="6" md="6">
           <v-row class="mt-4">
-            <v-col cols="10" md="10">
-              <v-text-field
-                v-model="appConfig.snowstormUrl"
-                :rules="urlRules"
-                label="Server URL:"
-                required
-              ></v-text-field>
-            </v-col>
-            <v-col cols="2" md="2">
-              <v-btn
-                depressed
-                small
-                color="accent"
-                @click="saveConfigLoadCodeSystems()"
-                class="mt-4"
-                :loading="retrievingData"
-              >
-                Set URL
-              </v-btn>
-            </v-col>
-          </v-row>
-          <v-row>
             <v-autocomplete
               v-model="appConfig.codesystem"
               :items="codeSystems"
-              label="Authoring Code System"
+              label="Edition to Edit"
               item-text="label"
               item-value="shortName"
               :rules="[required]"
@@ -92,7 +75,7 @@
         </v-btn>
       </template>
     </v-snackbar>
-  </v-form>
+  </v-form> -->
 </template>
 
 <script>
@@ -102,7 +85,8 @@
     data: () => ({
       appConfig: {
         snowstormUrl: '',
-        codesystem: ''
+        codesystem: '',
+        namespace: ''
       },
       valid: false,
 

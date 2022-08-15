@@ -5,7 +5,7 @@
   >
     <v-list-item-content>
         <div class="text-overline mb-4" v-text="mode"></div>
-        <v-list-item-title class="text-h5 mb-1" >{{selectedRefset.pt.term}}<br/>ConceptId: {{selectedRefset.conceptId}}</v-list-item-title>
+        <v-list-item-title class="text-h5 mb-1" ><b>{{selectedRefset.pt.term}}</b><br/>Concept ID: {{selectedRefset.conceptId}}</v-list-item-title>
         <v-list-item-subtitle>{{selectedRefset.activeMemberCount}} active members.</v-list-item-subtitle>
     </v-list-item-content>
     <v-card-actions class="mt-4">
@@ -38,6 +38,7 @@
     </v-card-actions>
     <v-card-actions class="mt-4">
       <v-btn
+        disabled
         depressed
         color="primary"
         @click="downloadSpreadsheet"

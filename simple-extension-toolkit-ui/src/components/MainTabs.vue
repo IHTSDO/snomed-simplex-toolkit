@@ -42,7 +42,7 @@
   import ConnectToTermServer from './ConnectToTermServer.vue';
   import RefsetsManager from './refsets/RefsetsManager.vue';
   // import TranslationManager from './translation/TranslationManager.vue';
-  // import ExportManager from './export/ExportManager.vue'
+  import ExportManager from './export/ExportManager.vue'
   // import MapsManager from './maps/MapsManager.vue'
 
 
@@ -57,7 +57,7 @@
       ConnectToTermServer,
       RefsetsManager,
       // TranslationManager,
-      // ExportManager,
+      ExportManager,
       // MapsManager
     },
     methods: {

@@ -1,9 +1,11 @@
 package com.snomed.simpleextensiontoolkit.client;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snomed.simpleextensiontoolkit.client.domain.*;
 import com.snomed.simpleextensiontoolkit.domain.*;
 import com.snomed.simpleextensiontoolkit.exceptions.ClientException;
 import com.snomed.simpleextensiontoolkit.exceptions.ServiceException;
+import com.snomed.simpleextensiontoolkit.service.StreamUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,10 +17,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.OutputStream;
 import java.net.URI;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import static java.lang.String.format;
 
 public class SnowstormClient {
 
@@ -33,11 +38,13 @@ public class SnowstormClient {
 	private String codesystemShortname;
 	private CodeSystem codeSystem;
 	private String defaultModule;
+	private final ObjectMapper objectMapper;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public SnowstormClient(CodeSystemProperties config) {
+	public SnowstormClient(CodeSystemProperties config, ObjectMapper objectMapper) {
 		update(config);
+		this.objectMapper = objectMapper;
 	}
 
 	public void update(CodeSystemProperties codeSystemProperties) {
@@ -86,7 +93,7 @@ public class SnowstormClient {
 
 	public CodeSystem getCodeSystemOrThrow(String codesystemShortName) throws ServiceException {
 		try {
-			ResponseEntity<CodeSystem> response = restTemplate.getForEntity(String.format("/codesystems/%s", codesystemShortName), CodeSystem.class);
+			ResponseEntity<CodeSystem> response = restTemplate.getForEntity(format("/codesystems/%s", codesystemShortName), CodeSystem.class);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "load code system");
@@ -115,10 +122,11 @@ public class SnowstormClient {
 				.collect(Collectors.toMap(ConceptMini::getConceptId, Function.identity()));
 
 		// Join active refset counts
-		String url = String.format("/browser/%s/members?active=true&module=%s&referenceSet=%s", getBranch(), defaultModule, refsetEcl);
+		String url = format("/browser/%s/members?active=true&module=%s&referenceSet=%s", getBranch(), defaultModule, refsetEcl);
 		try {
 			ResponseEntity<RefsetAggregationPage> response = restTemplate.exchange(url, HttpMethod.GET, null, RefsetAggregationPage.class);
-			for (ConceptMini refset : response.getBody().getRefsetsWithActiveMemberCount()) {
+			List<ConceptMini> refsetsWithActiveMemberCount = response.getBody().getRefsetsWithActiveMemberCount();
+			for (ConceptMini refset : refsetsWithActiveMemberCount) {
 				if (refsetConceptMap.containsKey(refset.getConceptId())) {
 					refsetConceptMap.get(refset.getConceptId()).setActiveMemberCount(refset.getActiveMemberCount());
 				}
@@ -134,7 +142,7 @@ public class SnowstormClient {
 
 	private Page<ConceptMini> getConcepts(String ecl, String moduleId) throws ClientException {
 		try {
-			String url = String.format("/%s/concepts?ecl=%s&limit=300&module=%s", getBranch(), ecl, moduleId != null ? moduleId : "");
+			String url = format("/%s/concepts?ecl=%s&limit=300&module=%s", getBranch(), ecl, moduleId != null ? moduleId : "");
 			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(url, HttpMethod.GET, null, responseTypeConceptMiniPage);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
@@ -144,8 +152,8 @@ public class SnowstormClient {
 
 	public List<RefsetMember> loadAllRefsetMembers(String refsetId) throws ServiceException {
 		try {
-			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(String.format("/%s/members?referenceSet=%s&limit=%s", getBranch(), refsetId, MAX_PAGE_SIZE),
-					HttpMethod.GET,null, responseTypeRefsetPage);
+			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&limit=%s", getBranch(), refsetId, MAX_PAGE_SIZE),
+					HttpMethod.GET, null, responseTypeRefsetPage);
 			Page<RefsetMember> page = response.getBody();
 			if (page.getTotal() > page.getItems().size()) {
 				// TODO: Load the rest. Will need to implement scrolling beyond 10K members in Snowstorm.
@@ -158,7 +166,7 @@ public class SnowstormClient {
 	}
 
 	public int countAllActiveRefsetMembers(String refsetId) {
-		ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(String.format("/%s/members?referenceSet=%s&active=true&limit=1", getBranch(), refsetId),
+		ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&active=true&limit=1", getBranch(), refsetId),
 				HttpMethod.GET,null, responseTypeRefsetPage);
 		Page<RefsetMember> page = response.getBody();
 		return Math.toIntExact(page.getTotal());
@@ -176,7 +184,7 @@ public class SnowstormClient {
 
 		URI bulkJobUri;
 		try {
-			bulkJobUri = restTemplate.postForLocation(String.format("/%s/members/bulk", getBranch()), membersToCreateUpdate);
+			bulkJobUri = restTemplate.postForLocation(format("/%s/members/bulk", getBranch()), membersToCreateUpdate);
 			if (bulkJobUri == null) {
 				throw new ServiceException("Failed to start bulk create/update refset member job - response location is null.");
 			}
@@ -193,7 +201,7 @@ public class SnowstormClient {
 				} else if ("COMPLETED".equals(status)) {
 					return;
 				} else {
-					throw new ServiceException(String.format("Bulk create/update refset member job failed - %s", statusHolder.getMessage()));
+					throw new ServiceException(format("Bulk create/update refset member job failed - %s", statusHolder.getMessage()));
 				}
 				Thread.sleep(1_000);// One second
 			}
@@ -209,7 +217,7 @@ public class SnowstormClient {
 		Map<String, List<String>> bulkDeleteRequest = new HashMap<>();
 		bulkDeleteRequest.put("memberIds", memberIds);
 		try {
-			restTemplate.exchange(String.format("/%s/members", getBranch()), HttpMethod.DELETE, new HttpEntity<>(bulkDeleteRequest), Void.class);
+			restTemplate.exchange(format("/%s/members", getBranch()), HttpMethod.DELETE, new HttpEntity<>(bulkDeleteRequest), Void.class);
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "bulk delete refset members");
 		}
@@ -218,12 +226,12 @@ public class SnowstormClient {
 	public Concept createSimpleMetadataConcept(String parentConceptId, String preferredTerm, String tag) throws ClientException {
 		String caseSens = guessCaseSensitivity(preferredTerm);
 		Concept concept = new Concept(defaultModule)
-				.addDescription(new Description(Concepts.FSN, "en", String.format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
+				.addDescription(new Description(Concepts.FSN, "en", format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
 				.addDescription(new Description(Concepts.SYNONYM, "en", preferredTerm, caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
 				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(Concepts.IS_A, parentConceptId))))
 				.addRelationship(Relationship.inferred(Concepts.IS_A, parentConceptId));
 		try {
-			ResponseEntity<Concept> response = restTemplate.exchange(String.format("/browser/%s/concepts", getBranch()), HttpMethod.POST, new HttpEntity<>(concept), Concept.class);
+			ResponseEntity<Concept> response = restTemplate.exchange(format("/browser/%s/concepts", getBranch()), HttpMethod.POST, new HttpEntity<>(concept), Concept.class);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "create concept");
@@ -240,7 +248,7 @@ public class SnowstormClient {
 		searchRequest.setActiveFilter(true);
 		searchRequest.setLimit(MAX_PAGE_SIZE);
 		try {
-			ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(String.format("/%s/concepts/search", getBranch()), HttpMethod.POST,
+			ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(format("/%s/concepts/search", getBranch()), HttpMethod.POST,
 					new HttpEntity<>(searchRequest), responseTypeSCTIDPage);
 			Page<Long> page = pageOfIds.getBody();
 			if (page != null && page.getTotal() > page.getItems().size()) {
@@ -258,7 +266,7 @@ public class SnowstormClient {
 	}
 
 	private ClientException getServiceException(HttpStatusCodeException e, String action) {
-		return new ClientException(String.format("Failed to %s", action), e);
+		return new ClientException(format("Failed to %s", action), e);
 	}
 
 	public String getBranch() {
@@ -271,9 +279,28 @@ public class SnowstormClient {
 		return codeSystem.getBranchPath();
 	}
 
+	public void exportRF2(OutputStream outputStream, String snowstormExportType) throws ServiceException {
+		Map<String, String> requestBody = new HashMap<>();
+		requestBody.put("branchPath", getBranch());
+		requestBody.put("type", snowstormExportType);
+		URI location = restTemplate.execute("/exports", HttpMethod.POST,
+				httpRequest -> {
+					httpRequest.getHeaders().add("Content-Type", "application/json");
+					objectMapper.writeValue(System.out, requestBody);
+					objectMapper.writeValue(httpRequest.getBody(), requestBody);
+				},
+				httpResponse -> httpResponse.getHeaders().getLocation());
+		if (location == null) {
+			throw new ServiceException("Snowstorm did not return a location header for the RF2 export.");
+		}
+		restTemplate.execute(location + "/archive", HttpMethod.GET, null, httpResponse -> {
+			StreamUtils.copyViaTempFile(httpResponse.getBody(), outputStream, false);
+			return null;
+		});
+	}
+
 	private String guessCaseSensitivity(String name) {
 		String termWithoutFirstChar = name.substring(1);
-		String caseSens = termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? "CASE_INSENSITIVE" : "ENTIRE_TERM_CASE_SENSITIVE";
-		return caseSens;
+		return termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? "CASE_INSENSITIVE" : "ENTIRE_TERM_CASE_SENSITIVE";
 	}
 }

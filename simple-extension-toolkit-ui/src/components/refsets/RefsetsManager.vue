@@ -1,7 +1,7 @@
 <template>
   <v-container>
     <v-row>
-      <h3 class="mt-4">Refset Manager</h3>
+      <h3 class="mt-4">{{title}}</h3>
     </v-row>
     <v-row>
       <v-col cols="12" md="6">
@@ -60,6 +60,9 @@
         type: Boolean
       },
       refsetEndpoint: {
+        type: String
+      },
+      title: {
         type: String
       }
     },
