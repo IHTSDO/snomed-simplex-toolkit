@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("api/refsets/simple")
+@RequestMapping("api/{codeSystem}/refsets/simple")
 @Api(tags = "Simple Refsets", description = "-")
 public class SimpleRefsetController extends AbstractRefsetController {
 

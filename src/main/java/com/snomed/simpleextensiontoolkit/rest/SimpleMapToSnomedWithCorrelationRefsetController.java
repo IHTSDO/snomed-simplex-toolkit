@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("api/refsets/simple-map-to-snomed-with-correlation")
+@RequestMapping("api/{codeSystem}/refsets/simple-map-to-snomed-with-correlation")
 @Api(tags = "Simple Map to SNOMED with Correlation Refsets", description = "-")
 public class SimpleMapToSnomedWithCorrelationRefsetController extends AbstractRefsetController {
 

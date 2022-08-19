@@ -2,6 +2,7 @@ package com.snomed.simpleextensiontoolkit.service;
 
 import com.snomed.simpleextensiontoolkit.client.ConceptMini;
 import com.snomed.simpleextensiontoolkit.client.SnowstormClient;
+import com.snomed.simpleextensiontoolkit.client.SnowstormClientFactory;
 import com.snomed.simpleextensiontoolkit.domain.*;
 import com.snomed.simpleextensiontoolkit.exceptions.ServiceException;
 import org.apache.poi.ss.usermodel.Row;
@@ -22,32 +23,33 @@ import static java.util.function.Predicate.not;
 public abstract class RefsetUpdateService {
 
 	@Autowired
-	private CodeSystemConfigService configService;
+	private SpreadsheetService spreadsheetService;
 
 	@Autowired
-	private SpreadsheetService spreadsheetService;
+	private SnowstormClientFactory snowstormClientFactory;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public void downloadRefsetAsSpreadsheet(String refsetId, OutputStream outputStream) throws ServiceException, IOException {
+	public void downloadRefsetAsSpreadsheet(String refsetId, OutputStream outputStream, CodeSystem codeSystem) throws ServiceException, IOException {
 		SnowstormClient snowstormClient = getSnowstormClient();
-		List<RefsetMember> members = snowstormClient.loadAllRefsetMembers(refsetId);
+		List<RefsetMember> members = snowstormClient.loadAllRefsetMembers(refsetId, codeSystem);
 
 		members.sort(Comparator.comparing(RefsetMember::getReferencedComponentId));
 
 		Map<String, Function<RefsetMember, String>> refsetColumns = getRefsetToSpreadsheetConversionMap();
-		Workbook workbook = spreadsheetService.createSpreadsheet(members, refsetColumns);
-		workbook.write(outputStream);
+		try (Workbook workbook = spreadsheetService.createSpreadsheet(members, refsetColumns)) {
+			workbook.write(outputStream);
+		}
 	}
 
-	public ChangeSummary updateRefsetViaSpreadsheet(String refsetId, InputStream inputStream) throws ServiceException {
+	public ChangeSummary updateRefsetViaSpreadsheet(String refsetId, InputStream inputStream, CodeSystem codeSystem) throws ServiceException {
 		// Check refset exists
-		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId);
+		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId, codeSystem);
 		List<SheetRefsetMember> sheetMembers = spreadsheetService.readRefsetSpreadsheet(inputStream, getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
-		return update(refset, sheetMembers);
+		return update(refset, sheetMembers, codeSystem);
 	}
 
-	private ChangeSummary update(ConceptMini refset, List<SheetRefsetMember> inputMembers) throws ServiceException {
+	private ChangeSummary update(ConceptMini refset, List<SheetRefsetMember> inputMembers, CodeSystem codeSystem) throws ServiceException {
 		String refsetId = refset.getConceptId();
 		String refsetTerm = refset.getPtOrFsnOrConceptId();
 		try {
@@ -55,12 +57,12 @@ public abstract class RefsetUpdateService {
 			logger.info("Updating refset {} \"{}\", read {} members from spreadsheet.", refsetId, refsetTerm, inputMembers.size());
 
 			// Read members from Snowstorm
-			List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(refsetId);
+			List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(refsetId, codeSystem);
 			logger.info("Updating refset {} \"{}\", loaded {} members from Snowstorm for comparison.", refsetId, refsetTerm, allStoredMembers.size());
 
 			// Ignore sheet members where concept does not exist
 			Set<String> inputMemberConceptIds = inputMembers.stream().map(SheetRefsetMember::getReferenceComponentId).collect(Collectors.toSet());
-			List<String> conceptsExist = snowstormClient.getConceptIds(inputMemberConceptIds).stream().map(Object::toString).collect(Collectors.toList());
+			List<String> conceptsExist = snowstormClient.getConceptIds(inputMemberConceptIds, codeSystem).stream().map(Object::toString).collect(Collectors.toList());
 			List<String> conceptsDoNotExist = new ArrayList<>(inputMemberConceptIds);
 			conceptsDoNotExist.removeAll(conceptsExist);
 			if (!conceptsDoNotExist.isEmpty()) {
@@ -80,10 +82,9 @@ public abstract class RefsetUpdateService {
 			List<RefsetMember> membersToUpdate = new ArrayList<>();
 			List<RefsetMember> membersToKeep = new ArrayList<>();
 
-			CodeSystemProperties config = configService.getConfig();
 			for (SheetRefsetMember inputMember : inputMembers) {
 
-				RefsetMember wantedRefsetMember = convertToMember(refsetId, config, inputMember);
+				RefsetMember wantedRefsetMember = convertToMember(inputMember, refsetId, codeSystem.getDefaultModuleOrThrow());
 
 				// Lookup existing member(s)
 				List<RefsetMember> storedMembers = storedMemberMap.getOrDefault(inputMember.getReferenceComponentId(), Collections.emptyList());
@@ -124,14 +125,14 @@ public abstract class RefsetUpdateService {
 			if (!membersToUpdateCreate.isEmpty()) {
 				// Send all as batch
 				logger.info("Running bulk create/update...");
-				snowstormClient.createUpdateRefsetMembers(membersToUpdateCreate);
+				snowstormClient.createUpdateRefsetMembers(membersToUpdateCreate, codeSystem);
 			}
 			if (!membersToDelete.isEmpty()) {
 				logger.info("Running bulk delete...");
-				snowstormClient.deleteRefsetMembers(membersToDelete);
+				snowstormClient.deleteRefsetMembers(membersToDelete, codeSystem);
 			}
 
-			int newActiveCount = snowstormClient.countAllActiveRefsetMembers(refsetId);
+			int newActiveCount = snowstormClient.countAllActiveRefsetMembers(refsetId, codeSystem);
 
 			logger.info("Processing refset {} \"{}\" complete.", refsetId, refsetTerm);
 			return new ChangeSummary(membersToCreate.size(), membersToUpdate.size(), membersToRemove.size(), newActiveCount);
@@ -144,7 +145,6 @@ public abstract class RefsetUpdateService {
 
 	/**
 	 * Get list of expected headers for this sheet type. Headers names are case-insensitive and can be marked optional.
-	 * @return
 	 */
 	protected abstract List<SheetHeader> getInputSheetExpectedHeaders();
 
@@ -154,7 +154,7 @@ public abstract class RefsetUpdateService {
 	 * Convert SheetRefsetMember to RefsetMember
 	 * @return RefsetMember
 	 */
-	protected abstract RefsetMember convertToMember(String refsetId, CodeSystemProperties config, SheetRefsetMember inputMember);
+	protected abstract RefsetMember convertToMember(SheetRefsetMember inputMember, String refsetId, String moduleId);
 
 	/**
 	 * Check if the immutable fields of the two refset members match.
@@ -169,7 +169,7 @@ public abstract class RefsetUpdateService {
 	protected abstract boolean applyMember(RefsetMember wantedRefsetMember, RefsetMember storedMember);
 
 	private SnowstormClient getSnowstormClient() throws ServiceException {
-		return configService.getSnowstormClient();
+		return snowstormClientFactory.getClient();
 	}
 
 	@FunctionalInterface

@@ -1,6 +1,5 @@
 package com.snomed.simpleextensiontoolkit.service;
 
-import com.snomed.simpleextensiontoolkit.domain.CodeSystemProperties;
 import com.snomed.simpleextensiontoolkit.domain.RefsetMember;
 import com.snomed.simpleextensiontoolkit.domain.SheetHeader;
 import com.snomed.simpleextensiontoolkit.domain.SheetRefsetMember;
@@ -43,8 +42,8 @@ public class SimpleRefsetService extends RefsetUpdateService {
 	}
 
 	@Override
-	protected RefsetMember convertToMember(String refsetId, CodeSystemProperties config, SheetRefsetMember inputMember) {
-		return new RefsetMember(refsetId, config.getDefaultModule(), inputMember.getReferenceComponentId());
+	protected RefsetMember convertToMember(SheetRefsetMember inputMember, String refsetId, String moduleId) {
+		return new RefsetMember(refsetId, moduleId, inputMember.getReferenceComponentId());
 	}
 
 	@Override

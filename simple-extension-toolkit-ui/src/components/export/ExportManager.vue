@@ -1,5 +1,5 @@
 <template>
-  <v-form v-model="valid">
+  <v-form >
     <v-container>
       <v-row>
         <h3 class="mt-4">Export and Release tools</h3>
@@ -61,12 +61,15 @@
 <script>
   export default {
     name: 'ExportManager',
+    props: {
+      codeSystem: Object
+    },
     data: () => ({
       // latestRelease: '20210815'
     }),
     methods: {
       downloadDelta() {
-        window.open('api/rf2-export/delta');
+        window.open('api/' + this.codeSystem.shortName + '/rf2-export/delta');
       }
     },
   }

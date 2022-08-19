@@ -76,6 +76,7 @@ public class ControllerAdvice {
 		HashMap<String, Object> result = new HashMap<>();
 		result.put("error", cause.getStatusCode());
 		result.put("message", "Client error: " + cause.getMessage());
+		logger.info("400", clientException);
 		return new ResponseEntity<>(result, cause.getStatusCode());
 	}
 

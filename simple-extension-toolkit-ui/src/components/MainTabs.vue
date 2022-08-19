@@ -1,45 +1,47 @@
 <template>
   <v-container>
-    <ConnectToTermServer @connected="connect" @updateAppConfig="updateAppConfig"/>
+    <h2>{{codeSystem.name}}</h2>
     <v-tabs>
       <v-tab href="#simple">
         <v-icon>mdi-playlist-star</v-icon>
         Simple Refsets
       </v-tab>
-      <v-tab-item value="simple" :disabled="!connected">
-        <RefsetsManager v-bind:connected="connected" 
+      <v-tab-item value="simple">
+        <RefsetsManager
+          :codeSystem="codeSystem"
           :refsetEndpoint="'simple'"
           :title="''"/>
       </v-tab-item>
-      <v-tab href="#maps" :disabled="!connected">
+      <v-tab href="#maps" >
         <v-icon>mdi-transfer-right</v-icon>
         Map Refsets
       </v-tab>
       <v-tab-item value="maps">
-        <RefsetsManager v-bind:connected="connected" 
+        <RefsetsManager
+          :codeSystem="codeSystem"
           :refsetEndpoint="'simple-map-to-snomed-with-correlation'"
           :title="'Simple maps with correlation to SNOMED CT'"/>
       </v-tab-item>
-      <v-tab href="#translations" :disabled="!connected">
+      <v-tab href="#translations">
         <v-icon>mdi-earth</v-icon>
         Translations
       </v-tab>
       <v-tab-item value="translations">
-        <TranslationManager :connectionDetails="connectionDetails"/>
+        <!-- <TranslationManager :connectionDetails="connectionDetails"/> -->
       </v-tab-item>
-      <v-tab href="#release" :disabled="!connected">
+      <v-tab href="#release">
         <v-icon>mdi-rocket</v-icon>
         Release &amp; Export
       </v-tab>
       <v-tab-item value="release">
-        <ExportManager/>
+        <ExportManager
+          :codeSystem="codeSystem"/>
       </v-tab-item>
     </v-tabs>
   </v-container>
 </template>
 
 <script>
-  import ConnectToTermServer from './ConnectToTermServer.vue';
   import RefsetsManager from './refsets/RefsetsManager.vue';
   // import TranslationManager from './translation/TranslationManager.vue';
   import ExportManager from './export/ExportManager.vue'
@@ -53,8 +55,10 @@
       connectionDetails: {},
       topAppConfig: {}
     }),
+    props: {
+      codeSystem: null
+    },
     components: {
-      ConnectToTermServer,
       RefsetsManager,
       // TranslationManager,
       ExportManager,

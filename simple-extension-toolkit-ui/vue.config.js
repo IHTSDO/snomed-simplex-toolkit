@@ -2,10 +2,10 @@ module.exports = {
   transpileDependencies: [
     'vuetify'
   ],
-  publicPath: '/simplex-toolkit/',
+  publicPath: '/simplex-toolkit',
   devServer: {
     port: 8085,
-    public: 'https://localhost',
+    public: 'https://localhost.ihtsdotools.org/simplex-toolkit',
     disableHostCheck : true,
     proxy: {
       '^/api': {

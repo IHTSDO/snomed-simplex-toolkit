@@ -76,9 +76,9 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	}
 
 	@Override
-	protected RefsetMember convertToMember(String refsetId, CodeSystemProperties config, SheetRefsetMember inputMember) {
+	protected RefsetMember convertToMember(SheetRefsetMember inputMember, String refsetId, String moduleId) {
 		SheetRefsetMemberSimpleMapToSnomedWithCorrelation mapInputMember = (SheetRefsetMemberSimpleMapToSnomedWithCorrelation) inputMember;
-		return new RefsetMember(refsetId, config.getDefaultModule(), inputMember.getReferenceComponentId())
+		return new RefsetMember(refsetId, moduleId, inputMember.getReferenceComponentId())
 				.setAdditionalField(MAP_SOURCE, mapInputMember.getSourceCode())
 				.setAdditionalField(CORRELATION_ID, mapInputMember.getCorrelationIdOrNull());
 	}

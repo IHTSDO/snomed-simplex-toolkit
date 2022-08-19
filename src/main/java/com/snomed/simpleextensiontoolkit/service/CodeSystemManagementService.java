@@ -13,9 +13,6 @@ import java.util.Properties;
 
 public class CodeSystemManagementService {
 
-	@Autowired
-	private CodeSystemConfigService codeSystemConfigService;
-
 	public void init() throws ServiceException {
 //
 //		CodeSystemProperties codeSystemProperties = codeSystemConfigService.getCodeSystemProperties();

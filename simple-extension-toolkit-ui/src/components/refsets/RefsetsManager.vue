@@ -5,7 +5,7 @@
     </v-row>
     <v-row>
       <v-col cols="12" md="6">
-        <RefsetsList @selectedRefset="captureSelection" v-bind:refsets="refsets" />
+        <RefsetsList v-bind:refsets="refsets" @selectedRefset="captureSelection"/>
         <br>
         <v-btn
           depressed
@@ -19,6 +19,7 @@
       <v-col md="6">
         <RefsetDetails v-if="!showCreateForm && selectedRefset != null" 
           mode="refset"
+          :codeSystem="codeSystem"
           :refsetEndpoint="refsetEndpoint"
           v-bind:selectedRefset="selectedRefset"
         />
@@ -64,7 +65,8 @@
       },
       title: {
         type: String
-      }
+      },
+      codeSystem: {}
     },
     data: () => ({
       name: 'RefsetsManager',
@@ -91,7 +93,7 @@
       loadList() {
         console.log('refset manager - load list');
         axios
-          .get('api/refsets/' + this.refsetEndpoint)
+          .get('api/' + this.codeSystem.shortName + '/refsets/' + this.refsetEndpoint)
           .then(response => {
             this.refsets = response.data;
           })
@@ -105,7 +107,7 @@
       },
       createConcept() {
         axios
-          .post('api/refsets/' + this.refsetEndpoint, {preferredTerm: this.newRefsetTerm})
+          .post('api/' + this.codeSystem.shortName + '/refsets/' + this.refsetEndpoint, {preferredTerm: this.newRefsetTerm})
           .then(response => {
             response.data;
             this.showCreateForm = false;
