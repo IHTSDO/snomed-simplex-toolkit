@@ -144,9 +144,10 @@ public class SnowstormClient {
 		}
 	}
 
-	public List<RefsetMember> loadAllRefsetMembers(String refsetId, CodeSystem codeSystem) throws ServiceException {
+	public List<RefsetMember> loadAllRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly) throws ServiceException {
 		try {
-			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&limit=%s", codeSystem.getBranchPath(), refsetId, MAX_PAGE_SIZE),
+			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&limit=%s%s",
+							codeSystem.getBranchPath(), refsetId, MAX_PAGE_SIZE, activeOnly ? "&active=true" : ""),
 					HttpMethod.GET, null, responseTypeRefsetPage);
 			Page<RefsetMember> page = response.getBody();
 			if (page.getTotal() > page.getItems().size()) {

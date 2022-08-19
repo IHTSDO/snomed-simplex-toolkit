@@ -32,7 +32,7 @@ public abstract class RefsetUpdateService {
 
 	public void downloadRefsetAsSpreadsheet(String refsetId, OutputStream outputStream, CodeSystem codeSystem) throws ServiceException, IOException {
 		SnowstormClient snowstormClient = getSnowstormClient();
-		List<RefsetMember> members = snowstormClient.loadAllRefsetMembers(refsetId, codeSystem);
+		List<RefsetMember> members = snowstormClient.loadAllRefsetMembers(refsetId, codeSystem, true);
 
 		members.sort(Comparator.comparing(RefsetMember::getReferencedComponentId));
 
@@ -57,7 +57,7 @@ public abstract class RefsetUpdateService {
 			logger.info("Updating refset {} \"{}\", read {} members from spreadsheet.", refsetId, refsetTerm, inputMembers.size());
 
 			// Read members from Snowstorm
-			List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(refsetId, codeSystem);
+			List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(refsetId, codeSystem, false);
 			logger.info("Updating refset {} \"{}\", loaded {} members from Snowstorm for comparison.", refsetId, refsetTerm, allStoredMembers.size());
 
 			// Ignore sheet members where concept does not exist
