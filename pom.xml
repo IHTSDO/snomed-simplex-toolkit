@@ -15,6 +15,7 @@
 	<description>Toolkit for the creation and maintenance of simple SNOMED CT Extensions</description>
 	<properties>
 		<java.version>11</java.version>
+		<packageName>${project.artifactId}</packageName>
 	</properties>
 	<dependencies>
 		<!-- Spring -->
@@ -136,6 +137,44 @@
 								</goals>
 								<configuration>
 									<arguments>run build</arguments>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.vafer</groupId>
+						<artifactId>jdeb</artifactId>
+						<version>1.1.1</version>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>jdeb</goal>
+								</goals>
+								<configuration>
+									<deb>${project.build.directory}/${packageName}-${project.version}-all.deb</deb>
+									<controlDir>${basedir}/src/deb/control</controlDir>
+									<snapshotExpand>true</snapshotExpand>
+									<snapshotEnv>BUILD_NUMBER</snapshotEnv>
+									<verbose>true</verbose>
+									<classifier>all</classifier>
+									<signPackage>false</signPackage>
+									<dataSet>
+										<data>
+											<src>${project.build.directory}/${project.build.finalName}.jar</src>
+											<dst>${packageName}.jar</dst>
+											<type>file</type>
+											<mapper>
+												<type>perm</type>
+												<prefix>/opt/${packageName}/</prefix>
+											</mapper>
+										</data>
+										<data>
+											<src>${basedir}/src/deb/supervisor.conf</src>
+											<dst>/etc/supervisor/conf.d/${packageName}.conf</dst>
+											<type>file</type>
+										</data>
+									</dataSet>
 								</configuration>
 							</execution>
 						</executions>
