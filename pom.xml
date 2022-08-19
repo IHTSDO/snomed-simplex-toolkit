@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.snomed</groupId>
-	<artifactId>simple-extension-toolkit</artifactId>
+	<artifactId>snomed-simplex-toolkit</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
-	<name>Simple Extension Toolkit</name>
+	<name>SNOMED Simplex Toolkit</name>
 	<description>Toolkit for the creation and maintenance of simple SNOMED CT Extensions</description>
 	<properties>
 		<java.version>11</java.version>
