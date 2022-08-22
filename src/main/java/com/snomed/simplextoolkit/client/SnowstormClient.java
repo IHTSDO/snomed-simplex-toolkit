@@ -284,4 +284,75 @@ public class SnowstormClient {
 		String termWithoutFirstChar = name.substring(1);
 		return termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? "CASE_INSENSITIVE" : "ENTIRE_TERM_CASE_SENSITIVE";
 	}
+
+	public List<Concept> loadBrowserFormatConcepts(List<Long> conceptIds, CodeSystem codeSystem) {
+		ParameterizedTypeReference<List<Concept>> listOfConcepts = new ParameterizedTypeReference<>(){};
+		ResponseEntity<List<Concept>> response = restTemplate.exchange(format("/browser/%s/concepts/bulk-load", codeSystem.getBranchPath()), HttpMethod.POST,
+				new HttpEntity<>(new ConceptBulkLoadRequest(conceptIds)), listOfConcepts);
+		return response.getBody();
+	}
+
+	public void updateBrowserFormatConcepts(List<Concept> conceptsToUpdate, CodeSystem codeSystem) throws ServiceException {
+		if (conceptsToUpdate == null || conceptsToUpdate.isEmpty()) {
+			return;
+		}
+		// Start an async bulk update job
+		ResponseEntity<Void> response = restTemplate.exchange(format("/browser/%s/concepts/bulk", codeSystem.getBranchPath()), HttpMethod.POST,
+				new HttpEntity<>(conceptsToUpdate), Void.class);
+		URI location = response.getHeaders().getLocation();
+		if (location == null) {
+			throw new ServiceException("Bulk update did not return location header.");
+		}
+
+		waitForAsyncJob(location, "COMPLETED", "FAILED");
+	}
+
+	private void waitForAsyncJob(URI location, String completed, String failed) throws ServiceException {
+		int anHour = 1_000 * 60 * 60;
+		Date start = new Date();
+		Date timeoutDate = new Date(start.getTime() + anHour);
+		while (new Date().before(timeoutDate)) {
+			try {
+				ResponseEntity<StatusHolder> statusResponse = restTemplate.getForEntity(location, StatusHolder.class);
+				StatusHolder statusHolder = statusResponse.getBody();
+				if (completed.equals(statusHolder.getStatus())) {
+					return;
+				} else if (failed.equals(statusHolder.getStatus())) {
+					throw new ServiceException(format("Async job failed: %s. URL: %s", statusHolder.getMessage(), location));
+				}
+				//noinspection BusyWait
+				Thread.sleep(3_000);
+			} catch (InterruptedException e) {
+				throw new ServiceException(format("Thread interrupted while waiting for async job to complete. URL: %s", location));
+			}
+		}
+		throw new ServiceException(format("Timed out while waiting for async job. URL: %s", location));
+	}
+
+	private static final class ConceptBulkLoadRequest {
+
+		private final Set<String> conceptIds;
+
+		public ConceptBulkLoadRequest(Collection<Long> conceptIds) {
+			this.conceptIds = conceptIds.stream().map(Objects::toString).collect(Collectors.toSet());
+		}
+
+		public Set<String> getConceptIds() {
+			return conceptIds;
+		}
+	}
+
+	private static final class StatusHolder {
+
+		private String status;
+		private String message;
+
+		public String getStatus() {
+			return status;
+		}
+
+		public String getMessage() {
+			return message;
+		}
+	}
 }

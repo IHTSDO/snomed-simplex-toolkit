@@ -47,7 +47,7 @@ public abstract class AbstractRefsetController {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		ConceptMini refset = snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		String filename = getFilenamePrefix() + "_" + normaliseFilename(refset.getPt().getTerm()) + ".xlsx";
+		String filename = getFilenamePrefix() + "_" + ControllerHelper.normaliseFilename(refset.getPt().getTerm()) + ".xlsx";
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 		getRefsetService().downloadRefsetAsSpreadsheet(refsetId, response.getOutputStream(), theCodeSystem);
 	}
@@ -65,10 +65,6 @@ public abstract class AbstractRefsetController {
 
 	private SnowstormClient getSnowstormClient() throws ServiceException {
 		return clientFactory.getClient();
-	}
-
-	protected String normaliseFilename(String term) {
-		return term.replace(" ", "_");
 	}
 
 }
