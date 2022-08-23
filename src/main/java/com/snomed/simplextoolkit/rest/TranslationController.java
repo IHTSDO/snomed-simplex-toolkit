@@ -47,11 +47,13 @@ public class TranslationController {
 
 	@PutMapping(path = "{refsetId}/spreadsheet", consumes = "multipart/form-data")
 	public ChangeSummary uploadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId,
-			@RequestParam String languageCode, @RequestParam MultipartFile file) throws ServiceException, IOException {
+			@RequestParam String languageCode, @RequestParam MultipartFile file,
+			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase,
+			@RequestParam(defaultValue = "false") boolean overwriteExistingCaseSignificance) throws ServiceException, IOException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		return translationService.uploadTranslationAsCSV(refsetId, languageCode, theCodeSystem, file.getInputStream());
+		return translationService.uploadTranslationAsCSV(refsetId, languageCode, theCodeSystem, file.getInputStream(), overwriteExistingCaseSignificance, translationTermsUseTitleCase);
 	}
 
 }

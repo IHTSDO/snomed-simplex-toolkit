@@ -6,6 +6,7 @@ import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.Concept;
 import com.snomed.simplextoolkit.client.domain.Description;
 import com.snomed.simplextoolkit.domain.CodeSystem;
+import com.snomed.simplextoolkit.domain.Concepts;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.slf4j.Logger;
@@ -35,7 +36,9 @@ public class TranslationService {
 
 	}
 
-	public ChangeSummary uploadTranslationAsCSV(String languageRefsetId, String languageCode, CodeSystem codeSystem, InputStream inputStream) throws ServiceException {
+	public ChangeSummary uploadTranslationAsCSV(String languageRefsetId, String languageCode, CodeSystem codeSystem, InputStream inputStream,
+			boolean overwriteExistingCaseSignificance, boolean translationTermsUseTitleCase) throws ServiceException {
+
 		// source,target,context,developer_comments
 		logger.info("Reading translation file..");
 		int added = 0;
@@ -98,20 +101,31 @@ public class TranslationService {
 						boolean firstTerm = true;
 						for (String csvDescriptionTerm : csvDescriptionTerms) {
 							// Match by language and term only
-							Optional<Description> existingDescription = snowstormDescriptions.stream()
+							Optional<Description> existingDescriptionOptional = snowstormDescriptions.stream()
 									.filter(d -> d.getLang().equals(languageCode) && d.getTerm().equals(csvDescriptionTerm)).findFirst();
 							// First term in the spreadsheet is "preferred"
 							String newAcceptability = firstTerm ? "PREFERRED" : "ACCEPTABLE";
-							if (existingDescription.isPresent()) {
-								String existingAcceptability = existingDescription.get().getAcceptabilityMap().put(languageRefsetId, newAcceptability);
-								if (!newAcceptability.equals(existingAcceptability)) {
-									updated++;
+							String caseSignificance = guessCaseSignificance(csvDescriptionTerm, translationTermsUseTitleCase);
+
+							if (existingDescriptionOptional.isPresent()) {
+								Description existingDescription = existingDescriptionOptional.get();
+
+								if (overwriteExistingCaseSignificance && !existingDescription.getCaseSignificance().equals(caseSignificance)) {
+									existingDescription.setCaseSignificance(caseSignificance);
 									anyChange = true;
 								}
+
+								String existingAcceptability = existingDescription.getAcceptabilityMap().put(languageRefsetId, newAcceptability);
+								if (!newAcceptability.equals(existingAcceptability)) {
+									anyChange = true;
+								}
+
+								if (anyChange) {
+									updated++;
+								}
 							} else {
-								// no existing match
-								String caseSensitive = "ENTIRE_TERM_CASE_SENSITIVE";// TODO
-								snowstormDescriptions.add(new Description("900000000000013009", languageCode, csvDescriptionTerm, caseSensitive,
+								// no existing match, create new
+								snowstormDescriptions.add(new Description(Concepts.SYNONYM, languageCode, csvDescriptionTerm, caseSignificance,
 										languageRefsetId, newAcceptability));
 								added++;
 							}
@@ -134,5 +148,16 @@ public class TranslationService {
 			throw new ServiceException("Failed to read CSV.", e);
 		}
 		return new ChangeSummary(added, updated, removed, newTotal);
+	}
+
+	protected String guessCaseSignificance(String term, boolean titleCaseUsed) {
+		if (term.isEmpty()) {
+			return "CASE_INSENSITIVE";
+		}
+		if (titleCaseUsed) {
+			// Ignore first character by removing it
+			term = term.substring(1);
+		}
+		return term.equals(term.toLowerCase()) ? "CASE_INSENSITIVE" : "ENTIRE_TERM_CASE_SENSITIVE";
 	}
 }
