@@ -18,6 +18,7 @@ Once the content is in the terminology server it can be versioned and an standar
   - Creation of a concept to represent a map refset (with parent `1193543008 |Simple map with correlation to SNOMED CT type reference set (foundation metadata concept)|`)
   - Download of current map members as Spreadsheet (blank initially)
   - Maintain map members by uploading a Spreadsheet export from [Snap2SNOMED](https://snap.snomedtools.org/)
+    - Only map entries with a status of "ACCEPTED" will be put into the extension
 
 ## Prerequisites
 To maintain and extension write access to a [Snowstorm terminology server](https://github.com/IHTSDO/snowstorm) is required.
