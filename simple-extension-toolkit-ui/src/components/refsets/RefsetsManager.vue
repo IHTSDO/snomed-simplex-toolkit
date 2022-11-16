@@ -92,6 +92,7 @@
     methods: {
       loadList() {
         console.log('refset manager - load list');
+        this.refsets = []
         axios
           .get('api/' + this.codeSystem.shortName + '/refsets/' + this.refsetEndpoint)
           .then(response => {

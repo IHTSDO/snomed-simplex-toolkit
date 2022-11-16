@@ -234,6 +234,8 @@ public class SpreadsheetService {
 
 			long value = (long) cell.getNumericCellValue();
 			cellValue = Long.toString(value);
+		} else if (cellType == CellType.BOOLEAN) {
+			cellValue = cell.getBooleanCellValue() ? "1" : "0";
 		}
 
 		return cellValue;
