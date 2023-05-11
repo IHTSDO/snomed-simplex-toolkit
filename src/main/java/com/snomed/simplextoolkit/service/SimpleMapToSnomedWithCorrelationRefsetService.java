@@ -47,14 +47,15 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 			String relationshipType = readGenericCode(cells, headerConfiguration.getColumn(RELATIONSHIP_TYPE_CODE), rowNumber);
 			String noMapFlag = readGenericCode(cells, headerConfiguration.getColumn(NO_MAP_FLAG), rowNumber);
 			String status = readGenericCode(cells, headerConfiguration.getColumn(STATUS), rowNumber);
-			if (status != null && !status.equals(ACCEPTED)) {
+			if (status == null || !status.equals(ACCEPTED)) {
 				return null;
 			}
 
 			// Convert accepted correlation
 			MapCorrelation correlation = snap2snomedRelationshipTypeToCorrelationOrThrow(relationshipType, noMapFlag, rowNumber);
 			if (correlation == MapCorrelation.TARGET_NOT_MAPPABLE) {
-				targetCode = NO_SCT_MAP_TARGET_CONCEPT;
+//				targetCode = NO_SCT_MAP_TARGET_CONCEPT;
+				return null;
 			}
 			return new SheetRefsetMemberSimpleMapToSnomedWithCorrelation(sourceCode, targetCode, correlation);
 		};
