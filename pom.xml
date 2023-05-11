@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.snomed</groupId>
 	<artifactId>snomed-simplex-toolkit</artifactId>
-	<version>1.0.0-beta</version>
+	<version>1.1.0-SNAPSHOT</version>
 	<name>SNOMED Simplex Toolkit</name>
 	<description>Toolkit for the creation and maintenance of simple SNOMED CT Extensions</description>
 	<properties>
