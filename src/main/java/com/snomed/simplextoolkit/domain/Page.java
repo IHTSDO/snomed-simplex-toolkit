@@ -5,16 +5,29 @@ import java.util.List;
 public class Page<T> {
 
 	private List<T> items;
-	private Long total;
-	private Long offset;
+	private Integer total;
+	private Integer offset;
 	private String searchAfter;
+
+	public Page() {
+	}
+
+	public Page(List<T> allItems) {
+		offset = 0;
+		total = allItems.size();
+		this.items = allItems;
+	}
 
 	public List<T> getItems() {
 		return items;
 	}
 
-	public Long getTotal() {
+	public Integer getTotal() {
 		return total;
+	}
+
+	public Integer getOffset() {
+		return offset;
 	}
 
 	public String getSearchAfter() {

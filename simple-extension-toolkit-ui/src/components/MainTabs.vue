@@ -2,9 +2,17 @@
   <v-container>
     <h2>{{codeSystem.name}}</h2>
     <v-tabs>
+      <v-tab href="#info">
+        <v-icon>mdi-information</v-icon>
+        Info
+      </v-tab>
+      <v-tab-item value="info">
+        <EditionInfo
+        :codeSystem="codeSystem"/>
+      </v-tab-item>
       <v-tab href="#simple">
         <v-icon>mdi-playlist-star</v-icon>
-        Simple Refsets
+        Subsets
       </v-tab>
       <v-tab-item value="simple">
         <RefsetsManager
@@ -14,7 +22,7 @@
       </v-tab-item>
       <v-tab href="#maps" >
         <v-icon>mdi-transfer-right</v-icon>
-        Map Refsets
+        Maps
       </v-tab>
       <v-tab-item value="maps">
         <RefsetsManager
@@ -27,7 +35,8 @@
         Translations
       </v-tab>
       <v-tab-item value="translations">
-        <!-- <TranslationManager :connectionDetails="connectionDetails"/> -->
+        <TranslationManager
+        :codeSystem="codeSystem"/>
       </v-tab-item>
       <v-tab href="#release">
         <v-icon>mdi-rocket</v-icon>
@@ -45,8 +54,10 @@
   import RefsetsManager from './refsets/RefsetsManager.vue';
   // import TranslationManager from './translation/TranslationManager.vue';
   import ExportManager from './export/ExportManager.vue'
+  import EditionInfo from './EditionInfo.vue'
   // import MapsManager from './maps/MapsManager.vue'
 
+  import axios from 'axios';
 
   export default {
     name: 'MainTabs',
@@ -62,7 +73,18 @@
       RefsetsManager,
       // TranslationManager,
       ExportManager,
+      EditionInfo,
       // MapsManager
+    },
+    mounted() {
+      var context = this;
+      axios
+        .get('api/codesystems/' + this.codeSystem.shortName)
+        .then(function(response) {
+          var codeSystemWithDetails = response.data;
+          context.$set(context.codeSystem, 'defaultModule', codeSystemWithDetails.defaultModule)
+          context.$set(context.codeSystem, 'defaultModuleDisplay', codeSystemWithDetails.defaultModuleDisplay)
+        })
     },
     methods: {
       connect(val) {

@@ -51,8 +51,9 @@ public class Concept {
 		return conceptId;
 	}
 
-	public void setConceptId(String conceptId) {
+	public Concept setConceptId(String conceptId) {
 		this.conceptId = conceptId;
+		return this;
 	}
 
 	public String getModuleId() {

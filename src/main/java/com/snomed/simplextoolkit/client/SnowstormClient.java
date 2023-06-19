@@ -6,6 +6,7 @@ import com.snomed.simplextoolkit.domain.*;
 import com.snomed.simplextoolkit.exceptions.ClientException;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.service.StreamUtils;
+import com.snomed.simplextoolkit.util.CollectionUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -64,13 +66,28 @@ public class SnowstormClient {
 		}
 	}
 
-	public Page<CodeSystem> getCodeSystems() throws ServiceException {
+	public List<CodeSystem> getCodeSystems() throws ServiceException {
 		try {
 			ResponseEntity<Page<CodeSystem>> response = restTemplate.exchange("/codesystems", HttpMethod.GET, null, responseTypeCodeSystemPage);
-			return response.getBody();
+			return response.getBody().getItems().stream().filter(Predicate.not(CodeSystem::isPostcoordinated)).collect(Collectors.toList());
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "list code systems");
 		}
+	}
+
+	public CodeSystem getCodeSystemForDisplay(String codesystemShortName) throws ServiceException {
+		CodeSystem codeSystem = getCodeSystemOrThrow(codesystemShortName);
+		codeSystem.setDefaultModuleDisplay(getPT(codeSystem, codeSystem.getDefaultModuleOrThrow()).orElse("Concept not found"));
+		return codeSystem;
+	}
+
+	private Optional<String> getPT(CodeSystem codeSystem, String conceptId) {
+		ResponseEntity<ConceptMini> response = restTemplate.getForEntity(format("/%s/concepts/%s", codeSystem.getBranchPath(), conceptId), ConceptMini.class);
+		ConceptMini conceptMini = response.getBody();
+		if (conceptMini == null) {
+			return Optional.empty();
+		}
+		return Optional.of(conceptMini.getPtOrFsnOrConceptId());
 	}
 
 	public CodeSystem getCodeSystemOrThrow(String codesystemShortName) throws ServiceException {
@@ -86,12 +103,47 @@ public class SnowstormClient {
 			if (branch == null) {
 				throw new ServiceException(format("Branch not found %s", branchPath));
 			}
-			codeSystem.setDefaultBranch(branch.getDefaultModule());
+			codeSystem.setDefaultModule(branch.getDefaultModule());
 
 			return codeSystem;
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "load code system");
 		}
+	}
+
+	public CodeSystem createCodeSystem(String name, String shortName, String namespace) throws ClientException {
+		String branchPath = "MAIN/" + shortName;
+		try {
+			restTemplate.exchange("/codesystems", HttpMethod.POST, new HttpEntity<>(new CodeSystem(name, shortName, branchPath)), CodeSystem.class);
+			CodeSystem codeSystem = restTemplate.getForEntity(format("/codesystems/%s", shortName), CodeSystem.class).getBody();
+
+			// Set namespace
+			Map<String, String> newBranchMetadata = new HashMap<>();
+			newBranchMetadata.put("defaultNamespace", namespace);
+			addBranchMetadata(branchPath, newBranchMetadata);
+
+			return codeSystem;
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "create code system");
+		}
+	}
+
+	public void deleteCodeSystem(String shortName) {
+		restTemplate.delete(format("/codesystems/%s", shortName));
+	}
+
+	public void addBranchMetadata(String branchPath, Map<String, String> newBranchMetadata) {
+		restTemplate.exchange(format("/branches/%s/metadata-upsert", branchPath), HttpMethod.PUT, new HttpEntity<>(newBranchMetadata), Map.class);
+	}
+
+	public void deleteBranchAndChildren(String branchPath) {
+		ResponseEntity<List<Branch>> children = restTemplate.exchange(format("/branches/%s/children?immediateChildren=true", branchPath), HttpMethod.GET,
+				new HttpEntity<>(Void.class), new ParameterizedTypeReference<>() {});
+		for (Branch childBranch : CollectionUtils.orEmpty(children.getBody())) {
+			deleteBranchAndChildren(childBranch.getPath());
+		}
+
+		restTemplate.delete(format("/admin/%s/actions/hard-delete", branchPath));
 	}
 
 	public ConceptMini getRefsetOrThrow(String refsetId, CodeSystem codeSystem) throws ServiceException {
@@ -111,6 +163,7 @@ public class SnowstormClient {
 	}
 
 	public List<ConceptMini> getRefsets(String refsetEcl, CodeSystem codeSystem) throws ServiceException {
+		// Get refset concepts from code system branch and module
 		Map<String, ConceptMini> refsetConceptMap = getConcepts(refsetEcl, codeSystem).getItems().stream()
 				.peek(conceptMini -> conceptMini.setActiveMemberCount(0L))
 				.collect(Collectors.toMap(ConceptMini::getConceptId, Function.identity()));
@@ -219,17 +272,39 @@ public class SnowstormClient {
 	}
 
 	public Concept createSimpleMetadataConcept(String parentConceptId, String preferredTerm, String tag, CodeSystem codeSystem) throws ClientException {
-		String caseSens = guessCaseSensitivity(preferredTerm);
-		Concept concept = new Concept(null)
-				.addDescription(new Description(Concepts.FSN, "en", format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
-				.addDescription(new Description(Concepts.SYNONYM, "en", preferredTerm, caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
-				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(Concepts.IS_A, parentConceptId))))
-				.addRelationship(Relationship.inferred(Concepts.IS_A, parentConceptId));
+		Concept concept = newSimpleMetadataConceptWithoutSave(parentConceptId, preferredTerm, tag);
+		return createConcept(concept, codeSystem);
+	}
+
+	public Concept createConcept(Concept concept, CodeSystem codeSystem) throws ClientException {
 		try {
 			ResponseEntity<Concept> response = restTemplate.exchange(format("/browser/%s/concepts", codeSystem.getBranchPath()), HttpMethod.POST, new HttpEntity<>(concept), Concept.class);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "create concept");
+		}
+	}
+
+	public Concept newSimpleMetadataConceptWithoutSave(String parentConceptId, String preferredTerm, String tag) {
+		String caseSens = guessCaseSensitivity(preferredTerm);
+		return new Concept(null)
+				.addDescription(new Description(Concepts.FSN, "en", format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
+				.addDescription(new Description(Concepts.SYNONYM, "en", preferredTerm, caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
+				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(Concepts.IS_A, parentConceptId))))
+				.addRelationship(Relationship.inferred(Concepts.IS_A, parentConceptId));
+	}
+
+	public void deleteConcept(Concept concept, CodeSystem codeSystem) {
+		restTemplate.delete(format("/%s/concepts/%s", codeSystem.getBranchPath(), concept.getConceptId()));
+	}
+
+	public Concept updateConcept(Concept concept, CodeSystem codeSystem) throws ClientException {
+		try {
+			ResponseEntity<Concept> response = restTemplate.exchange(format("/browser/%s/concepts/%s", codeSystem.getBranchPath(), concept.getConceptId()),
+					HttpMethod.PUT, new HttpEntity<>(concept), Concept.class);
+			return response.getBody();
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "update concept");
 		}
 	}
 

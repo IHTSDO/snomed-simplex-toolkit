@@ -2,6 +2,9 @@ package com.snomed.simplextoolkit.domain;
 
 public class Concepts {
 
+	// 900000000000443000 |Module (core metadata concept)|
+	public static final String MODULE = "900000000000443000";
+
 	// 446609009 |Simple type reference set (foundation metadata concept)|
 	public static final String SIMPLE_TYPE_REFSET = "446609009";
 
@@ -20,4 +23,5 @@ public class Concepts {
 	// 116680003 |Is a (attribute)|
 	public static final String IS_A = "116680003";
 
+	public static final String FOUNDATION_METADATA_CONCEPT_TAG = "foundation metadata concept";
 }

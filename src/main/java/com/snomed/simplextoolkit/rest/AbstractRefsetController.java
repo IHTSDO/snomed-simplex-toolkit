@@ -5,6 +5,7 @@ import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.Concept;
 import com.snomed.simplextoolkit.domain.CodeSystem;
+import com.snomed.simplextoolkit.domain.Concepts;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateConceptRequest;
 import com.snomed.simplextoolkit.service.ChangeSummary;
@@ -38,7 +39,7 @@ public abstract class AbstractRefsetController {
 	public ConceptMini createRefsetConcept(@PathVariable String codeSystem, @RequestBody CreateConceptRequest createConceptRequest) throws ServiceException {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		Concept concept = snowstormClient.createSimpleMetadataConcept(getRefsetType(), createConceptRequest.getPreferredTerm(), "foundation metadata concept", theCodeSystem);
+		Concept concept = snowstormClient.createSimpleMetadataConcept(getRefsetType(), createConceptRequest.getPreferredTerm(), Concepts.FOUNDATION_METADATA_CONCEPT_TAG, theCodeSystem);
 		return snowstormClient.getRefset(concept.getConceptId(), theCodeSystem);
 	}
 

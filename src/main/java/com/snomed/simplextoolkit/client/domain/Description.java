@@ -73,4 +73,14 @@ public class Description {
 	public void setAcceptabilityMap(Map<String, String> acceptabilityMap) {
 		this.acceptabilityMap = acceptabilityMap;
 	}
+
+	@Override
+	public String toString() {
+		return "Description{" +
+				"lang='" + lang + '\'' +
+				", term='" + term + '\'' +
+				", caseSignificance='" + caseSignificance + '\'' +
+				", acceptabilityMap=" + acceptabilityMap +
+				'}';
+	}
 }
