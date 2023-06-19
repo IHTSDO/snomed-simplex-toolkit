@@ -1,5 +1,6 @@
 <template>
   <v-container>
+    <v-alert dismissible type="warning" v-show="errorHolder.show">{{errorHolder.message}}</v-alert>
     <v-row>
       <h3 class="mt-4">{{title}}</h3>
     </v-row>
@@ -66,14 +67,15 @@
       title: {
         type: String
       },
-      codeSystem: {}
+      codeSystem: {},
     },
     data: () => ({
       name: 'RefsetsManager',
       refsets: [],
       selectedRefset: null,
       showCreateForm: false,
-      newRefsetTerm: ""
+      newRefsetTerm: "",
+      errorHolder: {show: false, message: ""},
     }),
     components: {
       RefsetsList,
@@ -93,10 +95,17 @@
       loadList() {
         console.log('refset manager - load list');
         this.refsets = []
+        var context = this;
         axios
           .get('api/' + this.codeSystem.shortName + '/refsets/' + this.refsetEndpoint)
           .then(response => {
             this.refsets = response.data;
+          })
+          .catch(function (error) {
+            console.log(error.response.status);
+            console.log(error.response.data);
+            context.errorHolder.show = true
+            context.errorHolder.message = "Error: " + error.response.data.message
           })
       },
       captureSelection(refset) {

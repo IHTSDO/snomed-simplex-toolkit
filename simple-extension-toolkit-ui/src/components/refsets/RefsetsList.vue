@@ -39,9 +39,6 @@
       name: 'RefsetsList',
       model: null,
       maps: [
-        {name: 'COVID Vaccines to Drug Dictionary', subtitle: '14 concepts, last update Dec. 12th 2021'},
-        {name: 'Surgical procedures to National Procedures Terminology', subtitle: '356 concepts, last update Dec. 12th 2021'},
-        {name: 'Imaging procedures to National Procedures Terminology', subtitle: '187 concepts, last update Dec. 12th 2021'},
       ]
     }),
     props: {
