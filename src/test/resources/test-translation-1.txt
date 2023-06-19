@@ -1,0 +1,4 @@
+"source","target","context","developer_comments"
+"Infection of lower respiratory tract caused by SARS-CoV-2","nhiễm trùng đường hô hấp dưới do SARS-CoV-2","880529761000119102","http://snomed.info/id/880529761000119102 - Infection of lower respiratory tract caused by severe acute respiratory syndrome coronavirus 2 (disorder)"
+"Post BCG intravesical immunotherapy changes","những thay đổi của liệu pháp miễn dịch trong bàng quang sau tiêm BCG","740215071000132100","http://snomed.info/id/740215071000132100 - Reactive cellular changes in urothelium after intravesical Bacillus Calmette-Guérin immunotherapy (finding)"
+"Acute respiratory distress syndrome due to COVID-19","hội chứng suy hô hấp cấp tính gây ra bởi coronavirus 2 gây hội chứng hô hấp cấp tính nặng","674814021000119106","http://snomed.info/id/674814021000119106 - Acute respiratory distress syndrome due to disease caused by severe acute respiratory syndrome coronavirus 2 (disorder)"

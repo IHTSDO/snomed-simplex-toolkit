@@ -6,7 +6,7 @@
       dark
     >
       <v-container>
-          <h1>SNOMED CT Simplex Toolkit</h1>
+          <h1 @click="codeSystem = null" style="cursor: pointer;">Simplex Toolkit for SNOMED CT</h1>
       </v-container>
 
 
