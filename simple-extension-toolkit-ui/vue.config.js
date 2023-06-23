@@ -7,11 +7,11 @@ module.exports = {
     port: 8085,
     public: 'https://localhost.ihtsdotools.org/simplex-toolkit',
     disableHostCheck : true,
-    proxy: {
-      '^/api': {
-        target: 'http://localhost:8081/',
-        changeOrigin: true
-      }
-    }
+    // proxy: {
+    //   '^/api': {
+    //     target: 'http://localhost:8081/',
+    //     changeOrigin: true
+    //   }
+    // }
   }
 }

@@ -1,39 +1,45 @@
 package com.snomed.simplextoolkit.client.domain;
 
-public class Relationship {
+public class Relationship extends Component {
 
-	private String moduleId;
+	private String relationshipId;
+	private String sourceId;
 	private String typeId;
 	private String destinationId;
+	private ConcreteValue concreteValue;
 	private String modifier;
+	private int groupId;
 	private String characteristicType;
 
-	public static Relationship stated(String typeId, String destinationId) {
+	public static Relationship stated(String typeId, String destinationId, int group) {
 		Relationship relationship = new Relationship();
 		relationship.typeId = typeId;
 		relationship.destinationId = destinationId;
+		relationship.groupId = group;
 		relationship.characteristicType = "STATED_RELATIONSHIP";
 		return relationship;
 	}
 
-	public static Relationship inferred(String typeId, String destinationId) {
+	public static Relationship inferred(String typeId, String destinationId, int group) {
 		Relationship relationship = new Relationship();
 		relationship.typeId = typeId;
 		relationship.destinationId = destinationId;
+		relationship.groupId = group;
 		relationship.characteristicType = "INFERRED_RELATIONSHIP";
 		relationship.modifier = "EXISTENTIAL";
 		return relationship;
 	}
 
-	public Relationship() {
+	public String getRelationshipId() {
+		return relationshipId;
 	}
 
-	public String getModuleId() {
-		return moduleId;
+	public String getSourceId() {
+		return sourceId;
 	}
 
-	public void setModuleId(String moduleId) {
-		this.moduleId = moduleId;
+	public int getGroupId() {
+		return groupId;
 	}
 
 	public String getTypeId() {
@@ -50,6 +56,10 @@ public class Relationship {
 
 	public void setDestinationId(String destinationId) {
 		this.destinationId = destinationId;
+	}
+
+	public ConcreteValue getConcreteValue() {
+		return concreteValue;
 	}
 
 	public String getModifier() {

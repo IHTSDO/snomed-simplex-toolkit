@@ -15,6 +15,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
@@ -82,12 +83,16 @@ public class SnowstormClient {
 	}
 
 	private Optional<String> getPT(CodeSystem codeSystem, String conceptId) {
-		ResponseEntity<ConceptMini> response = restTemplate.getForEntity(format("/%s/concepts/%s", codeSystem.getBranchPath(), conceptId), ConceptMini.class);
-		ConceptMini conceptMini = response.getBody();
-		if (conceptMini == null) {
+		try {
+			ResponseEntity<ConceptMini> response = restTemplate.getForEntity(format("/%s/concepts/%s", codeSystem.getBranchPath(), conceptId), ConceptMini.class);
+			ConceptMini conceptMini = response.getBody();
+			if (conceptMini == null) {
+				return Optional.empty();
+			}
+			return Optional.of(conceptMini.getPtOrFsnOrConceptId());
+		} catch (HttpClientErrorException e) {
 			return Optional.empty();
 		}
-		return Optional.of(conceptMini.getPtOrFsnOrConceptId());
 	}
 
 	public CodeSystem getCodeSystemOrThrow(String codesystemShortName) throws ServiceException {
@@ -288,10 +293,10 @@ public class SnowstormClient {
 	public Concept newSimpleMetadataConceptWithoutSave(String parentConceptId, String preferredTerm, String tag) {
 		String caseSens = guessCaseSensitivity(preferredTerm);
 		return new Concept(null)
-				.addDescription(new Description(Concepts.FSN, "en", format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
-				.addDescription(new Description(Concepts.SYNONYM, "en", preferredTerm, caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
-				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(Concepts.IS_A, parentConceptId))))
-				.addRelationship(Relationship.inferred(Concepts.IS_A, parentConceptId));
+				.addDescription(new Description(Concepts.FSN_KEYWORD, "en", format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
+				.addDescription(new Description(Concepts.SYNONYM_KEYWORD, "en", preferredTerm, caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
+				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(Concepts.IS_A, parentConceptId, 0))))
+				.addRelationship(Relationship.inferred(Concepts.IS_A, parentConceptId, 0));
 	}
 
 	public void deleteConcept(Concept concept, CodeSystem codeSystem) {
@@ -402,6 +407,11 @@ public class SnowstormClient {
 			}
 		}
 		throw new ServiceException(format("Timed out while waiting for async job. URL: %s", location));
+	}
+
+	public void getDescriptionStream(String branchPath, String preferredOrAcceptableInLangRefset) {
+//		Page<Description> descriptionPage = restTemplate.getForEntity(format("/browser/%s/concepts/bulk", codeSystem.getBranchPath()), new ParameterizedTypeReference<>(){});
+
 	}
 
 	private static final class ConceptBulkLoadRequest {

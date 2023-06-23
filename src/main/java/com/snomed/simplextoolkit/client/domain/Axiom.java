@@ -2,9 +2,9 @@ package com.snomed.simplextoolkit.client.domain;
 
 import java.util.List;
 
-public class Axiom {
+public class Axiom extends Component {
 
-	private String moduleId;
+	private String axiomId;
 	private String definitionStatus;
 	private List<Relationship> relationships;
 
@@ -16,12 +16,8 @@ public class Axiom {
 		this.relationships = relationships;
 	}
 
-	public String getModuleId() {
-		return moduleId;
-	}
-
-	public void setModuleId(String moduleId) {
-		this.moduleId = moduleId;
+	public String getAxiomId() {
+		return axiomId;
 	}
 
 	public String getDefinitionStatus() {

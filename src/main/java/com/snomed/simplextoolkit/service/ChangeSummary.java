@@ -29,4 +29,14 @@ public class ChangeSummary {
 	public int getNewTotal() {
 		return newTotal;
 	}
+
+	@Override
+	public String toString() {
+		return "ChangeSummary{" +
+				"added=" + added +
+				", updated=" + updated +
+				", removed=" + removed +
+				", newTotal=" + newTotal +
+				'}';
+	}
 }

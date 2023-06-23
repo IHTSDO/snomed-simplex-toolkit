@@ -2,44 +2,46 @@ package com.snomed.simplextoolkit.client.domain;
 
 import java.util.Map;
 
-public class Description {
+public class Description extends Component {
 
-	private String moduleId;
-	private String typeId;
-	private String lang;
+	private String descriptionId;
 	private String term;
+	private String conceptId;
+	private String type;
+	private String lang;
 	private String caseSignificance;
 	private Map<String, String> acceptabilityMap;
+	private String inactivationIndicator;
 
 	public Description() {
 	}
 
-	public Description(String typeId, String lang, String term, String caseSignificance, String langRefset, String acceptability) {
-		this(typeId, lang, term, caseSignificance, Map.of(langRefset, acceptability));
+	public Description(String type, String lang, String term, String caseSignificance, String langRefset, String acceptability) {
+		this(type, lang, term, caseSignificance, Map.of(langRefset, acceptability));
 	}
 
-	public Description(String typeId, String lang, String term, String caseSignificance, Map<String, String> acceptabilityMap) {
-		this.typeId = typeId;
+	public Description(String type, String lang, String term, String caseSignificance, Map<String, String> acceptabilityMap) {
+		this.type = type;
 		this.lang = lang;
 		this.term = term;
 		this.caseSignificance = caseSignificance;
 		this.acceptabilityMap = acceptabilityMap;
 	}
 
-	public String getModuleId() {
-		return moduleId;
+	public String getDescriptionId() {
+		return descriptionId;
 	}
 
-	public void setModuleId(String moduleId) {
-		this.moduleId = moduleId;
+	public String getConceptId() {
+		return conceptId;
 	}
 
-	public String getTypeId() {
-		return typeId;
+	public String getType() {
+		return type;
 	}
 
-	public void setTypeId(String typeId) {
-		this.typeId = typeId;
+	public void setType(String type) {
+		this.type = type;
 	}
 
 	public String getLang() {
@@ -72,6 +74,10 @@ public class Description {
 
 	public void setAcceptabilityMap(Map<String, String> acceptabilityMap) {
 		this.acceptabilityMap = acceptabilityMap;
+	}
+
+	public String getInactivationIndicator() {
+		return inactivationIndicator;
 	}
 
 	@Override

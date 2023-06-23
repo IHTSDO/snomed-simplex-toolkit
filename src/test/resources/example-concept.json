@@ -1,0 +1,235 @@
+{
+  "conceptId": "281239006",
+  "active": true,
+  "effectiveTime": "20210731",
+  "released": true,
+  "moduleId": "900000000000207008",
+  "definitionStatus": "FULLY_DEFINED",
+  "inactivationIndicator": "AMBIGUOUS",
+  "associationTargets": {
+    "POSSIBLY_EQUIVALENT_TO": [
+      "238742005",
+      "1217699008"
+    ]
+  },
+  "descriptions": [
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "descriptionId": "674752017",
+      "term": "Exacerbation of asthma (disorder)",
+      "conceptId": "281239006",
+      "acceptabilityMap": {
+        "900000000000509007": "PREFERRED",
+        "900000000000508004": "PREFERRED"
+      },
+      "type": "FSN",
+      "lang": "en",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20170731"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "descriptionId": "4535308012",
+      "term": "Acute asthma",
+      "conceptId": "281239006",
+      "acceptabilityMap": {
+        "900000000000509007": "PREFERRED",
+        "900000000000508004": "PREFERRED"
+      },
+      "type": "SYNONYM",
+      "lang": "en",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20210731"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "descriptionId": "4535229017",
+      "term": "Asthma attack",
+      "conceptId": "281239006",
+      "acceptabilityMap": {
+        "900000000000509007": "ACCEPTABLE",
+        "900000000000508004": "ACCEPTABLE"
+      },
+      "type": "SYNONYM",
+      "lang": "en",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20210731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "descriptionId": "419211018",
+      "term": "Acute exacerbation of asthma",
+      "conceptId": "281239006",
+      "acceptabilityMap": {},
+      "type": "SYNONYM",
+      "lang": "en",
+      "caseSignificance": "INITIAL_CHARACTER_CASE_INSENSITIVE",
+      "effectiveTime": "20150131",
+      "inactivationIndicator": "NONCONFORMANCE_TO_EDITORIAL_POLICY"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "descriptionId": "419210017",
+      "term": "Exacerbation of asthma",
+      "conceptId": "281239006",
+      "acceptabilityMap": {
+        "900000000000509007": "ACCEPTABLE",
+        "900000000000508004": "ACCEPTABLE"
+      },
+      "type": "SYNONYM",
+      "lang": "en",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20170731"
+    }
+  ],
+  "classAxioms": [
+    {
+      "axiomId": "fb2bc1e3-8e1d-4921-9ccb-d4e74ba4678f",
+      "moduleId": "900000000000207008",
+      "active": true,
+      "released": true,
+      "relationships": [
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "281239006",
+          "destinationId": "195967001",
+          "typeId": "116680003",
+          "modifier": "EXISTENTIAL",
+          "groupId": 0,
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "281239006",
+          "destinationId": "424124008",
+          "typeId": "263502005",
+          "modifier": "EXISTENTIAL",
+          "groupId": 1,
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "281239006",
+          "destinationId": "89187006",
+          "typeId": "363698007",
+          "modifier": "EXISTENTIAL",
+          "groupId": 2,
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "1801000221105",
+          "concreteValue": {
+            "dataType": "INTEGER",
+            "value": "1"
+          },
+          "typeId": "1142139005",
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP",
+          "groupId": 0
+        }
+      ],
+      "definitionStatus": "FULLY_DEFINED"
+    }
+  ],
+  "gciAxioms": [],
+  "relationships": [
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "relationshipId": "13643529027",
+      "sourceId": "281239006",
+      "destinationId": "111273006",
+      "typeId": "116680003",
+      "modifier": "EXISTENTIAL",
+      "groupId": 0,
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "relationshipId": "100589024",
+      "sourceId": "281239006",
+      "destinationId": "195967001",
+      "typeId": "116680003",
+      "modifier": "EXISTENTIAL",
+      "groupId": 0,
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20020131"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "relationshipId": "13643530021",
+      "sourceId": "281239006",
+      "destinationId": "424124008",
+      "typeId": "263502005",
+      "modifier": "EXISTENTIAL",
+      "groupId": 2,
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "relationshipId": "1740202028",
+      "sourceId": "281239006",
+      "destinationId": "89187006",
+      "typeId": "363698007",
+      "modifier": "EXISTENTIAL",
+      "groupId": 1,
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20190731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "relationshipId": "3912119023",
+      "sourceId": "281239006",
+      "destinationId": "195967001",
+      "typeId": "116680003",
+      "modifier": "EXISTENTIAL",
+      "groupId": 0,
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "relationshipId": "2994642021",
+      "sourceId": "281239006",
+      "destinationId": "41427001",
+      "typeId": "116680003",
+      "modifier": "EXISTENTIAL",
+      "groupId": 0,
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20150131"
+    }
+  ],
+  "alternateIdentifiers": []
+}

@@ -8,17 +8,17 @@ import com.snomed.simplextoolkit.client.domain.Description;
 import com.snomed.simplextoolkit.domain.CodeSystem;
 import com.snomed.simplextoolkit.domain.Concepts;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import com.snomed.simplextoolkit.rest.pojos.LanguageCode;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static java.lang.Long.parseLong;
 import static java.lang.String.format;
@@ -29,15 +29,40 @@ public class TranslationService {
 	@Autowired
 	private SnowstormClientFactory snowstormClientFactory;
 
+	private List<LanguageCode> languageCodes = new ArrayList<>();
+
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public void downloadTranslationAsSpreadsheet(String refsetId, CodeSystem codeSystem, OutputStream outputStream) {
-		// conceptId	term
-
+	@PostConstruct
+	public void init() {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/language_codes_iso-639-1.txt")))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				if (!line.isEmpty()) {
+					String[] split = line.split("\t");
+					if (split.length == 2) {
+						languageCodes.add(new LanguageCode(split[0], split[1]));
+					}
+				}
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
+	public List<LanguageCode> getLanguageCodes() {
+		return languageCodes;
+	}
+
+	public void downloadTranslationAsSpreadsheet(String refsetId, CodeSystem codeSystem, OutputStream outputStream) throws ServiceException {
+		// conceptId	term
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		snowstormClient.getDescriptionStream(codeSystem.getBranchPath(), refsetId);
+	}
+
+	@Async
 	public ChangeSummary uploadTranslationAsCSV(String languageRefsetId, String languageCode, CodeSystem codeSystem, InputStream inputStream,
-			boolean overwriteExistingCaseSignificance, boolean translationTermsUseTitleCase) throws ServiceException {
+			boolean overwriteExistingCaseSignificance, boolean translationTermsUseTitleCase, SnowstormClient snowstormClient) throws ServiceException {
 
 		// source,target,context,developer_comments
 		logger.info("Reading translation file..");
@@ -48,15 +73,24 @@ public class TranslationService {
 
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
 			String header = reader.readLine();
+			if (header == null) {
+				header = "";
+			}
 			header = header.replace("\"", "");
 			if (header.equals("source,target,context,developer_comments")) {
 				logger.info("Detected Weblate CSV format");
 				String line;
+				int lineNumber = 1;
 				Map<Long, List<String>> conceptDescriptions = new Long2ObjectOpenHashMap<>();
 				while ((line = reader.readLine()) != null) {
+					lineNumber++;
 					String[] columns = line.replace("\"", "").split(",");
 					// source	target	context	developer_comments
 					// 0		1		2		3
+					if (columns.length < 4) {
+						logger.warn("Line {} has less than 4 columns, skipping: {}", lineNumber, columns);
+						continue;
+					}
 					String translatedTerm = columns[1];
 					String conceptString = columns[2];
 					if (!translatedTerm.isEmpty() && conceptString.matches("\\d+")) {
@@ -66,31 +100,41 @@ public class TranslationService {
 				}
 				logger.info("Read translation terms for {} concepts", conceptDescriptions.size());
 
-				SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-
 				if (conceptDescriptions.isEmpty()) {
+					// No change
 					int activeRefsetMembers = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
 					return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 				}
 
-				for (List<Long> conceptIdBatch : Lists.partition(new ArrayList<>(conceptDescriptions.keySet()), 500)) {
+				int processed = 0;
+				int batchSize = 500;
+				for (List<Long> conceptIdBatch : Lists.partition(new ArrayList<>(conceptDescriptions.keySet()), batchSize)) {
+					if (processed > 0 && processed % 1_000 == 0) {
+						logger.info("Processed {} / {}", processed, conceptDescriptions.size());
+					}
+					processed += batchSize;
 					List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
 					List<Concept> conceptsToUpdate = new ArrayList<>();
 					for (Concept concept : concepts) {
 						boolean anyChange = false;
 						List<String> csvDescriptionTerms = conceptDescriptions.get(parseLong(concept.getConceptId()));
 						List<Description> snowstormDescriptions = concept.getDescriptions();
+						snowstormDescriptions.sort(Comparator.comparing(Description::isActive).reversed());
 
 						// Remove any descriptions in snowstorm with a matching language and lang refset if they are not in the latest CSV
 						List<Description> toRemove = new ArrayList<>();
 						for (Description snowstormDescription : snowstormDescriptions) {
-							if (snowstormDescription.getLang().equals(languageCode)) {
+							if (snowstormDescription.getLang().equals(languageCode)
+									&& snowstormDescription.isActive()
+									&& snowstormDescription.getAcceptabilityMap().containsKey(languageRefsetId)) {
 								if (!csvDescriptionTerms.contains(snowstormDescription.getTerm())) {
 									snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
+									anyChange = true;
+									removed++;// Removed from the language refset
+
+									// Also suggest that Snowstorm deletes / inactivates this description if not used by any other lang refset
 									if (snowstormDescription.getAcceptabilityMap().isEmpty()) {
 										toRemove.add(snowstormDescription);// Snowstorm will delete or inactivate component depending on release status
-										removed++;
-										anyChange = true;
 									}
 								}
 							}
@@ -110,6 +154,11 @@ public class TranslationService {
 							if (existingDescriptionOptional.isPresent()) {
 								Description existingDescription = existingDescriptionOptional.get();
 
+								if (!existingDescription.isActive()) {// Reactivation
+									existingDescription.setActive(true);
+									anyChange = true;
+								}
+
 								if (overwriteExistingCaseSignificance && !existingDescription.getCaseSignificance().equals(caseSignificance)) {
 									existingDescription.setCaseSignificance(caseSignificance);
 									anyChange = true;
@@ -117,6 +166,8 @@ public class TranslationService {
 
 								String existingAcceptability = existingDescription.getAcceptabilityMap().put(languageRefsetId, newAcceptability);
 								if (!newAcceptability.equals(existingAcceptability)) {
+									logger.debug("Correcting acceptability of {} '{}' from {} to {}",
+											existingDescription.getDescriptionId(), existingDescription.getTerm(), existingAcceptability, newAcceptability);
 									anyChange = true;
 								}
 
@@ -125,8 +176,9 @@ public class TranslationService {
 								}
 							} else {
 								// no existing match, create new
-								snowstormDescriptions.add(new Description(Concepts.SYNONYM, languageCode, csvDescriptionTerm, caseSignificance,
+								snowstormDescriptions.add(new Description(Concepts.SYNONYM_KEYWORD, languageCode, csvDescriptionTerm, caseSignificance,
 										languageRefsetId, newAcceptability));
+								anyChange = true;
 								added++;
 							}
 							firstTerm = false;
@@ -137,6 +189,7 @@ public class TranslationService {
 						}
 					}
 					if (!conceptsToUpdate.isEmpty()) {
+						logger.info("Updating {} concepts on {}", conceptsToUpdate.size(), codeSystem.getBranchPath());
 						snowstormClient.updateBrowserFormatConcepts(conceptsToUpdate, codeSystem);
 					}
 				}
@@ -147,7 +200,9 @@ public class TranslationService {
 		} catch (IOException e) {
 			throw new ServiceException("Failed to read CSV.", e);
 		}
-		return new ChangeSummary(added, updated, removed, newTotal);
+		ChangeSummary changeSummary = new ChangeSummary(added, updated, removed, newTotal);
+		logger.info("translation upload complete on {}: {}", codeSystem.getBranchPath(), changeSummary);
+		return changeSummary;
 	}
 
 	protected String guessCaseSignificance(String term, boolean titleCaseUsed) {

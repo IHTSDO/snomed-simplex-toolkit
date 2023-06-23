@@ -52,7 +52,7 @@
 
 <script>
   import RefsetsManager from './refsets/RefsetsManager.vue';
-  // import TranslationManager from './translation/TranslationManager.vue';
+  import TranslationManager from './translation/TranslationManager.vue';
   import ExportManager from './export/ExportManager.vue'
   import EditionInfo from './EditionInfo.vue'
   // import MapsManager from './maps/MapsManager.vue'
@@ -71,7 +71,7 @@
     },
     components: {
       RefsetsManager,
-      // TranslationManager,
+      TranslationManager,
       ExportManager,
       EditionInfo,
       // MapsManager
