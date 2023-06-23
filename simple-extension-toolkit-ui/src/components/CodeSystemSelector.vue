@@ -25,14 +25,14 @@
               @click="showCreateForm = true"
               v-if="!showCreateForm"
             >
-              Create new Edition
+              Create or add Edition
             </v-btn>
       </v-col>
       <v-col md="6">
         <v-card class="px-4" outlined v-if="showCreateForm">
           <v-form>
             <v-container>
-              <h4>Create new SNOMED CT Edition</h4>
+              <h4>Create or add SNOMED CT Edition</h4>
               <v-text-field
                 v-model="newCodeSystem.name"
                 :counter="200"
@@ -50,15 +50,6 @@
                 persistent-hint
                 required
                 style="margin-bottom: 30px;"
-              ></v-text-field>             
-              <v-text-field
-                v-model="newCodeSystem.moduleName"
-                :counter="200"
-                label="Module name"
-                hint="Example: Angosia module"
-                persistent-hint
-                required
-                style="margin-bottom: 30px;"
               ></v-text-field>
               <v-text-field
                 v-model="newCodeSystem.namespace"
@@ -69,11 +60,40 @@
                 required
                 style="margin-bottom: 30px;"
               ></v-text-field>
+              <v-checkbox
+                v-model="newCodeSystem.createModule"
+                label="Is this a new edition?"
+                ></v-checkbox>
+                <v-text-field
+                v-model="newCodeSystem.moduleName"
+                v-if="newCodeSystem.createModule"
+                :counter="200"
+                label="New Edition Module Name"
+                hint="Example: Angosia module"
+                persistent-hint
+                required
+                style="margin-bottom: 30px;"
+              ></v-text-field>
+              <v-text-field
+                v-model="newCodeSystem.moduleId"
+                v-if="!newCodeSystem.createModule"
+                :counter="200"
+                label="Edition Module Identifier"
+                hint="The SNOMED CT code for your existing edition module"
+                persistent-hint
+                required
+                style="margin-bottom: 30px;"
+              ></v-text-field>
               <v-btn
                 color="success"
                 @click="createCodeSystem"
               >
-                Create edition
+              <span
+                v-if="newCodeSystem.createModule"
+                >Create edition</span>
+              <span
+                v-if="!newCodeSystem.createModule"
+                >Add edition</span>
               </v-btn>
             </v-container>
           </v-form>
@@ -93,9 +113,11 @@
       showCreateForm: false,
       newCodeSystem: {
         name: "",
-        shortname: "",
+        shortname: "SNOMEDCT-",
         namespace: "",
-        moduleName: ""
+        createModule: true,
+        moduleName: "",
+        moduleId: ""
       }
     }),
     props: {
@@ -113,12 +135,14 @@
             name: this.newCodeSystem.name, 
             shortName: this.newCodeSystem.shortname, 
             namespace: this.newCodeSystem.namespace,
+            createModule: this.newCodeSystem.createModule,
             moduleName: this.newCodeSystem.moduleName,
+            moduleId: this.newCodeSystem.moduleId,
           })
           .then(response => {
             response.data;
             this.showCreateForm = false;
-            this.loadList();
+            this.$emit('reload');
           })
       }
 

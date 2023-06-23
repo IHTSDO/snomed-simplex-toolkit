@@ -33,7 +33,8 @@ public class CodeSystemController {
 
 	@PostMapping
 	public CodeSystem createCodeSystem(@RequestBody CreateCodeSystemRequest request) throws ServiceException {
-		return codeSystemService.createCodeSystem(request.getName(), request.getShortName(), request.getNamespace(), request.getModuleName());
+		return codeSystemService.createCodeSystem(request.getName(), request.getShortName(), request.getNamespace(), request.isCreateModule(), request.getModuleName(),
+				request.getModuleId());
 	}
 
 	@DeleteMapping("{codeSystem}")

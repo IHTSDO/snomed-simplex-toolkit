@@ -13,7 +13,7 @@
     </v-app-bar>
 
     <v-main>
-      <CodeSystemSelector v-if="codeSystem == null" v-bind:codesystems="codesystems" @selectedCodeSystem="captureCodeSystemSelection"/>
+      <CodeSystemSelector v-if="codeSystem == null" v-bind:codesystems="codesystems" @selectedCodeSystem="captureCodeSystemSelection" @reload="loadCodeSystems"/>
       <MainTabs v-if="codeSystem != null" v-bind:codeSystem="codeSystem"/>
     </v-main>
   </v-app>
@@ -37,15 +37,18 @@ export default {
   }),
   created () {
     document.title = "SNOMED CT Simplex Toolkit";
-    axios
-      .get('api/codesystems')
-      .then(response => {
-        this.codesystems = response.data.items;
-      })
+    this.loadCodeSystems()
   },
   methods: {
     captureCodeSystemSelection(selectedCodeSystem) {
       this.codeSystem = selectedCodeSystem;
+    },
+    loadCodeSystems() {
+      axios
+        .get('api/codesystems')
+        .then(response => {
+          this.codesystems = response.data.items;
+        })
     }
   }
 };

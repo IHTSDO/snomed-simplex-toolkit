@@ -5,7 +5,9 @@ public class CreateCodeSystemRequest {
 	private String name;
 	private String shortName;
 	private String namespace;
+	private boolean createModule;
 	private String moduleName;
+	private String moduleId;
 
 	public String getName() {
 		return name;
@@ -37,5 +39,13 @@ public class CreateCodeSystemRequest {
 
 	public void setModuleName(String moduleName) {
 		this.moduleName = moduleName;
+	}
+
+	public boolean isCreateModule() {
+		return createModule;
+	}
+
+	public String getModuleId() {
+		return moduleId;
 	}
 }
