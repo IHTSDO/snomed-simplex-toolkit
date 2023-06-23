@@ -1,6 +1,10 @@
 package com.snomed.simplextoolkit.service;
 
-import com.snomed.simplextoolkit.domain.*;
+import com.snomed.simplextoolkit.client.domain.RefsetMember;
+import com.snomed.simplextoolkit.domain.MapCorrelation;
+import com.snomed.simplextoolkit.domain.SheetHeader;
+import com.snomed.simplextoolkit.domain.SheetRefsetMember;
+import com.snomed.simplextoolkit.domain.SheetRefsetMemberSimpleMapToSnomedWithCorrelation;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.springframework.stereotype.Service;
 

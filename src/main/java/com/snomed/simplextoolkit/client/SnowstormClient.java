@@ -2,7 +2,7 @@ package com.snomed.simplextoolkit.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snomed.simplextoolkit.client.domain.*;
-import com.snomed.simplextoolkit.domain.*;
+import com.snomed.simplextoolkit.domain.Page;
 import com.snomed.simplextoolkit.exceptions.ClientException;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.service.StreamUtils;
@@ -40,7 +40,7 @@ public class SnowstormClient {
 	private final RestTemplate restTemplate;
 	private final ObjectMapper objectMapper;
 
-	private final Logger logger = LoggerFactory.getLogger(getClass());
+	private static final Logger logger = LoggerFactory.getLogger(SnowstormClient.class);
 
 	public SnowstormClient(String snowstormUrl, String authenticationToken, ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;
@@ -52,7 +52,6 @@ public class SnowstormClient {
 				.rootUri(snowstormUrl)
 				.defaultHeader("Cookie", authenticationToken)
 				.build();
-		logger.info("Snowstorm URL set as '{}'", snowstormUrl);
 	}
 
 	public void ping() throws ServiceException {
@@ -202,20 +201,24 @@ public class SnowstormClient {
 		}
 	}
 
-	public List<RefsetMember> loadAllRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly) throws ServiceException {
+	public Page<RefsetMember> getRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly, int offset, int limit) throws ClientException {
 		try {
-			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&limit=%s%s",
-							codeSystem.getBranchPath(), refsetId, MAX_PAGE_SIZE, activeOnly ? "&active=true" : ""),
+			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&offset=%s&limit=%s%s",
+							codeSystem.getBranchPath(), refsetId, offset, limit, activeOnly ? "&active=true" : ""),
 					HttpMethod.GET, null, responseTypeRefsetPage);
-			Page<RefsetMember> page = response.getBody();
-			if (page.getTotal() > page.getItems().size()) {
-				// TODO: Load the rest. Will need to implement scrolling beyond 10K members in Snowstorm.
-				System.err.println("WARNING, only the first 10K members were loaded!");
-			}
-			return page.getItems();
+			return response.getBody();
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "load refset");
 		}
+	}
+
+	public List<RefsetMember> loadAllRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly) throws ServiceException {
+		Page<RefsetMember> page = getRefsetMembers(refsetId, codeSystem, activeOnly, 0, MAX_PAGE_SIZE);
+		if (page.getTotal() > page.getItems().size()) {
+			// TODO: Load the rest. Will need to implement scrolling beyond 10K members in Snowstorm.
+			logger.warn("WARNING, only the first 10K members were loaded! There are {} in total!", page.getTotal());
+		}
+		return page.getItems();
 	}
 
 	public int countAllActiveRefsetMembers(String refsetId, CodeSystem codeSystem) {
@@ -407,11 +410,6 @@ public class SnowstormClient {
 			}
 		}
 		throw new ServiceException(format("Timed out while waiting for async job. URL: %s", location));
-	}
-
-	public void getDescriptionStream(String branchPath, String preferredOrAcceptableInLangRefset) {
-//		Page<Description> descriptionPage = restTemplate.getForEntity(format("/browser/%s/concepts/bulk", codeSystem.getBranchPath()), new ParameterizedTypeReference<>(){});
-
 	}
 
 	private static final class ConceptBulkLoadRequest {

@@ -87,6 +87,9 @@
     },
     mounted() {
       let context = this;
+      if (this.selectedRefset.lang) {
+        this.selectedLanguage = this.selectedRefset.lang
+      }
       axios
         .get('api/language-codes')
         .then(function(response) {

@@ -1,6 +1,6 @@
 package com.snomed.simplextoolkit.service;
 
-import com.snomed.simplextoolkit.domain.RefsetMember;
+import com.snomed.simplextoolkit.client.domain.RefsetMember;
 import com.snomed.simplextoolkit.domain.SheetHeader;
 import com.snomed.simplextoolkit.domain.SheetRefsetMember;
 import org.springframework.stereotype.Service;

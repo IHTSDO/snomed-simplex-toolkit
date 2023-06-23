@@ -1,6 +1,6 @@
 package com.snomed.simplextoolkit.rest;
 
-import com.snomed.simplextoolkit.domain.Concepts;
+import com.snomed.simplextoolkit.client.domain.Concepts;
 import com.snomed.simplextoolkit.service.RefsetUpdateService;
 import com.snomed.simplextoolkit.service.SimpleMapToSnomedWithCorrelationRefsetService;
 import io.swagger.annotations.Api;

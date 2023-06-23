@@ -2,7 +2,7 @@ package com.snomed.simplextoolkit.rest;
 
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
-import com.snomed.simplextoolkit.domain.CodeSystem;
+import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;

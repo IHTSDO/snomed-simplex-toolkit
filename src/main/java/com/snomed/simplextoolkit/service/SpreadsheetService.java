@@ -1,7 +1,7 @@
 package com.snomed.simplextoolkit.service;
 
+import com.snomed.simplextoolkit.client.domain.RefsetMember;
 import com.snomed.simplextoolkit.domain.HeaderConfiguration;
-import com.snomed.simplextoolkit.domain.RefsetMember;
 import com.snomed.simplextoolkit.domain.SheetHeader;
 import com.snomed.simplextoolkit.domain.SheetRefsetMember;
 import com.snomed.simplextoolkit.exceptions.ServiceException;

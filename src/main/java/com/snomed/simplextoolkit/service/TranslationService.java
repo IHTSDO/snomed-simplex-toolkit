@@ -1,14 +1,14 @@
 package com.snomed.simplextoolkit.service;
 
+import ch.qos.logback.classic.Level;
 import com.google.common.collect.Lists;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
-import com.snomed.simplextoolkit.client.domain.Concept;
-import com.snomed.simplextoolkit.client.domain.Description;
-import com.snomed.simplextoolkit.domain.CodeSystem;
-import com.snomed.simplextoolkit.domain.Concepts;
+import com.snomed.simplextoolkit.client.domain.*;
+import com.snomed.simplextoolkit.domain.Page;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.LanguageCode;
+import com.snomed.simplextoolkit.util.TimerUtil;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +17,10 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 
 import static java.lang.Long.parseLong;
@@ -54,10 +57,26 @@ public class TranslationService {
 		return languageCodes;
 	}
 
-	public void downloadTranslationAsSpreadsheet(String refsetId, CodeSystem codeSystem, OutputStream outputStream) throws ServiceException {
-		// conceptId	term
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		snowstormClient.getDescriptionStream(codeSystem.getBranchPath(), refsetId);
+	public List<ConceptMini> listTranslations(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
+		TimerUtil timer = new TimerUtil("Load translations", Level.INFO, 2);
+
+		List<ConceptMini> translationRefsets = snowstormClient.getRefsets("<" + Concepts.LANG_REFSET, codeSystem);
+		timer.checkpoint("ECL for lang refsets");
+
+		for (ConceptMini translationRefset : translationRefsets) {
+			Page<RefsetMember> firstMember = snowstormClient.getRefsetMembers(translationRefset.getConceptId(), codeSystem, true, 0, 1);
+			timer.checkpoint(format("Load one lang refset member for %s.", translationRefset.getIdAndFsnTerm()));
+
+			if (!firstMember.getItems().isEmpty()) {
+				RefsetMember member = firstMember.getItems().iterator().next();
+				ReferencedComponent referencedComponent = member.getReferencedComponent();
+				String lang = referencedComponent.getLang();
+				if (lang != null) {
+					translationRefset.addExtraField("lang", lang);
+				}
+			}
+		}
+		return translationRefsets;
 	}
 
 	@Async
@@ -215,4 +234,5 @@ public class TranslationService {
 		}
 		return term.equals(term.toLowerCase()) ? "CASE_INSENSITIVE" : "ENTIRE_TERM_CASE_SENSITIVE";
 	}
+
 }

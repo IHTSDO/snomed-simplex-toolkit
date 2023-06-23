@@ -3,7 +3,7 @@ package com.snomed.simplextoolkit.service;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.Concept;
-import com.snomed.simplextoolkit.domain.CodeSystem;
+import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

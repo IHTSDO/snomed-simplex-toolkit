@@ -1,6 +1,4 @@
-package com.snomed.simplextoolkit.domain;
-
-import com.snomed.simplextoolkit.client.ConceptMini;
+package com.snomed.simplextoolkit.client.domain;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,7 +15,7 @@ public class RefsetMember {
 	private String referencedComponentId;
 	private Map<String, String> additionalFields;
 	private boolean released;
-	private ConceptMini referencedComponent;
+	private ReferencedComponent referencedComponent;
 
 	public RefsetMember() {
 		// Used by object mapper
@@ -81,7 +79,7 @@ public class RefsetMember {
 		return released;
 	}
 
-	public ConceptMini getReferencedComponent() {
+	public ReferencedComponent getReferencedComponent() {
 		return referencedComponent;
 	}
 

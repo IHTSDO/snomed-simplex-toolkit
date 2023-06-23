@@ -1,4 +1,4 @@
-package com.snomed.simplextoolkit.domain;
+package com.snomed.simplextoolkit.client.domain;
 
 public class Concepts {
 

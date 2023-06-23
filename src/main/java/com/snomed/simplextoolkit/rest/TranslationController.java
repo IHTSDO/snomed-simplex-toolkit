@@ -1,10 +1,10 @@
 package com.snomed.simplextoolkit.rest;
 
-import com.snomed.simplextoolkit.client.ConceptMini;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
-import com.snomed.simplextoolkit.domain.CodeSystem;
-import com.snomed.simplextoolkit.domain.Concepts;
+import com.snomed.simplextoolkit.client.domain.CodeSystem;
+import com.snomed.simplextoolkit.client.domain.ConceptMini;
+import com.snomed.simplextoolkit.client.domain.Concepts;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateConceptRequest;
 import com.snomed.simplextoolkit.rest.pojos.LanguageCode;
@@ -32,7 +32,7 @@ public class TranslationController {
 	@GetMapping("{codeSystem}/translations")
 	public List<ConceptMini> listTranslations(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		return snowstormClient.getRefsets("<" + Concepts.LANG_REFSET, snowstormClient.getCodeSystemOrThrow(codeSystem));
+		return translationService.listTranslations(snowstormClient.getCodeSystemOrThrow(codeSystem), snowstormClientFactory.getClient());
 	}
 
 	@PostMapping("{codeSystem}/translations")

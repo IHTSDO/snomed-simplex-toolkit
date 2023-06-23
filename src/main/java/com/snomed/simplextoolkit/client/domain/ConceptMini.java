@@ -1,6 +1,10 @@
-package com.snomed.simplextoolkit.client;
+package com.snomed.simplextoolkit.client.domain;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ConceptMini {
 
@@ -10,6 +14,7 @@ public class ConceptMini {
 	private DescriptionMini pt;
 	private String moduleId;
 	private Long activeMemberCount;
+	private Map<String, Object> extraFields;
 
 	@JsonIgnore
 	public String getPtOrFsnOrConceptId() {
@@ -19,6 +24,13 @@ public class ConceptMini {
 			return fsn.getTerm();
 		}
 		return conceptId;
+	}
+
+	public void addExtraField(String name, Object value) {
+		if (extraFields == null) {
+			extraFields = new HashMap<>();
+		}
+		extraFields.put(name, value);
 	}
 
 	public String getConceptId() {
@@ -54,17 +66,13 @@ public class ConceptMini {
 		return String.format("%s |%s|", conceptId, fsn != null ? fsn.getTerm() : "");
 	}
 
-	public static final class DescriptionMini {
-
-		private String term;
-		private String lang;
-
-		public String getTerm() {
-			return term;
-		}
-
-		public String getLang() {
-			return lang;
-		}
+	@JsonAnyGetter
+	public Map<String, Object> getExtraFields() {
+		return extraFields;
 	}
+
+	public void setExtraFields(Map<String, Object> extraFields) {
+		this.extraFields = extraFields;
+	}
+
 }

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -22,10 +24,12 @@ public class SnowstormClientFactory {
 
 	private final Cache<String, SnowstormClient> clientCache;
 	private final ObjectMapper objectMapper;
+	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public SnowstormClientFactory() {
 		this.clientCache = CacheBuilder.newBuilder().expireAfterAccess(5L, TimeUnit.MINUTES).build();
 		this.objectMapper = (new ObjectMapper()).setSerializationInclusion(JsonInclude.Include.NON_NULL);
+		logger.info("Snowstorm URL set as '{}'", snowstormUrl);
 	}
 
 	public SnowstormClient getClient() throws ServiceException {

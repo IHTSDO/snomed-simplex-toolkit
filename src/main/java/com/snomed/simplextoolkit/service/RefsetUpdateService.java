@@ -1,9 +1,13 @@
 package com.snomed.simplextoolkit.service;
 
-import com.snomed.simplextoolkit.client.ConceptMini;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
-import com.snomed.simplextoolkit.domain.*;
+import com.snomed.simplextoolkit.client.domain.CodeSystem;
+import com.snomed.simplextoolkit.client.domain.ConceptMini;
+import com.snomed.simplextoolkit.client.domain.RefsetMember;
+import com.snomed.simplextoolkit.domain.HeaderConfiguration;
+import com.snomed.simplextoolkit.domain.SheetHeader;
+import com.snomed.simplextoolkit.domain.SheetRefsetMember;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;

@@ -2,9 +2,9 @@ package com.snomed.simplextoolkit.service;
 
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
+import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.client.domain.Concept;
-import com.snomed.simplextoolkit.domain.CodeSystem;
-import com.snomed.simplextoolkit.domain.Concepts;
+import com.snomed.simplextoolkit.client.domain.Concepts;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

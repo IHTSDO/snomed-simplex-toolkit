@@ -1,7 +1,7 @@
 package com.snomed.simplextoolkit.rest;
 
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
-import com.snomed.simplextoolkit.domain.CodeSystem;
+import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.domain.Page;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateCodeSystemRequest;

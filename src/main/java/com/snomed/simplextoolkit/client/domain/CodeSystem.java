@@ -1,7 +1,6 @@
-package com.snomed.simplextoolkit.domain;
+package com.snomed.simplextoolkit.client.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.snomed.simplextoolkit.client.ConceptMini;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 
 import java.util.List;

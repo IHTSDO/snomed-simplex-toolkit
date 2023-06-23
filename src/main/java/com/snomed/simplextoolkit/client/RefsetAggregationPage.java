@@ -1,5 +1,7 @@
 package com.snomed.simplextoolkit.client;
 
+import com.snomed.simplextoolkit.client.domain.ConceptMini;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;

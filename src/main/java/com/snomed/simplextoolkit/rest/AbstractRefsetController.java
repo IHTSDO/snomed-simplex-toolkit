@@ -1,11 +1,11 @@
 package com.snomed.simplextoolkit.rest;
 
-import com.snomed.simplextoolkit.client.ConceptMini;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
+import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.client.domain.Concept;
-import com.snomed.simplextoolkit.domain.CodeSystem;
-import com.snomed.simplextoolkit.domain.Concepts;
+import com.snomed.simplextoolkit.client.domain.ConceptMini;
+import com.snomed.simplextoolkit.client.domain.Concepts;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateConceptRequest;
 import com.snomed.simplextoolkit.service.ChangeSummary;
