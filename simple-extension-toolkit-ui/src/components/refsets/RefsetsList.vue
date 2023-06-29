@@ -6,6 +6,12 @@
      style="max-height: 400px"
        class="overflow-y-auto">
       <v-list-item-group v-model="model">
+        <v-list-item
+          v-if="refsets.length == 0">
+          <v-list-item-content>
+            <v-list-item-title>- None exist yet -</v-list-item-title>
+          </v-list-item-content>
+        </v-list-item>
         <v-list-item two-line
           v-for="(refset, i) in refsets"
           :key="i"
