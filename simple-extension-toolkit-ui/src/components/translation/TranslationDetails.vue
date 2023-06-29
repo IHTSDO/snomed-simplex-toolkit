@@ -4,10 +4,24 @@
     outlined
   >
     <v-list-item-content>
-        <div class="text-overline mb-4">Selected Language/Dialect</div>
+        <div class="text-overline mb-4">Selected Language/Dialect<span>...</span></div>
         <v-list-item-title class="text-h5 mb-1" ><b>{{selectedRefset.pt.term}}</b><br/>Concept ID: {{selectedRefset.conceptId}}</v-list-item-title>
         <v-list-item-subtitle>{{selectedRefset.activeMemberCount}} active members.</v-list-item-subtitle>
     </v-list-item-content>
+    <v-card-actions class="mt-4">
+      <div>
+        <p>
+          <b>How does it work?</b>
+        </p>
+        <p>
+          <b>Weblate Option:</b>
+          Use Weblate to create concept translations.
+          Export the translation and upload it using the form below.
+          Simplex will apply the translated terms within your edition.
+        </p>
+      </div>
+    </v-card-actions>
+
     <!-- <v-card-actions class="mt-4">
       <v-btn
         depressed

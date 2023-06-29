@@ -8,6 +8,38 @@
         <v-list-item-title class="text-h5 mb-1" ><b>{{selectedRefset.pt.term}}</b><br/>Concept ID: {{selectedRefset.conceptId}}</v-list-item-title>
         <v-list-item-subtitle>{{selectedRefset.activeMemberCount}} active members.</v-list-item-subtitle>
     </v-list-item-content>
+    <v-card-actions class="mt-4" v-if="mode == 'simple'">
+      <div>
+        <p>
+          <b>How does it work?</b>
+        </p>
+        <p>
+          Download the spreadsheet containing the current refset members using the button below.
+          Edit the spreadsheet to add or remove concepts as needed. Save the spreadsheet and upload it. 
+          Simplex will syncronise your changes with the reference set.
+        </p>
+        <p>
+          <i>Please note that the terms within the spreadsheet are not saved within the refset, 
+            they are included in the downloaded spreadsheet for reference only.</i>
+        </p>
+      </div>
+    </v-card-actions>
+    <v-card-actions class="mt-4" v-if="mode == 'simple-map-to-snomed-with-correlation'">
+      <div>
+        <p>
+          <b>How does it work?</b>
+        </p>
+        <p>
+          Download the spreadsheet containing the current map members using the button below.
+          Edit the spreadsheet to add or remove map entries as needed. Save the spreadsheet and upload it. 
+          Simplex will syncronise your changes with the map reference set.
+        </p>
+        <p>
+          <i>Please note that the terms within the spreadsheet are not saved within the refset, 
+            they are included in the downloaded spreadsheet for reference only.</i>
+        </p>
+      </div>
+    </v-card-actions>
     <v-card-actions class="mt-4">
       <v-btn
         depressed

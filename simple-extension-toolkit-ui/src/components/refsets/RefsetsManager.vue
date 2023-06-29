@@ -19,7 +19,7 @@
       </v-col>
       <v-col md="6">
         <RefsetDetails v-if="!showCreateForm && selectedRefset != null" 
-          mode="refset"
+          :mode="refsetEndpoint"
           :codeSystem="codeSystem"
           :refsetEndpoint="refsetEndpoint"
           v-bind:selectedRefset="selectedRefset"
