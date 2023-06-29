@@ -23,8 +23,10 @@ public class Concept extends Component {
 
 	public Concept(String moduleId) {
 		super(moduleId);
+		definitionStatus = "PRIMITIVE";
 		descriptions = new ArrayList<>();
 		classAxioms = new ArrayList<>();
+		gciAxioms = new ArrayList<>();
 		relationships = new ArrayList<>();
 	}
 
