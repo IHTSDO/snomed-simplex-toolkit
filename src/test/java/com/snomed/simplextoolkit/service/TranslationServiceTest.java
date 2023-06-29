@@ -4,6 +4,7 @@ import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.Concept;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
+import com.snomed.simplextoolkit.client.domain.DummyProgressMonitor;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,8 @@ class TranslationServiceTest {
 	@Test
 	void testBlankHeader() {
 		try {
-			service.uploadTranslationAsCSV("", "fr", testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"), false, false, snowstormClientFactory.getClient());
+			service.uploadTranslationAsCSV("", "fr", testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"), false, false,
+					snowstormClientFactory.getClient(), new DummyProgressMonitor());
 			fail();
 		} catch (ServiceException e) {
 			assertEquals("Unrecognised CSV header ''", e.getMessage());
@@ -68,7 +70,8 @@ class TranslationServiceTest {
 						new Concept("").setConceptId("674814021000119106")));
 		Mockito.doNothing().when(mockSnowstormClient).updateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
 
-		service.uploadTranslationAsCSV("", "vi", testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"), false, false, snowstormClientFactory.getClient());
+		service.uploadTranslationAsCSV("", "vi", testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"), false, false,
+				snowstormClientFactory.getClient(), new DummyProgressMonitor());
 
 		List<Concept> updatedConcepts = conceptsSentToUpdate.getValue();
 		assertEquals(3, updatedConcepts.size());

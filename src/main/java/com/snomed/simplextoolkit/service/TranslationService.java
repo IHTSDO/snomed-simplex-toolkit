@@ -5,7 +5,9 @@ import com.google.common.collect.Lists;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.*;
+import com.snomed.simplextoolkit.domain.AsyncJob;
 import com.snomed.simplextoolkit.domain.Page;
+import com.snomed.simplextoolkit.domain.ProgressMonitor;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.LanguageCode;
 import com.snomed.simplextoolkit.util.TimerUtil;
@@ -28,9 +30,6 @@ import static java.lang.String.format;
 
 @Service
 public class TranslationService {
-
-	@Autowired
-	private SnowstormClientFactory snowstormClientFactory;
 
 	private List<LanguageCode> languageCodes = new ArrayList<>();
 
@@ -79,16 +78,14 @@ public class TranslationService {
 		return translationRefsets;
 	}
 
-	@Async
 	public ChangeSummary uploadTranslationAsCSV(String languageRefsetId, String languageCode, CodeSystem codeSystem, InputStream inputStream,
-			boolean overwriteExistingCaseSignificance, boolean translationTermsUseTitleCase, SnowstormClient snowstormClient) throws ServiceException {
+			boolean overwriteExistingCaseSignificance, boolean translationTermsUseTitleCase, SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
 
 		// source,target,context,developer_comments
 		logger.info("Reading translation file..");
 		int added = 0;
 		int updated = 0;
 		int removed = 0;
-		int newTotal = 0;
 
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
 			String header = reader.readLine();
@@ -103,21 +100,39 @@ public class TranslationService {
 				Map<Long, List<String>> conceptDescriptions = new Long2ObjectOpenHashMap<>();
 				while ((line = reader.readLine()) != null) {
 					lineNumber++;
-					String[] columns = line.replace("\"", "").split(",");
-					// source	target	context	developer_comments
-					// 0		1		2		3
-					if (columns.length < 4) {
+					String[] columns = line.split("\",\"");
+					if (line.contains("129588001")) {
+						System.out.println();
+					}
+					String translatedTerm;
+					String conceptString;
+					if (columns.length == 4) {
+						if (columns[2].isBlank() && columns[3].equals("\"")) {
+							// Strange case - weblate exports synonyms as "concept id", "term"
+							translatedTerm = columns[1];
+							conceptString = columns[0];
+						} else {
+							// source	target	context	developer_comments
+							// 0		1		2		3
+							translatedTerm = columns[1];
+							conceptString = columns[2];
+						}
+					} else {
 						logger.warn("Line {} has less than 4 columns, skipping: {}", lineNumber, columns);
 						continue;
 					}
-					String translatedTerm = columns[1];
-					String conceptString = columns[2];
+					translatedTerm = translatedTerm.replace("\"", "");
+					conceptString = conceptString.replace("\"", "");
+					if (conceptString.equals("129588001")) {
+						System.out.println();
+					}
 					if (!translatedTerm.isEmpty() && conceptString.matches("\\d+")) {
 						Long conceptId = parseLong(conceptString);
 						conceptDescriptions.computeIfAbsent(conceptId, id -> new ArrayList<>()).add(translatedTerm);
 					}
 				}
 				logger.info("Read translation terms for {} concepts", conceptDescriptions.size());
+				progressMonitor.setRecordsTotal(conceptDescriptions.size());
 
 				if (conceptDescriptions.isEmpty()) {
 					// No change
@@ -131,7 +146,6 @@ public class TranslationService {
 					if (processed > 0 && processed % 1_000 == 0) {
 						logger.info("Processed {} / {}", processed, conceptDescriptions.size());
 					}
-					processed += batchSize;
 					List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
 					List<Concept> conceptsToUpdate = new ArrayList<>();
 					for (Concept concept : concepts) {
@@ -211,6 +225,8 @@ public class TranslationService {
 						logger.info("Updating {} concepts on {}", conceptsToUpdate.size(), codeSystem.getBranchPath());
 						snowstormClient.updateBrowserFormatConcepts(conceptsToUpdate, codeSystem);
 					}
+					processed += conceptIdBatch.size();
+					progressMonitor.setRecordsProcessed(processed);
 				}
 
 			} else {
@@ -219,7 +235,8 @@ public class TranslationService {
 		} catch (IOException e) {
 			throw new ServiceException("Failed to read CSV.", e);
 		}
-		ChangeSummary changeSummary = new ChangeSummary(added, updated, removed, newTotal);
+		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
+		ChangeSummary changeSummary = new ChangeSummary(added, updated, removed, newActiveCount);
 		logger.info("translation upload complete on {}: {}", codeSystem.getBranchPath(), changeSummary);
 		return changeSummary;
 	}
