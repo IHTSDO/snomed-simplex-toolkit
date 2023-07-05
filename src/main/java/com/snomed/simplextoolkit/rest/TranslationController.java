@@ -65,7 +65,7 @@ public class TranslationController {
 //		translationService.downloadTranslationAsSpreadsheet(refsetId, theCodeSystem, response.getOutputStream());
 //	}
 
-	@PutMapping(path = "{codeSystem}/translations/{refsetId}/spreadsheet", consumes = "multipart/form-data")
+	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
 	public AsyncJob uploadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam String languageCode, @RequestParam MultipartFile file,
 			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase,
@@ -76,8 +76,20 @@ public class TranslationController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
 		return jobService.runJob("Translation upload", file.getInputStream(), refsetId,
-				asyncJob -> translationService.uploadTranslationAsCSV(refsetId, languageCode, theCodeSystem, asyncJob.getInputStream(),
-				overwriteExistingCaseSignificance, translationTermsUseTitleCase, snowstormClient, asyncJob));
+				asyncJob -> translationService.uploadTranslationAsWeblateCSV(refsetId, languageCode, theCodeSystem, asyncJob.getInputStream(),
+				translationTermsUseTitleCase, snowstormClient, asyncJob));
+	}
+
+	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")
+	public AsyncJob uploadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@RequestParam MultipartFile file,
+			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+
+		return jobService.runJob("Translation upload", file.getInputStream(), refsetId,
+				asyncJob -> translationService.uploadTranslationAsRefsetToolArchive(refsetId, theCodeSystem, asyncJob.getInputStream(), snowstormClient, asyncJob));
 	}
 
 	@GetMapping(path = "language-codes")

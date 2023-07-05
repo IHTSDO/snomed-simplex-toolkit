@@ -26,6 +26,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.snomed.simplextoolkit.client.domain.Description.Acceptability.PREFERRED;
+import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
+import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
+import static com.snomed.simplextoolkit.client.domain.Description.Type.FSN;
+import static com.snomed.simplextoolkit.client.domain.Description.Type.SYNONYM;
 import static java.lang.String.format;
 
 public class SnowstormClient {
@@ -294,10 +299,10 @@ public class SnowstormClient {
 	}
 
 	public Concept newSimpleMetadataConceptWithoutSave(String parentConceptId, String preferredTerm, String tag) {
-		String caseSens = guessCaseSensitivity(preferredTerm);
+		Description.CaseSignificance caseSens = guessCaseSensitivity(preferredTerm);
 		return new Concept(null)
-				.addDescription(new Description(Concepts.FSN_KEYWORD, "en", format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
-				.addDescription(new Description(Concepts.SYNONYM_KEYWORD, "en", preferredTerm, caseSens, Concepts.US_LANG_REFSET, "PREFERRED"))
+				.addDescription(new Description(FSN, "en", format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, PREFERRED))
+				.addDescription(new Description(SYNONYM, "en", preferredTerm, caseSens, Concepts.US_LANG_REFSET, PREFERRED))
 				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(Concepts.IS_A, parentConceptId, 0))))
 				.addRelationship(Relationship.inferred(Concepts.IS_A, parentConceptId, 0));
 	}
@@ -363,9 +368,9 @@ public class SnowstormClient {
 		});
 	}
 
-	private String guessCaseSensitivity(String name) {
+	private Description.CaseSignificance guessCaseSensitivity(String name) {
 		String termWithoutFirstChar = name.substring(1);
-		return termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? "CASE_INSENSITIVE" : "ENTIRE_TERM_CASE_SENSITIVE";
+		return termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? CASE_INSENSITIVE : ENTIRE_TERM_CASE_SENSITIVE;
 	}
 
 	public List<Concept> loadBrowserFormatConcepts(List<Long> conceptIds, CodeSystem codeSystem) {

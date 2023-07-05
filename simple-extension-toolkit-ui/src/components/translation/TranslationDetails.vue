@@ -9,30 +9,24 @@
         <v-list-item-subtitle>{{selectedRefset.activeMemberCount}} active members.</v-list-item-subtitle>
     </v-list-item-content>
     <v-card-actions class="mt-4">
-      <div>
-        <p>
-          <b>How does it work?</b>
-        </p>
-        <p>
-          <b>Weblate Option:</b>
-          Use Weblate to create concept translations.
-          Export the translation and upload it using the form below.
-          Simplex will apply the translated terms within your edition.
-        </p>
-      </div>
+      <v-radio-group v-model="translationTool">
+        <v-radio value="weblate" label="Use Weblate"/>
+        <v-radio value="refset-tool" label="Use Refset & Translation Tool"/>
+      </v-radio-group>
     </v-card-actions>
-
-    <!-- <v-card-actions class="mt-4">
-      <v-btn
-        depressed
-        color="primary"
-        @click="downloadSpreadsheet"
-        style="margin: 8px"
-      >
-        Download as Spreadsheet
-      </v-btn>
-    </v-card-actions> -->
-    <div v-if="!job">
+    <div v-if="!job && translationTool == 'weblate'">
+      <v-card-actions class="mt-4">
+        <div>
+          <p>
+            <b>How does it work?</b>
+          </p>
+          <p>
+            Use <a href="https://translate.snomedtools.org/" target="_blank">Weblate</a> to create concept translations.
+            Export the translation and upload it using the form below.
+            The translated terms will be applied within your edition.
+          </p>
+        </div>
+      </v-card-actions>
       <v-card-actions class="mt-4">
         <v-autocomplete
           :disabled="languageAlreadySet"
@@ -59,6 +53,37 @@
           @click="handleFileUpload"
         >
           Upload Spreadsheet
+        </v-btn>
+      </v-card-actions>
+    </div>
+    <div v-if="!job && translationTool == 'refset-tool'">
+      <v-card-actions class="mt-4">
+        <div>
+          <p>
+            <b>How does it work?</b>
+          </p>
+          <p>
+            Use the <a href="https://refset.ihtsdotools.org/" target="_blank">Refset & Translation</a> tool to create concept translations.
+            Export the translation and upload it using the form below.
+            The translated terms will be applied within your edition.
+          </p>
+        </div>
+      </v-card-actions>
+      <v-card-actions class="mt-4">
+        <v-file-input
+          ref="inputFile"
+          show-size
+          truncate-length="50"
+          @change="onFileChange"
+        ></v-file-input>
+        <v-btn
+          :disabled="uploadFile == null"
+          :loading="uploading === true"
+          color="success"
+          class="ma-2 white--text"
+          @click="handleFileUpload"
+        >
+          Upload Translation Export
         </v-btn>
       </v-card-actions>
     </div>
@@ -116,6 +141,7 @@
       job: null,
       jobProgress: 0,
       trackJobInterval: null,
+      translationTool: null,
     }),
     watch: {
       selectedRefset: function() {
@@ -160,12 +186,14 @@
         console.log('upload');
         let formData = new FormData();
         formData.append('file', this.uploadFile);
-        formData.append('languageCode', this.selectedLanguage);
+        if (this.translationTool == 'weblate') {
+          formData.append('languageCode', this.selectedLanguage);
+        }
         this.uploading = true;
         this.infoSnackbar = false;
         this.errorSnackbar = false;
         var context = this;
-        axios.put('api/' + this.codeSystem.shortName + '/translations/' + this.selectedRefset.conceptId + '/spreadsheet',
+        axios.put('api/' + this.codeSystem.shortName + '/translations/' + this.selectedRefset.conceptId + '/' + this.translationTool,
           formData,
           {
             headers: {

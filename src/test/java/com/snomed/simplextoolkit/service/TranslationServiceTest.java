@@ -2,8 +2,8 @@ package com.snomed.simplextoolkit.service;
 
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
-import com.snomed.simplextoolkit.client.domain.Concept;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
+import com.snomed.simplextoolkit.client.domain.Concept;
 import com.snomed.simplextoolkit.client.domain.DummyProgressMonitor;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +18,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
+import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SpringBootTest
 class TranslationServiceTest {
@@ -44,17 +47,17 @@ class TranslationServiceTest {
 
 	@Test
 	void guessCaseSignificance() {
-		assertEquals("ENTIRE_TERM_CASE_SENSITIVE", service.guessCaseSignificance("SNOMED CT core module (core metadata concept)", true));
-		assertEquals("ENTIRE_TERM_CASE_SENSITIVE", service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn CT", false));
-		assertEquals("CASE_INSENSITIVE", service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn", false));
-		assertEquals("CASE_INSENSITIVE", service.guessCaseSignificance("Clinical finding (finding)", true));
-		assertEquals("ENTIRE_TERM_CASE_SENSITIVE", service.guessCaseSignificance("Clinical finding (finding)", false));
+		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("SNOMED CT core module (core metadata concept)", true));
+		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn CT", false));
+		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn", false));
+		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", true));
+		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", false));
 	}
 
 	@Test
 	void testBlankHeader() {
 		try {
-			service.uploadTranslationAsCSV("", "fr", testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"), false, false,
+			service.uploadTranslationAsWeblateCSV("", "fr", testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"), false,
 					snowstormClientFactory.getClient(), new DummyProgressMonitor());
 			fail();
 		} catch (ServiceException e) {
@@ -70,7 +73,7 @@ class TranslationServiceTest {
 						new Concept("").setConceptId("674814021000119106")));
 		Mockito.doNothing().when(mockSnowstormClient).updateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
 
-		service.uploadTranslationAsCSV("", "vi", testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"), false, false,
+		service.uploadTranslationAsWeblateCSV("", "vi", testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"), false,
 				snowstormClientFactory.getClient(), new DummyProgressMonitor());
 
 		List<Concept> updatedConcepts = conceptsSentToUpdate.getValue();
