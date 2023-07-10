@@ -84,19 +84,24 @@ public class TranslationService {
 	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, String languageCode, CodeSystem codeSystem, InputStream inputStream,
 			boolean translationTermsUseTitleCase, SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
 
-		return doUploadTranslation(() -> readTranslationsFromWeblateCSV(inputStream, languageCode, languageRefsetId),
-				languageRefsetId, translationTermsUseTitleCase, codeSystem, snowstormClient, progressMonitor);
+		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
+			return doUploadTranslation(() -> readTranslationsFromWeblateCSV(inputStream, languageCode, languageRefsetId),
+					languageRefsetId, translationTermsUseTitleCase, codeSystem, snowstormClient, progressMonitor, changeMonitor);
+		}
 	}
 
 	public ChangeSummary uploadTranslationAsRefsetToolArchive(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
 			SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
 
-		return doUploadTranslation(() -> new RefsetToolTranslationZipReader(inputStream, languageRefsetId).readUpload(),
-				languageRefsetId, true, codeSystem, snowstormClient, progressMonitor);
+		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
+			return doUploadTranslation(() -> new RefsetToolTranslationZipReader(inputStream, languageRefsetId).readUpload(),
+					languageRefsetId, true, codeSystem, snowstormClient, progressMonitor, changeMonitor);
+		}
 	}
 
-	public ChangeSummary doUploadTranslation(TranslationUploadProvider uploadProvider, String languageRefsetId,
-			boolean translationTermsUseTitleCase, CodeSystem codeSystem, SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
+	private ChangeSummary doUploadTranslation(TranslationUploadProvider uploadProvider, String languageRefsetId,
+			boolean translationTermsUseTitleCase, CodeSystem codeSystem, SnowstormClient snowstormClient,
+			ProgressMonitor progressMonitor, ChangeMonitor changeMonitor) throws ServiceException {
 
 		logger.info("Reading translation file..");
 		Map<Long, List<Description>> conceptDescriptions = uploadProvider.readUpload();
@@ -142,6 +147,7 @@ public class TranslationService {
 							snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
 							anyChange = true;
 							removed++;// Removed from the language refset
+							changeMonitor.removed(concept.getConceptId(), snowstormDescription.toString());
 
 							// Also suggest that Snowstorm deletes / inactivates this description if not used by any other lang refset
 							if (snowstormDescription.getAcceptabilityMap().isEmpty()) {
@@ -153,10 +159,13 @@ public class TranslationService {
 				snowstormDescriptions.removeAll(toRemove);
 
 				// Add any missing descriptions in the snowstorm concept
+				boolean descriptionChange;
 				for (Description uploadedDescription : uploadedDescriptions) {
 					// Match by language and term only
 					Optional<Description> existingDescriptionOptional = snowstormDescriptions.stream()
 							.filter(d -> d.getLang().equals(languageCode) && d.getTerm().equals(uploadedDescription.getTerm())).findFirst();
+
+					descriptionChange = false;
 
 					if (existingDescriptionOptional.isPresent()) {
 						Description existingDescription = existingDescriptionOptional.get();
@@ -164,12 +173,14 @@ public class TranslationService {
 						if (!existingDescription.isActive()) {// Reactivation
 							existingDescription.setActive(true);
 							anyChange = true;
+							descriptionChange = true;
 						}
 
 						Description.CaseSignificance uploadedCaseSignificance = uploadedDescription.getCaseSignificance();
 						if (uploadedCaseSignificance != null && existingDescription.getCaseSignificance() != uploadedCaseSignificance) {
 							existingDescription.setCaseSignificance(uploadedCaseSignificance);
 							anyChange = true;
+							descriptionChange = true;
 						}
 
 						Description.Acceptability newAcceptability = uploadedDescription.getAcceptabilityMap().get(languageRefsetId);
@@ -178,10 +189,16 @@ public class TranslationService {
 							logger.debug("Correcting acceptability of {} '{}' from {} to {}",
 									existingDescription.getDescriptionId(), existingDescription.getTerm(), existingAcceptability, newAcceptability);
 							anyChange = true;
+							descriptionChange = true;
 						}
 
 						if (anyChange) {
 							updated++;
+						}
+						if (descriptionChange) {
+							changeMonitor.updated(concept.getConceptId(), existingDescription.toString());
+						} else {
+							changeMonitor.noChange(concept.getConceptId(), existingDescription.toString());
 						}
 					} else {
 						// no existing match, create new
@@ -192,6 +209,7 @@ public class TranslationService {
 						snowstormDescriptions.add(uploadedDescription);
 						anyChange = true;
 						added++;
+						changeMonitor.added(concept.getConceptId(), uploadedDescription.toString());
 					}
 				}
 
@@ -211,6 +229,18 @@ public class TranslationService {
 		ChangeSummary changeSummary = new ChangeSummary(added, updated, removed, newActiveCount);
 		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
 		return changeSummary;
+	}
+
+	private CSVOutputChangeMonitor getCsvOutputChangeMonitor() throws ServiceException {
+		CSVOutputChangeMonitor changeMonitor;
+		try {
+			Path tempFile = Files.createTempFile(UUID.randomUUID().toString(), ".txt");
+			changeMonitor = new CSVOutputChangeMonitor(new FileOutputStream(tempFile.toFile()));
+			logger.info("Created change report file {}", tempFile.toFile().getAbsolutePath());
+		} catch (IOException e) {
+			throw new ServiceException("Failed to create temp file for change report.", e);
+		}
+		return changeMonitor;
 	}
 
 	private Map<Long, List<Description>> readTranslationsFromWeblateCSV(InputStream inputStream, String languageCode, String languageRefsetId) throws ServiceException {
