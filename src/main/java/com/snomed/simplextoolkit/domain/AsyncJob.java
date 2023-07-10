@@ -3,6 +3,7 @@ package com.snomed.simplextoolkit.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.service.ChangeSummary;
+import com.snomed.simplextoolkit.service.ProgressMonitor;
 
 import java.io.File;
 import java.io.FileInputStream;

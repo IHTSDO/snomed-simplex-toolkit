@@ -84,6 +84,7 @@
           var codeSystemWithDetails = response.data;
           context.$set(context.codeSystem, 'defaultModule', codeSystemWithDetails.defaultModule)
           context.$set(context.codeSystem, 'defaultModuleDisplay', codeSystemWithDetails.defaultModuleDisplay)
+          context.$set(context.codeSystem, 'workingBranchPath', codeSystemWithDetails.workingBranchPath)
         })
     },
     methods: {

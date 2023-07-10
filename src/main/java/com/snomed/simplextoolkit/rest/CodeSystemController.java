@@ -1,10 +1,12 @@
 package com.snomed.simplextoolkit.rest;
 
+import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.domain.Page;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateCodeSystemRequest;
+import com.snomed.simplextoolkit.rest.pojos.SetBranchRequest;
 import com.snomed.simplextoolkit.service.CodeSystemService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,13 @@ public class CodeSystemController {
 	@DeleteMapping("{codeSystem}")
 	public void deleteCodeSystem(@PathVariable String codeSystem) throws ServiceException {
 		codeSystemService.deleteCodeSystem(codeSystem);
+	}
+
+	@PostMapping("{codeSystem}/working-branch")
+	public void setBranchOverride(@PathVariable String codeSystem, @RequestBody SetBranchRequest request) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.setCodeSystemWorkingBranch(theCodeSystem, request.getBranchPath());
 	}
 
 }

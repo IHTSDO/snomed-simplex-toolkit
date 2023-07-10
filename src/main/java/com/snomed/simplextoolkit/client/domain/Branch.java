@@ -4,6 +4,9 @@ import java.util.Map;
 
 public class Branch {
 
+	public static final String DEFAULT_NAMESPACE_METADATA_KEY = "defaultNamespace";
+	public static final String SIMPLEX_WORKING_BRANCH_METADATA_KEY = "simplex.workingBranch";
+
 	private String path;
 	private Map<String, Object> metadata;
 
@@ -16,12 +19,18 @@ public class Branch {
 	}
 
 	public String getDefaultModule() {
+		String key = "defaultModuleId";
+		return getMetadataValue(key);
+	}
+
+	public String getMetadataValue(String key) {
 		if (metadata != null) {
-			Object defaultModule = metadata.get("defaultModuleId");
+			Object defaultModule = metadata.get(key);
 			if (defaultModule instanceof String) {
 				return (String) defaultModule;
 			}
 		}
 		return null;
 	}
+
 }

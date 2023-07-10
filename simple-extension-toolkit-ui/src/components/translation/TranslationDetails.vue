@@ -87,7 +87,7 @@
         </v-btn>
       </v-card-actions>
     </div>
-    <v-card-actions class="mt-4" v-if="job">
+    <v-card-actions class="mt-4" v-if="job" style="padding-bottom: 25px;">
       <v-list-item-content>
         <b>Processing {{ job.recordsTotal }} rows</b>
       </v-list-item-content>

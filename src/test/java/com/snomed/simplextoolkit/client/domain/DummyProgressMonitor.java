@@ -1,6 +1,6 @@
 package com.snomed.simplextoolkit.client.domain;
 
-import com.snomed.simplextoolkit.domain.ProgressMonitor;
+import com.snomed.simplextoolkit.service.ProgressMonitor;
 
 public class DummyProgressMonitor implements ProgressMonitor {
 	@Override

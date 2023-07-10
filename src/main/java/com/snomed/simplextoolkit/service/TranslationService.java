@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.domain.*;
 import com.snomed.simplextoolkit.domain.Page;
-import com.snomed.simplextoolkit.domain.ProgressMonitor;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.LanguageCode;
 import com.snomed.simplextoolkit.util.TimerUtil;
@@ -16,10 +15,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
@@ -36,8 +34,13 @@ public class TranslationService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	@PostConstruct
-	public void init() {
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("/language_codes_iso-639-1.txt")))) {
+	public void init() throws ServiceException {
+		String languageCodesFilePath = "/language_codes_iso-639-1.txt";
+		InputStream inputStream = getClass().getResourceAsStream(languageCodesFilePath);
+		if (inputStream == null) {
+			throw new ServiceException(format("Language codes file '%s' missing within application.", languageCodesFilePath));
+		}
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
 				if (!line.isEmpty()) {
@@ -197,7 +200,7 @@ public class TranslationService {
 				}
 			}
 			if (!conceptsToUpdate.isEmpty()) {
-				logger.info("Updating {} concepts on {}", conceptsToUpdate.size(), codeSystem.getBranchPath());
+				logger.info("Updating {} concepts on {}", conceptsToUpdate.size(), codeSystem.getWorkingBranchPath());
 				snowstormClient.updateBrowserFormatConcepts(conceptsToUpdate, codeSystem);
 			}
 			processed += conceptIdBatch.size();
@@ -206,7 +209,7 @@ public class TranslationService {
 
 		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
 		ChangeSummary changeSummary = new ChangeSummary(added, updated, removed, newActiveCount);
-		logger.info("translation upload complete on {}: {}", codeSystem.getBranchPath(), changeSummary);
+		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
 		return changeSummary;
 	}
 

@@ -2,6 +2,7 @@ package com.snomed.simplextoolkit.client.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import org.apache.logging.log4j.util.Strings;
 
 import java.util.List;
 import java.util.Objects;
@@ -11,6 +12,7 @@ public class CodeSystem {
 	private String name;
 	private String shortName;
 	private String branchPath;
+	private String simplexWorkingBranch;
 	private Integer dependantVersionEffectiveTime;
 	private String defaultModule;
 	private String defaultModuleDisplay;
@@ -26,6 +28,10 @@ public class CodeSystem {
 		this.branchPath = branchPath;
 	}
 
+	public String getWorkingBranchPath() {
+		return Strings.isBlank(simplexWorkingBranch) ? branchPath : simplexWorkingBranch;
+	}
+
 	public String getName() {
 		return name;
 	}
@@ -36,6 +42,14 @@ public class CodeSystem {
 
 	public String getBranchPath() {
 		return branchPath;
+	}
+
+	public String getSimplexWorkingBranch() {
+		return simplexWorkingBranch;
+	}
+
+	public void setSimplexWorkingBranch(String simplexWorkingBranch) {
+		this.simplexWorkingBranch = simplexWorkingBranch;
 	}
 
 	public Integer getDependantVersionEffectiveTime() {
