@@ -1,0 +1,21 @@
+<div class="main-view">
+    <div class="container-xxl">
+        <div class="row g-0 m-5">
+            <div class="col m-3">
+                <button class="btn bg-cerulean bg-cerulean-hover w-100 p-3" (click)="activeTab = 'codesystems'">Codesystems</button>
+            </div>
+            <div class="col m-3">
+                <button class="btn bg-mandy bg-mandy-hover w-100 p-3" (click)="activeTab = 'bootConfig'">Boot Config</button>
+            </div>
+        </div>
+    </div>
+    <div class="container-xxl">
+        <app-codesystems [hidden]="activeTab !== 'codesystems'"></app-codesystems>
+        <app-boot-config [hidden]="activeTab !== 'bootConfig'"></app-boot-config>
+        <app-syndication [hidden]="activeTab !== 'syndication'"></app-syndication>
+        <app-rbac [hidden]="activeTab !== 'rbac'"></app-rbac>
+    </div>
+    <button class="btn confirm discard py-2 px-4">DISCARD</button>
+    <button class="btn confirm save py-2 px-4">SAVE</button>
+</div>
+

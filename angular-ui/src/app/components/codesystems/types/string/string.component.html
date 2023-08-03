@@ -1,0 +1,6 @@
+<div class="input-group w-auto m-3">
+    <div *ngIf="!isNumeric(item.key)" class="input-group-prepend">
+        <span class="input-group-text" id="{{item.key}}">{{item.key}}</span>
+    </div>
+    <input type="text" class="form-control" placeholder="Enter String..." [(ngModel)]="item.value">
+</div>

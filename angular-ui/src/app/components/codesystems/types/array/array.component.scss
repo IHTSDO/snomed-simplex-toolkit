@@ -1,0 +1,14 @@
+@import 'src/variables.scss';
+
+span.bracket {
+    font-size: 1.6rem;
+}
+
+i {
+    font-size: 2rem;
+    float: left;
+    line-height: 3rem;
+    cursor: pointer;
+    color: $bootstrap-dark;
+    width: 1rem;
+}

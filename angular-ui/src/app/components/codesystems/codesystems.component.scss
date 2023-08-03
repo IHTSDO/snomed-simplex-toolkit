@@ -1,0 +1,19 @@
+@import 'src/variables.scss';
+
+div#codesystems {
+
+    div.object {
+        background-color: $gallery-white;
+        border: solid 1px $ghost-grey;
+    }
+
+    span.brace {
+        font-size: 1.6rem;
+    }
+
+    div.form-check {
+        input {
+            font-size: 2rem;
+        }
+    }
+}

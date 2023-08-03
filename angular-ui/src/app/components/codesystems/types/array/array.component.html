@@ -1,0 +1,40 @@
+<i *ngIf="collapsed" class="mx-3 fas fa-angle-right" (click)="collapsed = false"></i>
+<i *ngIf="!collapsed" class="mx-3 fas fa-angle-down" (click)="collapsed = true"></i>
+<div class="input-group w-auto m-3">
+    <div class="input-group-prepend">
+        <span class="input-group-text" id="{{items.key}}">{{items.key}}</span>
+    </div>
+    <span class="bracket px-3 p-1">&lsqb;</span>
+    <span *ngIf="collapsed" class="bracket">. . .</span>
+    <span *ngIf="collapsed" class="bracket px-3 p-1">&rsqb;</span>
+</div>
+<ng-container *ngIf="!collapsed">
+    <div *ngFor="let item of items.value | keyvalue:originalOrder" class="ms-5">
+        <ng-container *ngIf="isString(item.value)">
+            <app-string [item]="item"></app-string>
+        </ng-container>
+        <ng-container *ngIf="isBoolean(item.value)">
+            <app-boolean [item]="item"></app-boolean>
+        </ng-container>
+        <ng-container *ngIf="isNumber(item.value)">
+            <app-number [item]="item"></app-number>
+        </ng-container>
+        <ng-container *ngIf="isArray(item.value)">
+            <app-array [items]="item"></app-array>
+        </ng-container>
+        <ng-container *ngIf="isObject(item.value)">
+            <app-object [object]="item"></app-object>
+        </ng-container>
+    </div>
+    <div *ngIf="items.key === 'userRoles'" class="ms-5">
+        <button class="btn border-0 bg-fruit-salad bg-fruit-salad-hover text-white rounded px-3 py-1 mx-3" (click)="openModal('add-role-modal')">ADD ROLE</button>
+    </div>
+    <div *ngIf="items.key === 'modules'" class="ms-5">
+        <button class="btn border-0 bg-fruit-salad bg-fruit-salad-hover text-white rounded px-3 py-1 mx-3" (click)="openModal('add-module-modal')">ADD MODULE</button>
+    </div>
+</ng-container>
+
+<div class="m-3" *ngIf="!collapsed">
+    <span class="bracket px-3 p-1">&rsqb;</span>
+</div>
+

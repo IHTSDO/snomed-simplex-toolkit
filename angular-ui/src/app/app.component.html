@@ -1,0 +1,100 @@
+<app-snomed-navbar></app-snomed-navbar>
+<app-left-sidebar></app-left-sidebar>
+<app-main-view></app-main-view>
+<app-snomed-footer></app-snomed-footer>
+
+<!-- NEW CODESYSTEM MODAL -->
+<app-modal id="new-codesystem-modal" class="modal" [size]="'m'">
+    <div header><h3 class="mb-0">New Codesystem</h3></div>
+    <div body>
+        <p>Please enter the details for the new codesystem:</p>
+        <div class="input-group pb-3">
+            <span class="input-group-text">name</span>
+            <input #name class="form-control">
+        </div>
+        <div class="input-group pb-3">
+            <span class="input-group-text">owner</span>
+            <input #owner class="form-control">
+        </div>
+        <div class="input-group pb-3">
+            <span class="input-group-text">maintainerType</span>
+            <input #maintainerType class="form-control">
+        </div>
+        <div class="input-group pb-3">
+            <span class="input-group-text">shortName</span>
+            <input #shortName class="form-control">
+        </div>
+        <div class="input-group pb-3">
+            <span class="input-group-text">branchPath</span>
+            <input #branchPath class="form-control">
+        </div>
+        <div class="input-group pb-3">
+            <span class="input-group-text">countryCode</span>
+            <input #countryCode class="form-control">
+        </div>
+        <div class="input-group pb-3">
+            <span class="input-group-text">defaultLanguageCode</span>
+            <input #defaultLanguageCode class="form-control">
+        </div>
+        <p class="mt-3">Please also provide the release file:</p>
+        <div class="input-group pb-3">
+            <input class="form-control" type="file" id="formFile">
+        </div>
+    </div>
+    <div footer>
+        <button type="button" class="btn" (click)="closeModal('new-codesystem-modal')">CANCEL</button>
+        <button type="button" class="btn accept" (click)="newCodesystem(name.value, owner.value, maintainerType.value, shortName.value, branchPath.value, countryCode.value, defaultLanguageCode.value); closeModal('new-codesystem-modal')">ACCEPT</button>
+    </div>
+</app-modal>
+
+<!-- ADD ROLE MODAL -->
+<app-modal id="add-role-modal" class="modal" [size]="'m'">
+    <div header><h3 class="mb-0">Add Role</h3></div>
+    <div body>
+        <p>Please enter the role to be added:</p>
+        <div class="input-group pb-3">
+            <span class="input-group-text">Role</span>
+            <input #role class="form-control">
+        </div>
+    </div>
+    <div footer>
+        <button type="button" class="btn" (click)="closeModal('add-role-modal')">CANCEL</button>
+        <button type="button" class="btn accept" (click)="addRole(role.value); closeModal('add-role-modal')">ACCEPT</button>
+    </div>
+</app-modal>
+
+<!-- ADD MODULE MODAL -->
+<app-modal id="add-module-modal" class="modal" [size]="'m'">
+    <div header><h3 class="mb-0">Add Module</h3></div>
+    <div body>
+        <p>Please enter the concept ID of the module to be added:</p>
+        <div class="input-group pb-3">
+            <span class="input-group-text">Concept ID</span>
+            <input #conceptId class="form-control">
+        </div>
+    </div>
+    <div footer>
+        <button type="button" class="btn" (click)="closeModal('add-module-modal')">CANCEL</button>
+        <button type="button" class="btn accept" (click)="addModule(conceptId.value); closeModal('add-module-modal')">ACCEPT</button>
+    </div>
+</app-modal>
+
+<!-- ADD LANGUAGE MODAL -->
+<app-modal id="add-language-modal" class="modal" [size]="'m'">
+    <div header><h3 class="mb-0">Add Language</h3></div>
+    <div body>
+        <p>Please enter the key value pair representing the new language to be added:</p>
+        <div class="input-group pb-3">
+            <span class="input-group-text">KEY</span>
+            <input #key class="form-control">
+        </div>
+        <div class="input-group pb-3">
+            <span class="input-group-text">VALUE</span>
+            <input #value class="form-control">
+        </div>
+    </div>
+    <div footer>
+        <button type="button" class="btn" (click)="closeModal('add-language-modal')">CANCEL</button>
+        <button type="button" class="btn accept" (click)="addLanguage(key.value, value.value); closeModal('add-language-modal')">ACCEPT</button>
+    </div>
+</app-modal>

@@ -1,0 +1,21 @@
+@import 'src/variables.scss';
+
+div.main-view {
+    margin-left: 32rem;
+
+    button.confirm {
+        position: fixed;
+        right: 1rem;
+        width: 10rem;
+
+        &.save {
+            bottom: 5rem;
+            background-color: $fruit-salad;
+        }
+
+        &.discard {
+            bottom: 9rem;
+            background-color: $slate-grey;
+        }
+    }
+}

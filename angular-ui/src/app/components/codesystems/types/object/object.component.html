@@ -1,0 +1,36 @@
+<i *ngIf="collapsed" class="mx-3 fas fa-angle-right" (click)="collapsed = false"></i>
+<i *ngIf="!collapsed" class="mx-3 fas fa-angle-down" (click)="collapsed = true"></i>
+<div class="input-group w-auto m-3">
+    <div *ngIf="!isNumeric(object.key)" class="input-group-prepend">
+        <span class="input-group-text" id="{{object.key}}">{{object.key}}</span>
+    </div>
+    <span class="brace px-3 p-1">&#123;</span>
+    <span *ngIf="collapsed" class="brace">. . .</span>
+    <span *ngIf="collapsed" class="brace px-3 p-1">&#125;</span>
+</div>
+<ng-container *ngIf="!collapsed">
+    <div *ngFor="let item of object.value | keyvalue:originalOrder" class="ms-5">
+        <ng-container *ngIf="isString(item.value)">
+            <app-string [item]="item"></app-string>
+        </ng-container>
+        <ng-container *ngIf="isBoolean(item.value)">
+            <app-boolean [item]="item"></app-boolean>
+        </ng-container>
+        <ng-container *ngIf="isNumber(item.value)">
+            <app-number [item]="item"></app-number>
+        </ng-container>
+        <ng-container *ngIf="isArray(item.value)">
+            <app-array [items]="item"></app-array>
+        </ng-container>
+        <ng-container *ngIf="isObject(item.value)">
+            <app-object [object]="item"></app-object>
+        </ng-container>
+    </div>
+    <div *ngIf="object.key === 'languages'" class="ms-5">
+        <button class="btn border-0 bg-fruit-salad bg-fruit-salad-hover text-white rounded px-3 py-1 mx-3" (click)="openModal('add-language-modal')">ADD LANGUAGE</button>
+    </div>
+</ng-container>
+
+<div class="m-3" *ngIf="!collapsed">
+    <span class="brace px-3 p-1">&#125;</span>
+</div>

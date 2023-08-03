@@ -1,0 +1,28 @@
+<div id="codesystems">
+    <div class="row pb-5 mb-5">
+        <div class="col-6">
+            <ng-container *ngFor="let item of activeCodesystem | keyvalue:originalOrder">
+                <ng-container *ngIf="isString(item.value)">
+                    <app-string [item]="item"></app-string>
+                </ng-container>
+                <ng-container *ngIf="isBoolean(item.value)">
+                    <app-boolean [item]="item"></app-boolean>
+                </ng-container>
+                <ng-container *ngIf="isNumber(item.value)">
+                    <app-number [item]="item"></app-number>
+                </ng-container>
+                <ng-container *ngIf="isArray(item.value)">
+                    <app-array [items]="item"></app-array>
+                </ng-container>
+                <ng-container *ngIf="isObject(item.value)">
+                    <app-object [object]="item"></app-object>
+                </ng-container>
+            </ng-container>
+        </div>
+        <div class="col-6">
+            <div class="rounded object m-3">
+                <pre>{{activeCodesystem | json}}</pre>
+            </div>
+        </div>
+    </div>
+</div>

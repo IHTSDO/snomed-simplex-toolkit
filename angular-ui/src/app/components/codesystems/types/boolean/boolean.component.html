@@ -1,0 +1,8 @@
+<div class="input-group w-auto m-3">
+    <div class="input-group-prepend">
+        <span class="input-group-text" id="{{item.key}}">{{item.key}}</span>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input mx-0" type="checkbox" value="{{item.key}}" id="{{item.key}}" [(ngModel)]="item.value">
+    </div>
+</div>
