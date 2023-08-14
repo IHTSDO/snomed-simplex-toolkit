@@ -44,11 +44,13 @@ public class SnowstormClient {
 
 	private final RestTemplate restTemplate;
 	private final ObjectMapper objectMapper;
+	private final Map<String, String> workingBranches;
 
 	private static final Logger logger = LoggerFactory.getLogger(SnowstormClient.class);
 
 	public SnowstormClient(String snowstormUrl, String authenticationToken, ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;
+		this.workingBranches = new HashMap<>();
 
 		if (Strings.isBlank(snowstormUrl)) {
 			throw new IllegalStateException("Snowstorm URL is not yet configured");
@@ -128,20 +130,20 @@ public class SnowstormClient {
 			throw new ServiceException(format("Branch not found %s", branchPath));
 		}
 		codeSystem.setDefaultModule(branch.getDefaultModule());
-		codeSystem.setSimplexWorkingBranch(branch.getMetadataValue(Branch.SIMPLEX_WORKING_BRANCH_METADATA_KEY));
+		codeSystem.setSimplexWorkingBranch(workingBranches.get(codeSystem.getShortName()));
 	}
 
 	public void setCodeSystemWorkingBranch(CodeSystem codeSystem, String workingBranch) {
 		if (!Strings.isBlank(workingBranch)) {
 			if (!workingBranch.startsWith(codeSystem.getBranchPath())) {
 				logger.info("Failed to set working branch path '{}', not within codesystem {}.", workingBranch, codeSystem.getBranchPath());
-				workingBranch = "";
+				workingBranch = null;
 			} else if (!isBranchExists(workingBranch)) {
 				logger.info("Failed to set working branch '{}', branch does not exist.", workingBranch);
-				workingBranch = "";
+				workingBranch = null;
 			}
 		}
-		addBranchMetadata(codeSystem.getBranchPath(), Map.of(Branch.SIMPLEX_WORKING_BRANCH_METADATA_KEY, workingBranch));
+		workingBranches.put(codeSystem.getShortName(), workingBranch);
 	}
 
 	private boolean isBranchExists(String branchPath) {
