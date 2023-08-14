@@ -4,6 +4,7 @@ import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.client.domain.Concept;
+import com.snomed.simplextoolkit.client.domain.Description;
 import com.snomed.simplextoolkit.client.domain.DummyProgressMonitor;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,8 +19,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
-import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
+import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -47,11 +47,24 @@ class TranslationServiceTest {
 
 	@Test
 	void guessCaseSignificance() {
-		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("SNOMED CT core module (core metadata concept)", true));
-		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn CT", false));
-		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn", false));
-		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", true));
-		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", false));
+		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("SNOMED CT core module (core metadata concept)", true, null));
+		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn CT", false, null));
+		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn", false, null));
+		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", true, null));
+		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", false, null));
+		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("Neisseria meningitidis gruppe Z", true, null));
+
+		List<Description> otherDescriptions = List.of(
+				new Description(Description.Type.SYNONYM, "en", "Smith fracture", ENTIRE_TERM_CASE_SENSITIVE),
+				new Description(Description.Type.SYNONYM, "en", "Carbapenem resistant Escherichia coli", INITIAL_CHARACTER_CASE_INSENSITIVE),
+				new Description(Description.Type.SYNONYM, "en", "Something fracture", CASE_INSENSITIVE)
+		);
+		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("Smith thing", true, otherDescriptions),
+				"Case sensitive if first word matches another description that is case sensitive.");
+		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("Something thing", true, otherDescriptions),
+				"Case insensitive because first word does not match another description that is case sensitive");
+		assertEquals(INITIAL_CHARACTER_CASE_INSENSITIVE, service.guessCaseSignificance("Carbapenem resistant Escherichia", true, otherDescriptions),
+				"Initial character case sensitive if first word matches another description that has this case sensitivity.");
 	}
 
 	@Test

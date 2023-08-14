@@ -19,6 +19,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
 import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
@@ -203,7 +204,7 @@ public class TranslationService {
 					} else {
 						// no existing match, create new
 						if (uploadedDescription.getCaseSignificance() == null) {
-							Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase);
+							Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase, concept.getDescriptions());
 							uploadedDescription.setCaseSignificance(caseSignificance);
 						}
 						snowstormDescriptions.add(uploadedDescription);
@@ -297,14 +298,28 @@ public class TranslationService {
 		}
 	}
 
-	protected Description.CaseSignificance guessCaseSignificance(String term, boolean titleCaseUsed) {
+	protected Description.CaseSignificance guessCaseSignificance(String term, boolean titleCaseUsed, List<Description> otherDescriptions) {
 		if (term.isEmpty()) {
 			return CASE_INSENSITIVE;
+		}
+		if (otherDescriptions != null) {
+			// If first word matches an existing description use case sensitivity.
+			// Doesn't make complete sense to me but there is a drools rule stating this.
+			String firstWord = getFirstWord(term);
+			for (Description otherDescription : otherDescriptions) {
+				if (getFirstWord(otherDescription.getTerm()).equals(firstWord)) {
+					return otherDescription.getCaseSignificance();
+				}
+			}
 		}
 		if (titleCaseUsed) {
 			// Ignore first character by removing it
 			term = term.substring(1);
 		}
 		return term.equals(term.toLowerCase()) ? CASE_INSENSITIVE : ENTIRE_TERM_CASE_SENSITIVE;
+	}
+
+	private static String getFirstWord(String term) {
+		return term.split(" ", 2)[0];
 	}
 }
