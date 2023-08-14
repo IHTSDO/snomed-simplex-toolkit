@@ -5,7 +5,7 @@ The toolkit provides an interface between common formats like spreadsheets and a
 Once the content is in the terminology server it can be versioned and an standard RF2 extension exported for use in any other terminology server that supports SNOMED CT. 
 
 ## Features
-### General
+### General Behaviour
   - Content synchronized with SNOMED CT components in Snowstorm
   - Components (concepts, descriptions, refset members) have no effective time until extension is versioned
   - Redundant components will be deleted or inactivated depending on release status
@@ -19,6 +19,11 @@ Once the content is in the terminology server it can be versioned and an standar
   - Download of current map members as Spreadsheet (blank initially)
   - Maintain map members by uploading a Spreadsheet export from [Snap2SNOMED](https://snap.snomedtools.org/)
     - Only map entries with a status of "ACCEPTED" will be put into the extension
+### Weblate Translations
+  - Creation of a concept to represent a translation / language refset (with parent `900000000000506000 |Language type reference set (foundation metadata concept)|`)
+  - Upload translation from [Weblate](https://translate.snomedtools.org/)
+  - Maintain translation by uploading updated translation export
+  - First translated term will be made the Preferred Term, any other terms will be acceptable synonyms
 
 ## Prerequisites
 To maintain and extension write access to a [Snowstorm terminology server](https://github.com/IHTSDO/snowstorm) is required.
