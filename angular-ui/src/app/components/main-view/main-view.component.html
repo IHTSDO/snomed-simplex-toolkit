@@ -1,21 +1,40 @@
 <div class="main-view">
-    <div class="container-xxl">
-        <div class="row g-0 m-5">
-            <div class="col m-3">
-                <button class="btn bg-cerulean bg-cerulean-hover w-100 p-3" (click)="activeTab = 'codesystems'">Codesystems</button>
-            </div>
-            <div class="col m-3">
-                <button class="btn bg-mandy bg-mandy-hover w-100 p-3" (click)="activeTab = 'bootConfig'">Boot Config</button>
-            </div>
-        </div>
-    </div>
-    <div class="container-xxl">
-        <app-codesystems [hidden]="activeTab !== 'codesystems'"></app-codesystems>
-        <app-boot-config [hidden]="activeTab !== 'bootConfig'"></app-boot-config>
-        <app-syndication [hidden]="activeTab !== 'syndication'"></app-syndication>
-        <app-rbac [hidden]="activeTab !== 'rbac'"></app-rbac>
-    </div>
-    <button class="btn confirm discard py-2 px-4">DISCARD</button>
-    <button class="btn confirm save py-2 px-4">SAVE</button>
+    <h2>International Edition</h2>
+    <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start">
+        <mat-tab>
+            <ng-template mat-tab-label>
+                <mat-icon class="tab-icon">info</mat-icon> Info
+            </ng-template>
+            Content 1
+        </mat-tab>
+    
+        <mat-tab>
+            <ng-template mat-tab-label>
+                <mat-icon class="tab-icon">filter_list</mat-icon> Subset
+            </ng-template>
+            Content 2
+        </mat-tab>
+    
+        <mat-tab>
+            <ng-template mat-tab-label>
+                <mat-icon class="tab-icon">map</mat-icon> Maps
+            </ng-template>
+            Content 3
+        </mat-tab>
+    
+        <mat-tab>
+            <ng-template mat-tab-label>
+                <mat-icon class="tab-icon">translate</mat-icon> Translations
+            </ng-template>
+            Content 4
+        </mat-tab>
+    
+        <mat-tab>
+            <ng-template mat-tab-label>
+                <mat-icon class="tab-icon">publish</mat-icon> Release and Export
+            </ng-template>
+            Content 5
+        </mat-tab>
+    </mat-tab-group>    
 </div>
 

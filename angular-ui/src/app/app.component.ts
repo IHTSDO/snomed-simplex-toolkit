@@ -35,7 +35,7 @@ export class AppComponent implements OnInit {
                 private titleService: Title,
                 private snowstormService: SnowstormService,
                 private modalService: ModalService) {
-        this.activeCodesystemSubscription = this.snowstormService.getActiveCodesystem().subscribe(data => this.activeCodesystem = data);
+        // this.activeCodesystemSubscription = this.snowstormService.getActiveCodesystem().subscribe(data => this.activeCodesystem = data);
     }
 
     ngOnInit() {
@@ -44,10 +44,10 @@ export class AppComponent implements OnInit {
 
         this.assignFavicon();
 
-        this.snowstormService.httpGetCodesystems().subscribe(data => {
-            this.snowstormService.setCodesystems(data);
-            this.snowstormService.setActiveCodesystem(data['items'][0]);
-        });
+        // this.snowstormService.httpGetCodesystems().subscribe(data => {
+        //     this.snowstormService.setCodesystems(data);
+        //     this.snowstormService.setActiveCodesystem(data['items'][0]);
+        // });
     }
 
     openModal(id: string): void {

@@ -35,6 +35,8 @@ import { NumberComponent } from './components/codesystems/types/number/number.co
 import { BooleanComponent } from './components/codesystems/types/boolean/boolean.component';
 import { ArrayComponent } from './components/codesystems/types/array/array.component';
 import { ObjectComponent } from './components/codesystems/types/object/object.component';
+import {MatTabsModule} from '@angular/material/tabs';
+import {MatIconModule} from '@angular/material/icon';
 
 // SERVICE IMPORTS
 
@@ -60,7 +62,7 @@ import { ObjectComponent } from './components/codesystems/types/object/object.co
         BooleanComponent,
         ArrayComponent,
         ObjectComponent
-    ],
+        ],
     imports: [
         BrowserModule,
         FormsModule,
@@ -68,7 +70,9 @@ import { ObjectComponent } from './components/codesystems/types/object/object.co
         BrowserAnimationsModule,
         NgbTypeaheadModule,
         AppRoutingModule,
-        ToastrModule.forRoot()
+        ToastrModule.forRoot(),
+        MatTabsModule,
+        MatIconModule
     ],
     providers: [
         AuthenticationService,

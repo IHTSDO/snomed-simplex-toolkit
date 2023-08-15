@@ -31,3 +31,7 @@ build/
 .vscode/
 /application*.properties
 angular
+.DS_STORE
+**/node_modules/
+**/.angular
+npm.cmd

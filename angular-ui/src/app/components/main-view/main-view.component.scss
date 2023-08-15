@@ -1,7 +1,7 @@
 @import 'src/variables.scss';
 
 div.main-view {
-    margin-left: 32rem;
+    margin: 2rem;
 
     button.confirm {
         position: fixed;
@@ -18,4 +18,9 @@ div.main-view {
             background-color: $slate-grey;
         }
     }
+}
+
+.tab-icon {
+    color: cornflowerblue;
+    margin-right: 1rem;
 }
