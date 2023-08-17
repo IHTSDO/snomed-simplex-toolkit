@@ -74,7 +74,8 @@
                 "serve": {
                     "builder": "@angular-devkit/build-angular:dev-server",
                     "options": {
-                        "liveReload": false
+                        "liveReload": false,
+                        "disableHostCheck": true
                     },
                     "configurations": {
                         "production": {
