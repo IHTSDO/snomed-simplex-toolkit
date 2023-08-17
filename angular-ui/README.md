@@ -39,7 +39,9 @@ server {
 
 }
 ```
-Reload Nginx then navigate to `http://local.ihtsdotools.org:4200/`
+Reload Nginx then navigate to `http://local.ihtsdotools.org:4200/`.
+
+If you are not running the API localy you can swap the `http://localhost:8080/api` part of the nginx config for a remote server.
 
 ## Build
 
