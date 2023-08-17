@@ -1,0 +1,14 @@
+<h4>Maps</h4>
+<div class="component-row">
+    <div class="component-col">
+        <mat-list>
+            <mat-list-item *ngFor="let item of maps" (click)="onClick(item)" class="hoverable-item" matRipple
+            [ngClass]="{ 'selected': item.name === selectedMap?.name }">
+                {{ item.name }}
+            </mat-list-item>
+        </mat-list>
+    </div>
+    <div class="component-col">
+        Details of: {{ selectedMap?.name }}
+    </div>
+</div>

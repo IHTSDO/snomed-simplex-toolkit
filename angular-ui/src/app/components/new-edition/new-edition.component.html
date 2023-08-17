@@ -1,0 +1,26 @@
+<p>Create New Edition</p>
+<form [formGroup]="form">
+    <mat-form-field>
+        <input matInput placeholder="Name" formControlName="name">
+    <mat-error *ngIf="form.controls['name']['hasError']('required')">Name is required</mat-error>
+    </mat-form-field>
+    <mat-form-field>
+        <textarea matInput placeholder="Description" formControlName="description"></textarea>
+    </mat-form-field>
+    <mat-form-field>
+        <input matInput placeholder="URL" formControlName="url">
+    </mat-form-field>
+    <mat-form-field>
+        <input matInput placeholder="Version" formControlName="version">
+    </mat-form-field>
+    <mat-form-field>
+        <input matInput placeholder="Status" formControlName="status">
+    </mat-form-field>
+    <mat-form-field>
+        <textarea matInput placeholder="Content" formControlName="content"></textarea>
+    </mat-form-field>
+</form>
+<div mat-dialog-actions>
+  <button mat-flat-button (click)="closePanelEvent()">Cancel</button>
+  <button mat-flat-button color="accent" (click)="submit()">Create</button>
+</div>

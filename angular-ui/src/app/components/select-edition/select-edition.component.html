@@ -1,0 +1,19 @@
+<div class="component-row">
+    <div class="component-col">
+        <mat-list>
+            <mat-list-item *ngFor="let edition of editions" (click)="onEditionClick(edition)" class="hoverable-item" matRipple 
+            [ngClass]="{ 'selected': edition.name === selectedEdition?.name }">
+                {{ edition.name }}
+            </mat-list-item>
+        </mat-list>
+        <button mat-flat-button color="primary" (click)="newEditionMode = true">New Edition</button>
+    </div>
+    <div class="component-col">
+        <div *ngIf="!newEditionMode">
+            Details of: {{ selectedEdition?.name }}
+        </div>
+        <div *ngIf="newEditionMode">
+            <app-new-edition (closePanel)="newEditionMode = false"></app-new-edition>
+        </div>
+    </div>
+</div>

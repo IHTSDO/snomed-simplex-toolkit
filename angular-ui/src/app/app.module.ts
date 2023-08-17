@@ -37,6 +37,19 @@ import { ArrayComponent } from './components/codesystems/types/array/array.compo
 import { ObjectComponent } from './components/codesystems/types/object/object.component';
 import {MatTabsModule} from '@angular/material/tabs';
 import {MatIconModule} from '@angular/material/icon';
+import { SelectEditionComponent } from './components/select-edition/select-edition.component';
+import {MatTableModule} from '@angular/material/table';
+import {MatListModule} from '@angular/material/list';
+import { MatRippleModule } from '@angular/material/core';
+import { SubsetsComponent } from './components/subsets/subsets.component';
+import { MapsComponent } from './components/maps/maps.component';
+import { TranslationsComponent } from './components/translations/translations.component';
+import { PublishComponent } from './components/publish/publish.component';
+import {MatButtonModule} from '@angular/material/button';
+import { NewEditionComponent } from './components/new-edition/new-edition.component';
+import { ReactiveFormsModule } from '@angular/forms'; // Import the ReactiveFormsModule
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
 
 // SERVICE IMPORTS
 
@@ -61,7 +74,13 @@ import {MatIconModule} from '@angular/material/icon';
         NumberComponent,
         BooleanComponent,
         ArrayComponent,
-        ObjectComponent
+        ObjectComponent,
+        SelectEditionComponent,
+        SubsetsComponent,
+        MapsComponent,
+        TranslationsComponent,
+        PublishComponent,
+        NewEditionComponent
         ],
     imports: [
         BrowserModule,
@@ -72,7 +91,14 @@ import {MatIconModule} from '@angular/material/icon';
         AppRoutingModule,
         ToastrModule.forRoot(),
         MatTabsModule,
-        MatIconModule
+        MatIconModule,
+        MatTableModule,
+        MatListModule,
+        MatRippleModule,
+        MatButtonModule,
+        ReactiveFormsModule,
+        MatFormFieldModule,
+        MatInputModule
     ],
     providers: [
         AuthenticationService,

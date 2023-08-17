@@ -8,7 +8,7 @@ import {ModalService} from '../../services/modal/modal.service';
 })
 export class MainViewComponent implements OnInit {
 
-    activeTab: string = 'codesystems';
+    selectedEdition: any = null;
 
     constructor(private modalService: ModalService) {
     }

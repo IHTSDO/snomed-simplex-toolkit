@@ -1,0 +1,20 @@
+.hoverable-item:hover {
+    background-color: rgba(0, 0, 0, 0.1); /* Light gray background on hover */
+    cursor: pointer;
+  }
+  
+.component-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.component-col {
+  flex: 1;
+  margin: 0 10px;
+}
+
+.selected {
+  background-color: rgba(147, 197, 231, 0.993);
+}

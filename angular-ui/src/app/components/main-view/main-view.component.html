@@ -1,39 +1,40 @@
 <div class="main-view">
-    <h2>International Edition</h2>
+    <h3 *ngIf="!selectedEdition"><i>Select an edition</i></h3>
+    <h3 *ngIf="selectedEdition">{{ selectedEdition.name }}</h3>
     <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start">
         <mat-tab>
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">info</mat-icon> Info
             </ng-template>
-            Content 1
+            <app-select-edition (editionSelected)="selectedEdition = $event"></app-select-edition>
         </mat-tab>
     
-        <mat-tab>
+        <mat-tab [disabled]="!selectedEdition">
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">filter_list</mat-icon> Subset
             </ng-template>
-            Content 2
+            <app-subsets></app-subsets>
         </mat-tab>
     
-        <mat-tab>
+        <mat-tab [disabled]="!selectedEdition">
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">map</mat-icon> Maps
             </ng-template>
-            Content 3
+            <app-maps></app-maps>
         </mat-tab>
     
-        <mat-tab>
+        <mat-tab [disabled]="!selectedEdition">
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">translate</mat-icon> Translations
             </ng-template>
-            Content 4
+            <app-translations></app-translations>
         </mat-tab>
     
-        <mat-tab>
+        <mat-tab [disabled]="!selectedEdition">
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">publish</mat-icon> Release and Export
             </ng-template>
-            Content 5
+            <app-publish></app-publish>
         </mat-tab>
     </mat-tab-group>    
 </div>
