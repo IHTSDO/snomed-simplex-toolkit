@@ -9,10 +9,10 @@
         <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
     </mat-form-field>
 </form>
-<div mat-dialog-actions>
+<div>
   <button mat-flat-button (click)="closePanelEvent()">Cancel</button>
   <button mat-flat-button color="accent" (click)="submit()">
     <span *ngIf="!saving">Create</span>
     <mat-spinner [diameter]="20" *ngIf="saving"></mat-spinner>
-</button>
+  </button>
 </div>

@@ -3,15 +3,36 @@
     <div class="component-col">
         <div>
             <mat-list id="subset-list">
+                <mat-list-item *ngIf="loading"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item>
                 <mat-list-item *ngFor="let item of subsets" (click)="onClick(item)" class="hoverable-item" matRipple
-                [ngClass]="{ 'selected': item.name === selectedSubset?.name }">
-                    {{ item.name }}
+                [ngClass]="{ 'selected': item.conceptId === selectedSubset?.conceptId }">
+                    {{ item.fsn.term }}
                 </mat-list-item>
             </mat-list>
-            <button mat-flat-button color="primary" (click)="newSubsetMode = true">New Subset</button>
+            <button mat-flat-button color="primary" (click)="newSubsetMode = true" *ngIf="!loading">New Subset</button>
         </div>
     </div>
     <div class="component-col">
-        Details of: {{ selectedSubset?.name }}
+        <div *ngIf="!newSubsetMode && selectedSubset">
+            <h3>Details of: {{ selectedSubset?.fsn.term }}</h3>
+            <div class="component-row" *ngFor="let field of editionFields">
+                <div class="component-col align-right">
+                    <span class="details-field-name">{{ field | camelToTitle }}</span>
+                </div>
+                <div class="component-col">
+                    <span class="details-field-value">{{ selectedSubset[field] }}</span>
+                </div>
+            </div>
+        </div>
+        <div *ngIf="newSubsetMode">
+            <h4>New Subset</h4>
+            <div>
+                <button mat-flat-button (click)="newSubsetMode = false">Cancel</button>
+                <button mat-flat-button color="accent" (click)="submit()">
+                  <span *ngIf="!saving">Create</span>
+                  <mat-spinner [diameter]="20" *ngIf="saving"></mat-spinner>
+                </button>
+              </div>
+        </div>
     </div>
 </div>

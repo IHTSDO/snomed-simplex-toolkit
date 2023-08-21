@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
 @Component({
@@ -6,38 +6,30 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
   templateUrl: './subsets.component.html',
   styleUrls: ['./subsets.component.scss']
 })
-export class SubsetsComponent {
+export class SubsetsComponent implements OnChanges {
+  @Input() edition: string;
   subsets = [];
   selectedSubset = null;
   newSubsetMode = false;
+  loading = false;
+  editionFields = ["idAndFsnTerm", "active", "activeMemberCount", "moduleId"];
+  saving = false;
 
   constructor(private simplexService: SimplexService) {}
 
-  ngOnInit() {
-    // this.simplexService.getSubsets().subscribe((subsets) => {
-    //   this.subsets = subsets.items;
-    // });
-    this.subsets = [
-      {
-        id: 1,
-        name: 'Cardiology findings',
-        description: 'This is the first edition'
-      },
-      {
-        id: 2,
-        name: 'Cardiology procedures',
-        description: 'This is the second edition'
-      },
-      {
-        id: 3,
-        name: 'Communicable diseases',
-        description: 'This is the third edition'
-      }
-    ]
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['edition'] && changes['edition'].currentValue) {
+      this.loading = true;
+      this.simplexService.getSimpleRefsets(changes['edition'].currentValue['shortName']).subscribe((subsets) => {
+        this.subsets = subsets;
+        this.loading = false;
+      });
+    }
   }
 
   onClick(item: any) {
     this.selectedSubset = item;
   }
-  
+  submit() {
+  }
 }

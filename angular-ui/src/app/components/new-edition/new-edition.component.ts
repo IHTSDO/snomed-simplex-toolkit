@@ -1,6 +1,7 @@
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { lastValueFrom } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
 @Component({
@@ -48,9 +49,8 @@ export class NewEditionComponent {
         workingBranchPath: this.form.value.workingBranchPath,
         simplexWorkingBranch: this.form.value.simplexWorkingBranch
       };
-      console.log(edition);
       this.saving = true;
-      this.simplexService.createEdition(edition).subscribe(
+      lastValueFrom(this.simplexService.createEdition(edition)).then(
         (edition) => {
           console.log(edition);
           this.saving = false;

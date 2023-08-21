@@ -28,4 +28,8 @@ export class SimplexService {
   public createEdition(edition: any): Observable<any> {
     return this.http.post('/api/codesystems', edition);
   }
+
+  public createSimpleRefset(edition: string, simpleRefset: any): Observable<any> {
+    return this.http.post(`/api/${edition}/refsets/simple`, simpleRefset);
+  }
 }
