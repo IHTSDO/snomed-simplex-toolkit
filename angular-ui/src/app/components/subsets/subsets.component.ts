@@ -9,6 +9,7 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 export class SubsetsComponent {
   subsets = [];
   selectedSubset = null;
+  newSubsetMode = false;
 
   constructor(private simplexService: SimplexService) {}
 

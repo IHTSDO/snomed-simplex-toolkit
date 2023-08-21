@@ -1,12 +1,15 @@
 <h4>Subsets</h4>
 <div class="component-row">
     <div class="component-col">
-        <mat-list>
-            <mat-list-item *ngFor="let item of subsets" (click)="onClick(item)" class="hoverable-item" matRipple
-            [ngClass]="{ 'selected': item.name === selectedSubset?.name }">
-                {{ item.name }}
-            </mat-list-item>
-        </mat-list>
+        <div>
+            <mat-list id="subset-list">
+                <mat-list-item *ngFor="let item of subsets" (click)="onClick(item)" class="hoverable-item" matRipple
+                [ngClass]="{ 'selected': item.name === selectedSubset?.name }">
+                    {{ item.name }}
+                </mat-list-item>
+            </mat-list>
+            <button mat-flat-button color="primary" (click)="newSubsetMode = true">New Subset</button>
+        </div>
     </div>
     <div class="component-col">
         Details of: {{ selectedSubset?.name }}

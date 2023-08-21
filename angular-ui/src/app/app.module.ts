@@ -50,6 +50,9 @@ import { NewEditionComponent } from './components/new-edition/new-edition.compon
 import { ReactiveFormsModule } from '@angular/forms'; // Import the ReactiveFormsModule
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
+import { CamelToTitlePipe } from './pipes/camel-to-title/camel-to-title.pipe';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatSnackBarModule} from '@angular/material/snack-bar';
 
 // SERVICE IMPORTS
 
@@ -80,7 +83,8 @@ import {MatInputModule} from '@angular/material/input';
         MapsComponent,
         TranslationsComponent,
         PublishComponent,
-        NewEditionComponent
+        NewEditionComponent,
+        CamelToTitlePipe
         ],
     imports: [
         BrowserModule,
@@ -98,7 +102,9 @@ import {MatInputModule} from '@angular/material/input';
         MatButtonModule,
         ReactiveFormsModule,
         MatFormFieldModule,
-        MatInputModule
+        MatInputModule,
+        MatProgressSpinnerModule,
+        MatSnackBarModule
     ],
     providers: [
         AuthenticationService,

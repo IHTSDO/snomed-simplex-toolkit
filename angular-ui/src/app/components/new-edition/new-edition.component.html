@@ -1,26 +1,18 @@
 <p>Create New Edition</p>
 <form [formGroup]="form">
-    <mat-form-field>
-        <input matInput placeholder="Name" formControlName="name">
-    <mat-error *ngIf="form.controls['name']['hasError']('required')">Name is required</mat-error>
-    </mat-form-field>
-    <mat-form-field>
-        <textarea matInput placeholder="Description" formControlName="description"></textarea>
-    </mat-form-field>
-    <mat-form-field>
-        <input matInput placeholder="URL" formControlName="url">
-    </mat-form-field>
-    <mat-form-field>
-        <input matInput placeholder="Version" formControlName="version">
-    </mat-form-field>
-    <mat-form-field>
-        <input matInput placeholder="Status" formControlName="status">
-    </mat-form-field>
-    <mat-form-field>
-        <textarea matInput placeholder="Content" formControlName="content"></textarea>
+    <mat-form-field *ngFor="let controlName of formKeys">
+        <mat-label>{{controlName}}</mat-label>
+        <input matInput formControlName="{{controlName}}">
+        <button *ngIf="form.controls[controlName]['value']" matSuffix mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')">
+            <mat-icon>close</mat-icon>
+        </button>
+        <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
     </mat-form-field>
 </form>
 <div mat-dialog-actions>
   <button mat-flat-button (click)="closePanelEvent()">Cancel</button>
-  <button mat-flat-button color="accent" (click)="submit()">Create</button>
+  <button mat-flat-button color="accent" (click)="submit()">
+    <span *ngIf="!saving">Create</span>
+    <mat-spinner [diameter]="20" *ngIf="saving"></mat-spinner>
+</button>
 </div>

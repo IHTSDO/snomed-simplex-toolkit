@@ -24,4 +24,8 @@ export class SimplexService {
   public getTranslation(edition: string): Observable<any> {
     return this.http.get(`/api/${edition}/translations`);
   }
+
+  public createEdition(edition: any): Observable<any> {
+    return this.http.post('/api/codesystems', edition);
+  }
 }

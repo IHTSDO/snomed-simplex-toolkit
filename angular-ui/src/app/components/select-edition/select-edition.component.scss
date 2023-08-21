@@ -18,3 +18,26 @@
 .selected {
   background-color: rgba(147, 197, 231, 0.993);
 }
+
+#editions-list {
+  max-height: calc(100vh - 240px);
+  overflow-y: auto;
+}
+
+#details {
+  max-height: calc(100vh - 240px);
+  overflow-y: auto;
+}
+
+.align-right {
+  text-align: right;
+}
+
+.details-field-name {
+  font-size: 1.5rem;
+}
+
+.details-field-value{
+  font-size: 1.5rem;
+  font-style: italic;
+}

@@ -9,17 +9,20 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 export class SelectEditionComponent {
 
   editions = [];
-
+  editionFields = ["name", "shortName", "defaultModule", "defaultModuleDisplay", "dependantVersionEffectiveTime", "branchPath", "workingBranchPath", "simplexWorkingBranch"];
   selectedEdition: any;
   newEditionMode= false;
+  loading = false;
 
   @Output() editionSelected = new EventEmitter<any>();
 
   constructor(private simplexService: SimplexService) {}
 
   ngOnInit() {
+    this.loading = true;
     this.simplexService.getEditions().subscribe((editions) => {
       this.editions = editions.items;
+      this.loading = false;
     });
     // this.editions = [
     //   {

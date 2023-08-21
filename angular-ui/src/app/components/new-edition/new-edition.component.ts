@@ -1,5 +1,7 @@
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
 @Component({
   selector: 'app-new-edition',
@@ -8,33 +10,60 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 })
 export class NewEditionComponent {
 
+  saving = false;
+
   @Output() closePanel = new EventEmitter<void>();
 
   form: FormGroup = this.fb.group({
     name: ['', Validators.required],
-    description: [''],
-    url: [''],
-    version: [''],
-    status: [''],
-    content: ['']
+    shortName: ['', Validators.required],
+    defaultModule: [''],
+    defaultModuleDisplay: [''],
+    dependantVersionEffectiveTime: ['', Validators.required],
+    branchPath: ['', Validators.required],
+    workingBranchPath: [''],
+    simplexWorkingBranch: ['']
   });
 
-  constructor(private fb: FormBuilder) { }
+  get formKeys(): string[] {
+    return Object.keys(this.form.controls);
+  }
+
+  constructor(
+    private fb: FormBuilder,
+    private simplexService: SimplexService,
+    private snackBar: MatSnackBar
+  ) { }
 
   submit() {
+    this.form.markAllAsTouched();
     if (this.form.valid) {
       const edition = {
-        resourceType: 'CodeSystem',
         name: this.form.value.name,
-        description: this.form.value.description,
-        url: this.form.value.url,
-        version: this.form.value.version,
-        status: this.form.value.status,
-        content: this.form.value.content
+        shortName: this.form.value.shortName,
+        defaultModule: this.form.value.defaultModule,
+        defaultModuleDisplay: this.form.value.defaultModuleDisplay,
+        dependantVersionEffectiveTime: this.form.value.dependantVersionEffectiveTime,
+        branchPath: this.form.value.branchPath,
+        workingBranchPath: this.form.value.workingBranchPath,
+        simplexWorkingBranch: this.form.value.simplexWorkingBranch
       };
       console.log(edition);
-      // Save Edition
-      this.closePanelEvent();
+      this.saving = true;
+      this.simplexService.createEdition(edition).subscribe(
+        (edition) => {
+          console.log(edition);
+          this.saving = false;
+          this.closePanelEvent();
+        },
+        (error) => {
+          console.error(error);
+          this.saving = false;
+          this.snackBar.open('Failed to create edition', 'Dismiss', {
+            duration: 5000
+          });
+        }
+      );
     }
   }
 
