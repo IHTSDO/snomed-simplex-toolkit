@@ -20,7 +20,7 @@
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">map</mat-icon> Maps
             </ng-template>
-            <app-maps></app-maps>
+            <app-maps [edition]="selectedEdition?.shortName"></app-maps>
         </mat-tab>
     
         <mat-tab [disabled]="!selectedEdition">

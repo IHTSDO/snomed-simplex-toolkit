@@ -18,3 +18,21 @@
 .selected {
     background-color: rgba(147, 197, 231, 0.993);
 }
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+mat-form-field {
+  width: 60%;
+  margin-bottom: 16px;
+}
+
+.saving {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+}

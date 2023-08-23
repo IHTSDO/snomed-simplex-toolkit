@@ -1,14 +1,48 @@
 <h4>Maps</h4>
 <div class="component-row">
     <div class="component-col">
-        <mat-list>
-            <mat-list-item *ngFor="let item of maps" (click)="onClick(item)" class="hoverable-item" matRipple
-            [ngClass]="{ 'selected': item.name === selectedMap?.name }">
-                {{ item.name }}
-            </mat-list-item>
-        </mat-list>
+        <div>
+            <mat-list id="map-list">
+                <mat-list-item *ngIf="loading"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item>
+                <mat-list-item *ngFor="let item of maps" (click)="onClick(item)" class="hoverable-item" matRipple
+                [ngClass]="{ 'selected': item.conceptId === selectedmap?.conceptId }">
+                    {{ item.fsn.term }}
+                </mat-list-item>
+            </mat-list>
+            <button mat-flat-button color="primary" (click)="newmapMode = true" *ngIf="!loading">New map</button>
+        </div>
     </div>
     <div class="component-col">
-        Details of: {{ selectedMap?.name }}
+        <div *ngIf="!newmapMode && selectedmap">
+            <h3>Details of: {{ selectedmap?.fsn.term }}</h3>
+            <br><br>
+            <div class="component-row" *ngFor="let field of mapFields">
+                <div class="component-col align-right">
+                    <span class="details-field-name">{{ field | camelToTitle }}</span>
+                </div>
+                <div class="component-col">
+                    <span class="details-field-value">{{ selectedmap[field] }}</span>
+                </div>
+            </div>
+        </div>
+        <div *ngIf="newmapMode">
+            <h4>New map</h4>
+            <br><br>
+            <form [formGroup]="form">
+                <mat-form-field *ngFor="let controlName of formKeys">
+                    <mat-label>{{controlName}}</mat-label>
+                    <input matInput formControlName="{{controlName}}">
+                    <button *ngIf="form.controls[controlName]['value']" matSuffix mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                    <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
+                </mat-form-field>
+            </form>
+            <div>
+                <button mat-flat-button (click)="newmapMode = false" *ngIf="!saving">Cancel</button>
+                <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving">Create</button>
+                <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating map...</p>
+              </div>
+        </div>
     </div>
 </div>

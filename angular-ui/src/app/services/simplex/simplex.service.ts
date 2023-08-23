@@ -17,7 +17,7 @@ export class SimplexService {
     return this.http.get(`/api/${edition}/refsets/simple`);
   }
 
-  public getSimpleMap(edition: string): Observable<any> {
+  public getSimpleMaps(edition: string): Observable<any> {
     return this.http.get(`/api/${edition}/refsets/simple-map-to-snomed-with-correlation`);
   }
 
@@ -31,5 +31,9 @@ export class SimplexService {
 
   public createSimpleRefset(edition: string, simpleRefset: any): Observable<any> {
     return this.http.post(`/api/${edition}/refsets/simple`, simpleRefset);
+  }
+
+  public createMap(edition: string, map: any): Observable<any> {
+    return this.http.post(`/api/${edition}/refsets/simple-map-to-snomed-with-correlation`, map);
   }
 }

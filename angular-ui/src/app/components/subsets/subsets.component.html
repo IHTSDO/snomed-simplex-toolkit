@@ -27,6 +27,7 @@
         </div>
         <div *ngIf="newSubsetMode">
             <h4>New Subset</h4>
+            <br><br>
             <form [formGroup]="form">
                 <mat-form-field *ngFor="let controlName of formKeys">
                     <mat-label>{{controlName}}</mat-label>
