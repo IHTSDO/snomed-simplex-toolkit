@@ -23,6 +23,9 @@
                     <span class="details-field-value">{{ selectedEdition[field] }}</span>
                 </div>
             </div>
+            <br>
+            <button mat-flat-button color="warn" (click)="deleteEdition(selectedEdition)" *ngIf="!deleting && !loading">Delete Edition</button>
+            <p *ngIf="deleting" class="deleting"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Deleting Edition...</p>
         </div>
         <div *ngIf="newEditionMode">
             <app-new-edition (closePanel)="newEditionMode = false" (editionSaved)="loadEditions()"></app-new-edition>

@@ -40,4 +40,8 @@ export class SimplexService {
   public createTranslations(edition: string, translation: any): Observable<any> {
     return this.http.post(`/api/${edition}/translations`, translation);
   }
+
+  public deleteEdition(edition: string): Observable<any> {
+    return this.http.delete(`/api/codesystems/${edition}`);
+  }
 }

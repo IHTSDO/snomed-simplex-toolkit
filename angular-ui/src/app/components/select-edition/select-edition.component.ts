@@ -1,4 +1,6 @@
 import { Component, EventEmitter, Output } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { lastValueFrom } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
 @Component({
@@ -13,10 +15,12 @@ export class SelectEditionComponent {
   selectedEdition: any;
   newEditionMode= false;
   loading = false;
+  deleting = false;
 
   @Output() editionSelected = new EventEmitter<any>();
 
-  constructor(private simplexService: SimplexService) {}
+  constructor(private simplexService: SimplexService,
+              private snackBar: MatSnackBar) {}
 
   ngOnInit() {
    this.loadEditions(); 
@@ -25,27 +29,19 @@ export class SelectEditionComponent {
   loadEditions() {
     this.editions = [];
     this.loading = true;
-    this.simplexService.getEditions().subscribe((editions) => {
-      this.editions = editions.items;
-      this.loading = false;
-    });
-    // this.editions = [
-    //   {
-    //     id: 1,
-    //     name: 'International Edition',
-    //     description: 'This is the first edition'
-    //   },
-    //   {
-    //     id: 2,
-    //     name: 'Spanish Edition',
-    //     description: 'This is the second edition'
-    //   },
-    //   {
-    //     id: 3,
-    //     name: 'Argentina Edition',
-    //     description: 'This is the third edition'
-    //   }
-    // ]
+    lastValueFrom(this.simplexService.getEditions()).then(
+      (editions) => {
+        this.editions = editions.items;
+        this.loading = false;
+      },
+      (error) => {
+        console.error(error);
+        this.loading = false;
+        this.snackBar.open('Failed to load editions', 'Dismiss', {
+          duration: 5000
+        });
+      }
+    );
   }
 
   onEditionClick(item: any) {
@@ -55,5 +51,27 @@ export class SelectEditionComponent {
 
   toggleNewEditionMode() {
     this.newEditionMode = !this.newEditionMode;
+  }
+
+  deleteEdition(item: any) {
+    this.deleting = true;
+    lastValueFrom(this.simplexService.deleteEdition(item.shortName)).then(
+      (result) => {
+        this.deleting = false;
+        this.selectedEdition = null;
+        this.editionSelected.emit(null);
+        this.loadEditions();
+        this.snackBar.open('Edition deleted!', 'Dismiss', {
+          duration: 5000
+        });
+      },
+      (error) => {
+        console.error(error);
+        this.deleting = false;
+        this.snackBar.open('Failed to delete editions', 'Dismiss', {
+          duration: 5000
+        });
+      }
+    );
   }
 }

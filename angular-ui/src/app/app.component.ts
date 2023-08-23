@@ -35,45 +35,12 @@ export class AppComponent implements OnInit {
                 private titleService: Title,
                 private snowstormService: SnowstormService,
                 private modalService: ModalService) {
-        // this.activeCodesystemSubscription = this.snowstormService.getActiveCodesystem().subscribe(data => this.activeCodesystem = data);
     }
 
     ngOnInit() {
         this.titleService.setTitle('SNOMED CT Snowstorm Admin');
         this.environment = this.envService.env;
-
         this.assignFavicon();
-
-        // this.snowstormService.httpGetCodesystems().subscribe(data => {
-        //     this.snowstormService.setCodesystems(data);
-        //     this.snowstormService.setActiveCodesystem(data['items'][0]);
-        // });
-    }
-
-    openModal(id: string): void {
-        this.modalService.open(id);
-    }
-
-    closeModal(id: string): void {
-        this.modalService.close(id);
-    }
-
-    newCodesystem(name, owner, maintainerType, shortName, branchPath, countryCode, defaultLanguageCode) {
-        let newCodesystem: NewCodesystem = new NewCodesystem(name, owner, maintainerType, [], countryCode, shortName, branchPath, 0, defaultLanguageCode)
-        console.log('newCodesystem: ', newCodesystem);
-    }
-
-    addRole(role) {
-        console.log('role: ', role);
-    }
-
-    addModule(conceptId) {
-        console.log('conceptId: ', conceptId);
-    }
-
-    addLanguage(key, value) {
-        console.log('key: ', key);
-        console.log('value: ', value);
     }
 
     assignFavicon() {
