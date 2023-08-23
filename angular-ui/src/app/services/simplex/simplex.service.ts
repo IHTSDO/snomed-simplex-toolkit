@@ -21,7 +21,7 @@ export class SimplexService {
     return this.http.get(`/api/${edition}/refsets/simple-map-to-snomed-with-correlation`);
   }
 
-  public getTranslation(edition: string): Observable<any> {
+  public getTranslations(edition: string): Observable<any> {
     return this.http.get(`/api/${edition}/translations`);
   }
 
@@ -35,5 +35,9 @@ export class SimplexService {
 
   public createMap(edition: string, map: any): Observable<any> {
     return this.http.post(`/api/${edition}/refsets/simple-map-to-snomed-with-correlation`, map);
+  }
+
+  public createTranslations(edition: string, translation: any): Observable<any> {
+    return this.http.post(`/api/${edition}/translations`, translation);
   }
 }

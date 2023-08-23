@@ -27,7 +27,7 @@
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">translate</mat-icon> Translations
             </ng-template>
-            <app-translations></app-translations>
+            <app-translations [edition]="selectedEdition?.shortName"></app-translations>
         </mat-tab>
     
         <mat-tab [disabled]="!selectedEdition">
