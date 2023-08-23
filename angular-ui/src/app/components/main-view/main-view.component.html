@@ -34,7 +34,7 @@
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">publish</mat-icon> Release and Export
             </ng-template>
-            <app-publish></app-publish>
+            <app-publish [edition]="selectedEdition?.shortName"></app-publish>
         </mat-tab>
     </mat-tab-group>    
 </div>
