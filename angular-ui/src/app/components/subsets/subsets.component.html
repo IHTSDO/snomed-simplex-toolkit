@@ -15,7 +15,8 @@
     <div class="component-col">
         <div *ngIf="!newSubsetMode && selectedSubset">
             <h3>Details of: {{ selectedSubset?.fsn.term }}</h3>
-            <div class="component-row" *ngFor="let field of editionFields">
+            <br><br>
+            <div class="component-row" *ngFor="let field of subsetFields">
                 <div class="component-col align-right">
                     <span class="details-field-name">{{ field | camelToTitle }}</span>
                 </div>
@@ -26,12 +27,20 @@
         </div>
         <div *ngIf="newSubsetMode">
             <h4>New Subset</h4>
+            <form [formGroup]="form">
+                <mat-form-field *ngFor="let controlName of formKeys">
+                    <mat-label>{{controlName}}</mat-label>
+                    <input matInput formControlName="{{controlName}}">
+                    <button *ngIf="form.controls[controlName]['value']" matSuffix mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                    <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
+                </mat-form-field>
+            </form>
             <div>
-                <button mat-flat-button (click)="newSubsetMode = false">Cancel</button>
-                <button mat-flat-button color="accent" (click)="submit()">
-                  <span *ngIf="!saving">Create</span>
-                  <mat-spinner [diameter]="20" *ngIf="saving"></mat-spinner>
-                </button>
+                <button mat-flat-button (click)="newSubsetMode = false" *ngIf="!saving">Cancel</button>
+                <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving">Create</button>
+                <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating subset...</p>
               </div>
         </div>
     </div>

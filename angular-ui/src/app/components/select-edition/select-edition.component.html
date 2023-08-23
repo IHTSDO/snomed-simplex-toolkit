@@ -14,6 +14,7 @@
     <div class="component-col" id="details">
         <div *ngIf="!newEditionMode && selectedEdition">
             <h3>Details of: {{ selectedEdition?.name }}</h3>
+            <br><br>
             <div class="component-row" *ngFor="let field of editionFields">
                 <div class="component-col align-right">
                     <span class="details-field-name">{{ field | camelToTitle }}</span>
@@ -24,7 +25,7 @@
             </div>
         </div>
         <div *ngIf="newEditionMode">
-            <app-new-edition (closePanel)="newEditionMode = false"></app-new-edition>
+            <app-new-edition (closePanel)="newEditionMode = false" (editionSaved)="loadEditions()"></app-new-edition>
         </div>
     </div>
 </div>

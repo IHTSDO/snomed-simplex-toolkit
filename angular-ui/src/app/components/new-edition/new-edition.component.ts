@@ -14,16 +14,14 @@ export class NewEditionComponent {
   saving = false;
 
   @Output() closePanel = new EventEmitter<void>();
+  @Output() editionSaved = new EventEmitter<void>();
 
   form: FormGroup = this.fb.group({
     name: ['', Validators.required],
     shortName: ['', Validators.required],
-    defaultModule: [''],
-    defaultModuleDisplay: [''],
-    dependantVersionEffectiveTime: ['', Validators.required],
-    branchPath: ['', Validators.required],
-    workingBranchPath: [''],
-    simplexWorkingBranch: ['']
+    moduleId: [''],
+    moduleName: [''],
+    namespace: ['', Validators.required]
   });
 
   get formKeys(): string[] {
@@ -40,21 +38,22 @@ export class NewEditionComponent {
     this.form.markAllAsTouched();
     if (this.form.valid) {
       const edition = {
+        createModule: true,
         name: this.form.value.name,
         shortName: this.form.value.shortName,
-        defaultModule: this.form.value.defaultModule,
-        defaultModuleDisplay: this.form.value.defaultModuleDisplay,
-        dependantVersionEffectiveTime: this.form.value.dependantVersionEffectiveTime,
-        branchPath: this.form.value.branchPath,
-        workingBranchPath: this.form.value.workingBranchPath,
-        simplexWorkingBranch: this.form.value.simplexWorkingBranch
+        moduleId: this.form.value.moduleId,
+        moduleName: this.form.value.moduleName,
+        namespace: this.form.value.namespace
       };
       this.saving = true;
+      // Set the form to disabled
+      this.form.disable();
       lastValueFrom(this.simplexService.createEdition(edition)).then(
         (edition) => {
           console.log(edition);
           this.saving = false;
           this.closePanelEvent();
+          this.editionSaved.emit();
         },
         (error) => {
           console.error(error);

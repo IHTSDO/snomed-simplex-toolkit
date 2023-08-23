@@ -9,7 +9,7 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 export class SelectEditionComponent {
 
   editions = [];
-  editionFields = ["name", "shortName", "defaultModule", "defaultModuleDisplay", "dependantVersionEffectiveTime", "branchPath", "workingBranchPath", "simplexWorkingBranch"];
+  editionFields = ["name", "shortName", "defaultModule", "defaultModuleDisplay", "dependantVersionEffectiveTime", "branchPath", "workingBranchPath", "simplexWorkingBranch", "namespace"];
   selectedEdition: any;
   newEditionMode= false;
   loading = false;
@@ -19,6 +19,11 @@ export class SelectEditionComponent {
   constructor(private simplexService: SimplexService) {}
 
   ngOnInit() {
+   this.loadEditions(); 
+  }
+
+  loadEditions() {
+    this.editions = [];
     this.loading = true;
     this.simplexService.getEditions().subscribe((editions) => {
       this.editions = editions.items;

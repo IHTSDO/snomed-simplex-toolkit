@@ -10,9 +10,7 @@
     </mat-form-field>
 </form>
 <div>
-  <button mat-flat-button (click)="closePanelEvent()">Cancel</button>
-  <button mat-flat-button color="accent" (click)="submit()">
-    <span *ngIf="!saving">Create</span>
-    <mat-spinner [diameter]="20" *ngIf="saving"></mat-spinner>
-  </button>
+  <button mat-flat-button (click)="closePanelEvent()" *ngIf="!saving">Cancel</button>
+  <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving">Create</button>
+  <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating edition...</p>
 </div>
