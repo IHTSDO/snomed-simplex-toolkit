@@ -59,7 +59,6 @@ export class MapsComponent {
       this.form.disable();
       lastValueFrom(this.simplexService.createMap(this.edition, map)).then(
         (edition) => {
-          console.log(edition);
           this.saving = false;
           this.form.reset();
           this.newmapMode = false;

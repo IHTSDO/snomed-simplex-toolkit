@@ -59,7 +59,6 @@ export class TranslationsComponent {
       this.form.disable();
       lastValueFrom(this.simplexService.createTranslations(this.edition, translation)).then(
         (edition) => {
-          console.log(edition);
           this.saving = false;
           this.form.reset();
           this.newTranslationMode = false;

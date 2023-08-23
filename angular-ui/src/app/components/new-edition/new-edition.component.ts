@@ -50,7 +50,6 @@ export class NewEditionComponent {
       this.form.disable();
       lastValueFrom(this.simplexService.createEdition(edition)).then(
         (edition) => {
-          console.log(edition);
           this.saving = false;
           this.closePanelEvent();
           this.editionSaved.emit();

@@ -59,7 +59,6 @@ export class SubsetsComponent implements OnChanges {
       this.form.disable();
       lastValueFrom(this.simplexService.createSimpleRefset(this.edition, subset)).then(
         (edition) => {
-          console.log(edition);
           this.saving = false;
           this.form.reset();
           this.newSubsetMode = false;
