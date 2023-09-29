@@ -11,6 +11,13 @@
     
         <mat-tab [disabled]="!selectedEdition">
             <ng-template mat-tab-label>
+                <mat-icon class="tab-icon">filter_list</mat-icon> Components
+            </ng-template>
+            <app-artifacts [edition]="selectedEdition?.shortName"></app-artifacts>
+        </mat-tab>
+
+        <mat-tab [disabled]="!selectedEdition">
+            <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">filter_list</mat-icon> Subset
             </ng-template>
             <app-subsets [edition]="selectedEdition?.shortName"></app-subsets>

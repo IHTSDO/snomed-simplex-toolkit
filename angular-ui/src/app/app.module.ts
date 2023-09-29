@@ -53,6 +53,7 @@ import {MatInputModule} from '@angular/material/input';
 import { CamelToTitlePipe } from './pipes/camel-to-title/camel-to-title.pipe';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
+import { ArtifactsComponent } from './components/artifacts/artifacts.component';
 
 // SERVICE IMPORTS
 
@@ -84,7 +85,8 @@ import {MatSnackBarModule} from '@angular/material/snack-bar';
         TranslationsComponent,
         PublishComponent,
         NewEditionComponent,
-        CamelToTitlePipe
+        CamelToTitlePipe,
+        ArtifactsComponent
         ],
     imports: [
         BrowserModule,

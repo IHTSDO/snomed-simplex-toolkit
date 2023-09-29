@@ -33,6 +33,7 @@ export class SelectEditionComponent {
       (editions) => {
         this.editions = editions.items;
         this.loading = false;
+        if (this.editions.length > 0) { this.onEditionClick(this.editions[0]) } 
       },
       (error) => {
         console.error(error);
