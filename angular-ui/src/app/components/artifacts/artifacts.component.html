@@ -7,21 +7,21 @@
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
                     {{ item.fsn.term }} <span class="pill pill-green">Subset</span>
                 </mat-list-item>
-                <mat-list-item *ngFor="let item of maps" (click)="onClick(item, 'translation')" class="hoverable-item" matRipple
+                <mat-list-item *ngFor="let item of maps" (click)="onClick(item, 'map')" class="hoverable-item" matRipple
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
                     {{ item.fsn.term }} <span class="pill pill-yellow">Map</span>
                 </mat-list-item>
-                <mat-list-item *ngFor="let item of translations" (click)="onClick(item, 'map')" class="hoverable-item" matRipple
+                <mat-list-item *ngFor="let item of translations" (click)="onClick(item, 'translation')" class="hoverable-item" matRipple
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
                     {{ item.fsn.term }} <span class="pill pill-blue">Translation</span>
                 </mat-list-item>
                 <mat-list-item *ngIf="loadingTranslations || loadingSubsets || loadingMaps"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item>
             </mat-list>
-            <button mat-flat-button color="primary" (click)="newSubsetMode = true" *ngIf="!loadingTranslations && !loadSubsets && !loadingMaps">New Subset</button>
+            <button mat-flat-button color="primary" (click)="newArtifactMode = true" *ngIf="!(loadingTranslations || loadingSubsets || loadingMaps || saving)">New Component</button>
         </div>
     </div>
     <div class="component-col">
-        <div *ngIf="!newSubsetMode && selectedArtifact">
+        <div *ngIf="!newArtifactMode && selectedArtifact">
             <h3>
                 {{ selectedArtifact?.fsn.term }}
                 <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">{{ selectedArtifact?.type | titlecase }}</span>
@@ -84,23 +84,32 @@
                 </div>
             </div>
         </div>
-        <div *ngIf="newSubsetMode">
-            <h4>New Subset</h4>
+        <div *ngIf="newArtifactMode">
+            <h5>New Component</h5>
             <br><br>
             <form [formGroup]="form">
                 <mat-form-field *ngFor="let controlName of formKeys">
-                    <mat-label>{{controlName}}</mat-label>
-                    <input matInput formControlName="{{controlName}}">
-                    <button *ngIf="form.controls[controlName]['value']" matSuffix mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')">
+                    <mat-label>{{controlName | camelToTitle}}</mat-label>
+
+                    <!-- Input for other controls -->
+                    <input matInput formControlName="{{controlName}}" *ngIf="controlName !== 'type'">
+                    <button *ngIf="form.controls[controlName]['value'] && controlName !== 'type'" matSuffix mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')">
                         <mat-icon>close</mat-icon>
                     </button>
+
+                    <!-- Mat Select for 'type' control -->
+                    <mat-select *ngIf="controlName === 'type'" formControlName="type">
+                        <mat-option *ngFor="let type of artifactTypes" [value]="type">{{type | titlecase}}</mat-option>
+                    </mat-select>
+        
+
                     <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
                 </mat-form-field>
             </form>
             <div>
-                <button mat-flat-button (click)="newSubsetMode = false" *ngIf="!saving">Cancel</button>
+                <button mat-flat-button (click)="newArtifactMode = false" *ngIf="!saving">Cancel</button>
                 <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving">Create</button>
-                <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating subset...</p>
+                <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating component...</p>
               </div>
         </div>
     </div>

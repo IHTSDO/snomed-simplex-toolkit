@@ -48,3 +48,7 @@
   align-items: center;
   margin-top: 10px;
 }
+
+mat-list-item:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); // Change the rgba values for different shades
+}

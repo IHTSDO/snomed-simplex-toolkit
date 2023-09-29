@@ -1,7 +1,8 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
 @Component({
@@ -9,25 +10,24 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
   templateUrl: './artifacts.component.html',
   styleUrls: ['./artifacts.component.scss']
 })
-export class ArtifactsComponent implements OnChanges {
+export class ArtifactsComponent implements OnChanges, OnDestroy {
   @Input() edition: string;
   
   subsets = [];
   translations = [];
   maps = [];
+  private cancelOngoingRequests$ = new Subject<void>();
 
   selectedArtifact = null;
-  
-  newSubsetMode = false;
-  
+  newArtifactMode = false;
   loadingSubsets = false;
   loadingTranslations = false;
   loadingMaps = false;
-
-  // subsetFields = ["idAndFsnTerm", "active", "activeMemberCount", "moduleId"];
   saving = false;
 
+  artifactTypes = ["subset", "map", "translation"];
   form: FormGroup = this.fb.group({
+    type: ['', Validators.required],
     preferredTerm: ['', Validators.required]
   });
 
@@ -37,37 +37,55 @@ export class ArtifactsComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['edition'] && changes['edition'].currentValue) {
-      this.loadSubsets(changes['edition'].currentValue);
-      this.loadTranslations(changes['edition'].currentValue);
-      this.loadmaps(changes['edition'].currentValue);
+      this.loadArtifacts(changes['edition'].currentValue);
     }
+  }
+
+  loadArtifacts(edition: string) {
+    // Cancel ongoing requests
+    this.cancelOngoingRequests$.next();
+
+    this.loadSubsets(edition);
+    this.loadTranslations(edition);
+    this.loadMaps(edition);
   }
 
   loadSubsets(edition: string) {
     this.subsets = [];
     this.loadingSubsets = true;
-    this.simplexService.getSimpleRefsets(edition).subscribe((subsets) => {
-      this.subsets = subsets;
-      this.loadingSubsets = false;
-    });
+    this.simplexService.getSimpleRefsets(edition)
+        .pipe(takeUntil(this.cancelOngoingRequests$))
+        .subscribe((subsets) => {
+            this.subsets = subsets;
+            this.loadingSubsets = false;
+        });
   }
 
   loadTranslations(edition: string) {
     this.translations = [];
     this.loadingTranslations = true;
-    this.simplexService.getTranslations(edition).subscribe((translations) => {
-      this.translations = translations;
-      this.loadingTranslations = false;
-    });
+    this.simplexService.getTranslations(edition)
+        .pipe(takeUntil(this.cancelOngoingRequests$))
+        .subscribe((translations) => {
+            this.translations = translations;
+            this.loadingTranslations = false;
+        });
   }
 
-  loadmaps(edition: string) {
+  loadMaps(edition: string) {
     this.maps = [];
     this.loadingMaps = true;
-    this.simplexService.getSimpleMaps(edition).subscribe((maps) => {
-      this.maps = maps;
-      this.loadingMaps = false;
-    });
+    this.simplexService.getSimpleMaps(edition)
+        .pipe(takeUntil(this.cancelOngoingRequests$))
+        .subscribe((maps) => {
+            this.maps = maps;
+            this.loadingMaps = false;
+        });
+  }
+
+  ngOnDestroy() {
+    this.cancelOngoingRequests$.next();
+    this.cancelOngoingRequests$.complete();
   }
 
   get formKeys(): string[] {
@@ -77,7 +95,6 @@ export class ArtifactsComponent implements OnChanges {
   onClick(item: any, type: string) {
     item.type = type;
     this.selectedArtifact = item;
-    console.log(item);
   }
   submit() {
     this.form.markAllAsTouched();
@@ -88,21 +105,59 @@ export class ArtifactsComponent implements OnChanges {
       this.saving = true;
       // Set the form to disabled
       this.form.disable();
-      lastValueFrom(this.simplexService.createSimpleRefset(this.edition, subset)).then(
-        (edition) => {
-          this.saving = false;
-          this.form.reset();
-          this.newSubsetMode = false;
-          this.loadSubsets(this.edition);
-        },
-        (error) => {
-          console.error(error);
-          this.saving = false;
-          this.snackBar.open('Failed to create subset', 'Dismiss', {
-            duration: 5000
-          });
-        }
-      );
+      switch (this.form.value.type) {
+        case 'subset':
+          lastValueFrom(this.simplexService.createSimpleRefset(this.edition, subset)).then(
+            (edition) => {
+              this.saving = false;
+              this.form.reset();
+              this.newArtifactMode = false;
+              this.loadArtifacts(this.edition);
+            },
+            (error) => {
+              console.error(error);
+              this.saving = false;
+              this.snackBar.open('Failed to create subset', 'Dismiss', {
+                duration: 5000
+              });
+            }
+          );
+          break;
+        case 'map':
+          lastValueFrom(this.simplexService.createMap(this.edition, subset)).then(
+            (edition) => {
+              this.saving = false;
+              this.form.reset();
+              this.newArtifactMode = false;
+              this.loadArtifacts(this.edition);
+            },
+            (error) => {
+              console.error(error);
+              this.saving = false;
+              this.snackBar.open('Failed to create map', 'Dismiss', {
+                duration: 5000
+              });
+            }
+          );
+          break;
+        case 'translation':
+          lastValueFrom(this.simplexService.createTranslations(this.edition, subset)).then(
+            (edition) => {
+              this.saving = false;
+              this.form.reset();
+              this.newArtifactMode = false;
+              this.loadArtifacts(this.edition);
+            },
+            (error) => {
+              console.error(error);
+              this.saving = false;
+              this.snackBar.open('Failed to create translation', 'Dismiss', {
+                duration: 5000
+              });
+            }
+          );
+          break;
+      }
     }
   }
   getArtifactClass(type: string): string {

@@ -22,6 +22,7 @@ background-color: rgba(147, 197, 231, 0.993);
 #components-list {
 max-height: calc(100vh - 240px);
 overflow-y: auto;
+margin-bottom: 2rem;
 }
 
 #details {
@@ -88,4 +89,8 @@ mat-form-field {
 
 h4 {
   margin-top: 2rem;
+}
+
+mat-list-item:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); // Change the rgba values for different shades
 }

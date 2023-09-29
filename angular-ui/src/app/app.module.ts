@@ -54,6 +54,7 @@ import { CamelToTitlePipe } from './pipes/camel-to-title/camel-to-title.pipe';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
 import { ArtifactsComponent } from './components/artifacts/artifacts.component';
+import {MatSelectModule} from '@angular/material/select';
 
 // SERVICE IMPORTS
 
@@ -106,7 +107,8 @@ import { ArtifactsComponent } from './components/artifacts/artifacts.component';
         MatFormFieldModule,
         MatInputModule,
         MatProgressSpinnerModule,
-        MatSnackBarModule
+        MatSnackBarModule,
+        MatSelectModule
     ],
     providers: [
         AuthenticationService,

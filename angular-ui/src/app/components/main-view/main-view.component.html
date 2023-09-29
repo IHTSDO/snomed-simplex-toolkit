@@ -16,7 +16,7 @@
             <app-artifacts [edition]="selectedEdition?.shortName"></app-artifacts>
         </mat-tab>
 
-        <mat-tab [disabled]="!selectedEdition">
+        <!-- <mat-tab [disabled]="!selectedEdition">
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">filter_list</mat-icon> Subset
             </ng-template>
@@ -35,11 +35,11 @@
                 <mat-icon class="tab-icon">translate</mat-icon> Translations
             </ng-template>
             <app-translations [edition]="selectedEdition?.shortName"></app-translations>
-        </mat-tab>
+        </mat-tab> -->
     
         <mat-tab [disabled]="!selectedEdition">
             <ng-template mat-tab-label>
-                <mat-icon class="tab-icon">publish</mat-icon> Release and Export
+                <mat-icon class="tab-icon">settings</mat-icon> Manage Edition
             </ng-template>
             <app-publish [edition]="selectedEdition?.shortName"></app-publish>
         </mat-tab>
