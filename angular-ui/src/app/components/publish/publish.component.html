@@ -1,7 +1,19 @@
 <div class="component-container">
-    <button mat-flat-button color="accent" disabled>RUN QA TESTS</button>
-    <button mat-flat-button color="accent" (click)="exportDelta()">EXPORT RF2 DELTA</button>
-    <button mat-flat-button color="accent" disabled>EXPORT RF2 SNAPSHOT</button>
-    <button mat-flat-button color="accent" disabled>MARK SNAPSHOT AS NEW RELEASE</button>
-    <button mat-flat-button color="accent" disabled>DOWNLOAD LATEST RELEASE</button>
+    <p>Releases</p>
+    <p>20230131 <button mat-flat-button color="accent" disabled>DOWNLOAD</button></p>
+    <p>20230231 <button mat-flat-button color="accent" disabled>DOWNLOAD</button></p>
+    <p>20230331 <button mat-flat-button color="accent" disabled>DOWNLOAD</button></p>
+</div>
+
+<div class="component-container">
+    <p>Release actions</p>
+    <button mat-flat-button color="accent">RUN CLASSIFICATION</button>
+    <button mat-flat-button color="accent" disabled>RUN VALIDATION</button>
+    <button mat-flat-button color="accent" disabled>PREVIEW IN THE BROWSER</button>
+    <button mat-flat-button color="accent" disabled>COMPLETE RELEASE CYCLE</button>
+</div>
+
+<div class="component-container">
+    <p>Utilities</p>
+    <button mat-flat-button color="accent" (click)="exportSnapshot()">EXPORT PREVIEW RF2 SNAPSHOT</button>
 </div>

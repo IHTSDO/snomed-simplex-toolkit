@@ -11,4 +11,9 @@ export class PublishComponent {
   exportDelta() {
     window.open('api/' + this.edition + '/rf2-export/delta');
   }
+
+  exportSnapshot() {
+    window.open('api/' + this.edition + '/rf2-export/snapshot');
+  }
+
 }
