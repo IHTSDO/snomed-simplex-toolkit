@@ -25,6 +25,9 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
   loadingMaps = false;
   saving = false;
 
+  selectedFile: File = null;
+  selectedFileType = null;
+
   artifactTypes = ["subset", "map", "translation"];
   form: FormGroup = this.fb.group({
     type: ['', Validators.required],
@@ -160,6 +163,7 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
       }
     }
   }
+
   getArtifactClass(type: string): string {
     switch (type) {
       case 'subset':
@@ -173,4 +177,55 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
   
     }
   }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length) {
+      this.selectedFile = input.files[0];
+    }
+  }
+  
+  async uploadRefsetToolTranslation(refsetId: string, componentType: string, fileType: string): Promise<void> {
+    if (this.selectedFile && this.edition && componentType && fileType) {
+        try {
+            if (componentType === 'translation' && fileType === 'weblateTranslation') {
+              const response = await lastValueFrom(
+                  this.simplexService.uploadWeblateTranslation(this.edition, refsetId, this.selectedFile)
+              );
+              console.log('File uploaded successfully:', response);
+            } else if (componentType === 'translation' && fileType === 'refsetToolTranslation') {
+              const response = await lastValueFrom(
+                  this.simplexService.uploadRefsetToolTranslation(this.edition, refsetId, this.selectedFile)
+              );
+              console.log('File uploaded successfully:', response);
+            } else {
+              console.error('File upload failed: Invalid componentType or fileType');
+            }
+        } catch (error) {
+            console.error('File upload failed:', error);
+        }
+    }
+  }
+
+  getFileTypes(componentType: string) {
+    switch (componentType) {
+      case 'subset':
+        let optionsS = ['refsetToolSubset'];
+        this.selectedFileType = optionsS[0];
+        return optionsS;
+      case 'map':
+        let optionsM =  ["snap2snomedMap"];
+        this.selectedFileType = optionsM[0];
+        return optionsM;
+      case 'translation':
+        let optionsT =  ["refsetToolTranslation","weblateTranslation"];
+        this.selectedFileType = optionsT[0];
+        return optionsT;
+      default:
+        this.selectedFileType = null;
+        return [];  // Default
+  
+    }
+  }
+  
 }

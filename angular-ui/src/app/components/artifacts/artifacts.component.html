@@ -22,10 +22,10 @@
     </div>
     <div class="component-col">
         <div *ngIf="!newArtifactMode && selectedArtifact">
-            <h3>
+            <h5>
                 {{ selectedArtifact?.fsn.term }}
                 <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">{{ selectedArtifact?.type | titlecase }}</span>
-            </h3>
+            </h5>
             <br><br>
             <div class="component-row">
                 <div class="component-col align-right">
@@ -83,6 +83,35 @@
                     <span class="details-field-value">{{ selectedArtifact.type | titlecase }}</span>
                 </div>
             </div>
+
+            <h4>Import data to component</h4>
+
+            <mat-form-field>
+                <mat-label>File type</mat-label>
+                <mat-select [(ngModel)]="selectedFileType">
+                    <mat-option *ngFor="let type of getFileTypes(selectedArtifact.type)" [value]="type">{{type | camelToTitle}}</mat-option>
+                </mat-select>
+            </mat-form-field>
+            
+            
+            <!-- Hidden file input -->
+            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
+
+            <!-- Container for choose file button and filename -->
+            <div class="file-selection">
+                <!-- Button that triggers the hidden file input -->
+                <button mat-flat-button color="primary" (click)="fileInput.click()">Choose File</button>
+                
+                <!-- Display selected file's name with some left margin for spacing -->
+                <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+            </div>
+
+            <!-- Upload button on a new line with some top margin for spacing -->
+            <div class="upload-btn">
+                <button mat-flat-button color="accent" (click)="uploadRefsetToolTranslation(selectedArtifact.conceptId, selectedArtifact.type, selectedFileType)" *ngIf="selectedFile">
+                    Upload data
+                </button>
+            </div>
         </div>
         <div *ngIf="newArtifactMode">
             <h5>New Component</h5>
@@ -110,7 +139,7 @@
                 <button mat-flat-button (click)="newArtifactMode = false" *ngIf="!saving">Cancel</button>
                 <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving">Create</button>
                 <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating component...</p>
-              </div>
+            </div>
         </div>
     </div>
 </div>

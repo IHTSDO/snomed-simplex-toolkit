@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -54,4 +54,25 @@ export class SimplexService {
   public deleteEdition(edition: string): Observable<any> {
     return this.http.delete(`/api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
   }
+
+  public uploadRefsetToolTranslation(edition: string, refsetId: string, file: File): Observable<any> {
+    const formData: FormData = new FormData();
+    formData.append('file', file, file.name);
+    const apiUrl = `/api/${edition}/translations/${refsetId}/refset-tool`;
+    const httpOptions = {
+      headers: new HttpHeaders({
+          'Content-Type': 'multipart/form-data'
+      })
+    };
+    return this.http.put(apiUrl, formData, httpOptions).pipe(catchError(this.handleError.bind(this)));
+  }
+
+
+  public uploadWeblateTranslation(edition: string, refsetId: string, file: File): Observable<any> {
+    const formData: FormData = new FormData();
+    formData.append('file', file, file.name);
+    const apiUrl = `/api/${edition}/translations/${refsetId}/weblate`;
+    return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
+  }
+  
 }

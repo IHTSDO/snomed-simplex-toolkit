@@ -1,5 +1,5 @@
-import {Component, OnInit} from '@angular/core';
-import {ModalService} from '../../services/modal/modal.service';
+import { Component, OnInit } from '@angular/core';
+import { ModalService } from '../../services/modal/modal.service';
 
 @Component({
     selector: 'app-main-view',
@@ -9,11 +9,21 @@ import {ModalService} from '../../services/modal/modal.service';
 export class MainViewComponent implements OnInit {
 
     selectedEdition: any = null;
+    changingEdition = false;
 
     constructor(private modalService: ModalService) {
     }
 
     ngOnInit(): void {
+    }
+
+
+    editionSelected(edition: any): void {
+        this.selectedEdition = edition;
+        this.changingEdition = true;
+        setTimeout(() => {
+            this.changingEdition = false;
+        }, 1000);
     }
 
     openModal(id: string): void {

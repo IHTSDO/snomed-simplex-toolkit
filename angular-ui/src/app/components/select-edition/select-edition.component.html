@@ -1,6 +1,7 @@
 <div class="component-row">
     <div class="component-col">
         <div>
+            <h4>Select an edition:</h4>
             <mat-list id="editions-list">
                 <mat-list-item *ngIf="loading"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item>
                 <mat-list-item *ngFor="let edition of editions" (click)="onEditionClick(edition)" class="hoverable-item" matRipple 
