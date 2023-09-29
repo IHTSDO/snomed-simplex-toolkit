@@ -19,7 +19,6 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
 import static com.snomed.simplextoolkit.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
@@ -136,7 +135,7 @@ public class TranslationService {
 				List<Description> snowstormDescriptions = concept.getDescriptions();
 				snowstormDescriptions.sort(Comparator.comparing(Description::isActive).reversed());
 
-				// Remove any descriptions in snowstorm with a matching concept, language and lang refset if they are not in the latest CSV
+				// Remove any active descriptions in snowstorm with a matching concept, language and lang refset if the term is not in the latest CSV
 				List<Description> toRemove = new ArrayList<>();
 				for (Description snowstormDescription : snowstormDescriptions) {
 					if (snowstormDescription.getLang().equals(languageCode)
@@ -211,6 +210,20 @@ public class TranslationService {
 						anyChange = true;
 						added++;
 						changeMonitor.added(concept.getConceptId(), uploadedDescription.toString());
+					}
+				}
+
+				// Remove existing lang refset entries on inactive descriptions
+				for (Description snowstormDescription : snowstormDescriptions) {
+					if (snowstormDescription.getLang().equals(languageCode)
+							&& !snowstormDescription.isActive()
+							&& snowstormDescription.getAcceptabilityMap().containsKey(languageRefsetId)) {
+
+						snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
+						anyChange = true;
+						removed++;// Removed from the language refset
+						changeMonitor.removed(concept.getConceptId(), snowstormDescription.toString());
+						logger.info("Removed redundant lang refset on concept {}, description {}.", concept.getConceptId(), snowstormDescription.getDescriptionId());
 					}
 				}
 
