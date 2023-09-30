@@ -11,3 +11,75 @@
 button  {
     width: 40rem;
 }
+
+.component-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+    
+.component-col {
+    flex: 1;
+    margin: 0 10px;
+}
+
+mat-list-item:not(:last-child) {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1); // Change the rgba values for different shades
+}
+
+.pill {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px; // Gives it the "pill" shape
+    font-size: 0.9rem;   // Adjust as needed
+    text-align: center;
+    vertical-align: middle;
+    font-weight: bold;
+    margin-right: 2rem; /* space out the pills and the muted text */
+    margin-left: 2rem;
+  
+    &-green {
+      background-color: #4CAF50; // Adjust to your preferred green
+      color: #FFFFFF;            // Adjust text color if needed
+    }
+  
+    &-yellow {
+      background-color: #FFEB3B; // Adjust to your preferred yellow
+      color: #333333;            // Adjust text color if needed
+    }
+  
+    &-blue {
+      background-color: #2196F3; // Adjust to your preferred blue
+      color: #FFFFFF;            // Adjust text color if needed
+    }
+  }
+
+  .muted {
+    color: rgba(89, 87, 87, 0.5);
+    font-style: italic;
+  }
+
+#components-list {
+    max-height: calc(100vh - 240px);
+    overflow-y: auto;
+    margin-bottom: 2rem;
+    width: 90%;
+}
+
+/* styles.css or styles.scss */
+
+mat-list-item {
+    display: flex;
+    align-items: center; /* vertically aligns children in the middle */
+    justify-content: space-between; /* Optional: space out items */
+  }
+  
+  .download {
+    float: right;
+  }
+
+  .release-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }

@@ -41,6 +41,7 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges) {
     if (changes['edition'] && changes['edition'].currentValue) {
       this.loadArtifacts(changes['edition'].currentValue);
+      this.selectedArtifact = null;
     }
   }
 
