@@ -21,6 +21,9 @@
         </div>
     </div>
     <div class="component-col">
+        <p *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
+            Select a component to view details
+        </p>
         <div *ngIf="!newArtifactMode && selectedArtifact">
             <h5>
                 {{ selectedArtifact?.fsn.term }}
