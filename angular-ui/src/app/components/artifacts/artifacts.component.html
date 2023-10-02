@@ -87,37 +87,8 @@
                 </div>
             </div>
 
-            <h4>Import data to component</h4>
+            <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition"></app-jobs>
 
-            <mat-form-field>
-                <mat-label>File type</mat-label>
-                <mat-select [(ngModel)]="selectedFileType">
-                    <mat-option *ngFor="let type of getFileTypes(selectedArtifact.type)" [value]="type">{{type | camelToTitle}}</mat-option>
-                </mat-select>
-            </mat-form-field>
-            
-            
-            <!-- Hidden file input -->
-            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
-
-            <!-- Container for choose file button and filename -->
-            <div class="file-selection">
-                <!-- Button that triggers the hidden file input -->
-                <button mat-flat-button color="primary" (click)="fileInput.click()">Choose File</button>
-                
-                <!-- Display selected file's name with some left margin for spacing -->
-                <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
-            </div>
-
-            <!-- Upload button on a new line with some top margin for spacing -->
-            <div class="upload-btn">
-                <button mat-flat-button color="accent" (click)="uploadRefsetToolTranslation(selectedArtifact.conceptId, selectedArtifact.type, selectedFileType)" *ngIf="selectedFile">
-                    Upload data
-                </button>
-            </div>
-
-            <app-jobs [refsetId]="selectedArtifact.conceptId"></app-jobs>
-            
         </div>
         <div *ngIf="newArtifactMode">
             <h5>New Component</h5>

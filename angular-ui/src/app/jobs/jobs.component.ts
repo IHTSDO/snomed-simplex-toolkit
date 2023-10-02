@@ -1,7 +1,7 @@
 import { Component, Input, OnChanges, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from '../services/simplex/simplex.service';
-import { Subscription, catchError } from 'rxjs';
+import { Subscription, catchError, lastValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-jobs',
@@ -16,6 +16,16 @@ export class JobsComponent implements OnChanges, OnInit {
 
   jobs: any[] = [];
   loading = false;
+
+  selectedFile: File = null;
+  selectedFileType = null;
+  fileTypes = [
+    {value: 'refsetToolSubset', viewValue: 'Refset Tool Subset', artifactTypes: ['subset']},
+    {value: 'snap2snomedMap', viewValue: 'SNAP2SNOMED Map', artifactTypes: ['map']},
+    {value: 'refsetToolTranslation', viewValue: 'Refset Tool Translation', artifactTypes: ['translation']},
+    {value: 'weblateTranslation', viewValue: 'Weblate Translation', artifactTypes: ['translation']}
+  ];
+
   private subscription: Subscription;
   private intervalId?: any;  // Declare an intervalId property
 
@@ -25,14 +35,13 @@ export class JobsComponent implements OnChanges, OnInit {
     private snackBar: MatSnackBar) {}
 
   ngOnInit() {
-    // load jobs every 5 seconds
-    // setInterval(() => {
-    //   this.loadJobs(false);
-    // }, 5000);
   }
 
   ngOnChanges() {
     this.loadJobs(true);
+    if (this.filteredFileTypes().length > 0) {
+      this.selectedFileType = this.filteredFileTypes()[0].value;
+    }
   }
 
   loadJobs(clear: boolean) {
@@ -56,6 +65,7 @@ export class JobsComponent implements OnChanges, OnInit {
       
       // If there's an in-progress job and no interval is currently set, set up the interval
       if (hasInProgressJob && !this.intervalId) {
+        clearInterval(this.intervalId);
         this.intervalId = setInterval(() => {
           this.loadJobs(false);
         }, 2000);
@@ -64,7 +74,9 @@ export class JobsComponent implements OnChanges, OnInit {
       // If there's no in-progress job and an interval is currently set, clear the interval
       if (!hasInProgressJob && this.intervalId) {
         clearInterval(this.intervalId);
-        this.intervalId = undefined;
+        this.intervalId = setInterval(() => {
+          this.loadJobs(false);
+        }, 15000);
       }
     });
   }
@@ -77,6 +89,41 @@ export class JobsComponent implements OnChanges, OnInit {
     if (this.intervalId) {
       clearInterval(this.intervalId);
     }
+  }
+
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length) {
+      this.selectedFile = input.files[0];
+    }
+  }
+  
+  async uploadRefsetToolTranslation(refsetId: string, componentType: string, fileType: string): Promise<void> {
+    if (this.selectedFile && this.edition && componentType && fileType) {
+        try {
+            if (componentType === 'translation' && fileType === 'weblateTranslation') {
+              const response = await lastValueFrom(
+                  this.simplexService.uploadWeblateTranslation(this.edition, refsetId, this.selectedFile, 'vi')
+              );
+              this.selectedFile = null;
+              this.loadJobs(false);
+            } else if (componentType === 'translation' && fileType === 'refsetToolTranslation') {
+              const response = await lastValueFrom(
+                  this.simplexService.uploadRefsetToolTranslation(this.edition, refsetId, this.selectedFile)
+              );
+              this.selectedFile = null;
+              this.loadJobs(false);
+            } else {
+              console.error('File upload failed: Invalid componentType or fileType');
+            }
+        } catch (error) {
+            console.error('File upload failed:', error);
+        }
+    }
+  }
+
+  filteredFileTypes() {
+    return this.fileTypes.filter(type => type.artifactTypes.includes(this.artifact.type));
   }
 
 }

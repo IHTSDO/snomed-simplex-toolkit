@@ -95,23 +95,6 @@ mat-list-item:not(:last-child) {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1); // Change the rgba values for different shades
 }
 
-.file-selection {
-  display: flex;
-  align-items: center;
-}
-
-.file-name {
-  margin-left: 10px; /* Adjust as needed */
-  /* add rounded borser */
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 5px;
-}
-
-.upload-btn {
-  margin-top: 10px; /* Adjust as needed */
-}
-
 .home-message {
   font-size: 2rem;
   font-weight: lighter;
