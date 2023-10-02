@@ -1,11 +1,19 @@
 <h4>Imports</h4>
 
-<mat-form-field>
-    <mat-label>File type</mat-label>
-    <mat-select [(ngModel)]="selectedFileType">
-        <mat-option *ngFor="let type of filteredFileTypes()" [value]="type.value">{{ type.viewValue }}</mat-option>
-    </mat-select>
-</mat-form-field>
+<div class="row">
+    <mat-form-field>
+        <mat-label>File type</mat-label>
+        <mat-select [(ngModel)]="selectedFileType">
+            <mat-option *ngFor="let type of filteredFileTypes()" [value]="type.value">{{ type.viewValue }}</mat-option>
+        </mat-select>
+    </mat-form-field>
+    
+    <mat-form-field *ngIf="selectedFileType == 'weblateTranslation'">
+        <mat-label>Language Code</mat-label>
+        <input matInput placeholder="es, da, nl, etc." value="" [(ngModel)]="selectedLanguageCode">
+    </mat-form-field>
+</div>
+
 
 <!-- Hidden file input -->
 <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">

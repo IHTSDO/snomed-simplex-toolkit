@@ -25,6 +25,7 @@ export class JobsComponent implements OnChanges, OnInit {
     {value: 'refsetToolTranslation', viewValue: 'Refset Tool Translation', artifactTypes: ['translation']},
     {value: 'weblateTranslation', viewValue: 'Weblate Translation', artifactTypes: ['translation']}
   ];
+  selectedLanguageCode: '';
 
   private subscription: Subscription;
   private intervalId?: any;  // Declare an intervalId property
@@ -99,11 +100,12 @@ export class JobsComponent implements OnChanges, OnInit {
   }
   
   async uploadRefsetToolTranslation(refsetId: string, componentType: string, fileType: string): Promise<void> {
+    // TODO: validate params
     if (this.selectedFile && this.edition && componentType && fileType) {
         try {
             if (componentType === 'translation' && fileType === 'weblateTranslation') {
               const response = await lastValueFrom(
-                  this.simplexService.uploadWeblateTranslation(this.edition, refsetId, this.selectedFile, 'vi')
+                  this.simplexService.uploadWeblateTranslation(this.edition, refsetId, this.selectedFile, this.selectedLanguageCode)
               );
               this.selectedFile = null;
               this.loadJobs(false);

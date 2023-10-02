@@ -16,16 +16,34 @@ h4 {
 .file-selection {
     display: flex;
     align-items: center;
-  }
+}
   
-  .file-name {
+.file-name {
     margin-left: 10px; /* Adjust as needed */
     /* add rounded borser */
     border: 1px solid #ccc;
     border-radius: 5px;
     padding: 5px;
-  }
+}
   
-  .upload-btn {
+.upload-btn {
     margin-top: 10px; /* Adjust as needed */
-  }
+}
+
+.row {
+    display: flex;
+    align-items: center; /* this will vertically align the fields if they have different heights */
+    justify-content: space-between; /* this will ensure that they are spaced out evenly */
+}
+
+
+mat-form-field {
+    flex: 1; /* this will make each form field take up an equal amount of space */
+    margin-right: 20px; /* add some spacing between them; you might not need this for the last form field */
+}
+
+
+mat-form-field:last-child {
+    margin-right: 0;
+}
+
