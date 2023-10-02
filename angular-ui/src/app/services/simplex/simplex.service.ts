@@ -16,6 +16,7 @@ export class SimplexService {
       window.location.href = redirectUrl;
     }
     // Return an observable with a user-facing error message
+    console.error(error)
     return throwError('Something went wrong; please try again later.');
   }
 
@@ -59,20 +60,18 @@ export class SimplexService {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
     const apiUrl = `/api/${edition}/translations/${refsetId}/refset-tool`;
-    const httpOptions = {
-      headers: new HttpHeaders({
-          'Content-Type': 'multipart/form-data'
-      })
-    };
-    return this.http.put(apiUrl, formData, httpOptions).pipe(catchError(this.handleError.bind(this)));
+    return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
-
-  public uploadWeblateTranslation(edition: string, refsetId: string, file: File): Observable<any> {
+  public uploadWeblateTranslation(edition: string, refsetId: string, file: File, languageCode: string): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `/api/${edition}/translations/${refsetId}/weblate`;
+    const apiUrl = `/api/${edition}/translations/${refsetId}/weblate?languageCode=${languageCode}`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getJobs(edition: string, refsetId: string): Observable<any> {
+    return this.http.get(`/api/jobs?refsetId=${refsetId}`).pipe(catchError(this.handleError.bind(this)));
   }
   
 }

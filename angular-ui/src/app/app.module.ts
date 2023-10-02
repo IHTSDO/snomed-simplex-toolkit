@@ -55,6 +55,8 @@ import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
 import { ArtifactsComponent } from './components/artifacts/artifacts.component';
 import {MatSelectModule} from '@angular/material/select';
+import { JobsComponent } from './jobs/jobs.component';
+import { TimeAgoPipe } from './pipes/timeAgo/time-ago.pipe';
 
 // SERVICE IMPORTS
 
@@ -87,7 +89,9 @@ import {MatSelectModule} from '@angular/material/select';
         PublishComponent,
         NewEditionComponent,
         CamelToTitlePipe,
-        ArtifactsComponent
+        ArtifactsComponent,
+        JobsComponent,
+        TimeAgoPipe
         ],
     imports: [
         BrowserModule,
@@ -119,11 +123,11 @@ import {MatSelectModule} from '@angular/material/select';
         ConceptService,
         SnowstormService,
         EnvServiceProvider,
-        {
-            provide: HTTP_INTERCEPTORS,
-            useClass: HeaderInterceptor,
-            multi: true
-        }
+        // {
+        //     provide: HTTP_INTERCEPTORS,
+        //     useClass: HeaderInterceptor,
+        //     multi: true
+        // }
     ],
     bootstrap: [AppComponent]
 })

@@ -191,7 +191,7 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
         try {
             if (componentType === 'translation' && fileType === 'weblateTranslation') {
               const response = await lastValueFrom(
-                  this.simplexService.uploadWeblateTranslation(this.edition, refsetId, this.selectedFile)
+                  this.simplexService.uploadWeblateTranslation(this.edition, refsetId, this.selectedFile, 'vi')
               );
               console.log('File uploaded successfully:', response);
             } else if (componentType === 'translation' && fileType === 'refsetToolTranslation') {

@@ -115,6 +115,9 @@
                     Upload data
                 </button>
             </div>
+
+            <app-jobs [refsetId]="selectedArtifact.conceptId"></app-jobs>
+            
         </div>
         <div *ngIf="newArtifactMode">
             <h5>New Component</h5>

@@ -1,0 +1,67 @@
+<h4>Imports</h4>
+<table mat-table [dataSource]="jobs">
+
+    <!--- Note that these columns can be defined in any order.
+          The actual rendered columns are set as a property on the row definition" -->
+  
+    <!-- Position Column -->
+    <ng-container matColumnDef="date">
+      <th mat-header-cell *matHeaderCellDef> Created </th>
+      <td mat-cell *matCellDef="let element"> {{element.created | timeAgo}} </td>
+    </ng-container>
+  
+    <!-- Name Column -->
+    <ng-container matColumnDef="display">
+      <th mat-header-cell *matHeaderCellDef> Name </th>
+      <td mat-cell *matCellDef="let element"> {{element.display}} </td>
+    </ng-container>
+  
+    <!-- Weight Column -->
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef> Status </th>
+      <td mat-cell *matCellDef="let element"> {{element.status}} </td>
+    </ng-container>
+  
+    <!-- Symbol Column -->
+    <ng-container matColumnDef="total">
+      <th mat-header-cell *matHeaderCellDef> Records </th>
+      <td mat-cell *matCellDef="let element"> {{element.recordsTotal}} </td>
+    </ng-container>
+
+    <!-- Symbol Column -->
+    <ng-container matColumnDef="icon">
+        <th mat-header-cell *matHeaderCellDef> </th>
+        <td mat-cell *matCellDef="let element"> 
+            <mat-icon 
+                *ngIf="element.status == 'COMPLETED'" 
+                [ngStyle]="{'color': 'green'}">
+                check_circle
+            </mat-icon>
+            
+            <mat-icon 
+                *ngIf="element.status == 'FAILED'" 
+                [ngStyle]="{'color': 'red'}">
+                error
+            </mat-icon>
+            
+            <mat-spinner [diameter]="20" *ngIf="element.status == 'IN_PROGRESS'"></mat-spinner>
+            
+            <mat-icon 
+                *ngIf="element.status == 'QUEUED'" 
+                [ngStyle]="{'color': 'blue'}">
+                hourglass_empty
+            </mat-icon>
+            
+            <mat-icon 
+                *ngIf="element.status == 'CANCELLED'" 
+                [ngStyle]="{'color': 'grey'}">
+                cancel
+            </mat-icon>
+        </td>
+    </ng-container>
+    
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>
+<mat-spinner [diameter]="20" *ngIf="loading" class="loading-spinner"></mat-spinner>
+<p *ngIf="!loading && jobs.length == 0" class="no-imports">No data imports were requested in this component yet</p>
