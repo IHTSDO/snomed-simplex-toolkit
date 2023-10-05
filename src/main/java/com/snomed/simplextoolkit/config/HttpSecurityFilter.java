@@ -1,5 +1,6 @@
 package com.snomed.simplextoolkit.config;
 
+import com.snomed.simplextoolkit.util.CollectionUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
@@ -37,7 +38,7 @@ public class HttpSecurityFilter implements Filter {
 			return null;
 		} else if (securityTokenHeader.startsWith(COOKIE_NAME)) {
 			String cookieName = securityTokenHeader.substring(COOKIE_NAME.length());
-			for (Cookie cookie : request.getCookies()) {
+			for (Cookie cookie : CollectionUtils.orEmpty(request.getCookies())) {
 				if (cookie.getName().equals(cookieName)) {
 					return format("%s=%s", cookieName, cookie.getValue());
 				}
