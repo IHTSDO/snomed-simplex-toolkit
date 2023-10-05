@@ -45,7 +45,7 @@
                     },
                     "configurations": {
                         "production": {
-                            "baseHref": "/admin-tools/",
+                            "baseHref": "/",
                             "budgets": [
                                 {
                                     "type": "initial",
