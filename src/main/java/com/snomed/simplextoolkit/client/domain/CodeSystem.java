@@ -18,6 +18,7 @@ public class CodeSystem {
 	private String defaultModuleDisplay;
 	private List<ConceptMini> modules;
 	private boolean postcoordinated;
+	private boolean dailyBuildAvailable;
 
 	public CodeSystem() {
 	}
@@ -62,6 +63,15 @@ public class CodeSystem {
 
 	public boolean isPostcoordinated() {
 		return postcoordinated;
+	}
+
+	public boolean isDailyBuildAvailable() {
+		return dailyBuildAvailable;
+	}
+
+	public CodeSystem setDailyBuildAvailable(boolean dailyBuildAvailable) {
+		this.dailyBuildAvailable = dailyBuildAvailable;
+		return this;
 	}
 
 	@JsonIgnore

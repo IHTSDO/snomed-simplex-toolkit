@@ -158,7 +158,7 @@ public class SnowstormClient {
 	public CodeSystem createCodeSystem(String name, String shortName, String namespace) throws ClientException {
 		String branchPath = "MAIN/" + shortName;
 		try {
-			restTemplate.exchange("/codesystems", HttpMethod.POST, new HttpEntity<>(new CodeSystem(name, shortName, branchPath)), CodeSystem.class);
+			restTemplate.exchange("/codesystems", HttpMethod.POST, new HttpEntity<>(new CodeSystem(name, shortName, branchPath).setDailyBuildAvailable(true)), CodeSystem.class);
 			CodeSystem codeSystem = restTemplate.getForEntity(format("/codesystems/%s", shortName), CodeSystem.class).getBody();
 
 			// Set namespace
