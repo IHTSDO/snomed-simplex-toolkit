@@ -1,34 +1,34 @@
-<h4>Edition components</h4>
-<div class="component-row">
-    <div class="component-col">
+<div class="row">
+    <div class="col-md-5">
+        <h4>Edition Artifacts</h4>
         <div>
             <mat-list id="components-list">
                 <mat-list-item *ngFor="let item of subsets" (click)="onClick(item, 'subset')" class="hoverable-item" matRipple
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                    {{ item.fsn.term }} <span class="pill pill-green">Subset</span>
+                    {{ item.pt.term }} <span class="pill pill-green">Subset</span>
                 </mat-list-item>
                 <mat-list-item *ngFor="let item of maps" (click)="onClick(item, 'map')" class="hoverable-item" matRipple
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                    {{ item.fsn.term }} <span class="pill pill-yellow">Map</span>
+                    {{ item.pt.term }} <span class="pill pill-yellow">Map</span>
                 </mat-list-item>
                 <mat-list-item *ngFor="let item of translations" (click)="onClick(item, 'translation')" class="hoverable-item" matRipple
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                    {{ item.fsn.term }} <span class="pill pill-blue">Translation</span>
+                    {{ item.pt.term }} <span class="pill pill-blue">Translation</span>
                 </mat-list-item>
                 <mat-list-item *ngIf="loadingTranslations || loadingSubsets || loadingMaps"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item>
             </mat-list>
-            <button mat-flat-button color="primary" (click)="newArtifactMode = true" *ngIf="!(loadingTranslations || loadingSubsets || loadingMaps || saving)">New Component</button>
+            <button mat-flat-button color="primary" (click)="newArtifactMode = true" *ngIf="!(loadingTranslations || loadingSubsets || loadingMaps || saving)">New Artifact</button>
         </div>
     </div>
-    <div class="component-col">
+    <div class="col">
         <p *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
-            Select a component to view details
+            Select a artifact to view details
         </p>
         <div *ngIf="!newArtifactMode && selectedArtifact">
-            <h5>
-                {{ selectedArtifact?.fsn.term }}
+            <h3 style="font-size: 2em;">
+                {{ selectedArtifact?.pt.term }}
                 <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">{{ selectedArtifact?.type | titlecase }}</span>
-            </h5>
+            </h3>
             <br><br>
             <div class="component-row">
                 <div class="component-col align-right">
@@ -40,18 +40,18 @@
             </div>
             <div class="component-row">
                 <div class="component-col align-right">
-                    <span class="details-field-name">{{ selectedArtifact.type | titlecase }} identifier</span>
+                    <span class="details-field-name">Fully specified name</span>
                 </div>
                 <div class="component-col">
-                    <span class="details-field-value">{{ selectedArtifact.conceptId }}</span>
+                    <span class="details-field-value">{{ selectedArtifact.fsn.term }}</span>
                 </div>
             </div>
             <div class="component-row">
                 <div class="component-col align-right">
-                    <span class="details-field-name">Preferred term</span>
+                    <span class="details-field-name">{{ selectedArtifact.type | titlecase }} identifier</span>
                 </div>
                 <div class="component-col">
-                    <span class="details-field-value">{{ selectedArtifact.pt.term }}</span>
+                    <span class="details-field-value">{{ selectedArtifact.conceptId }}</span>
                 </div>
             </div>
             <div class="component-row">
@@ -67,7 +67,7 @@
 
         </div>
         <div *ngIf="newArtifactMode">
-            <h5>New Component</h5>
+            <h5>New Artifact</h5>
             <br><br>
             <form [formGroup]="form">
                 <mat-form-field *ngFor="let controlName of formKeys">

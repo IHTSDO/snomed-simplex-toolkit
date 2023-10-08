@@ -6,7 +6,7 @@
         <mat-tab [disabled]="!selectedEdition">
             <ng-template mat-tab-label>
                 <mat-icon class="tab-icon">filter_list</mat-icon>
-                Components
+                Artifacts
                 <mat-spinner [diameter]="20" *ngIf="changingEdition" class="tab-spinner"></mat-spinner>
                 <span class="tab-spinner spacer" *ngIf="!changingEdition"></span>
             </ng-template>
@@ -43,7 +43,7 @@
 
         <mat-tab>
             <ng-template mat-tab-label>
-                <mat-icon class="tab-icon">info</mat-icon> Edition info
+                <mat-icon class="tab-icon">info</mat-icon> Edition Info
             </ng-template>
             <app-select-edition (editionSelected)="editionSelected($event)"></app-select-edition>
         </mat-tab>
