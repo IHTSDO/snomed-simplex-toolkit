@@ -175,5 +175,16 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
   
     }
   }
+
+  browseToConcept(conceptId: string) {
+    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
+      (edition) => {
+        const branch = edition.branchPath;
+        let langs = Object.keys(edition.languages).join(',');
+        const tab = window.open(`https://dev-simplex.ihtsdotools.org/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}`, 'simplex-browser');
+        tab.focus();
+      }
+    )
+  }    
   
 }

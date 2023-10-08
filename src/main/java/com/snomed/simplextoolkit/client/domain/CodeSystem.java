@@ -5,6 +5,7 @@ import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.apache.logging.log4j.util.Strings;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class CodeSystem {
@@ -16,6 +17,7 @@ public class CodeSystem {
 	private Integer dependantVersionEffectiveTime;
 	private String defaultModule;
 	private String defaultModuleDisplay;
+	private Map<String, String> languages;
 	private List<ConceptMini> modules;
 	private boolean postcoordinated;
 	private boolean dailyBuildAvailable;
@@ -96,6 +98,14 @@ public class CodeSystem {
 
 	public void setDefaultModuleDisplay(String defaultModuleDisplay) {
 		this.defaultModuleDisplay = defaultModuleDisplay;
+	}
+
+	public Map<String, String> getLanguages() {
+		return languages;
+	}
+
+	public void setLanguages(Map<String, String> languages) {
+		this.languages = languages;
 	}
 
 	@Override

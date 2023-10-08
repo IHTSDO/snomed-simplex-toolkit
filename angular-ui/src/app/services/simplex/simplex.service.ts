@@ -24,6 +24,10 @@ export class SimplexService {
     return this.http.get('/api/codesystems').pipe(catchError(this.handleError.bind(this)));
   }
 
+  public getEdition(edition: string): Observable<any> {
+    return this.http.get(`/api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getSimpleRefsets(edition: string): Observable<any> {
     return this.http.get(`/api/${edition}/refsets/simple`).pipe(catchError(this.handleError.bind(this)));
   }

@@ -32,18 +32,18 @@
             <br><br>
             <div class="component-row">
                 <div class="component-col align-right">
-                    <span class="details-field-name">ConceptId</span>
+                    <span class="details-field-name"></span>
                 </div>
                 <div class="component-col">
-                    <span class="details-field-value">{{ selectedArtifact.conceptId }}</span>
+                    <span class="details-field-value"><a href="javascript:void(0);" (click)="browseToConcept(selectedArtifact.conceptId)">Open in Browser Tab</a></span>
                 </div>
             </div>
             <div class="component-row">
                 <div class="component-col align-right">
-                    <span class="details-field-name">Fully Specified Name</span>
+                    <span class="details-field-name">{{ selectedArtifact.type | titlecase }} identifier</span>
                 </div>
                 <div class="component-col">
-                    <span class="details-field-value">{{ selectedArtifact.fsn.term }}</span>
+                    <span class="details-field-value">{{ selectedArtifact.conceptId }}</span>
                 </div>
             </div>
             <div class="component-row">
