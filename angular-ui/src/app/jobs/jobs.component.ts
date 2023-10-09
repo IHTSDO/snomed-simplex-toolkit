@@ -20,7 +20,9 @@ export class JobsComponent implements OnChanges, OnInit {
   selectedFile: File = null;
   selectedFileType = null;
   fileTypes = [
+    {value: 'refsetSpreadsheet', viewValue: 'Spreadsheet Subset', artifactTypes: ['subset']},
     {value: 'refsetToolSubset', viewValue: 'Refset Tool Subset', artifactTypes: ['subset']},
+    {value: 'mapSpreadsheet', viewValue: 'Spreadsheet Map', artifactTypes: ['map']},
     {value: 'snap2snomedMap', viewValue: 'SNAP2SNOMED Map', artifactTypes: ['map']},
     {value: 'refsetToolTranslation', viewValue: 'Refset Tool Translation', artifactTypes: ['translation']},
     {value: 'weblateTranslation', viewValue: 'Weblate Translation', artifactTypes: ['translation']}
@@ -99,7 +101,7 @@ export class JobsComponent implements OnChanges, OnInit {
     }
   }
   
-  async uploadRefsetToolTranslation(refsetId: string, componentType: string, fileType: string): Promise<void> {
+  async uploadFile(refsetId: string, componentType: string, fileType: string): Promise<void> {
     // TODO: validate params
     if (this.selectedFile && this.edition && componentType && fileType) {
         try {
@@ -112,6 +114,18 @@ export class JobsComponent implements OnChanges, OnInit {
             } else if (componentType === 'translation' && fileType === 'refsetToolTranslation') {
               const response = await lastValueFrom(
                   this.simplexService.uploadRefsetToolTranslation(this.edition, refsetId, this.selectedFile)
+              );
+              this.selectedFile = null;
+              this.loadJobs(false);
+            } else if (componentType === 'subset' && fileType === 'refsetSpreadsheet') {
+              const response = await lastValueFrom(
+                  this.simplexService.uploadSpreadsheetRefset(this.edition, refsetId, this.selectedFile)
+              );
+              this.selectedFile = null;
+              this.loadJobs(false);
+            } else if (componentType === 'map' && fileType === 'mapSpreadsheet') {
+              const response = await lastValueFrom(
+                  this.simplexService.uploadSpreadsheetMap(this.edition, refsetId, this.selectedFile)
               );
               this.selectedFile = null;
               this.loadJobs(false);

@@ -22,7 +22,7 @@
     </div>
     <div class="col">
         <p *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
-            Select a artifact to view details
+            Select an artifact to view details
         </p>
         <div *ngIf="!newArtifactMode && selectedArtifact">
             <h3 style="font-size: 2em;">
@@ -91,7 +91,7 @@
             <div>
                 <button mat-flat-button (click)="newArtifactMode = false" *ngIf="!saving">Cancel</button>
                 <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving">Create</button>
-                <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating component...</p>
+                <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating artifact...</p>
             </div>
         </div>
     </div>

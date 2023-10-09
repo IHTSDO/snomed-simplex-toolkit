@@ -29,7 +29,7 @@
 
 <!-- Upload button on a new line with some top margin for spacing -->
 <div class="upload-btn">
-    <button mat-flat-button color="accent" (click)="uploadRefsetToolTranslation(artifact.conceptId, artifact.type, selectedFileType)" *ngIf="selectedFile">
+    <button mat-flat-button color="accent" (click)="uploadFile(artifact.conceptId, artifact.type, selectedFileType)" *ngIf="selectedFile">
         Upload data
     </button>
 </div>

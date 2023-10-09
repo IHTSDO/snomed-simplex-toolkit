@@ -31,6 +31,8 @@ export class SelectEditionComponent {
     this.loading = true;
     lastValueFrom(this.simplexService.getEditions()).then(
       (editions) => {
+        // remove editions with empty name
+        editions.items = editions.items.filter((item) => item.name);
         this.editions = editions.items;
         this.loading = false;
         if (this.editions.length > 0) { this.onEditionClick(this.editions[0]) } 

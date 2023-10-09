@@ -74,6 +74,20 @@ export class SimplexService {
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public uploadSpreadsheetRefset(edition: string, refsetId: string, file: File): Observable<any> {
+    const formData: FormData = new FormData();
+    formData.append('file', file, file.name);
+    const apiUrl = `/api/${edition}/refsets/simple/${refsetId}/spreadsheet`;
+    return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public uploadSpreadsheetMap(edition: string, refsetId: string, file: File): Observable<any> {
+    const formData: FormData = new FormData();
+    formData.append('file', file, file.name);
+    const apiUrl = `/api/${edition}/refset/simple-map-to-snomed-with-correlation/${refsetId}/spreadsheet`;
+    return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getJobs(edition: string, refsetId: string): Observable<any> {
     return this.http.get(`/api/jobs?refsetId=${refsetId}`).pipe(catchError(this.handleError.bind(this)));
   }
