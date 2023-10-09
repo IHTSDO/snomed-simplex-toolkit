@@ -57,6 +57,9 @@ export class JobsComponent implements OnChanges, OnInit {
     .pipe(
       catchError(error => {
         console.error('An error occurred:', error);
+        this.snackBar.open('Error loading jobs', 'Dismiss', {
+          duration: 5000
+        });
         this.loading = false;
         return []; 
       })
@@ -132,9 +135,15 @@ export class JobsComponent implements OnChanges, OnInit {
               this.loadJobs(false);
             } else {
               console.error('File upload failed: Invalid componentType or fileType');
+              this.snackBar.open('File upload failed: Invalid componentType or fileType', 'Dismiss', {
+                duration: 5000
+              });
             }
         } catch (error) {
             console.error('File upload failed:', error);
+            this.snackBar.open('File upload failed:' + error.message, 'Dismiss', {
+              duration: 5000
+            });
         }
     }
   }

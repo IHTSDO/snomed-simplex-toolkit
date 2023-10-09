@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
@@ -8,13 +9,17 @@ import { catchError } from 'rxjs/operators';
 })
 export class SimplexService {
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private snackBar: MatSnackBar) { }
 
   private handleError(error: HttpErrorResponse) {
     if (error.status === 403) {
       const redirectUrl = `https://dev-ims.ihtsdotools.org/#/login?serviceReferer=${window.location.href}`;
       window.location.href = redirectUrl;
-    }
+    } else if (error.status === 504) {
+      this.snackBar.open(`Error: Can't contact simplex server`, 'Dismiss', {
+        duration: 5000
+      });
+    } 
     // Return an observable with a user-facing error message
     console.error(error)
     return throwError('Something went wrong; please try again later.');
