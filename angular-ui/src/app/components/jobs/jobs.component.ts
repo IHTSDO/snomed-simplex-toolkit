@@ -109,12 +109,16 @@ export class JobsComponent implements OnChanges, OnInit {
     // TODO: validate params
     if (this.selectedFile && this.edition && componentType && fileType) {
         try {
-            if (componentType === 'translation' && fileType === 'weblateTranslation') {
+            if (componentType === 'translation' && fileType === 'weblateTranslation' && this.selectedLanguageCode) {
               const response = await lastValueFrom(
                   this.simplexService.uploadWeblateTranslation(this.edition, refsetId, this.selectedFile, this.selectedLanguageCode)
               );
               this.selectedFile = null;
               this.loadJobs(false);
+            } else if (componentType === 'translation' && fileType === 'weblateTranslation' && !this.selectedLanguageCode) {
+              this.snackBar.open('Error: Language code not specified', 'Dismiss', {
+                duration: 5000
+              });
             } else if (componentType === 'translation' && fileType === 'refsetToolTranslation') {
               const response = await lastValueFrom(
                   this.simplexService.uploadRefsetToolTranslation(this.edition, refsetId, this.selectedFile)
