@@ -3,7 +3,7 @@ package com.snomed.simplextoolkit.service;
 import com.snomed.simplextoolkit.client.domain.RefsetMember;
 import com.snomed.simplextoolkit.domain.HeaderConfiguration;
 import com.snomed.simplextoolkit.domain.SheetHeader;
-import com.snomed.simplextoolkit.domain.SheetRefsetMember;
+import com.snomed.simplextoolkit.domain.RefsetMemberIntent;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -84,12 +84,12 @@ public class SpreadsheetService {
 		return workbook;
 	}
 
-	public List<SheetRefsetMember> readRefsetSpreadsheet(InputStream spreadsheetStream,
+	public List<RefsetMemberIntent> readRefsetSpreadsheet(InputStream spreadsheetStream,
 			List<SheetHeader> expectedHeader, RefsetUpdateService.SheetRowToRefsetExtractor memberExtractor) throws ServiceException {
 
 		int rowNumber = 0;
 		try {
-			List<SheetRefsetMember> members = new ArrayList<>();
+			List<RefsetMemberIntent> members = new ArrayList<>();
 			Workbook workbook = new XSSFWorkbook(spreadsheetStream);
 			Sheet sheet = workbook.getSheetAt(0);
 			HeaderConfiguration headerConfiguration = null;
@@ -98,7 +98,7 @@ public class SpreadsheetService {
 				if (headerConfiguration == null) {
 					headerConfiguration = getHeaderConfiguration(cells, expectedHeader);
 				} else {
-					SheetRefsetMember member = memberExtractor.extract(cells, rowNumber, headerConfiguration);
+					RefsetMemberIntent member = memberExtractor.extract(cells, rowNumber, headerConfiguration);
 					if (member != null) {
 						members.add(member);
 					}

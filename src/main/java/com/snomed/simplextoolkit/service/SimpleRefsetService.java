@@ -2,7 +2,7 @@ package com.snomed.simplextoolkit.service;
 
 import com.snomed.simplextoolkit.client.domain.RefsetMember;
 import com.snomed.simplextoolkit.domain.SheetHeader;
-import com.snomed.simplextoolkit.domain.SheetRefsetMember;
+import com.snomed.simplextoolkit.domain.RefsetMemberIntent;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -35,14 +35,14 @@ public class SimpleRefsetService extends RefsetUpdateService {
 			Integer conceptCodeColumn = headerConfiguration.getColumn(CONCEPT_CODE);
 			String cellValue = SpreadsheetService.readSnomedConcept(cells, conceptCodeColumn, rowNumber);
 			if (cellValue != null) {
-				return new SheetRefsetMember(cellValue);
+				return new RefsetMemberIntent(cellValue);
 			}
 			return null;
 		};
 	}
 
 	@Override
-	protected RefsetMember convertToMember(SheetRefsetMember inputMember, String refsetId, String moduleId) {
+	protected RefsetMember convertToMember(RefsetMemberIntent inputMember, String refsetId, String moduleId) {
 		return new RefsetMember(refsetId, moduleId, inputMember.getReferenceComponentId());
 	}
 

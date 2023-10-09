@@ -3,10 +3,13 @@ package com.snomed.simplextoolkit.service;
 import com.snomed.simplextoolkit.domain.AsyncJob;
 import com.snomed.simplextoolkit.domain.JobStatus;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import org.apache.catalina.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 
@@ -44,7 +47,9 @@ public class JobService {
 
 		asyncJob.setTempFile(tempFile);
 		asyncJob.setStatus(JobStatus.QUEUED);
+		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
 		executorService.submit(() -> {
+			SecurityContextHolder.setContext(userSecurityContext);
 			try {
 				asyncJob.setStatus(JobStatus.IN_PROGRESS);
 				ChangeSummary changeSummary = function.run(asyncJob);

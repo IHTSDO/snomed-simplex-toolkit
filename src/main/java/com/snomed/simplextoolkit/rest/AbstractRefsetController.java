@@ -21,7 +21,7 @@ import java.util.List;
 public abstract class AbstractRefsetController {
 
 	@Autowired
-	private SnowstormClientFactory clientFactory;
+	protected SnowstormClientFactory clientFactory;
 
 	protected abstract String getRefsetType();
 
@@ -64,7 +64,7 @@ public abstract class AbstractRefsetController {
 		}
 	}
 
-	private SnowstormClient getSnowstormClient() throws ServiceException {
+	protected SnowstormClient getSnowstormClient() throws ServiceException {
 		return clientFactory.getClient();
 	}
 

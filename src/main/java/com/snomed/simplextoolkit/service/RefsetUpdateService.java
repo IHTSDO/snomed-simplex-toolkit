@@ -5,9 +5,10 @@ import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.client.domain.ConceptMini;
 import com.snomed.simplextoolkit.client.domain.RefsetMember;
+import com.snomed.simplextoolkit.domain.AsyncJob;
 import com.snomed.simplextoolkit.domain.HeaderConfiguration;
 import com.snomed.simplextoolkit.domain.SheetHeader;
-import com.snomed.simplextoolkit.domain.SheetRefsetMember;
+import com.snomed.simplextoolkit.domain.RefsetMemberIntent;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -49,13 +50,20 @@ public abstract class RefsetUpdateService {
 	public ChangeSummary updateRefsetViaSpreadsheet(String refsetId, InputStream inputStream, CodeSystem codeSystem) throws ServiceException {
 		// Check refset exists
 		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId, codeSystem);
-		List<SheetRefsetMember> sheetMembers = spreadsheetService.readRefsetSpreadsheet(inputStream, getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
-		return update(refset, sheetMembers, codeSystem);
+		List<RefsetMemberIntent> sheetMembers = spreadsheetService.readRefsetSpreadsheet(inputStream, getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
+		return update(refset, sheetMembers, codeSystem, new AsyncJob("dummy"));
 	}
 
-	private ChangeSummary update(ConceptMini refset, List<SheetRefsetMember> inputMembers, CodeSystem codeSystem) throws ServiceException {
+	public ChangeSummary updateRefsetViaCustomFile(String refsetId, SubsetUploadProvider uploadProvider, CodeSystem codeSystem, ProgressMonitor progressMonitor) throws ServiceException {
+		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId, codeSystem);
+		List<RefsetMemberIntent> refsetMembers = uploadProvider.readUpload();
+		return update(refset, refsetMembers, codeSystem, progressMonitor);
+	}
+
+	private ChangeSummary update(ConceptMini refset, List<RefsetMemberIntent> inputMembers, CodeSystem codeSystem, ProgressMonitor progressMonitor) throws ServiceException {
 		String refsetId = refset.getConceptId();
 		String refsetTerm = refset.getPtOrFsnOrConceptId();
+		progressMonitor.setRecordsTotal(inputMembers.size());
 		try {
 			SnowstormClient snowstormClient = getSnowstormClient();
 			logger.info("Updating refset {} \"{}\", read {} members from spreadsheet.", refsetId, refsetTerm, inputMembers.size());
@@ -63,9 +71,11 @@ public abstract class RefsetUpdateService {
 			// Read members from Snowstorm
 			List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(refsetId, codeSystem, false);
 			logger.info("Updating refset {} \"{}\", loaded {} members from Snowstorm for comparison.", refsetId, refsetTerm, allStoredMembers.size());
+			// Progress is ~25%
+			progressMonitor.setProgressPercentageInsteadOfNumber(25);
 
 			// Ignore sheet members where concept does not exist
-			Set<String> inputMemberConceptIds = inputMembers.stream().map(SheetRefsetMember::getReferenceComponentId).collect(Collectors.toSet());
+			Set<String> inputMemberConceptIds = inputMembers.stream().map(RefsetMemberIntent::getReferenceComponentId).collect(Collectors.toSet());
 			List<String> conceptsExist = snowstormClient.getConceptIds(inputMemberConceptIds, codeSystem).stream().map(Object::toString).collect(Collectors.toList());
 			List<String> conceptsDoNotExist = new ArrayList<>(inputMemberConceptIds);
 			conceptsDoNotExist.removeAll(conceptsExist);
@@ -86,7 +96,7 @@ public abstract class RefsetUpdateService {
 			List<RefsetMember> membersToUpdate = new ArrayList<>();
 			List<RefsetMember> membersToKeep = new ArrayList<>();
 
-			for (SheetRefsetMember inputMember : inputMembers) {
+			for (RefsetMemberIntent inputMember : inputMembers) {
 
 				RefsetMember wantedRefsetMember = convertToMember(inputMember, refsetId, codeSystem.getDefaultModuleOrThrow());
 
@@ -121,6 +131,8 @@ public abstract class RefsetUpdateService {
 			logger.info("Member changes required: {} create, {} update, {} delete, {} inactivate.",
 					membersToCreate.size(), membersToUpdate.size(), membersToDelete.size(), membersToInactivate.size());
 
+			progressMonitor.setProgressPercentageInsteadOfNumber(50);
+
 			// Assemble create / update / inactivate members
 			List<RefsetMember> membersToUpdateCreate = new ArrayList<>(membersToCreate);
 			membersToUpdateCreate.addAll(membersToUpdate);
@@ -131,12 +143,14 @@ public abstract class RefsetUpdateService {
 				logger.info("Running bulk create/update...");
 				snowstormClient.createUpdateRefsetMembers(membersToUpdateCreate, codeSystem);
 			}
+			progressMonitor.setProgressPercentageInsteadOfNumber(75);
 			if (!membersToDelete.isEmpty()) {
 				logger.info("Running bulk delete...");
 				snowstormClient.deleteRefsetMembers(membersToDelete, codeSystem);
 			}
 
 			int newActiveCount = snowstormClient.countAllActiveRefsetMembers(refsetId, codeSystem);
+			progressMonitor.setProgressPercentageInsteadOfNumber(100);
 
 			logger.info("Processing refset {} \"{}\" complete.", refsetId, refsetTerm);
 			return new ChangeSummary(membersToCreate.size(), membersToUpdate.size(), membersToRemove.size(), newActiveCount);
@@ -158,7 +172,7 @@ public abstract class RefsetUpdateService {
 	 * Convert SheetRefsetMember to RefsetMember
 	 * @return RefsetMember
 	 */
-	protected abstract RefsetMember convertToMember(SheetRefsetMember inputMember, String refsetId, String moduleId);
+	protected abstract RefsetMember convertToMember(RefsetMemberIntent inputMember, String refsetId, String moduleId);
 
 	/**
 	 * Check if the immutable fields of the two refset members match.
@@ -178,6 +192,6 @@ public abstract class RefsetUpdateService {
 
 	@FunctionalInterface
 	public interface SheetRowToRefsetExtractor {
-		SheetRefsetMember extract(Row row, Integer rowNumber, HeaderConfiguration headerConfiguration) throws ServiceException;
+		RefsetMemberIntent extract(Row row, Integer rowNumber, HeaderConfiguration headerConfiguration) throws ServiceException;
 	}
 }

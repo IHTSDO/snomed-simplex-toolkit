@@ -75,6 +75,11 @@ public class AsyncJob implements ProgressMonitor {
 		this.recordsProcessed = recordsProcessed;
 	}
 
+	@Override
+	public void setProgressPercentageInsteadOfNumber(int progressPercentage) {
+		recordsProcessed = Math.round((recordsTotal * progressPercentage) / 100f);
+	}
+
 	public ChangeSummary getChangeSummary() {
 		return changeSummary;
 	}

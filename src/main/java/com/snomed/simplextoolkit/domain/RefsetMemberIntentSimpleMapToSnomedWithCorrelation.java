@@ -1,11 +1,11 @@
 package com.snomed.simplextoolkit.domain;
 
-public class SheetRefsetMemberSimpleMapToSnomedWithCorrelation extends SheetRefsetMember {
+public class RefsetMemberIntentSimpleMapToSnomedWithCorrelation extends RefsetMemberIntent {
 
 	private final String sourceCode;
 	private final MapCorrelation correlation;
 
-	public SheetRefsetMemberSimpleMapToSnomedWithCorrelation(String sourceCode, String targetSnomedCode, MapCorrelation correlationId) {
+	public RefsetMemberIntentSimpleMapToSnomedWithCorrelation(String sourceCode, String targetSnomedCode, MapCorrelation correlationId) {
 		super(targetSnomedCode);
 		this.sourceCode = sourceCode;
 		this.correlation = correlationId;

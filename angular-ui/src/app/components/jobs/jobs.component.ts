@@ -83,7 +83,7 @@ export class JobsComponent implements OnChanges, OnInit {
         clearInterval(this.intervalId);
         this.intervalId = setInterval(() => {
           this.loadJobs(false);
-        }, 15000);
+        }, 10000);
       }
     });
   }
@@ -128,6 +128,12 @@ export class JobsComponent implements OnChanges, OnInit {
             } else if (componentType === 'subset' && fileType === 'refsetSpreadsheet') {
               const response = await lastValueFrom(
                   this.simplexService.uploadSpreadsheetRefset(this.edition, refsetId, this.selectedFile)
+              );
+              this.selectedFile = null;
+              this.loadJobs(false);
+            } else if (componentType === 'subset' && fileType === 'refsetToolSubset') {
+              const response = await lastValueFrom(
+                  this.simplexService.uploadRefsetToolSubset(this.edition, refsetId, this.selectedFile)
               );
               this.selectedFile = null;
               this.loadJobs(false);

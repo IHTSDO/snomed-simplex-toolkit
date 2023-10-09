@@ -3,8 +3,8 @@ package com.snomed.simplextoolkit.service;
 import com.snomed.simplextoolkit.client.domain.RefsetMember;
 import com.snomed.simplextoolkit.domain.MapCorrelation;
 import com.snomed.simplextoolkit.domain.SheetHeader;
-import com.snomed.simplextoolkit.domain.SheetRefsetMember;
-import com.snomed.simplextoolkit.domain.SheetRefsetMemberSimpleMapToSnomedWithCorrelation;
+import com.snomed.simplextoolkit.domain.RefsetMemberIntent;
+import com.snomed.simplextoolkit.domain.RefsetMemberIntentSimpleMapToSnomedWithCorrelation;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.springframework.stereotype.Service;
 
@@ -61,7 +61,7 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 //				targetCode = NO_SCT_MAP_TARGET_CONCEPT;
 				return null;
 			}
-			return new SheetRefsetMemberSimpleMapToSnomedWithCorrelation(sourceCode, targetCode, correlation);
+			return new RefsetMemberIntentSimpleMapToSnomedWithCorrelation(sourceCode, targetCode, correlation);
 		};
 	}
 
@@ -81,8 +81,8 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	}
 
 	@Override
-	protected RefsetMember convertToMember(SheetRefsetMember inputMember, String refsetId, String moduleId) {
-		SheetRefsetMemberSimpleMapToSnomedWithCorrelation mapInputMember = (SheetRefsetMemberSimpleMapToSnomedWithCorrelation) inputMember;
+	protected RefsetMember convertToMember(RefsetMemberIntent inputMember, String refsetId, String moduleId) {
+		RefsetMemberIntentSimpleMapToSnomedWithCorrelation mapInputMember = (RefsetMemberIntentSimpleMapToSnomedWithCorrelation) inputMember;
 		return new RefsetMember(refsetId, moduleId, inputMember.getReferenceComponentId())
 				.setAdditionalField(MAP_SOURCE, mapInputMember.getSourceCode())
 				.setAdditionalField(CORRELATION_ID, mapInputMember.getCorrelationIdOrNull());

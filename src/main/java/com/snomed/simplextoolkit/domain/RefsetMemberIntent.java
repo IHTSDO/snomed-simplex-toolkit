@@ -1,10 +1,10 @@
 package com.snomed.simplextoolkit.domain;
 
-public class SheetRefsetMember {
+public class RefsetMemberIntent {
 
 	private final String referenceComponentId;
 
-	public SheetRefsetMember(String referenceComponentId) {
+	public RefsetMemberIntent(String referenceComponentId) {
 		this.referenceComponentId = referenceComponentId;
 	}
 
