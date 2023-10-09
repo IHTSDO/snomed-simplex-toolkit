@@ -1,6 +1,6 @@
 import { Component, Input, OnChanges, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { SimplexService } from '../services/simplex/simplex.service';
+import { SimplexService } from '../../services/simplex/simplex.service';
 import { Subscription, catchError, lastValueFrom } from 'rxjs';
 
 @Component({
@@ -50,6 +50,7 @@ export class JobsComponent implements OnChanges, OnInit {
   loadJobs(clear: boolean) {
     if (clear) { 
       this.jobs = [];
+      this.selectedFile = null;
       this.loading = true;
     } 
     this.subscription = this.simplexService.getJobs(this.edition, this.refsetId)

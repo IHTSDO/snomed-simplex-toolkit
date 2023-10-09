@@ -5,15 +5,21 @@
             <mat-list id="components-list">
                 <mat-list-item *ngFor="let item of subsets" (click)="onClick(item, 'subset')" class="hoverable-item" matRipple
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                    {{ item.pt.term }} <span class="pill pill-green">Subset</span>
+                    {{ item.pt.term }}
+                    <span class="pill pill-green">Subset</span>
+                    <span class="artifact-info">{{item.activeMemberCount}} records</span>
                 </mat-list-item>
                 <mat-list-item *ngFor="let item of maps" (click)="onClick(item, 'map')" class="hoverable-item" matRipple
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                    {{ item.pt.term }} <span class="pill pill-yellow">Map</span>
+                    {{ item.pt.term }} 
+                    <span class="pill pill-yellow">Map</span>
+                    <span class="artifact-info">{{item.activeMemberCount}} records</span>
                 </mat-list-item>
                 <mat-list-item *ngFor="let item of translations" (click)="onClick(item, 'translation')" class="hoverable-item" matRipple
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                    {{ item.pt.term }} <span class="pill pill-blue">Translation</span>
+                    {{ item.pt.term }} 
+                    <span class="pill pill-blue">Translation</span>
+                    <span class="artifact-info">{{item.activeMemberCount}} records</span>
                 </mat-list-item>
                 <mat-list-item *ngIf="loadingTranslations || loadingSubsets || loadingMaps"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item>
             </mat-list>

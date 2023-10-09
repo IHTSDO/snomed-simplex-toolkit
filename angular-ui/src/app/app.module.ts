@@ -55,7 +55,7 @@ import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
 import { ArtifactsComponent } from './components/artifacts/artifacts.component';
 import {MatSelectModule} from '@angular/material/select';
-import { JobsComponent } from './jobs/jobs.component';
+import { JobsComponent } from './components/jobs/jobs.component';
 import { TimeAgoPipe } from './pipes/timeAgo/time-ago.pipe';
 
 // SERVICE IMPORTS
