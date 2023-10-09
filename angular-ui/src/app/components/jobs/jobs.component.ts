@@ -106,7 +106,6 @@ export class JobsComponent implements OnChanges, OnInit {
   }
   
   async uploadFile(refsetId: string, componentType: string, fileType: string): Promise<void> {
-    // TODO: validate params
     if (this.selectedFile && this.edition && componentType && fileType) {
         try {
             if (componentType === 'translation' && fileType === 'weblateTranslation' && this.selectedLanguageCode) {
@@ -115,47 +114,52 @@ export class JobsComponent implements OnChanges, OnInit {
               );
               this.selectedFile = null;
               this.loadJobs(false);
+              this.alert('File import job created');
             } else if (componentType === 'translation' && fileType === 'weblateTranslation' && !this.selectedLanguageCode) {
-              this.snackBar.open('Error: Language code not specified', 'Dismiss', {
-                duration: 5000
-              });
+              this.alert('Error: Language code not specified');
             } else if (componentType === 'translation' && fileType === 'refsetToolTranslation') {
               const response = await lastValueFrom(
                   this.simplexService.uploadRefsetToolTranslation(this.edition, refsetId, this.selectedFile)
               );
               this.selectedFile = null;
               this.loadJobs(false);
+              this.alert('File import job created');
             } else if (componentType === 'subset' && fileType === 'refsetSpreadsheet') {
               const response = await lastValueFrom(
                   this.simplexService.uploadSpreadsheetRefset(this.edition, refsetId, this.selectedFile)
               );
               this.selectedFile = null;
               this.loadJobs(false);
+              this.alert('File import job created');
             } else if (componentType === 'subset' && fileType === 'refsetToolSubset') {
               const response = await lastValueFrom(
                   this.simplexService.uploadRefsetToolSubset(this.edition, refsetId, this.selectedFile)
               );
               this.selectedFile = null;
               this.loadJobs(false);
+              this.alert('File import job created');
             } else if (componentType === 'map' && fileType === 'mapSpreadsheet') {
               const response = await lastValueFrom(
                   this.simplexService.uploadSpreadsheetMap(this.edition, refsetId, this.selectedFile)
               );
               this.selectedFile = null;
               this.loadJobs(false);
+              this.alert('File import job created');
             } else {
               console.error('File upload failed: Invalid componentType or fileType');
-              this.snackBar.open('File upload failed: Invalid componentType or fileType', 'Dismiss', {
-                duration: 5000
-              });
+              this.alert('File upload failed: Invalid componentType or fileType');
             }
         } catch (error) {
             console.error('File upload failed:', error);
-            this.snackBar.open('File upload failed:' + error.message, 'Dismiss', {
-              duration: 5000
-            });
+            this.alert('File upload failed:' + error.message);
         }
     }
+  }
+
+  private alert(message: string) {
+    this.snackBar.open(message, 'Dismiss', {
+      duration: 5000
+    });
   }
 
   filteredFileTypes() {
