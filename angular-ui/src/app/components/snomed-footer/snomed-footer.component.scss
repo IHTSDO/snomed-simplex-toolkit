@@ -2,6 +2,7 @@
 
 footer.footer {
     position: fixed;
+    z-index: 900;
     bottom: 0;
     width: 100%;
     height: 4rem; /* Set the fixed height of the footer here */

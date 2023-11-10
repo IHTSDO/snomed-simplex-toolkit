@@ -11,7 +11,7 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 export class SelectEditionComponent {
 
   editions = [];
-  editionFields = ["name", "shortName", "defaultModule", "defaultModuleDisplay", "dependantVersionEffectiveTime", "branchPath", "workingBranchPath", "simplexWorkingBranch", "namespace"];
+  editionFields = ["name", "namespace", "defaultModule", "defaultModuleDisplay", "dependantVersionEffectiveTime"];
   selectedEdition: any;
   newEditionMode= false;
   loading = false;
