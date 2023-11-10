@@ -15,6 +15,7 @@ public class CodeSystem {
 	private String branchPath;
 	private String simplexWorkingBranch;
 	private Integer dependantVersionEffectiveTime;
+	private String namespace;
 	private String defaultModule;
 	private String defaultModuleDisplay;
 	private Map<String, String> languages;
@@ -82,6 +83,14 @@ public class CodeSystem {
 			throw new ServiceException("No default module set for this code system.");
 		}
 		return defaultModule;
+	}
+
+	public String getNamespace() {
+		return namespace;
+	}
+
+	public void setNamespace(String namespace) {
+		this.namespace = namespace;
 	}
 
 	public String getDefaultModule() {

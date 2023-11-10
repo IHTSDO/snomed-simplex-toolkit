@@ -129,8 +129,14 @@ public class SnowstormClient {
 		if (branch == null) {
 			throw new ServiceException(format("Branch not found %s", branchPath));
 		}
-		codeSystem.setDefaultModule(branch.getDefaultModule());
+		String defaultModule = branch.getDefaultModule();
+		codeSystem.setDefaultModule(defaultModule);
+		if (defaultModule != null) {
+			String pt = getPT(codeSystem, defaultModule).orElse(null);
+			codeSystem.setDefaultModuleDisplay(pt);
+		}
 		codeSystem.setSimplexWorkingBranch(workingBranches.get(codeSystem.getShortName()));
+		codeSystem.setNamespace(branch.getMetadataValue(Branch.DEFAULT_NAMESPACE_METADATA_KEY));
 	}
 
 	public void setCodeSystemWorkingBranch(CodeSystem codeSystem, String workingBranch) {
