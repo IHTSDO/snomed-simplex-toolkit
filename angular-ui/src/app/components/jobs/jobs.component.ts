@@ -22,8 +22,8 @@ export class JobsComponent implements OnChanges, OnInit {
   fileTypes = [
     {value: 'refsetSpreadsheet', viewValue: 'Spreadsheet Subset', artifactTypes: ['subset']},
     {value: 'refsetToolSubset', viewValue: 'Refset Tool Subset', artifactTypes: ['subset']},
-    {value: 'mapSpreadsheet', viewValue: 'Spreadsheet Map', artifactTypes: ['map']},
-    {value: 'snap2snomedMap', viewValue: 'SNAP2SNOMED Map', artifactTypes: ['map']},
+    // {value: 'mapSpreadsheet', viewValue: 'Spreadsheet Map', artifactTypes: ['map']},
+    {value: 'mapSpreadsheet', viewValue: 'Snap2SNOMED Map', artifactTypes: ['map']},
     {value: 'refsetToolTranslation', viewValue: 'Refset Tool Translation', artifactTypes: ['translation']},
     {value: 'weblateTranslation', viewValue: 'Weblate Translation', artifactTypes: ['translation']}
   ];

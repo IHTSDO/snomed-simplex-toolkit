@@ -96,7 +96,7 @@ export class SimplexService {
   public uploadSpreadsheetMap(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `/api/${edition}/refset/simple-map-to-snomed-with-correlation/${refsetId}/spreadsheet`;
+    const apiUrl = `/api/${edition}/refsets/simple-map-to-snomed-with-correlation/${refsetId}/spreadsheet`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
