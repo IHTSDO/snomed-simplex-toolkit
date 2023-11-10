@@ -3,6 +3,7 @@ package com.snomed.simplextoolkit.service;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
+import com.snomed.simplextoolkit.client.domain.Concept;
 import com.snomed.simplextoolkit.client.domain.ConceptMini;
 import com.snomed.simplextoolkit.client.domain.RefsetMember;
 import com.snomed.simplextoolkit.domain.AsyncJob;
@@ -157,6 +158,15 @@ public abstract class RefsetUpdateService {
 		} catch (ServiceException e) {
 			throw new ServiceException(String.format("Processing refset %s \"%s\" failed.", refsetId, refsetTerm), e);
 		}
+	}
+
+	public void deleteRefsetMembersAndConcept(String refsetId, CodeSystem codeSystem) throws ServiceException {
+		// Read members from Snowstorm
+		SnowstormClient snowstormClient = getSnowstormClient();
+		logger.info("Deleting refset {}", refsetId);
+		List<RefsetMember> allStoredMembers = snowstormClient.loadAllRefsetMembers(refsetId, codeSystem, false);
+		snowstormClient.deleteRefsetMembers(allStoredMembers, codeSystem);
+		snowstormClient.deleteConcept(refsetId, codeSystem);
 	}
 
 	protected abstract Map<String, Function<RefsetMember, String>> getRefsetToSpreadsheetConversionMap();

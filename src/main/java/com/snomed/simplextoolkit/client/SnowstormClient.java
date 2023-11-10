@@ -79,7 +79,7 @@ public class SnowstormClient {
 			List<CodeSystem> items = new ArrayList<>();
 			for (CodeSystem codeSystem : response.getBody().getItems()) {
 				if (!codeSystem.isPostcoordinated()) {
-//					addCodeSystemBranchInfo(codeSystem);TODO: performance issue
+					addCodeSystemBranchInfo(codeSystem);
 					items.add(codeSystem);
 				}
 			}
@@ -346,8 +346,8 @@ public class SnowstormClient {
 				.addRelationship(Relationship.inferred(Concepts.IS_A, parentConceptId, 0));
 	}
 
-	public void deleteConcept(Concept concept, CodeSystem codeSystem) {
-		restTemplate.delete(format("/%s/concepts/%s", codeSystem.getWorkingBranchPath(), concept.getConceptId()));
+	public void deleteConcept(String conceptId, CodeSystem codeSystem) {
+		restTemplate.delete(format("/%s/concepts/%s", codeSystem.getWorkingBranchPath(), conceptId));
 	}
 
 	public Concept updateConcept(Concept concept, CodeSystem codeSystem) throws ClientException {

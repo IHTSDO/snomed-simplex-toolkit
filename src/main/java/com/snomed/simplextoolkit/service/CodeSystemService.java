@@ -6,8 +6,6 @@ import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.client.domain.Concept;
 import com.snomed.simplextoolkit.client.domain.Concepts;
 import com.snomed.simplextoolkit.client.domain.RefsetMember;
-import com.snomed.simplextoolkit.domain.Page;
-import com.snomed.simplextoolkit.exceptions.ClientException;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,7 +39,7 @@ public class CodeSystemService {
 			Concept tempModuleConcept = snowstormClient.createSimpleMetadataConcept(Concepts.MODULE, moduleName, tag, newCodeSystem);
 			moduleId = tempModuleConcept.getConceptId();
 			// Delete concept
-			snowstormClient.deleteConcept(tempModuleConcept, newCodeSystem);
+			snowstormClient.deleteConcept(tempModuleConcept.getConceptId(), newCodeSystem);
 
 			// Set default module on branch
 			setDefaultModule(moduleId, newCodeSystem, snowstormClient);

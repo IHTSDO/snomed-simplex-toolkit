@@ -10,6 +10,7 @@ import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateConceptRequest;
 import com.snomed.simplextoolkit.service.ChangeSummary;
 import com.snomed.simplextoolkit.service.RefsetUpdateService;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -62,6 +63,15 @@ public abstract class AbstractRefsetController {
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Failed to open uploaded file.");
 		}
+	}
+
+	@DeleteMapping("{refsetId}")
+	@ApiOperation("Delete refset and all members.")
+	public void deleteRefset(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
+		SnowstormClient snowstormClient = getSnowstormClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+		getRefsetService().deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
 	}
 
 	protected SnowstormClient getSnowstormClient() throws ServiceException {
