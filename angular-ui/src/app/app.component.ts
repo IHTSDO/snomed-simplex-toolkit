@@ -5,7 +5,6 @@ import { AuthoringService } from './services/authoring/authoring.service';
 import { BranchingService } from './services/branching/branching.service';
 import { EnvService } from './services/environment/env.service';
 import { ToastrService } from 'ngx-toastr';
-import {SnowstormService} from "./services/snowstorm/snowstorm.service";
 import {ModalService} from "./services/modal/modal.service";
 import {Subscription} from "rxjs";
 import {NewCodesystem} from "./models/codesystem";
@@ -33,7 +32,6 @@ export class AppComponent implements OnInit {
                 private envService: EnvService,
                 private toastr: ToastrService,
                 private titleService: Title,
-                private snowstormService: SnowstormService,
                 private modalService: ModalService) {
     }
 

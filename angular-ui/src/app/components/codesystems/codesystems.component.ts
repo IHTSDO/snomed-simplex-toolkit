@@ -1,6 +1,5 @@
 import {Component, OnInit} from '@angular/core';
 import {Subscription} from "rxjs";
-import {SnowstormService} from "../../services/snowstorm/snowstorm.service";
 import {KeyValue} from "@angular/common";
 
 @Component({
@@ -12,10 +11,6 @@ export class CodesystemsComponent implements OnInit {
 
     activeCodesystem: any;
     activeCodesystemSubscription: Subscription;
-
-    constructor(private snowstormService: SnowstormService) {
-        this.activeCodesystemSubscription = this.snowstormService.getActiveCodesystem().subscribe(data => this.activeCodesystem = data);
-    }
 
     ngOnInit(): void {
     }

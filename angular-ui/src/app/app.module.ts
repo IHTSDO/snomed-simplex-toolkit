@@ -21,7 +21,6 @@ import {ProjectPipe} from './pipes/project/project.pipe';
 import {AppRoutingModule} from './app-routing.module';
 import {ModalService} from './services/modal/modal.service';
 import {ModalComponent} from './components/modal/modal.component';
-import {LeftSidebarComponent} from './components/left-sidebar/left-sidebar.component';
 import {TextFilterPipe} from './pipes/text-filter/text-filter.pipe';
 import {ConceptService} from './services/concept/concept.service';
 import { MainViewComponent } from './components/main-view/main-view.component';
@@ -29,7 +28,6 @@ import { CodesystemsComponent } from './components/codesystems/codesystems.compo
 import { BootConfigComponent } from './components/boot-config/boot-config.component';
 import { SyndicationComponent } from './components/syndication/syndication.component';
 import { RbacComponent } from './components/rbac/rbac.component';
-import {SnowstormService} from "./services/snowstorm/snowstorm.service";
 import { StringComponent } from './components/codesystems/types/string/string.component';
 import { NumberComponent } from './components/codesystems/types/number/number.component';
 import { BooleanComponent } from './components/codesystems/types/boolean/boolean.component';
@@ -70,7 +68,6 @@ import { TimeAgoPipe } from './pipes/timeAgo/time-ago.pipe';
         BranchPipe,
         ProjectPipe,
         ModalComponent,
-        LeftSidebarComponent,
         TextFilterPipe,
         MainViewComponent,
         CodesystemsComponent,
@@ -121,7 +118,6 @@ import { TimeAgoPipe } from './pipes/timeAgo/time-ago.pipe';
         ModalService,
         PathingService,
         ConceptService,
-        SnowstormService,
         EnvServiceProvider,
         // {
         //     provide: HTTP_INTERCEPTORS,
