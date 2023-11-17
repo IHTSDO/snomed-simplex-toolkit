@@ -5,12 +5,12 @@ import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.client.domain.ConceptMini;
 import com.snomed.simplextoolkit.client.domain.Concepts;
-import com.snomed.simplextoolkit.domain.AsyncJob;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateConceptRequest;
 import com.snomed.simplextoolkit.rest.pojos.LanguageCode;
 import com.snomed.simplextoolkit.service.JobService;
 import com.snomed.simplextoolkit.service.TranslationService;
+import com.snomed.simplextoolkit.service.job.AsyncJob;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
@@ -25,8 +25,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.List;
-
-import static java.lang.String.format;
 
 @RestController
 @Api(tags = "Translation", description = "-")
@@ -75,7 +73,7 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
-		return jobService.runJob("Translation upload", file.getInputStream(), refsetId,
+		return jobService.queueRefsetContentJob(codeSystem, "Translation upload", file.getInputStream(), refsetId,
 				asyncJob -> translationService.uploadTranslationAsWeblateCSV(refsetId, languageCode, theCodeSystem, asyncJob.getInputStream(),
 				translationTermsUseTitleCase, snowstormClient, asyncJob));
 	}
@@ -88,7 +86,7 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
-		return jobService.runJob("Translation upload", file.getInputStream(), refsetId,
+		return jobService.queueRefsetContentJob(codeSystem, "Translation upload", file.getInputStream(), refsetId,
 				asyncJob -> translationService.uploadTranslationAsRefsetToolArchive(refsetId, theCodeSystem, asyncJob.getInputStream(), snowstormClient, asyncJob));
 	}
 

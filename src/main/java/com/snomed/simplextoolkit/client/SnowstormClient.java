@@ -3,7 +3,7 @@ package com.snomed.simplextoolkit.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snomed.simplextoolkit.client.domain.*;
 import com.snomed.simplextoolkit.domain.Page;
-import com.snomed.simplextoolkit.exceptions.ClientException;
+import com.snomed.simplextoolkit.exceptions.HTTPClientException;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.service.StreamUtils;
 import com.snomed.simplextoolkit.util.CollectionUtils;
@@ -17,13 +17,13 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.OutputStream;
 import java.net.URI;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.snomed.simplextoolkit.client.domain.Description.Acceptability.PREFERRED;
@@ -137,6 +137,7 @@ public class SnowstormClient {
 		}
 		codeSystem.setSimplexWorkingBranch(workingBranches.get(codeSystem.getShortName()));
 		codeSystem.setNamespace(branch.getMetadataValue(Branch.DEFAULT_NAMESPACE_METADATA_KEY));
+		codeSystem.setClassified("true".equals(branch.getMetadataValue(Branch.CLASSIFIED_METADATA_KEY)));
 	}
 
 	public void setCodeSystemWorkingBranch(CodeSystem codeSystem, String workingBranch) {
@@ -161,7 +162,7 @@ public class SnowstormClient {
 		return true;
 	}
 
-	public CodeSystem createCodeSystem(String name, String shortName, String namespace) throws ClientException {
+	public CodeSystem createCodeSystem(String name, String shortName, String namespace) throws HTTPClientException {
 		String branchPath = "MAIN/" + shortName;
 		try {
 			restTemplate.exchange("/codesystems", HttpMethod.POST, new HttpEntity<>(new CodeSystem(name, shortName, branchPath).setDailyBuildAvailable(true)), CodeSystem.class);
@@ -245,7 +246,7 @@ public class SnowstormClient {
 		}
 	}
 
-	public Page<RefsetMember> getRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly, int offset, int limit) throws ClientException {
+	public Page<RefsetMember> getRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly, int offset, int limit) throws HTTPClientException {
 		try {
 			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&offset=%s&limit=%s%s",
 							codeSystem.getWorkingBranchPath(), refsetId, offset, limit, activeOnly ? "&active=true" : ""),
@@ -323,12 +324,12 @@ public class SnowstormClient {
 		}
 	}
 
-	public Concept createSimpleMetadataConcept(String parentConceptId, String preferredTerm, String tag, CodeSystem codeSystem) throws ClientException {
+	public Concept createSimpleMetadataConcept(String parentConceptId, String preferredTerm, String tag, CodeSystem codeSystem) throws HTTPClientException {
 		Concept concept = newSimpleMetadataConceptWithoutSave(parentConceptId, preferredTerm, tag);
 		return createConcept(concept, codeSystem);
 	}
 
-	public Concept createConcept(Concept concept, CodeSystem codeSystem) throws ClientException {
+	public Concept createConcept(Concept concept, CodeSystem codeSystem) throws HTTPClientException {
 		try {
 			ResponseEntity<Concept> response = restTemplate.exchange(format("/browser/%s/concepts", codeSystem.getWorkingBranchPath()), HttpMethod.POST, new HttpEntity<>(concept), Concept.class);
 			return response.getBody();
@@ -350,7 +351,7 @@ public class SnowstormClient {
 		restTemplate.delete(format("/%s/concepts/%s", codeSystem.getWorkingBranchPath(), conceptId));
 	}
 
-	public Concept updateConcept(Concept concept, CodeSystem codeSystem) throws ClientException {
+	public Concept updateConcept(Concept concept, CodeSystem codeSystem) throws HTTPClientException {
 		try {
 			ResponseEntity<Concept> response = restTemplate.exchange(format("/browser/%s/concepts/%s", codeSystem.getWorkingBranchPath(), concept.getConceptId()),
 					HttpMethod.PUT, new HttpEntity<>(concept), Concept.class);
@@ -383,8 +384,8 @@ public class SnowstormClient {
 		}
 	}
 
-	private ClientException getServiceException(HttpStatusCodeException e, String action) {
-		return new ClientException(format("Failed to %s", action), e);
+	private HTTPClientException getServiceException(HttpStatusCodeException e, String action) {
+		return new HTTPClientException(format("Failed to %s", action), e);
 	}
 
 	public void exportRF2(OutputStream outputStream, String snowstormExportType, CodeSystem codeSystem) throws ServiceException {
@@ -432,6 +433,38 @@ public class SnowstormClient {
 		}
 
 		waitForAsyncJob(location, "COMPLETED", "FAILED");
+	}
+
+	public String createClassification(String branch) throws ServiceException {
+		try {
+			URI location = restTemplate.postForLocation(format("/%s/classifications", branch), null);
+			if (location != null) {
+				String url = location.toString();
+				return url.substring(url.lastIndexOf("/") + 1);
+			} else {
+				throw new ServiceException("Failed to create classification. API response location header is missing.");
+			}
+		} catch (RestClientException e) {
+			throw new ServiceException("Failed to create classification. Rest client error.", e);
+		}
+	}
+
+	public SnowstormClassificationJob getClassificationJob(String branch, String classificationId) throws ServiceException {
+		try {
+			return restTemplate.getForEntity(format("/%s/classifications/%s", branch, classificationId), SnowstormClassificationJob.class).getBody();
+		} catch (RestClientException e) {
+			throw new ServiceException("Failed to fetch classification status.");
+		}
+	}
+
+	public void startClassificationSave(String branch, String classificationId) throws ServiceException {
+		try {
+			Map<String, String> statusChangeRequest = new HashMap<>();
+			statusChangeRequest.put("status", "SAVED");
+			restTemplate.exchange(format("/%s/classifications/%s", branch, classificationId), HttpMethod.POST, new HttpEntity<>(statusChangeRequest), Void.class);
+		} catch (RestClientException e) {
+			throw new ServiceException("Failed to start classification save.");
+		}
 	}
 
 	private void waitForAsyncJob(URI location, String completed, String failed) throws ServiceException {

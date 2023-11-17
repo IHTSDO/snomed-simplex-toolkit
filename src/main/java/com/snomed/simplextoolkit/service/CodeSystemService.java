@@ -2,17 +2,19 @@ package com.snomed.simplextoolkit.service;
 
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
-import com.snomed.simplextoolkit.client.domain.CodeSystem;
-import com.snomed.simplextoolkit.client.domain.Concept;
-import com.snomed.simplextoolkit.client.domain.Concepts;
-import com.snomed.simplextoolkit.client.domain.RefsetMember;
+import com.snomed.simplextoolkit.client.domain.*;
+import com.snomed.simplextoolkit.domain.JobStatus;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import com.snomed.simplextoolkit.service.job.ExternalServiceJob;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.String.format;
 
@@ -25,6 +27,16 @@ public class CodeSystemService {
 
 	@Autowired
 	private SnowstormClientFactory snowstormClientFactory;
+
+	@Autowired
+	private JobService jobService;
+
+	@Autowired
+	private SupportRegister supportRegister;
+
+	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
+
+	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public CodeSystem createCodeSystem(String name, String shortName, String namespace, boolean createModule, String moduleName, String existingModuleId) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
@@ -93,5 +105,66 @@ public class CodeSystemService {
 		// Delete all branches
 		// Requires ADMIN permissions on branches
 		snowstormClient.deleteBranchAndChildren(codeSystem.getBranchPath());
+	}
+
+	public void classify(ExternalServiceJob asyncJob) {
+		try {
+			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+			String branch = asyncJob.getBranch();
+			String classificationId = snowstormClient.createClassification(branch);
+			logger.info("Started classification. Branch:{}, classificationId:{}, jobId:{}", branch, classificationId, asyncJob.getId());
+			classificationJobsToMonitor.put(classificationId, asyncJob);
+		} catch (ServiceException e) {
+			supportRegister.handleSystemIssue(asyncJob, "Failed to create classification.", e);
+		}
+	}
+
+	@Scheduled(initialDelay = 15, fixedDelay = 5, timeUnit = TimeUnit.SECONDS)
+	public void monitorClassificationJobs() {
+		Set<String> completedClassifications = new HashSet<>();
+		for (Map.Entry<String, ExternalServiceJob> entry : classificationJobsToMonitor.entrySet()) {
+			String classificationId = entry.getKey();
+			ExternalServiceJob job = entry.getValue();
+			String branch = job.getBranch();
+			SecurityContextHolder.setContext(job.getSecurityContext());
+			boolean classificationComplete = false;
+			try {
+				// Get client using the security context of the user who created the job
+				SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+				SnowstormClassificationJob classificationJob = snowstormClient.getClassificationJob(branch, classificationId);
+				SnowstormClassificationJob.Status status = classificationJob.getStatus();
+				if (status == SnowstormClassificationJob.Status.COMPLETED) {
+					if (!classificationJob.isEquivalentConceptsFound()) {
+						// Start classification save (async process)
+						snowstormClient.startClassificationSave(branch, classificationId);
+					} else {
+						supportRegister.handleContentIssue(job, "Logically equivalent concepts have been found.");
+						classificationComplete = true;
+					}
+				} else if (status == SnowstormClassificationJob.Status.SAVED) {
+					job.setStatus(JobStatus.COMPLETED);
+					classificationComplete = true;
+				} else if (status == SnowstormClassificationJob.Status.FAILED) {
+					supportRegister.handleSystemIssue(job, "Classification failed to run in Terminology Server.");
+					classificationComplete = true;
+				} else if (status == SnowstormClassificationJob.Status.SAVE_FAILED) {
+					supportRegister.handleSystemIssue(job, "Classification failed to save in Terminology Server.");
+					classificationComplete = true;
+				} else if (status == SnowstormClassificationJob.Status.STALE) {
+					job.setStatus(JobStatus.ERROR);
+					job.setErrorMessage("Classification became stale because of new content changes. Please try again.");
+					classificationComplete = true;
+				}
+			} catch (ServiceException e) {
+				supportRegister.handleSystemIssue(job, "Terminology Server API issue.", e);
+				classificationComplete = true;
+			}
+			if (classificationComplete) {
+				completedClassifications.add(classificationId);
+			}
+		}
+		for (String completedClassification : completedClassifications) {
+			classificationJobsToMonitor.remove(completedClassification);
+		}
 	}
 }

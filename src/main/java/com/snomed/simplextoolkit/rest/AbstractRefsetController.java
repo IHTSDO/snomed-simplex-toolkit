@@ -8,7 +8,7 @@ import com.snomed.simplextoolkit.client.domain.ConceptMini;
 import com.snomed.simplextoolkit.client.domain.Concepts;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateConceptRequest;
-import com.snomed.simplextoolkit.service.ChangeSummary;
+import com.snomed.simplextoolkit.service.job.ChangeSummary;
 import com.snomed.simplextoolkit.service.RefsetUpdateService;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;

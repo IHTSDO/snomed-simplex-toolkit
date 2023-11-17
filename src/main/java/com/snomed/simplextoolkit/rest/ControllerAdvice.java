@@ -1,6 +1,6 @@
 package com.snomed.simplextoolkit.rest;
 
-import com.snomed.simplextoolkit.exceptions.ClientException;
+import com.snomed.simplextoolkit.exceptions.HTTPClientException;
 import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,8 +70,8 @@ public class ControllerAdvice {
 		logger.debug("ClientAbortException.", exception);
 	}
 
-	@ExceptionHandler(ClientException.class)
-	public ResponseEntity<HashMap<String, Object>> handleClientException(ClientException clientException) {
+	@ExceptionHandler(HTTPClientException.class)
+	public ResponseEntity<HashMap<String, Object>> handleClientException(HTTPClientException clientException) {
 		HttpStatusCodeException cause = clientException.getCause();
 		HashMap<String, Object> result = new HashMap<>();
 		result.put("error", cause.getStatusCode());

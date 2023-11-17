@@ -8,6 +8,8 @@ import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateCodeSystemRequest;
 import com.snomed.simplextoolkit.rest.pojos.SetBranchRequest;
 import com.snomed.simplextoolkit.service.CodeSystemService;
+import com.snomed.simplextoolkit.service.JobService;
+import com.snomed.simplextoolkit.service.job.AsyncJob;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,9 @@ public class CodeSystemController {
 	@Autowired
 	private CodeSystemService codeSystemService;
 
+	@Autowired
+	private JobService jobService;
+
 	@GetMapping
 	public Page<CodeSystem> getCodeSystems() throws ServiceException {
 		return new Page<>(clientFactory.getClient().getCodeSystems());
@@ -37,6 +42,17 @@ public class CodeSystemController {
 	public CodeSystem createCodeSystem(@RequestBody CreateCodeSystemRequest request) throws ServiceException {
 		return codeSystemService.createCodeSystem(request.getName(), request.getShortName(), request.getNamespace(), request.isCreateModule(), request.getModuleName(),
 				request.getModuleId());
+	}
+
+	@PostMapping("{codeSystem}/classify")
+	public AsyncJob createClassificationJob(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		if (theCodeSystem.isClassified()) {
+			throw new ServiceException("This codesystem is already classified.");
+		}
+
+		return jobService.startExternalServiceJob(theCodeSystem, "Classify", asyncJob -> codeSystemService.classify(asyncJob));
 	}
 
 	@DeleteMapping("{codeSystem}")

@@ -1,4 +1,4 @@
-package com.snomed.simplextoolkit.service;
+package com.snomed.simplextoolkit.service.job;
 
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 

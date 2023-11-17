@@ -22,6 +22,7 @@ public class CodeSystem {
 	private List<ConceptMini> modules;
 	private boolean postcoordinated;
 	private boolean dailyBuildAvailable;
+	private boolean classified;
 
 	public CodeSystem() {
 	}
@@ -115,6 +116,14 @@ public class CodeSystem {
 
 	public void setLanguages(Map<String, String> languages) {
 		this.languages = languages;
+	}
+
+	public boolean isClassified() {
+		return classified;
+	}
+
+	public void setClassified(boolean classified) {
+		this.classified = classified;
 	}
 
 	@Override

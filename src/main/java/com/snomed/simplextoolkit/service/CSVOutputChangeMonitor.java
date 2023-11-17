@@ -1,6 +1,7 @@
 package com.snomed.simplextoolkit.service;
 
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import com.snomed.simplextoolkit.service.job.ChangeMonitor;
 
 import java.io.*;
 

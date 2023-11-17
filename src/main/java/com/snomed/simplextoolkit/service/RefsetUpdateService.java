@@ -3,14 +3,14 @@ package com.snomed.simplextoolkit.service;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
-import com.snomed.simplextoolkit.client.domain.Concept;
 import com.snomed.simplextoolkit.client.domain.ConceptMini;
 import com.snomed.simplextoolkit.client.domain.RefsetMember;
-import com.snomed.simplextoolkit.domain.AsyncJob;
 import com.snomed.simplextoolkit.domain.HeaderConfiguration;
-import com.snomed.simplextoolkit.domain.SheetHeader;
 import com.snomed.simplextoolkit.domain.RefsetMemberIntent;
+import com.snomed.simplextoolkit.domain.SheetHeader;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import com.snomed.simplextoolkit.service.job.ChangeSummary;
+import com.snomed.simplextoolkit.service.job.RefsetJob;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.slf4j.Logger;
@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static java.util.function.Predicate.not;
 
 public abstract class RefsetUpdateService {
@@ -52,7 +53,7 @@ public abstract class RefsetUpdateService {
 		// Check refset exists
 		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId, codeSystem);
 		List<RefsetMemberIntent> sheetMembers = spreadsheetService.readRefsetSpreadsheet(inputStream, getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
-		return update(refset, sheetMembers, codeSystem, new AsyncJob("dummy"));
+		return update(refset, sheetMembers, codeSystem, new RefsetJob(codeSystem.getShortName(), format("Update refset %s", refset.getPt()), refsetId));
 	}
 
 	public ChangeSummary updateRefsetViaCustomFile(String refsetId, SubsetUploadProvider uploadProvider, CodeSystem codeSystem, ProgressMonitor progressMonitor) throws ServiceException {
@@ -156,7 +157,7 @@ public abstract class RefsetUpdateService {
 			logger.info("Processing refset {} \"{}\" complete.", refsetId, refsetTerm);
 			return new ChangeSummary(membersToCreate.size(), membersToUpdate.size(), membersToRemove.size(), newActiveCount);
 		} catch (ServiceException e) {
-			throw new ServiceException(String.format("Processing refset %s \"%s\" failed.", refsetId, refsetTerm), e);
+			throw new ServiceException(format("Processing refset %s \"%s\" failed.", refsetId, refsetTerm), e);
 		}
 	}
 

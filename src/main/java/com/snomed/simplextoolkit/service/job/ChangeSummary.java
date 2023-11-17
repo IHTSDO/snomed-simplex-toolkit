@@ -1,4 +1,4 @@
-package com.snomed.simplextoolkit.service;
+package com.snomed.simplextoolkit.service.job;
 
 public class ChangeSummary {
 

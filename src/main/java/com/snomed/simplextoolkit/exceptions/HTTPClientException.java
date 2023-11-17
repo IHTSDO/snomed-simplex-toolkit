@@ -2,9 +2,9 @@ package com.snomed.simplextoolkit.exceptions;
 
 import org.springframework.web.client.HttpStatusCodeException;
 
-public class ClientException extends ServiceException {
+public class HTTPClientException extends ServiceException {
 
-	public ClientException(String message, HttpStatusCodeException httpStatusCodeException) {
+	public HTTPClientException(String message, HttpStatusCodeException httpStatusCodeException) {
 		super(message, httpStatusCodeException);
 	}
 

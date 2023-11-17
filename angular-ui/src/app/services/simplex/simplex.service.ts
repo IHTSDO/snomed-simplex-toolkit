@@ -100,8 +100,12 @@ export class SimplexService {
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public startClassification(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/classify`, null).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getJobs(edition: string, refsetId: string): Observable<any> {
-    return this.http.get(`/api/jobs?refsetId=${refsetId}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`/api/${edition}/jobs?refsetId=${refsetId}`).pipe(catchError(this.handleError.bind(this)));
   }
   
 }

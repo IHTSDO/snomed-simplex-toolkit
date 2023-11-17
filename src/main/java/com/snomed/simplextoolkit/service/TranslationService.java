@@ -7,6 +7,8 @@ import com.snomed.simplextoolkit.client.domain.*;
 import com.snomed.simplextoolkit.domain.Page;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.LanguageCode;
+import com.snomed.simplextoolkit.service.job.ChangeMonitor;
+import com.snomed.simplextoolkit.service.job.ChangeSummary;
 import com.snomed.simplextoolkit.util.TimerUtil;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;

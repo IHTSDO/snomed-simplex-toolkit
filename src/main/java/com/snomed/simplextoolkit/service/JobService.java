@@ -1,9 +1,9 @@
 package com.snomed.simplextoolkit.service;
 
-import com.snomed.simplextoolkit.domain.AsyncJob;
+import com.snomed.simplextoolkit.client.domain.CodeSystem;
+import com.snomed.simplextoolkit.service.job.*;
 import com.snomed.simplextoolkit.domain.JobStatus;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
-import org.apache.catalina.security.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,35 +20,53 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import static java.lang.String.format;
 
 @Service
 public class JobService {
 
-	private final Map<String, AsyncJob> cache;
-	private final ExecutorService executorService;
+	private final Map<String, Map<String, AsyncJob>> codeSystemJobs;
+
+	private final ExecutorService jobExecutorService;
+
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public JobService(@Value("${job.concurrent.threads}") int nThreads) {
-		cache = new HashMap<>();
-		executorService = Executors.newFixedThreadPool(nThreads);
+		codeSystemJobs = new HashMap<>();
+		jobExecutorService = Executors.newFixedThreadPool(nThreads);
 	}
 
-	public AsyncJob runJob(String display, InputStream jobInputStream, String refsetId, AsyncFunction function) throws IOException {
-		AsyncJob asyncJob = new AsyncJob(display);
-		asyncJob.setRefsetId(refsetId);
-
+	public AsyncJob queueRefsetContentJob(String codeSystem, String display, InputStream jobInputStream, String refsetId, AsyncFunction<RefsetJob> function) throws IOException {
+		RefsetJob asyncJob = new RefsetJob(codeSystem, display, refsetId);
 		File tempFile = File.createTempFile(asyncJob.getId(), "txt");
 		try (FileOutputStream out = new FileOutputStream(tempFile)) {
 			StreamUtils.copy(jobInputStream, out);
 		}
-
 		asyncJob.setTempFile(tempFile);
-		asyncJob.setStatus(JobStatus.QUEUED);
+
+		return doQueueJob(codeSystem, function, asyncJob, () -> {
+			if (!tempFile.delete()) {
+				logger.info("Failed to delete temp file {}", tempFile.getAbsoluteFile());
+			}
+		});
+	}
+
+	public AsyncJob startExternalServiceJob(CodeSystem codeSystem, String display, Consumer<ExternalServiceJob> function) {
+		String shortName = codeSystem.getShortName();
+		ExternalServiceJob asyncJob = new ExternalServiceJob(shortName, display);
+		asyncJob.setSecurityContext(SecurityContextHolder.getContext());
+		asyncJob.setBranch(codeSystem.getWorkingBranchPath());
+		asyncJob.setStatus(JobStatus.IN_PROGRESS);
+		function.accept(asyncJob);
+		codeSystemJobs.computeIfAbsent(shortName, i -> new LinkedHashMap<>()).put(asyncJob.getId(), asyncJob);
+		return asyncJob;
+	}
+
+	private AsyncJob doQueueJob(String codeSystem, AsyncFunction function, AsyncJob asyncJob, Runnable onCompleteRunnable) {
+		// Add job to thread limited executor service to be run when there is capacity
 		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
-		executorService.submit(() -> {
+		jobExecutorService.submit(() -> {
 			SecurityContextHolder.setContext(userSecurityContext);
 			try {
 				asyncJob.setStatus(JobStatus.IN_PROGRESS);
@@ -56,28 +74,30 @@ public class JobService {
 				asyncJob.setChangeSummary(changeSummary);
 				asyncJob.setStatus(JobStatus.COMPLETED);
 			} catch (ServiceException e) {
-				asyncJob.setStatus(JobStatus.FAILED);
+				asyncJob.setStatus(JobStatus.ERROR);
 				asyncJob.setServiceException(e);
 			} finally {
-				if (!tempFile.delete()) {
-					logger.info("Failed to delete temp file {}", tempFile.getAbsoluteFile());
+				if (onCompleteRunnable != null) {
+					onCompleteRunnable.run();
 				}
 			}
 		});
-		cache.put(asyncJob.getId(), asyncJob);
+
+		asyncJob.setStatus(JobStatus.QUEUED);
+		codeSystemJobs.computeIfAbsent(codeSystem, i -> new LinkedHashMap<>()).put(asyncJob.getId(), asyncJob);
 		return asyncJob;
 	}
 
-	public AsyncJob getAsyncJob(String jobId) {
-		synchronized (cache) {
-			return cache.get(jobId);
+	public AsyncJob getAsyncJob(String codeSystem, String jobId) {
+		synchronized (codeSystemJobs) {
+			return codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).get(jobId);
 		}
 	}
 
-	public List<AsyncJob> listJobs(String refsetId) {
-		List<AsyncJob> jobs = new ArrayList<>(cache.values());
+	public List<AsyncJob> listJobs(String codeSystem, String refsetId) {
+		List<AsyncJob> jobs = new ArrayList<>(codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).values());
 		if (refsetId != null) {
-			jobs = jobs.stream().filter(job -> refsetId.equals(job.getRefsetId())).collect(Collectors.toList());
+			jobs = jobs.stream().filter(job -> job instanceof RefsetJob && refsetId.equals(((RefsetJob)job).getRefsetId())).collect(Collectors.toList());
 		}
 		jobs.sort(Comparator.comparing(AsyncJob::getCreated).reversed());
 		return jobs;
@@ -85,17 +105,19 @@ public class JobService {
 
 	@Scheduled(fixedDelay = 3_600_000)// Every hour
 	public void expireOldJobs() {
-		synchronized (cache) {
+		synchronized (codeSystemJobs) {
 			GregorianCalendar maxAge = new GregorianCalendar();
 			maxAge.add(Calendar.DAY_OF_YEAR, -7);
-			List<String> expired = new ArrayList<>();
-			for (Map.Entry<String, AsyncJob> entry : cache.entrySet()) {
-				if (entry.getValue().getCreated().before(maxAge.getTime())) {
-					expired.add(entry.getKey());
+			for (Map<String, AsyncJob> codeSystemJobs : codeSystemJobs.values()) {
+				List<String> expired = new ArrayList<>();
+				for (Map.Entry<String, AsyncJob> entry : codeSystemJobs.entrySet()) {
+					if (entry.getValue().getCreated().before(maxAge.getTime())) {
+						expired.add(entry.getKey());
+					}
 				}
-			}
-			for (String key : expired) {
-				cache.remove(key);
+				for (String key : expired) {
+					codeSystemJobs.remove(key);
+				}
 			}
 		}
 	}
