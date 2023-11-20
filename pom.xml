@@ -14,7 +14,7 @@
 	<name>SNOMED Simplex Toolkit</name>
 	<description>Toolkit for the creation and maintenance of simple SNOMED CT Extensions</description>
 	<properties>
-		<java.version>11</java.version>
+		<java.version>17</java.version>
 		<packageName>${project.artifactId}</packageName>
 	</properties>
 	<dependencies>

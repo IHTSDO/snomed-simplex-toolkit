@@ -26,7 +26,8 @@ Once the content is in the terminology server it can be versioned and an standar
   - First translated term will be made the Preferred Term, any other terms will be acceptable synonyms
 
 ## Prerequisites
-To maintain and extension write access to a [Snowstorm terminology server](https://github.com/IHTSDO/snowstorm) is required.
+Java 17 is required. 
+To maintain an extension write access to a [Snowstorm terminology server](https://github.com/IHTSDO/snowstorm) is required.
 A code system must be created in Snowstorm for the extension. The code system branch must have a `defaultModuleId` set in the branch metadata.
 The Simplex toolkit will be enhanced in the future to help create and set up new extensions in Snowstorm.
 
