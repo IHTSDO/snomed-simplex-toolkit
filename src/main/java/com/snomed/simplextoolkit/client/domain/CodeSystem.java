@@ -15,6 +15,7 @@ public class CodeSystem {
 	private String branchPath;
 	private String simplexWorkingBranch;
 	private Integer dependantVersionEffectiveTime;
+	private String dependencyPackage;
 	private String namespace;
 	private String defaultModule;
 	private String defaultModuleDisplay;
@@ -124,6 +125,14 @@ public class CodeSystem {
 
 	public void setClassified(boolean classified) {
 		this.classified = classified;
+	}
+
+	public String getDependencyPackage() {
+		return dependencyPackage;
+	}
+
+	public void setDependencyPackage(String dependencyPackage) {
+		this.dependencyPackage = dependencyPackage;
 	}
 
 	@Override

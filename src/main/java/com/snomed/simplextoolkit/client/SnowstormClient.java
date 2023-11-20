@@ -124,11 +124,7 @@ public class SnowstormClient {
 
 	private void addCodeSystemBranchInfo(CodeSystem codeSystem) throws ServiceException {
 		String branchPath = codeSystem.getBranchPath();
-		ResponseEntity<Branch> branchResponse = restTemplate.getForEntity(format("/branches/%s", branchPath), Branch.class);
-		Branch branch = branchResponse.getBody();
-		if (branch == null) {
-			throw new ServiceException(format("Branch not found %s", branchPath));
-		}
+		Branch branch = getBranchOrThrow(branchPath);
 		String defaultModule = branch.getDefaultModule();
 		codeSystem.setDefaultModule(defaultModule);
 		if (defaultModule != null) {
@@ -138,6 +134,16 @@ public class SnowstormClient {
 		codeSystem.setSimplexWorkingBranch(workingBranches.get(codeSystem.getShortName()));
 		codeSystem.setNamespace(branch.getMetadataValue(Branch.DEFAULT_NAMESPACE_METADATA_KEY));
 		codeSystem.setClassified("true".equals(branch.getMetadataValue(Branch.CLASSIFIED_METADATA_KEY)));
+		codeSystem.setDependencyPackage(branch.getMetadataValue(Branch.DEPENDENCY_PACKAGE_METADATA_KEY));
+	}
+
+	public Branch getBranchOrThrow(String branchPath) throws ServiceException {
+		ResponseEntity<Branch> branchResponse = restTemplate.getForEntity(format("/branches/%s", branchPath), Branch.class);
+		Branch branch = branchResponse.getBody();
+		if (branch == null) {
+			throw new ServiceException(format("Branch not found %s", branchPath));
+		}
+		return branch;
 	}
 
 	public void setCodeSystemWorkingBranch(CodeSystem codeSystem, String workingBranch) {

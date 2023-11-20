@@ -7,12 +7,18 @@ public class Branch {
 	public static final String DEFAULT_NAMESPACE_METADATA_KEY = "defaultNamespace";
 	public static final String SIMPLEX_WORKING_BRANCH_METADATA_KEY = "simplex.workingBranch";
 	public static final String CLASSIFIED_METADATA_KEY = "internal.classified";
+	public static final String DEPENDENCY_PACKAGE_METADATA_KEY = "dependencyPackage";
 
 	private String path;
+	private Long headTimestamp;
 	private Map<String, Object> metadata;
 
 	public String getPath() {
 		return path;
+	}
+
+	public Long getHeadTimestamp() {
+		return headTimestamp;
 	}
 
 	public Map<String, Object> getMetadata() {
