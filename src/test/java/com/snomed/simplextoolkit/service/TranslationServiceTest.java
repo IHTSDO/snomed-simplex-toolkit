@@ -97,11 +97,11 @@ class TranslationServiceTest {
 				"caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', acceptabilityMap={=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
 		concept = updatedConcepts.get(1);
 		assertEquals("740215071000132100", concept.getConceptId());
-		assertEquals("[Description{lang='vi', term='những thay đổi của liệu pháp miễn dịch trong bàng quang sau tiêm BCG', " +
+		assertEquals("[Description{lang='vi', term='những thay đổi của liệu pháp miễn dịch trong bàng quang sau tiêm BCG', " +
 				"caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', acceptabilityMap={=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
 		concept = updatedConcepts.get(2);
 		assertEquals("674814021000119106", concept.getConceptId());
-		assertEquals("[Description{lang='vi', term='hội chứng suy hô hấp cấp tính gây ra bởi coronavirus 2 gây hội chứng hô hấp cấp tính nặng', " +
+		assertEquals("[Description{lang='vi', term='hội chứng suy hô hấp cấp tính gây ra bởi coronavirus 2 gây hội chứng hô hấp cấp tính nặng', " +
 				"caseSignificance='CASE_INSENSITIVE', acceptabilityMap={=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
 	}
 

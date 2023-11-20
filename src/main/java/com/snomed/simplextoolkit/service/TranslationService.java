@@ -31,6 +31,8 @@ import static java.lang.String.format;
 @Service
 public class TranslationService {
 
+	public static final String NON_BREAKING_SPACE_CHARACTER = " ";
+
 	private final List<LanguageCode> languageCodes = new ArrayList<>();
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -107,6 +109,13 @@ public class TranslationService {
 
 		logger.info("Reading translation file..");
 		Map<Long, List<Description>> conceptDescriptions = uploadProvider.readUpload();
+
+		// Replace bad characters
+		for (List<Description> conceptDescriptionList : conceptDescriptions.values()) {
+			for (Description description : conceptDescriptionList) {
+				description.setTerm(description.getTerm().replace(NON_BREAKING_SPACE_CHARACTER, " "));
+			}
+		}
 
 		logger.info("Read translation terms for {} concepts", conceptDescriptions.size());
 		progressMonitor.setRecordsTotal(conceptDescriptions.size());
