@@ -55,6 +55,13 @@ public class CodeSystemController {
 		return jobService.startExternalServiceJob(theCodeSystem, "Classify", asyncJob -> codeSystemService.classify(asyncJob));
 	}
 
+	@PostMapping("{codeSystem}/validate")
+	public AsyncJob startValidation(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return jobService.startExternalServiceJob(theCodeSystem, "Validate", asyncJob -> codeSystemService.validate(asyncJob));
+	}
+
 	@DeleteMapping("{codeSystem}")
 	public void deleteCodeSystem(@PathVariable String codeSystem) throws ServiceException {
 		codeSystemService.deleteCodeSystem(codeSystem);

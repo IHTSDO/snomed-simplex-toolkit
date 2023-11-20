@@ -58,6 +58,7 @@ public class JobService {
 		asyncJob.setSecurityContext(SecurityContextHolder.getContext());
 		asyncJob.setBranch(codeSystem.getWorkingBranchPath());
 		asyncJob.setStatus(JobStatus.IN_PROGRESS);
+
 		function.accept(asyncJob);
 		codeSystemJobs.computeIfAbsent(shortName, i -> new LinkedHashMap<>()).put(asyncJob.getId(), asyncJob);
 		return asyncJob;

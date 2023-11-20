@@ -394,14 +394,16 @@ public class SnowstormClient {
 		return new HTTPClientException(format("Failed to %s", action), e);
 	}
 
-	public void exportRF2(OutputStream outputStream, String snowstormExportType, CodeSystem codeSystem) throws ServiceException {
+	public void exportRF2(OutputStream outputStream, String snowstormExportType, CodeSystem codeSystem, String transientEffectiveTime) throws ServiceException {
 		Map<String, String> requestBody = new HashMap<>();
 		requestBody.put("branchPath", codeSystem.getWorkingBranchPath());
 		requestBody.put("type", snowstormExportType);
+		if (transientEffectiveTime != null) {
+			requestBody.put("transientEffectiveTime", transientEffectiveTime);
+		}
 		URI location = restTemplate.execute("/exports", HttpMethod.POST,
 				httpRequest -> {
 					httpRequest.getHeaders().add("Content-Type", "application/json");
-					objectMapper.writeValue(System.out, requestBody);
 					objectMapper.writeValue(httpRequest.getBody(), requestBody);
 				},
 				httpResponse -> httpResponse.getHeaders().getLocation());

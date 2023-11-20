@@ -3,6 +3,7 @@ package com.snomed.simplextoolkit.service.job;
 public class ExternalServiceJob extends AsyncJob {
 
 	private String branch;
+	private String link;
 
 	public ExternalServiceJob(String codeSystem, String display) {
 		super(codeSystem, display);
@@ -19,5 +20,13 @@ public class ExternalServiceJob extends AsyncJob {
 
 	public String getBranch() {
 		return branch;
+	}
+
+	public String getLink() {
+		return link;
+	}
+
+	public void setLink(String link) {
+		this.link = link;
 	}
 }

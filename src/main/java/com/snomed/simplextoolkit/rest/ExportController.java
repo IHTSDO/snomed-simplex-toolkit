@@ -38,7 +38,7 @@ public class ExportController {
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + getFilename(codeSystem, filenameType) + "\"");
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		snowstormClient.exportRF2(response.getOutputStream(), exportType, theCodeSystem);
+		snowstormClient.exportRF2(response.getOutputStream(), exportType, theCodeSystem, null);
 	}
 
 	private String getFilename(String codeSystem, String exportType) {

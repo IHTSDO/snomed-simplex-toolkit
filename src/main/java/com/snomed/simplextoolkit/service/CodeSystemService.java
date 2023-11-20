@@ -3,6 +3,8 @@ package com.snomed.simplextoolkit.service;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.*;
+import com.snomed.simplextoolkit.client.rvf.ValidationReport;
+import com.snomed.simplextoolkit.client.rvf.ValidationServiceClient;
 import com.snomed.simplextoolkit.domain.JobStatus;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.service.job.ExternalServiceJob;
@@ -13,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -34,7 +37,11 @@ public class CodeSystemService {
 	@Autowired
 	private SupportRegister supportRegister;
 
+	@Autowired
+	private ValidationServiceClient validationServiceClient;
+
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
+	private final Map<String, ExternalServiceJob> validationJobsToMonitor = new HashMap<>();
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -95,6 +102,19 @@ public class CodeSystemService {
 		}
 	}
 
+	public void validate(ExternalServiceJob asyncJob) {
+		try {
+			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(asyncJob.getCodeSystem());
+			URI validationUri = validationServiceClient.startValidation(codeSystem, snowstormClient);
+			logger.info("Created validation {}", validationUri);
+			asyncJob.setLink(validationUri.toString());
+			validationJobsToMonitor.put(validationUri.toString(), asyncJob);
+		} catch (ServiceException e) {
+			supportRegister.handleSystemIssue(asyncJob, "Failed to create validation job.", e);
+		}
+	}
+
 	public void deleteCodeSystem(String shortName) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(shortName);
@@ -113,6 +133,7 @@ public class CodeSystemService {
 			String branch = asyncJob.getBranch();
 			String classificationId = snowstormClient.createClassification(branch);
 			logger.info("Started classification. Branch:{}, classificationId:{}, jobId:{}", branch, classificationId, asyncJob.getId());
+			asyncJob.setLink(classificationId);
 			classificationJobsToMonitor.put(classificationId, asyncJob);
 		} catch (ServiceException e) {
 			supportRegister.handleSystemIssue(asyncJob, "Failed to create classification.", e);
@@ -165,6 +186,51 @@ public class CodeSystemService {
 		}
 		for (String completedClassification : completedClassifications) {
 			classificationJobsToMonitor.remove(completedClassification);
+		}
+	}
+
+	@Scheduled(initialDelay = 15, fixedDelay = 5, timeUnit = TimeUnit.SECONDS)
+	public void monitorValidationJobs() {
+		Set<String> completedValidations = new HashSet<>();
+		for (Map.Entry<String, ExternalServiceJob> entry : validationJobsToMonitor.entrySet()) {
+			String validationUrl = entry.getKey();
+			ExternalServiceJob job = entry.getValue();
+			SecurityContextHolder.setContext(job.getSecurityContext());
+			boolean validationComplete = false;
+			try {
+				// Get client using the security context of the user who created the job
+				ValidationReport validationReport = validationServiceClient.getValidation(validationUrl);
+				ValidationReport.State status = validationReport.status();
+				logger.info("Validation status {} for {}", status, validationUrl);
+				if (status != null) {
+					if (status == ValidationReport.State.COMPLETE) {
+						ValidationReport.ValidationResult validationResult = validationReport.rvfValidationResult();
+						ValidationReport.TestResult testResult = validationResult.TestResult();
+						if (testResult.totalFailures() > 0) {
+							job.setErrorMessage("Validation errors were found in the content.");
+							job.setStatus(JobStatus.CONTENT_ISSUE);
+						} else if (testResult.totalWarnings() > 0) {
+							job.setErrorMessage("Validation warnings were found in the content.");
+							job.setStatus(JobStatus.CONTENT_ISSUE);
+						} else {
+							job.setStatus(JobStatus.COMPLETED);
+						}
+						validationComplete = true;
+					} else if (status == ValidationReport.State.FAILED) {
+						supportRegister.handleSystemIssue(job, "RVF report failed.");
+						validationComplete = true;
+					}
+				}
+			} catch (ServiceException e) {
+				supportRegister.handleSystemIssue(job, "Terminology Server or RVF API issue.", e);
+				validationComplete = true;
+			}
+			if (validationComplete) {
+				completedValidations.add(validationUrl);
+			}
+		}
+		for (String completedValidation : completedValidations) {
+			validationJobsToMonitor.remove(completedValidation);
 		}
 	}
 }
