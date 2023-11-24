@@ -158,11 +158,13 @@ public class CodeSystemService {
 					if (!classificationJob.isEquivalentConceptsFound()) {
 						// Start classification save (async process)
 						snowstormClient.startClassificationSave(branch, classificationId);
+						logger.info("Start classification save. Branch:{}, classificationId:{}, jobId:{}", branch, classificationId, job.getId());
 					} else {
 						supportRegister.handleContentIssue(job, "Logically equivalent concepts have been found.");
 						classificationComplete = true;
 					}
 				} else if (status == SnowstormClassificationJob.Status.SAVED) {
+					logger.info("Classification saved. Branch:{}, classificationId:{}, jobId:{}", branch, classificationId, job.getId());
 					job.setStatus(JobStatus.COMPLETED);
 					classificationComplete = true;
 				} else if (status == SnowstormClassificationJob.Status.FAILED) {
@@ -172,6 +174,7 @@ public class CodeSystemService {
 					supportRegister.handleSystemIssue(job, "Classification failed to save in Terminology Server.");
 					classificationComplete = true;
 				} else if (status == SnowstormClassificationJob.Status.STALE) {
+					logger.info("Classification stale. Branch:{}, classificationId:{}, jobId:{}", branch, classificationId, job.getId());
 					job.setStatus(JobStatus.ERROR);
 					job.setErrorMessage("Classification became stale because of new content changes. Please try again.");
 					classificationComplete = true;

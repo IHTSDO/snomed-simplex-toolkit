@@ -469,9 +469,9 @@ public class SnowstormClient {
 		try {
 			Map<String, String> statusChangeRequest = new HashMap<>();
 			statusChangeRequest.put("status", "SAVED");
-			restTemplate.exchange(format("/%s/classifications/%s", branch, classificationId), HttpMethod.POST, new HttpEntity<>(statusChangeRequest), Void.class);
+			restTemplate.exchange(format("/%s/classifications/%s", branch, classificationId), HttpMethod.PUT, new HttpEntity<>(statusChangeRequest), Void.class);
 		} catch (RestClientException e) {
-			throw new ServiceException("Failed to start classification save.");
+			throw new ServiceException("Failed to start classification save.", e);
 		}
 	}
 
