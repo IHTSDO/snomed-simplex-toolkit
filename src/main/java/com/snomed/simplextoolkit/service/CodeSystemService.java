@@ -80,7 +80,7 @@ public class CodeSystemService {
 	private static void setDefaultModule(String moduleId, CodeSystem newCodeSystem, SnowstormClient snowstormClient) {
 		Map<String, String> newMetadata = new HashMap<>();
 		newMetadata.put("defaultModuleId", moduleId);
-		snowstormClient.addBranchMetadata(newCodeSystem.getBranchPath(), newMetadata);
+		snowstormClient.upsertBranchMetadata(newCodeSystem.getBranchPath(), newMetadata);
 	}
 
 	private void createModuleOntologyExpression(String moduleId, CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
@@ -107,8 +107,9 @@ public class CodeSystemService {
 			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(asyncJob.getCodeSystem());
 			URI validationUri = validationServiceClient.startValidation(codeSystem, snowstormClient);
-			logger.info("Created validation {}", validationUri);
+			logger.info("Created validation. Branch:{}, RVF Job:{}", codeSystem.getWorkingBranchPath(), validationUri);
 			asyncJob.setLink(validationUri.toString());
+			snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(Branch.LATEST_VALIDATION_REPORT_METADATA_KEY, validationUri.toString()));
 			validationJobsToMonitor.put(validationUri.toString(), asyncJob);
 		} catch (ServiceException e) {
 			supportRegister.handleSystemIssue(asyncJob, "Failed to create validation job.", e);
@@ -204,9 +205,10 @@ public class CodeSystemService {
 				// Get client using the security context of the user who created the job
 				ValidationReport validationReport = validationServiceClient.getValidation(validationUrl);
 				ValidationReport.State status = validationReport.status();
-				logger.info("Validation status {} for {}", status, validationUrl);
+				logger.debug("Validation status {} for {}", status, validationUrl);
 				if (status != null) {
 					if (status == ValidationReport.State.COMPLETE) {
+						logger.info("Validation completed. Branch:{}, RVF Job:{}, Status:{}", job.getBranch(), validationUrl, status);
 						ValidationReport.ValidationResult validationResult = validationReport.rvfValidationResult();
 						ValidationReport.TestResult testResult = validationResult.TestResult();
 						if (testResult.totalFailures() > 0) {

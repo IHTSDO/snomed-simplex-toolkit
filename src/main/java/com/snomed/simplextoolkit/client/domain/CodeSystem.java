@@ -24,6 +24,8 @@ public class CodeSystem {
 	private boolean postcoordinated;
 	private boolean dailyBuildAvailable;
 	private boolean classified;
+	private String latestValidationReport;
+	private long contentHeadTimestamp;
 
 	public CodeSystem() {
 	}
@@ -133,6 +135,22 @@ public class CodeSystem {
 
 	public void setDependencyPackage(String dependencyPackage) {
 		this.dependencyPackage = dependencyPackage;
+	}
+
+	public void setLatestValidationReport(String latestValidationReport) {
+		this.latestValidationReport = latestValidationReport;
+	}
+
+	public String getLatestValidationReport() {
+		return latestValidationReport;
+	}
+
+	public long getContentHeadTimestamp() {
+		return contentHeadTimestamp;
+	}
+
+	public void setContentHeadTimestamp(long contentHeadTimestamp) {
+		this.contentHeadTimestamp = contentHeadTimestamp;
 	}
 
 	@Override

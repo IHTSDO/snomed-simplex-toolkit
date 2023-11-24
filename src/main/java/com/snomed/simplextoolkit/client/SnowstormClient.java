@@ -126,6 +126,7 @@ public class SnowstormClient {
 		String branchPath = codeSystem.getBranchPath();
 		Branch branch = getBranchOrThrow(branchPath);
 		String defaultModule = branch.getDefaultModule();
+		codeSystem.setContentHeadTimestamp(branch.getHeadTimestamp());
 		codeSystem.setDefaultModule(defaultModule);
 		if (defaultModule != null) {
 			String pt = getPT(codeSystem, defaultModule).orElse(null);
@@ -135,6 +136,7 @@ public class SnowstormClient {
 		codeSystem.setNamespace(branch.getMetadataValue(Branch.DEFAULT_NAMESPACE_METADATA_KEY));
 		codeSystem.setClassified("true".equals(branch.getMetadataValue(Branch.CLASSIFIED_METADATA_KEY)));
 		codeSystem.setDependencyPackage(branch.getMetadataValue(Branch.DEPENDENCY_PACKAGE_METADATA_KEY));
+		codeSystem.setLatestValidationReport(branch.getMetadataValue(Branch.LATEST_VALIDATION_REPORT_METADATA_KEY));
 	}
 
 	public Branch getBranchOrThrow(String branchPath) throws ServiceException {
@@ -175,7 +177,7 @@ public class SnowstormClient {
 			CodeSystem codeSystem = restTemplate.getForEntity(format("/codesystems/%s", shortName), CodeSystem.class).getBody();
 
 			// Set namespace
-			addBranchMetadata(branchPath, Map.of(Branch.DEFAULT_NAMESPACE_METADATA_KEY, namespace));
+			upsertBranchMetadata(branchPath, Map.of(Branch.DEFAULT_NAMESPACE_METADATA_KEY, namespace));
 
 			return codeSystem;
 		} catch (HttpStatusCodeException e) {
@@ -187,7 +189,7 @@ public class SnowstormClient {
 		restTemplate.delete(format("/codesystems/%s", shortName));
 	}
 
-	public void addBranchMetadata(String branchPath, Map<String, String> newBranchMetadata) {
+	public void upsertBranchMetadata(String branchPath, Map<String, String> newBranchMetadata) {
 		restTemplate.exchange(format("/branches/%s/metadata-upsert", branchPath), HttpMethod.PUT, new HttpEntity<>(newBranchMetadata), Map.class);
 	}
 

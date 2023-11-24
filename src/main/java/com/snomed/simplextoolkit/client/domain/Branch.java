@@ -8,6 +8,7 @@ public class Branch {
 	public static final String SIMPLEX_WORKING_BRANCH_METADATA_KEY = "simplex.workingBranch";
 	public static final String CLASSIFIED_METADATA_KEY = "internal.classified";
 	public static final String DEPENDENCY_PACKAGE_METADATA_KEY = "dependencyPackage";
+	public static final String LATEST_VALIDATION_REPORT_METADATA_KEY = "latestValidationReport";
 
 	private String path;
 	private Long headTimestamp;
