@@ -130,6 +130,7 @@ public class CustomConceptService {
 						if (!relationshipAlreadyCorrect) {
 							concept.setClassAxioms(Collections.singletonList(
 									new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0)))));
+							copyInferredRelationshipsFromParent(concept, parentConcept);
 							changed = true;
 							changeSummary.incrementUpdated();
 						}
