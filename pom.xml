@@ -3,20 +3,22 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.5.6</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<groupId>org.snomed</groupId>
+		<artifactId>snomed-parent-bom</artifactId>
+		<version>2.0.0</version>
 	</parent>
+
 	<groupId>com.snomed</groupId>
 	<artifactId>snomed-simplex-toolkit</artifactId>
 	<version>2.0.0-SNAPSHOT</version>
 	<name>SNOMED Simplex Toolkit</name>
 	<description>Toolkit for the creation and maintenance of simple SNOMED CT Extensions</description>
+
 	<properties>
 		<java.version>17</java.version>
 		<packageName>${project.artifactId}</packageName>
 	</properties>
+
 	<dependencies>
 		<!-- Spring -->
 		<dependency>
@@ -36,15 +38,22 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>5.0.0</version>
+			<version>5.2.3</version>
+			<exclusions>
+				<exclusion>
+					<groupId>commons-codec</groupId>
+					<artifactId>commons-codec</artifactId>
+				</exclusion></exclusions>
 		</dependency>
 
 		<dependency>
 			<groupId>it.unimi.dsi</groupId>
 			<artifactId>fastutil</artifactId>
-			<version>8.5.4</version>
 		</dependency>
-
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+		</dependency>
 
 		<!-- API Documentation / Swagger -->
 		<dependency>
@@ -61,7 +70,6 @@
 		<dependency>
 			<groupId>org.snomed.otf</groupId>
 			<artifactId>snomed-boot</artifactId>
-			<version>4.0.3</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
