@@ -1,15 +1,15 @@
 package com.snomed.simplextoolkit.rest;
 
-import com.snomed.simplextoolkit.service.job.AsyncJob;
 import com.snomed.simplextoolkit.service.JobService;
-import io.swagger.annotations.Api;
+import com.snomed.simplextoolkit.service.job.AsyncJob;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@Api(tags = "Processing Jobs", description = "-")
+@Tag(name = "Processing Jobs", description = "-")
 @RequestMapping("api/{codeSystem}/jobs")
 public class JobController {
 

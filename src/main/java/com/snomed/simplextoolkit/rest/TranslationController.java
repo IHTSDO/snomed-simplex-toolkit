@@ -11,7 +11,7 @@ import com.snomed.simplextoolkit.rest.pojos.LanguageCode;
 import com.snomed.simplextoolkit.service.JobService;
 import com.snomed.simplextoolkit.service.TranslationService;
 import com.snomed.simplextoolkit.service.job.AsyncJob;
-import io.swagger.annotations.Api;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@Api(tags = "Translation", description = "-")
+@Tag(name = "Translation", description = "-")
 @RequestMapping("api")
 public class TranslationController {
 

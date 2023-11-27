@@ -8,9 +8,9 @@ import com.snomed.simplextoolkit.client.domain.ConceptMini;
 import com.snomed.simplextoolkit.client.domain.Concepts;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.rest.pojos.CreateConceptRequest;
-import com.snomed.simplextoolkit.service.job.ChangeSummary;
 import com.snomed.simplextoolkit.service.RefsetUpdateService;
-import io.swagger.annotations.ApiOperation;
+import com.snomed.simplextoolkit.service.job.ChangeSummary;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -66,7 +66,7 @@ public abstract class AbstractRefsetController {
 	}
 
 	@DeleteMapping("{refsetId}")
-	@ApiOperation("Delete refset and all members.")
+	@Operation(summary = "Delete refset and all members.")
 	public void deleteRefset(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);

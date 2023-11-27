@@ -10,13 +10,13 @@ import com.snomed.simplextoolkit.rest.pojos.SetBranchRequest;
 import com.snomed.simplextoolkit.service.CodeSystemService;
 import com.snomed.simplextoolkit.service.JobService;
 import com.snomed.simplextoolkit.service.job.AsyncJob;
-import io.swagger.annotations.Api;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("api/codesystems")
-@Api(tags = "Code Systems", description = "-")
+@Tag(name = "Code Systems", description = "-")
 public class CodeSystemController {
 
 	@Autowired

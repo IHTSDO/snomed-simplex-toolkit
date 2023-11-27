@@ -9,7 +9,7 @@ import com.snomed.simplextoolkit.service.RefsetToolSubsetReader;
 import com.snomed.simplextoolkit.service.RefsetUpdateService;
 import com.snomed.simplextoolkit.service.SimpleRefsetService;
 import com.snomed.simplextoolkit.service.job.AsyncJob;
-import io.swagger.annotations.Api;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,7 +19,7 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("api/{codeSystem}/refsets/simple")
-@Api(tags = "Simple Refsets", description = "-")
+@Tag(name = "Simple Refsets", description = "-")
 public class SimpleRefsetController extends AbstractRefsetController {
 
 	@Autowired

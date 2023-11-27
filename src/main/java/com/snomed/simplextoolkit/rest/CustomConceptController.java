@@ -8,8 +8,8 @@ import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.service.CustomConceptService;
 import com.snomed.simplextoolkit.service.JobService;
 import com.snomed.simplextoolkit.service.job.AsyncJob;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,7 +19,7 @@ import java.io.IOException;
 import java.util.Map;
 
 @RestController
-@Api(tags = "Custom Concepts", description = "-")
+@Tag(name = "Custom Concepts", description = "-")
 @RequestMapping("api/{codeSystem}/concepts")
 public class CustomConceptController {
 
@@ -51,7 +51,7 @@ public class CustomConceptController {
 	}
 
 	@PostMapping("/show")
-	@ApiOperation("Show custom concepts option. This sets the showCustomConcepts flag on the codesystem object.")
+	@Operation(summary = "Show custom concepts option. This sets the showCustomConcepts flag on the codesystem object.")
 	public void showCustomConceptOption(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
@@ -59,7 +59,7 @@ public class CustomConceptController {
 	}
 
 	@PostMapping("/hide")
-	@ApiOperation("Hide custom concepts option. This sets the showCustomConcepts flag on the codesystem object.")
+	@Operation(summary = "Hide custom concepts option. This sets the showCustomConcepts flag on the codesystem object.")
 	public void hideCustomConceptOption(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);

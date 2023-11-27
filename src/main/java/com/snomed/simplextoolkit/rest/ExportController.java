@@ -4,7 +4,7 @@ import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
-import io.swagger.annotations.Api;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,7 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @RestController
-@Api(tags = "Export", description = "-")
+@Tag(name = "Export", description = "-")
 @RequestMapping("api/{codeSystem}/rf2-export")
 public class ExportController {
 
