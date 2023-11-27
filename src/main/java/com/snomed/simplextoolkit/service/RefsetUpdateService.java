@@ -5,13 +5,13 @@ import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
 import com.snomed.simplextoolkit.client.domain.ConceptMini;
 import com.snomed.simplextoolkit.client.domain.RefsetMember;
-import com.snomed.simplextoolkit.domain.HeaderConfiguration;
+import com.snomed.simplextoolkit.domain.ComponentIntent;
 import com.snomed.simplextoolkit.domain.RefsetMemberIntent;
-import com.snomed.simplextoolkit.domain.SheetHeader;
+import com.snomed.simplextoolkit.service.spreadsheet.SheetHeader;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.service.job.ChangeSummary;
-import com.snomed.simplextoolkit.service.job.RefsetJob;
-import org.apache.poi.ss.usermodel.Row;
+import com.snomed.simplextoolkit.service.job.ContentJob;
+import com.snomed.simplextoolkit.service.spreadsheet.SheetRowToComponentIntentExtractor;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,7 @@ public abstract class RefsetUpdateService {
 		members.sort(Comparator.comparing(RefsetMember::getReferencedComponentId));
 
 		Map<String, Function<RefsetMember, String>> refsetColumns = getRefsetToSpreadsheetConversionMap();
-		try (Workbook workbook = spreadsheetService.createSpreadsheet(members, refsetColumns)) {
+		try (Workbook workbook = spreadsheetService.createRefsetSpreadsheet(members, refsetColumns)) {
 			workbook.write(outputStream);
 		}
 	}
@@ -52,8 +52,8 @@ public abstract class RefsetUpdateService {
 	public ChangeSummary updateRefsetViaSpreadsheet(String refsetId, InputStream inputStream, CodeSystem codeSystem) throws ServiceException {
 		// Check refset exists
 		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId, codeSystem);
-		List<RefsetMemberIntent> sheetMembers = spreadsheetService.readRefsetSpreadsheet(inputStream, getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
-		return update(refset, sheetMembers, codeSystem, new RefsetJob(codeSystem.getShortName(), format("Update refset %s", refset.getPt()), refsetId));
+		List<RefsetMemberIntent> sheetMembers = spreadsheetService.readComponentSpreadsheet(inputStream, getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
+		return update(refset, sheetMembers, codeSystem, new ContentJob(codeSystem.getShortName(), format("Update refset %s", refset.getPt()), refsetId));
 	}
 
 	public ChangeSummary updateRefsetViaCustomFile(String refsetId, SubsetUploadProvider uploadProvider, CodeSystem codeSystem, ProgressMonitor progressMonitor) throws ServiceException {
@@ -177,7 +177,7 @@ public abstract class RefsetUpdateService {
 	 */
 	protected abstract List<SheetHeader> getInputSheetExpectedHeaders();
 
-	protected abstract SheetRowToRefsetExtractor getInputSheetMemberExtractor();
+	protected abstract <T extends ComponentIntent> SheetRowToComponentIntentExtractor<T> getInputSheetMemberExtractor();
 
 	/**
 	 * Convert SheetRefsetMember to RefsetMember
@@ -201,8 +201,4 @@ public abstract class RefsetUpdateService {
 		return snowstormClientFactory.getClient();
 	}
 
-	@FunctionalInterface
-	public interface SheetRowToRefsetExtractor {
-		RefsetMemberIntent extract(Row row, Integer rowNumber, HeaderConfiguration headerConfiguration) throws ServiceException;
-	}
 }

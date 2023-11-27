@@ -1,5 +1,6 @@
 package com.snomed.simplextoolkit.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.snomed.simplextoolkit.client.domain.*;
 import com.snomed.simplextoolkit.domain.Page;
@@ -135,6 +136,7 @@ public class SnowstormClient {
 		codeSystem.setSimplexWorkingBranch(workingBranches.get(codeSystem.getShortName()));
 		codeSystem.setNamespace(branch.getMetadataValue(Branch.DEFAULT_NAMESPACE_METADATA_KEY));
 		codeSystem.setClassified("true".equals(branch.getMetadataValue(Branch.CLASSIFIED_METADATA_KEY)));
+		codeSystem.setShowCustomConcepts("true".equals(branch.getMetadataValue(Branch.SHOW_CUSTOM_CONCEPTS)));
 		codeSystem.setDependencyPackage(branch.getMetadataValue(Branch.DEPENDENCY_PACKAGE_METADATA_KEY));
 		codeSystem.setLatestValidationReport(branch.getMetadataValue(Branch.LATEST_VALIDATION_REPORT_METADATA_KEY));
 	}
@@ -423,6 +425,23 @@ public class SnowstormClient {
 		return termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? CASE_INSENSITIVE : ENTIRE_TERM_CASE_SENSITIVE;
 	}
 
+	public List<ConceptMini> findConceptsByModule(CodeSystem codeSystem, String module) {
+		List<ConceptMini> completeList = new ArrayList<>();
+		int offset = 0;
+		int limit = 1000;
+		int loadedSize;
+		do {
+			ParameterizedTypeReference<Page<ConceptMini>> listOfConceptMinis = new ParameterizedTypeReference<>() {};
+			ResponseEntity<Page<ConceptMini>> exchange = restTemplate.exchange(format("/%s/concepts?module=%s&offset=%s&limit=%s", codeSystem.getWorkingBranchPath(), module, offset, limit), HttpMethod.GET, null,
+					listOfConceptMinis);
+			List<ConceptMini> page = exchange.getBody().getItems();
+			loadedSize = page.size();
+			completeList.addAll(page);
+			offset += limit;
+		} while (loadedSize == 1000);
+		return completeList;
+	}
+
 	public List<Concept> loadBrowserFormatConcepts(List<Long> conceptIds, CodeSystem codeSystem) {
 		ParameterizedTypeReference<List<Concept>> listOfConcepts = new ParameterizedTypeReference<>(){};
 		ResponseEntity<List<Concept>> response = restTemplate.exchange(format("/browser/%s/concepts/bulk-load", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
@@ -430,19 +449,51 @@ public class SnowstormClient {
 		return response.getBody();
 	}
 
-	public void updateBrowserFormatConcepts(List<Concept> conceptsToUpdate, CodeSystem codeSystem) throws ServiceException {
+	public void createUpdateBrowserFormatConcepts(List<Concept> conceptsToUpdate, CodeSystem codeSystem) throws ServiceException {
 		if (conceptsToUpdate == null || conceptsToUpdate.isEmpty()) {
 			return;
 		}
 		// Start an async bulk update job
-		ResponseEntity<Void> response = restTemplate.exchange(format("/browser/%s/concepts/bulk", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
-				new HttpEntity<>(conceptsToUpdate), Void.class);
-		URI location = response.getHeaders().getLocation();
-		if (location == null) {
-			throw new ServiceException("Bulk update did not return location header.");
+
+
+		// DEBUG
+		try {
+			System.out.println(objectMapper.writeValueAsString(conceptsToUpdate));
+		} catch (JsonProcessingException e) {
+			throw new RuntimeException(e);
 		}
 
-		waitForAsyncJob(location, "COMPLETED", "FAILED");
+
+
+
+
+		List<Concept> conceptsToDelete = new ArrayList<>();
+		List<Concept> conceptsForBulkUpdate = new ArrayList<>();
+		for (Concept concept : conceptsToUpdate) {
+			if (!concept.isActive() && !concept.isReleased()) {
+				conceptsToDelete.add(concept);
+			} else {
+				conceptsForBulkUpdate.add(concept);
+			}
+		}
+
+		String branchPath = codeSystem.getWorkingBranchPath();
+		for (Concept conceptToDelete : conceptsToDelete) {
+			String conceptId = conceptToDelete.getConceptId();
+			logger.info("Deleting concept {} on {}", conceptId, branchPath);
+			restTemplate.delete(format("/%s/concepts/%s", branchPath, conceptId));
+		}
+
+		if (!conceptsForBulkUpdate.isEmpty()) {
+			logger.info("Starting bulk create/update on {}", branchPath);
+			ResponseEntity<Void> response = restTemplate.exchange(format("/browser/%s/concepts/bulk", branchPath), HttpMethod.POST,
+					new HttpEntity<>(conceptsToUpdate), Void.class);
+			URI location = response.getHeaders().getLocation();
+			if (location == null) {
+				throw new ServiceException("Bulk update did not return location header.");
+			}
+			waitForAsyncJob(location, "COMPLETED", "FAILED");
+		}
 	}
 
 	public String createClassification(String branch) throws ServiceException {

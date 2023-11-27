@@ -2,10 +2,11 @@ package com.snomed.simplextoolkit.service;
 
 import com.snomed.simplextoolkit.client.domain.RefsetMember;
 import com.snomed.simplextoolkit.domain.MapCorrelation;
-import com.snomed.simplextoolkit.domain.SheetHeader;
+import com.snomed.simplextoolkit.service.spreadsheet.SheetHeader;
 import com.snomed.simplextoolkit.domain.RefsetMemberIntent;
 import com.snomed.simplextoolkit.domain.RefsetMemberIntentSimpleMapToSnomedWithCorrelation;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import com.snomed.simplextoolkit.service.spreadsheet.SheetRowToComponentIntentExtractor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -40,7 +41,7 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	}
 
 	@Override
-	protected SheetRowToRefsetExtractor getInputSheetMemberExtractor() {
+	protected SheetRowToComponentIntentExtractor getInputSheetMemberExtractor() {
 		return (cells, rowNumber, headerConfiguration) -> {
 
 			String sourceCode = readGenericCode(cells, headerConfiguration.getColumn(SOURCE_CODE), rowNumber);

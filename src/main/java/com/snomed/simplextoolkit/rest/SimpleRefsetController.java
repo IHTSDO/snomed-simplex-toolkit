@@ -51,7 +51,7 @@ public class SimpleRefsetController extends AbstractRefsetController {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
-		return jobService.queueRefsetContentJob(codeSystem, "Subset upload (Refset Tool)", file.getInputStream(), refsetId,
+		return jobService.queueContentJob(codeSystem, "Subset upload (Refset Tool)", file.getInputStream(), refsetId,
 				asyncJob -> getRefsetService().updateRefsetViaCustomFile(refsetId, new RefsetToolSubsetReader(asyncJob.getInputStream()), theCodeSystem, asyncJob));
 	}
 

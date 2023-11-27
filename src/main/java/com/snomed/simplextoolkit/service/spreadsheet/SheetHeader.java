@@ -1,8 +1,9 @@
-package com.snomed.simplextoolkit.domain;
+package com.snomed.simplextoolkit.service.spreadsheet;
 
 public class SheetHeader {
 
 	private final String name;
+	private String subtitle;
 	private boolean optional;
 
 	public SheetHeader(String name) {
@@ -20,5 +21,14 @@ public class SheetHeader {
 
 	public boolean isOptional() {
 		return optional;
+	}
+
+	public SheetHeader setSubtitle(String subtitle) {
+		this.subtitle = subtitle;
+		return this;
+	}
+
+	public String getSubtitle() {
+		return subtitle;
 	}
 }

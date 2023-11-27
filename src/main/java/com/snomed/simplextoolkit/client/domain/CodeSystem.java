@@ -1,6 +1,7 @@
 package com.snomed.simplextoolkit.client.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.apache.logging.log4j.util.Strings;
 
@@ -19,13 +20,14 @@ public class CodeSystem {
 	private String namespace;
 	private String defaultModule;
 	private String defaultModuleDisplay;
-	private Map<String, String> languages;
-	private List<ConceptMini> modules;
 	private boolean postcoordinated;
 	private boolean dailyBuildAvailable;
 	private boolean classified;
+	private boolean showCustomConcepts;
 	private String latestValidationReport;
 	private long contentHeadTimestamp;
+	private Map<String, String> languages;
+	private List<ConceptMini> modules;
 
 	public CodeSystem() {
 	}
@@ -127,6 +129,14 @@ public class CodeSystem {
 
 	public void setClassified(boolean classified) {
 		this.classified = classified;
+	}
+
+	public boolean isShowCustomConcepts() {
+		return showCustomConcepts;
+	}
+
+	public void setShowCustomConcepts(boolean showCustomConcepts) {
+		this.showCustomConcepts = showCustomConcepts;
 	}
 
 	public String getDependencyPackage() {

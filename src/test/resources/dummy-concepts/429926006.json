@@ -1,0 +1,775 @@
+{
+  "conceptId": "429926006",
+  "descendantCount": 1,
+  "fsn": {
+    "term": "Computed tomography of middle ear (procedure)",
+    "lang": "en"
+  },
+  "pt": {
+    "term": "CT of middle ear",
+    "lang": "en"
+  },
+  "active": true,
+  "effectiveTime": "20080731",
+  "released": true,
+  "releasedEffectiveTime": 20080731,
+  "moduleId": "900000000000207008",
+  "definitionStatus": "FULLY_DEFINED",
+  "descriptions": [
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20150131,
+      "descriptionId": "3027367014",
+      "term": "CT of middle ear",
+      "conceptId": "429926006",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {
+        "900000000000509007": "PREFERRED",
+        "900000000000508004": "PREFERRED"
+      },
+      "type": "SYNONYM",
+      "lang": "en",
+      "caseSignificance": "ENTIRE_TERM_CASE_SENSITIVE",
+      "effectiveTime": "20150131"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20080731,
+      "descriptionId": "2765883013",
+      "term": "Computed tomography (CT) of middle ear",
+      "conceptId": "429926006",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {
+        "900000000000509007": "ACCEPTABLE",
+        "900000000000508004": "ACCEPTABLE"
+      },
+      "type": "SYNONYM",
+      "lang": "en",
+      "caseSignificance": "INITIAL_CHARACTER_CASE_INSENSITIVE",
+      "effectiveTime": "20080731"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "descriptionId": "2765882015",
+      "term": "Computed tomography of middle ear",
+      "conceptId": "429926006",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {
+        "900000000000509007": "ACCEPTABLE",
+        "900000000000508004": "ACCEPTABLE"
+      },
+      "type": "SYNONYM",
+      "lang": "en",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20170731"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "descriptionId": "2708071018",
+      "term": "Computed tomography of middle ear (procedure)",
+      "conceptId": "429926006",
+      "typeId": "900000000000003001",
+      "acceptabilityMap": {
+        "900000000000509007": "PREFERRED",
+        "900000000000508004": "PREFERRED"
+      },
+      "type": "FSN",
+      "lang": "en",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20170731"
+    }
+  ],
+  "annotations": [],
+  "classAxioms": [
+    {
+      "axiomId": "9e053e90-3cc5-4d5b-8836-e8798d7cf6a2",
+      "moduleId": "900000000000207008",
+      "active": true,
+      "released": true,
+      "definitionStatusId": "900000000000073002",
+      "relationships": [
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "429926006",
+          "destinationId": "303653007",
+          "typeId": "116680003",
+          "type": {
+            "conceptId": "116680003",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Is a (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Is a",
+              "lang": "en"
+            },
+            "id": "116680003"
+          },
+          "target": {
+            "conceptId": "303653007",
+            "active": true,
+            "definitionStatus": "FULLY_DEFINED",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Computed tomography of head (procedure)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "CT of head",
+              "lang": "en"
+            },
+            "id": "303653007"
+          },
+          "groupId": 0,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "429926006",
+          "destinationId": "312251004",
+          "typeId": "260686004",
+          "type": {
+            "conceptId": "260686004",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Method (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Method",
+              "lang": "en"
+            },
+            "id": "260686004"
+          },
+          "target": {
+            "conceptId": "312251004",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Computed tomography imaging - action (qualifier value)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Computed tomography imaging - action",
+              "lang": "en"
+            },
+            "id": "312251004"
+          },
+          "groupId": 1,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "429926006",
+          "destinationId": "25342003",
+          "typeId": "405813007",
+          "type": {
+            "conceptId": "405813007",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Procedure site - Direct (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Procedure site - Direct",
+              "lang": "en"
+            },
+            "id": "405813007"
+          },
+          "target": {
+            "conceptId": "25342003",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Middle ear structure (body structure)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Middle ear structure",
+              "lang": "en"
+            },
+            "id": "25342003"
+          },
+          "groupId": 1,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        }
+      ],
+      "id": "9e053e90-3cc5-4d5b-8836-e8798d7cf6a2",
+      "definitionStatus": "FULLY_DEFINED",
+      "effectiveTime": 20190731
+    }
+  ],
+  "gciAxioms": [],
+  "relationships": [
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20080731,
+      "relationshipId": "3277926020",
+      "sourceId": "429926006",
+      "destinationId": "303653007",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "303653007",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Computed tomography of head (procedure)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "CT of head",
+          "lang": "en"
+        },
+        "id": "303653007"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20080731",
+      "id": "3277926020"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20080731,
+      "relationshipId": "3277924023",
+      "sourceId": "429926006",
+      "destinationId": "359655004",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "359655004",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Mastoid and middle ear procedure (procedure)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Mastoid and middle ear procedure",
+          "lang": "en"
+        },
+        "id": "359655004"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20080731",
+      "id": "3277924023"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20080731,
+      "relationshipId": "3277928021",
+      "sourceId": "429926006",
+      "destinationId": "118893003",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "118893003",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Procedure on middle ear (procedure)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Procedure on middle ear",
+          "lang": "en"
+        },
+        "id": "118893003"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20080731",
+      "id": "3277928021"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20080731,
+      "relationshipId": "3277927027",
+      "sourceId": "429926006",
+      "destinationId": "420068003",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "420068003",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "X-ray of ear (procedure)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "X-ray of ear",
+          "lang": "en"
+        },
+        "id": "420068003"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20080731",
+      "id": "3277927027"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20090131,
+      "relationshipId": "3524764029",
+      "sourceId": "429926006",
+      "destinationId": "312251004",
+      "typeId": "260686004",
+      "type": {
+        "conceptId": "260686004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Method (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Method",
+          "lang": "en"
+        },
+        "id": "260686004"
+      },
+      "target": {
+        "conceptId": "312251004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Computed tomography imaging - action (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Computed tomography imaging - action",
+          "lang": "en"
+        },
+        "id": "312251004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20090131",
+      "id": "3524764029"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20090131,
+      "relationshipId": "3549035022",
+      "sourceId": "429926006",
+      "destinationId": "25342003",
+      "typeId": "405813007",
+      "type": {
+        "conceptId": "405813007",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Procedure site - Direct (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Procedure site - Direct",
+          "lang": "en"
+        },
+        "id": "405813007"
+      },
+      "target": {
+        "conceptId": "25342003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Middle ear structure (body structure)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Middle ear structure",
+          "lang": "en"
+        },
+        "id": "25342003"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20090131",
+      "id": "3549035022"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "4237839020",
+      "sourceId": "429926006",
+      "destinationId": "303653007",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "303653007",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Computed tomography of head (procedure)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "CT of head",
+          "lang": "en"
+        },
+        "id": "303653007"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "4237839020"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "3277925024",
+      "sourceId": "429926006",
+      "destinationId": "303679003",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "303679003",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Computed tomography of systems (procedure)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "CT of systems",
+          "lang": "en"
+        },
+        "id": "303679003"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "3277925024"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20090131,
+      "relationshipId": "3485882025",
+      "sourceId": "429926006",
+      "destinationId": "312251004",
+      "typeId": "260686004",
+      "type": {
+        "conceptId": "260686004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Method (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Method",
+          "lang": "en"
+        },
+        "id": "260686004"
+      },
+      "target": {
+        "conceptId": "312251004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Computed tomography imaging - action (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Computed tomography imaging - action",
+          "lang": "en"
+        },
+        "id": "312251004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20090131",
+      "id": "3485882025"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "4411273023",
+      "sourceId": "429926006",
+      "destinationId": "312251004",
+      "typeId": "260686004",
+      "type": {
+        "conceptId": "260686004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Method (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Method",
+          "lang": "en"
+        },
+        "id": "260686004"
+      },
+      "target": {
+        "conceptId": "312251004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Computed tomography imaging - action (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Computed tomography imaging - action",
+          "lang": "en"
+        },
+        "id": "312251004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "4411273023"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20090131,
+      "relationshipId": "3485883024",
+      "sourceId": "429926006",
+      "destinationId": "25342003",
+      "typeId": "405813007",
+      "type": {
+        "conceptId": "405813007",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Procedure site - Direct (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Procedure site - Direct",
+          "lang": "en"
+        },
+        "id": "405813007"
+      },
+      "target": {
+        "conceptId": "25342003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Middle ear structure (body structure)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Middle ear structure",
+          "lang": "en"
+        },
+        "id": "25342003"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20090131",
+      "id": "3485883024"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "4510745024",
+      "sourceId": "429926006",
+      "destinationId": "25342003",
+      "typeId": "405813007",
+      "type": {
+        "conceptId": "405813007",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Procedure site - Direct (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Procedure site - Direct",
+          "lang": "en"
+        },
+        "id": "405813007"
+      },
+      "target": {
+        "conceptId": "25342003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Middle ear structure (body structure)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Middle ear structure",
+          "lang": "en"
+        },
+        "id": "25342003"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "4510745024"
+    }
+  ],
+  "alternateIdentifiers": [],
+  "validationResults": []
+}

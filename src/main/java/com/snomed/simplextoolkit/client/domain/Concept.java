@@ -1,8 +1,11 @@
 package com.snomed.simplextoolkit.client.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class Concept extends Component {
 
@@ -52,6 +55,14 @@ public class Concept extends Component {
 		}
 		relationships.add(relationship);
 		return this;
+	}
+
+	@JsonIgnore
+	public String getEnSemanticTag() {
+		Optional<Description> fsn = descriptions.stream().filter(description -> description.isActive() && description.getType() == Description.Type.FSN &&
+				description.getLang().equals("en")).findFirst();
+		String term = fsn.orElse(new Description().setTerm("Finding (finding)")).getTerm();
+		return term.substring(term.lastIndexOf("("));
 	}
 
 	public String getConceptId() {

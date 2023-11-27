@@ -1,5 +1,6 @@
 package com.snomed.simplextoolkit.client.domain;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -32,8 +33,8 @@ public class Description extends Component {
 			}
 			return null;
 		}
-	}
 
+	}
 	public enum Acceptability {
 
 		PREFERRED("900000000000548007"), ACCEPTABLE("900000000000549004");
@@ -52,8 +53,8 @@ public class Description extends Component {
 			}
 			return null;
 		}
-	}
 
+	}
 	public enum CaseSignificance {
 
 		ENTIRE_TERM_CASE_SENSITIVE("900000000000017005"), CASE_INSENSITIVE("900000000000448009"), INITIAL_CHARACTER_CASE_INSENSITIVE("900000000000020002");
@@ -73,13 +74,13 @@ public class Description extends Component {
 			return null;
 		}
 
-	}
 
+	}
 	public Description() {
 	}
 
 	public Description(Type type, String lang, String term, CaseSignificance caseSignificance) {
-		this(type, lang, term, caseSignificance, null);
+		this(type, lang, term, caseSignificance, new HashMap<>());
 	}
 
 	public Description(Type type, String lang, String term, CaseSignificance caseSignificance, String langRefset, Acceptability acceptability) {
@@ -92,6 +93,11 @@ public class Description extends Component {
 		this.term = term;
 		this.caseSignificance = caseSignificance;
 		this.acceptabilityMap = acceptabilityMap;
+	}
+
+	public Description addAcceptability(String langRefsetId, Acceptability acceptability) {
+		acceptabilityMap.put(langRefsetId, acceptability);
+		return this;
 	}
 
 	public String getDescriptionId() {
@@ -126,8 +132,9 @@ public class Description extends Component {
 		return term;
 	}
 
-	public void setTerm(String term) {
+	public Description setTerm(String term) {
 		this.term = term;
+		return this;
 	}
 
 	public CaseSignificance getCaseSignificance() {

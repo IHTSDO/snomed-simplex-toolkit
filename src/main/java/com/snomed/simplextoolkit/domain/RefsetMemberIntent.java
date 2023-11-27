@@ -1,6 +1,6 @@
 package com.snomed.simplextoolkit.domain;
 
-public class RefsetMemberIntent {
+public class RefsetMemberIntent implements ComponentIntent {
 
 	private final String referenceComponentId;
 

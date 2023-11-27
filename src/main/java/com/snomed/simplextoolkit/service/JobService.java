@@ -6,6 +6,7 @@ import com.snomed.simplextoolkit.domain.JobStatus;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContext;
@@ -30,26 +31,14 @@ public class JobService {
 
 	private final ExecutorService jobExecutorService;
 
+	@Autowired
+	private SupportRegister supportRegister;
+
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public JobService(@Value("${job.concurrent.threads}") int nThreads) {
 		codeSystemJobs = new HashMap<>();
 		jobExecutorService = Executors.newFixedThreadPool(nThreads);
-	}
-
-	public AsyncJob queueRefsetContentJob(String codeSystem, String display, InputStream jobInputStream, String refsetId, AsyncFunction<RefsetJob> function) throws IOException {
-		RefsetJob asyncJob = new RefsetJob(codeSystem, display, refsetId);
-		File tempFile = File.createTempFile(asyncJob.getId(), "txt");
-		try (FileOutputStream out = new FileOutputStream(tempFile)) {
-			StreamUtils.copy(jobInputStream, out);
-		}
-		asyncJob.setTempFile(tempFile);
-
-		return doQueueJob(codeSystem, function, asyncJob, () -> {
-			if (!tempFile.delete()) {
-				logger.info("Failed to delete temp file {}", tempFile.getAbsoluteFile());
-			}
-		});
 	}
 
 	public AsyncJob startExternalServiceJob(CodeSystem codeSystem, String display, Consumer<ExternalServiceJob> function) {
@@ -64,7 +53,22 @@ public class JobService {
 		return asyncJob;
 	}
 
-	private AsyncJob doQueueJob(String codeSystem, AsyncFunction function, AsyncJob asyncJob, Runnable onCompleteRunnable) {
+	public AsyncJob queueContentJob(String codeSystem, String display, InputStream jobInputStream, String refsetId, AsyncFunction<ContentJob> function) throws IOException {
+		ContentJob asyncJob = new ContentJob(codeSystem, display, refsetId);
+		File tempFile = File.createTempFile(asyncJob.getId(), "txt");
+		try (FileOutputStream out = new FileOutputStream(tempFile)) {
+			StreamUtils.copy(jobInputStream, out);
+		}
+		asyncJob.setTempFile(tempFile);
+
+		return doQueueJob(codeSystem, function, asyncJob, () -> {
+			if (!tempFile.delete()) {
+				logger.info("Failed to delete temp file {}", tempFile.getAbsoluteFile());
+			}
+		});
+	}
+
+	private <T extends AsyncJob> T doQueueJob(String codeSystem, AsyncFunction<T> function, T asyncJob, Runnable onCompleteRunnable) {
 		// Add job to thread limited executor service to be run when there is capacity
 		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
 		jobExecutorService.submit(() -> {
@@ -77,6 +81,8 @@ public class JobService {
 			} catch (ServiceException e) {
 				asyncJob.setStatus(JobStatus.ERROR);
 				asyncJob.setServiceException(e);
+			} catch (Exception e) {
+				supportRegister.handleSystemIssue(asyncJob, "Unexpected error.", new ServiceException("Unexpected error.", e));
 			} finally {
 				if (onCompleteRunnable != null) {
 					onCompleteRunnable.run();
@@ -98,7 +104,7 @@ public class JobService {
 	public List<AsyncJob> listJobs(String codeSystem, String refsetId) {
 		List<AsyncJob> jobs = new ArrayList<>(codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).values());
 		if (refsetId != null) {
-			jobs = jobs.stream().filter(job -> job instanceof RefsetJob && refsetId.equals(((RefsetJob)job).getRefsetId())).collect(Collectors.toList());
+			jobs = jobs.stream().filter(job -> job instanceof ContentJob && refsetId.equals(((ContentJob)job).getRefsetId())).collect(Collectors.toList());
 		}
 		jobs.sort(Comparator.comparing(AsyncJob::getCreated).reversed());
 		return jobs;

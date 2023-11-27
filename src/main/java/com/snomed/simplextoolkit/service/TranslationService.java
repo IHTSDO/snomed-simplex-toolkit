@@ -120,20 +120,17 @@ public class TranslationService {
 		logger.info("Read translation terms for {} concepts", conceptDescriptions.size());
 		progressMonitor.setRecordsTotal(conceptDescriptions.size());
 
-		int added = 0;
-		int updated = 0;
-		int removed = 0;
-
 		if (conceptDescriptions.isEmpty()) {
 			// No change
 			int activeRefsetMembers = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
-			return new ChangeSummary(added, updated, removed, activeRefsetMembers);
+			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 
 		// Grab language code from first uploaded description
 		String languageCode = conceptDescriptions.values().iterator().next().get(0).getLang();
 		int processed = 0;
 		int batchSize = 500;
+		ChangeSummary changeSummary = new ChangeSummary();
 		for (List<Long> conceptIdBatch : Lists.partition(new ArrayList<>(conceptDescriptions.keySet()), batchSize)) {
 			if (processed > 0 && processed % 1_000 == 0) {
 				logger.info("Processed {} / {}", processed, conceptDescriptions.size());
@@ -141,102 +138,10 @@ public class TranslationService {
 			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
 			List<Concept> conceptsToUpdate = new ArrayList<>();
 			for (Concept concept : concepts) {
-				boolean anyChange = false;
 				List<Description> uploadedDescriptions = conceptDescriptions.get(parseLong(concept.getConceptId()));
-				List<Description> snowstormDescriptions = concept.getDescriptions();
-				snowstormDescriptions.sort(Comparator.comparing(Description::isActive).reversed());
-
-				// Remove any active descriptions in snowstorm with a matching concept, language and lang refset if the term is not in the latest CSV
-				List<Description> toRemove = new ArrayList<>();
-				for (Description snowstormDescription : snowstormDescriptions) {
-					if (snowstormDescription.getLang().equals(languageCode)
-							&& snowstormDescription.isActive()
-							&& snowstormDescription.getAcceptabilityMap().containsKey(languageRefsetId)) {
-
-						if (uploadedDescriptions.stream().noneMatch(uploadedDescription -> uploadedDescription.getTerm().equals(snowstormDescription.getTerm()))) {
-							// Description in Snowstorm does not match any of the uploaded descriptions. Make the Snowstorm description inactive.
-							snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
-							anyChange = true;
-							removed++;// Removed from the language refset
-							changeMonitor.removed(concept.getConceptId(), snowstormDescription.toString());
-
-							// Also suggest that Snowstorm deletes / inactivates this description if not used by any other lang refset
-							if (snowstormDescription.getAcceptabilityMap().isEmpty()) {
-								toRemove.add(snowstormDescription);// Snowstorm will delete or inactivate component depending on release status
-							}
-						}
-					}
-				}
-				snowstormDescriptions.removeAll(toRemove);
-
-				// Add any missing descriptions in the snowstorm concept
-				boolean descriptionChange;
-				for (Description uploadedDescription : uploadedDescriptions) {
-					// Match by language and term only
-					Optional<Description> existingDescriptionOptional = snowstormDescriptions.stream()
-							.filter(d -> d.getLang().equals(languageCode) && d.getTerm().equals(uploadedDescription.getTerm())).findFirst();
-
-					descriptionChange = false;
-
-					if (existingDescriptionOptional.isPresent()) {
-						Description existingDescription = existingDescriptionOptional.get();
-
-						if (!existingDescription.isActive()) {// Reactivation
-							existingDescription.setActive(true);
-							anyChange = true;
-							descriptionChange = true;
-						}
-
-						Description.CaseSignificance uploadedCaseSignificance = uploadedDescription.getCaseSignificance();
-						if (uploadedCaseSignificance != null && existingDescription.getCaseSignificance() != uploadedCaseSignificance) {
-							existingDescription.setCaseSignificance(uploadedCaseSignificance);
-							anyChange = true;
-							descriptionChange = true;
-						}
-
-						Description.Acceptability newAcceptability = uploadedDescription.getAcceptabilityMap().get(languageRefsetId);
-						Description.Acceptability existingAcceptability = existingDescription.getAcceptabilityMap().put(languageRefsetId, newAcceptability);
-						if (newAcceptability != existingAcceptability) {
-							logger.debug("Correcting acceptability of {} '{}' from {} to {}",
-									existingDescription.getDescriptionId(), existingDescription.getTerm(), existingAcceptability, newAcceptability);
-							anyChange = true;
-							descriptionChange = true;
-						}
-
-						if (anyChange) {
-							updated++;
-						}
-						if (descriptionChange) {
-							changeMonitor.updated(concept.getConceptId(), existingDescription.toString());
-						} else {
-							changeMonitor.noChange(concept.getConceptId(), existingDescription.toString());
-						}
-					} else {
-						// no existing match, create new
-						if (uploadedDescription.getCaseSignificance() == null) {
-							Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase, concept.getDescriptions());
-							uploadedDescription.setCaseSignificance(caseSignificance);
-						}
-						snowstormDescriptions.add(uploadedDescription);
-						anyChange = true;
-						added++;
-						changeMonitor.added(concept.getConceptId(), uploadedDescription.toString());
-					}
-				}
-
-				// Remove existing lang refset entries on inactive descriptions
-				for (Description snowstormDescription : snowstormDescriptions) {
-					if (snowstormDescription.getLang().equals(languageCode)
-							&& !snowstormDescription.isActive()
-							&& snowstormDescription.getAcceptabilityMap().containsKey(languageRefsetId)) {
-
-						snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
-						anyChange = true;
-						removed++;// Removed from the language refset
-						changeMonitor.removed(concept.getConceptId(), snowstormDescription.toString());
-						logger.info("Removed redundant lang refset on concept {}, description {}.", concept.getConceptId(), snowstormDescription.getDescriptionId());
-					}
-				}
+				boolean anyChange = updateConceptDescriptions(concept.getConceptId(), concept.getDescriptions(), uploadedDescriptions,
+						languageCode, languageRefsetId, translationTermsUseTitleCase,
+						changeMonitor, changeSummary);
 
 				if (anyChange) {
 					conceptsToUpdate.add(concept);
@@ -244,16 +149,122 @@ public class TranslationService {
 			}
 			if (!conceptsToUpdate.isEmpty()) {
 				logger.info("Updating {} concepts on {}", conceptsToUpdate.size(), codeSystem.getWorkingBranchPath());
-				snowstormClient.updateBrowserFormatConcepts(conceptsToUpdate, codeSystem);
+				snowstormClient.createUpdateBrowserFormatConcepts(conceptsToUpdate, codeSystem);
 			}
 			processed += conceptIdBatch.size();
 			progressMonitor.setRecordsProcessed(processed);
 		}
 
 		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
-		ChangeSummary changeSummary = new ChangeSummary(added, updated, removed, newActiveCount);
+		changeSummary.setNewTotal(newActiveCount);
 		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
 		return changeSummary;
+	}
+
+	public boolean updateConceptDescriptions(String conceptId, List<Description> existingDescriptions, List<Description> uploadedDescriptions,
+			String languageCode, String languageRefsetId, boolean translationTermsUseTitleCase,
+			ChangeMonitor changeMonitor, ChangeSummary changeSummary) throws ServiceException {
+
+		boolean anyChange = false;
+		existingDescriptions.sort(Comparator.comparing(Description::isActive).reversed());
+
+		// Remove any active descriptions in snowstorm with a matching concept, language and lang refset if the term is not in the latest CSV
+		List<Description> toRemove = new ArrayList<>();
+		for (Description snowstormDescription : existingDescriptions) {
+			if (snowstormDescription.getLang().equals(languageCode)
+					&& snowstormDescription.isActive()
+					&& snowstormDescription.getAcceptabilityMap().containsKey(languageRefsetId)) {
+
+				if (uploadedDescriptions.stream().noneMatch(uploadedDescription -> uploadedDescription.getTerm().equals(snowstormDescription.getTerm()))) {
+					// Description in Snowstorm does not match any of the uploaded descriptions. Make the Snowstorm description inactive.
+					snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
+					anyChange = true;
+					changeSummary.incrementRemoved();// Removed from the language refset
+					changeMonitor.removed(conceptId, snowstormDescription.toString());
+
+					// Also suggest that Snowstorm deletes / inactivates this description if not used by any other lang refset
+					if (snowstormDescription.getAcceptabilityMap().isEmpty()) {
+						toRemove.add(snowstormDescription);// Snowstorm will delete or inactivate component depending on release status
+					}
+				}
+			}
+		}
+		existingDescriptions.removeAll(toRemove);
+
+		// Add any missing descriptions in the snowstorm concept
+		boolean descriptionChange;
+		for (Description uploadedDescription : uploadedDescriptions) {
+			// Match by language and term only
+			Optional<Description> existingDescriptionOptional = existingDescriptions.stream()
+					.filter(d -> d.getLang().equals(languageCode) && d.getTerm().equals(uploadedDescription.getTerm())).findFirst();
+
+			descriptionChange = false;
+
+			if (existingDescriptionOptional.isPresent()) {
+				Description existingDescription = existingDescriptionOptional.get();
+
+				if (!existingDescription.isActive()) {// Reactivation
+					existingDescription.setActive(true);
+					anyChange = true;
+					descriptionChange = true;
+				}
+
+				Description.CaseSignificance uploadedCaseSignificance = uploadedDescription.getCaseSignificance();
+				if (uploadedCaseSignificance != null && existingDescription.getCaseSignificance() != uploadedCaseSignificance) {
+					existingDescription.setCaseSignificance(uploadedCaseSignificance);
+					anyChange = true;
+					descriptionChange = true;
+				}
+
+				Description.Acceptability newAcceptability = uploadedDescription.getAcceptabilityMap().get(languageRefsetId);
+				Description.Acceptability existingAcceptability;
+				if (newAcceptability == null) {
+					existingAcceptability = existingDescription.getAcceptabilityMap().remove(languageRefsetId);
+				} else {
+					existingAcceptability = existingDescription.getAcceptabilityMap().put(languageRefsetId, newAcceptability);
+				}
+				if (newAcceptability != existingAcceptability) {
+					logger.debug("Correcting acceptability of {} '{}' from {} to {}",
+							existingDescription.getDescriptionId(), existingDescription.getTerm(), existingAcceptability, newAcceptability);
+					anyChange = true;
+					descriptionChange = true;
+				}
+
+				if (anyChange) {
+					changeSummary.incrementUpdated();
+				}
+				if (descriptionChange) {
+					changeMonitor.updated(conceptId, existingDescription.toString());
+				} else {
+					changeMonitor.noChange(conceptId, existingDescription.toString());
+				}
+			} else {
+				// no existing match, create new
+				if (uploadedDescription.getCaseSignificance() == null) {
+					Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase, existingDescriptions);
+					uploadedDescription.setCaseSignificance(caseSignificance);
+				}
+				existingDescriptions.add(uploadedDescription);
+				anyChange = true;
+				changeSummary.incrementAdded();
+				changeMonitor.added(conceptId, uploadedDescription.toString());
+			}
+		}
+
+		// Remove existing lang refset entries on inactive descriptions
+		for (Description snowstormDescription : existingDescriptions) {
+			if (snowstormDescription.getLang().equals(languageCode)
+					&& !snowstormDescription.isActive()
+					&& snowstormDescription.getAcceptabilityMap().containsKey(languageRefsetId)) {
+
+				snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
+				anyChange = true;
+				changeSummary.incrementRemoved();// Removed from the language refset
+				changeMonitor.removed(conceptId, snowstormDescription.toString());
+				logger.info("Removed redundant lang refset on concept {}, description {}.", conceptId, snowstormDescription.getDescriptionId());
+			}
+		}
+		return anyChange;
 	}
 
 	private CSVOutputChangeMonitor getCsvOutputChangeMonitor() throws ServiceException {

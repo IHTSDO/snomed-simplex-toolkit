@@ -6,5 +6,7 @@ public interface ProgressMonitor {
 
 	void setRecordsProcessed(int recordsProcessed);
 
+	void incrementRecordsProcessed();
+
 	void setProgressPercentageInsteadOfNumber(int progressPercentage);
 }

@@ -84,7 +84,7 @@ class TranslationServiceTest {
 				List.of(new Concept("").setConceptId("880529761000119102"),
 						new Concept("").setConceptId("740215071000132100"),
 						new Concept("").setConceptId("674814021000119106")));
-		Mockito.doNothing().when(mockSnowstormClient).updateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
+		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
 
 		service.uploadTranslationAsWeblateCSV("", "vi", testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"), false,
 				snowstormClientFactory.getClient(), new DummyProgressMonitor());

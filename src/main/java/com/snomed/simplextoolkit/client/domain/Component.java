@@ -28,6 +28,10 @@ public class Component {
 		return released;
 	}
 
+	public void setReleased(boolean released) {
+		this.released = released;
+	}
+
 	public String getModuleId() {
 		return moduleId;
 	}

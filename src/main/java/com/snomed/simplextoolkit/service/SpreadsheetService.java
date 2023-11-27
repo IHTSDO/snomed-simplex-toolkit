@@ -1,10 +1,11 @@
 package com.snomed.simplextoolkit.service;
 
-import com.snomed.simplextoolkit.client.domain.RefsetMember;
-import com.snomed.simplextoolkit.domain.HeaderConfiguration;
-import com.snomed.simplextoolkit.domain.SheetHeader;
-import com.snomed.simplextoolkit.domain.RefsetMemberIntent;
+import com.snomed.simplextoolkit.client.domain.*;
+import com.snomed.simplextoolkit.domain.ComponentIntent;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import com.snomed.simplextoolkit.service.spreadsheet.HeaderConfiguration;
+import com.snomed.simplextoolkit.service.spreadsheet.SheetHeader;
+import com.snomed.simplextoolkit.service.spreadsheet.SheetRowToComponentIntentExtractor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFFont;
@@ -16,12 +17,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static com.snomed.simplextoolkit.client.domain.Concepts.IS_A;
 
 @Service
 public class SpreadsheetService {
@@ -31,16 +35,13 @@ public class SpreadsheetService {
 		BOLD_FONT.setBold(true);
 	}
 
-	public Workbook createSpreadsheet(List<RefsetMember> members, Map<String, Function<RefsetMember, String>> refsetColumns) {
+	public Workbook createRefsetSpreadsheet(List<RefsetMember> members, Map<String, Function<RefsetMember, String>> refsetColumns) {
 		Workbook workbook = new XSSFWorkbook();
 		Sheet sheet = workbook.createSheet();
 
 		// Format all value cells as text.
 		// To prevent them being automatically formatted as number because that can lead to formatting / rounding issues.
-		CellStyle cellStyle = workbook.createCellStyle();
-		cellStyle.setDataFormat((short) BuiltinFormats.getBuiltinFormat("@"));
-		cellStyle.setWrapText(true);// This does not actually cause text to be wrapped, but it's nice to have set anyway.
-		cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+		CellStyle cellStyle = getCellStyle(workbook);
 
 		int rowOffset = 0;
 		Row headerRow = sheet.createRow(rowOffset++);
@@ -63,6 +64,135 @@ public class SpreadsheetService {
 			dataRows.add(row);
 		}
 
+		resizeColumns(sheet, dataRows);
+
+		return workbook;
+	}
+
+	public Workbook createConceptSpreadsheet(List<SheetHeader> headers, List<Concept> concepts, List<ConceptMini> langRefsets) {
+		Workbook workbook = new XSSFWorkbook();
+		Sheet sheet = workbook.createSheet();
+
+		// Format all value cells as text.
+		// To prevent them being automatically formatted as number because that can lead to formatting / rounding issues.
+		CellStyle cellStyle = getCellStyle(workbook);
+
+		int rowOffset = 0;
+		Row headerRow = sheet.createRow(rowOffset++);
+		headerRow.setHeight((short) (headerRow.getHeight() * 4));
+		int columnOffset = 0;
+		for (SheetHeader header : headers) {
+			Cell cell = headerRow.createCell(columnOffset);
+			XSSFRichTextString textString = new XSSFRichTextString();
+			textString.append(header.getName(), BOLD_FONT);
+			if (header.getSubtitle() != null) {
+				textString.append("\r\n");
+				textString.append(header.getSubtitle());
+			}
+			cell.setCellValue(textString);
+			CellStyle cellStyle1 = cell.getCellStyle();
+			cellStyle1.setWrapText(true);
+			cellStyle1.setVerticalAlignment(VerticalAlignment.CENTER);
+			cell.setCellStyle(cellStyle1);
+			columnOffset++;
+		}
+		List<Row> dataRows = new ArrayList<>();
+		for (Concept concept : concepts) {
+			columnOffset = 0;
+			Row row = sheet.createRow(rowOffset++);
+			// Parent Concept Identifier | Parent Concept Term | Concept Identifier | Active | Terms in English, US dialect | [0.*] Terms in X
+			String parentId = "";
+			String parentFSN = "";
+			for (Axiom classAxiom : concept.getClassAxioms()) {
+				for (Relationship relationship : classAxiom.getRelationships()) {
+					if (relationship.getTypeId().equals(IS_A)) {
+						parentId = relationship.getTarget().getConceptId();
+						DescriptionMini fsn = relationship.getTarget().getFsn();
+						parentFSN = fsn != null ? fsn.getTerm() : "";
+					}
+				}
+			}
+
+			Cell cell = row.createCell(columnOffset++);
+			cell.setCellStyle(cellStyle);
+			cell.setCellValue(parentId);
+
+			cell = row.createCell(columnOffset++);
+			cell.setCellStyle(cellStyle);
+			cell.setCellValue(parentFSN);
+
+			cell = row.createCell(columnOffset++);
+			cell.setCellStyle(cellStyle);
+			cell.setCellValue(concept.getConceptId());
+
+			cell = row.createCell(columnOffset++);
+			cell.setCellStyle(cellStyle);
+			cell.setCellValue(concept.isActive() ? "" : "false");
+
+			List<Description> descriptions = concept.getDescriptions();
+			List<String> langRefsetIds = new ArrayList<>();
+			langRefsetIds.add(Concepts.US_LANG_REFSET);
+			langRefsetIds.addAll(langRefsets.stream().map(ConceptMini::getConceptId).toList());
+			Map<String, List<String>> descriptionsPerLangRefset = getDescriptionsPerLangRefset(descriptions, langRefsetIds);
+			int maxTerms = descriptionsPerLangRefset.values().stream().map(List::size).max(Integer::compare).orElse(1);
+			for (int i = 0; i < maxTerms; i++) {
+				if (i > 0) {
+					dataRows.add(row);
+					row = sheet.createRow(rowOffset++);
+				}
+				int termColumnOffset = columnOffset;
+				for (String langRefsetId : langRefsetIds) {
+					List<String> terms = descriptionsPerLangRefset.get(langRefsetId);
+					String term = "";
+					if (terms.size() > i) {
+						term = terms.get(i);
+					}
+					cell = row.createCell(termColumnOffset++);
+					cell.setCellStyle(cellStyle);
+					cell.setCellValue(term);
+					termColumnOffset++;
+				}
+			}
+
+			dataRows.add(row);
+		}
+
+		resizeColumns(sheet, dataRows);
+
+		return workbook;
+	}
+
+	private static Map<String, List<String>> getDescriptionsPerLangRefset(List<Description> descriptions, List<String> langRefsetIds) {
+		Map<String, List<String>> descriptionsPerLangRefset = new HashMap<>();
+		for (String langRefsetId : langRefsetIds) {
+			descriptionsPerLangRefset.put(langRefsetId, new ArrayList<>());
+			// Find PTs
+			for (Description description : descriptions) {
+				if (description.isActive() && description.getType() == Description.Type.SYNONYM
+						&& description.getAcceptabilityMap().get(langRefsetId) == Description.Acceptability.PREFERRED) {
+					descriptionsPerLangRefset.get(langRefsetId).add(description.getTerm());
+				}
+			}
+			// Find synonyms
+			for (Description description : descriptions) {
+				if (description.isActive() && description.getType() == Description.Type.SYNONYM
+						&& description.getAcceptabilityMap().get(langRefsetId) == Description.Acceptability.ACCEPTABLE) {
+					descriptionsPerLangRefset.get(langRefsetId).add(description.getTerm());
+				}
+			}
+		}
+		return descriptionsPerLangRefset;
+	}
+
+	private static CellStyle getCellStyle(Workbook workbook) {
+		CellStyle cellStyle = workbook.createCellStyle();
+		cellStyle.setDataFormat((short) BuiltinFormats.getBuiltinFormat("@"));
+		cellStyle.setWrapText(true);// This does not actually cause text to be wrapped, but it's nice to have set anyway.
+		cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+		return cellStyle;
+	}
+
+	private static void resizeColumns(Sheet sheet, List<Row> dataRows) {
 		for (int col = 0; col < 50; col++) {
 			sheet.autoSizeColumn(col);
 			int columnWidth = sheet.getColumnWidth(col);
@@ -80,16 +210,14 @@ public class SpreadsheetService {
 				}
 			}
 		}
-
-		return workbook;
 	}
 
-	public List<RefsetMemberIntent> readRefsetSpreadsheet(InputStream spreadsheetStream,
-			List<SheetHeader> expectedHeader, RefsetUpdateService.SheetRowToRefsetExtractor memberExtractor) throws ServiceException {
+	public <T extends ComponentIntent> List<T> readComponentSpreadsheet(InputStream spreadsheetStream,
+			List<SheetHeader> expectedHeader, SheetRowToComponentIntentExtractor<T> componentIntentExtractor) throws ServiceException {
 
 		int rowNumber = 0;
 		try {
-			List<RefsetMemberIntent> members = new ArrayList<>();
+			List<T> components = new ArrayList<>();
 			Workbook workbook = new XSSFWorkbook(spreadsheetStream);
 			Sheet sheet = workbook.getSheetAt(0);
 			HeaderConfiguration headerConfiguration = null;
@@ -98,15 +226,15 @@ public class SpreadsheetService {
 				if (headerConfiguration == null) {
 					headerConfiguration = getHeaderConfiguration(cells, expectedHeader);
 				} else {
-					RefsetMemberIntent member = memberExtractor.extract(cells, rowNumber, headerConfiguration);
-					if (member != null) {
-						members.add(member);
+					T componentIntent = componentIntentExtractor.extract(cells, rowNumber, headerConfiguration);
+					if (componentIntent != null) {
+						components.add(componentIntent);
 					}
 				}
 			}
-			return members;
+			return components;
 		} catch (IOException e) {
-			throw new ServiceException(String.format("Failed to read row %s of members file, %s", rowNumber, e.getMessage()));
+			throw new ServiceException(String.format("Failed to read row %s of input file, %s", rowNumber, e.getMessage()));
 		}
 	}
 
@@ -124,6 +252,7 @@ public class SpreadsheetService {
 			Cell actualHeaderCell = actualHeaderRow.getCell(i);
 			if (actualHeaderCell != null) {
 				String lowercaseHeaderName = actualHeaderCell.getStringCellValue().toLowerCase().trim();
+				lowercaseHeaderName = lowercaseHeaderName.split("\n")[0];
 				lowercaseHeaderName = stripBadCharacters(lowercaseHeaderName);
 				SheetHeader matchingExpectedHeader = expectedHeadersRemaining.get(lowercaseHeaderName);
 				if (matchingExpectedHeader != null) {
@@ -136,7 +265,7 @@ public class SpreadsheetService {
 		List<String> mandatoryExpectedHeaderNamesNotFound = expectedHeadersRemaining.values().stream()
 				.filter(header -> !header.isOptional())
 				.map(SheetHeader::getName)
-				.collect(Collectors.toList());
+				.toList();
 		if (!mandatoryExpectedHeaderNamesNotFound.isEmpty()) {
 			throw new ServiceException(String.format("Uploaded spreadsheet has mandatory columns missing. These are: %s. " +
 							"Please add the missing columns with these headings and fill in the row values then try uploading again.",
@@ -151,6 +280,7 @@ public class SpreadsheetService {
 	 */
 	private String stripBadCharacters(String lowercaseHeaderName) {
 		List<Byte> goodCharacters = new ArrayList<>();
+		lowercaseHeaderName = lowercaseHeaderName.replace("\r", "");
 		for (byte aByte : lowercaseHeaderName.getBytes(StandardCharsets.UTF_8)) {
 			if (aByte > 0) {
 				goodCharacters.add(aByte);

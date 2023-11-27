@@ -73,7 +73,7 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
-		return jobService.queueRefsetContentJob(codeSystem, "Translation upload", file.getInputStream(), refsetId,
+		return jobService.queueContentJob(codeSystem, "Translation upload", file.getInputStream(), refsetId,
 				asyncJob -> translationService.uploadTranslationAsWeblateCSV(refsetId, languageCode, theCodeSystem, asyncJob.getInputStream(),
 				translationTermsUseTitleCase, snowstormClient, asyncJob));
 	}
@@ -86,7 +86,7 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
-		return jobService.queueRefsetContentJob(codeSystem, "Translation upload", file.getInputStream(), refsetId,
+		return jobService.queueContentJob(codeSystem, "Translation upload", file.getInputStream(), refsetId,
 				asyncJob -> translationService.uploadTranslationAsRefsetToolArchive(refsetId, theCodeSystem, asyncJob.getInputStream(), snowstormClient, asyncJob));
 	}
 

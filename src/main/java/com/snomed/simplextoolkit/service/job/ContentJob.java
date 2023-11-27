@@ -9,21 +9,26 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
-public class RefsetJob extends AsyncJob implements ProgressMonitor {
+public class ContentJob extends AsyncJob implements ProgressMonitor {
 
 	private int recordsTotal;
 	private int recordsProcessed;
 	private File tempFile;
 	private String refsetId;
 
-	public RefsetJob(String codeSystem, String display, String refsetId) {
+	public ContentJob(String codeSystem, String display, String refsetId) {
 		super(codeSystem, display);
 		this.refsetId = refsetId;
 	}
 
 	@Override
+	public void incrementRecordsProcessed() {
+		recordsProcessed++;
+	}
+
+	@Override
 	public JobType getJobType() {
-		return JobType.REFSET_CHANGE;
+		return JobType.CONCEPT_CHANGE;
 	}
 
 	public int getRecordsTotal() {

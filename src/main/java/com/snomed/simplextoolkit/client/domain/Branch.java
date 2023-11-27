@@ -9,6 +9,7 @@ public class Branch {
 	public static final String CLASSIFIED_METADATA_KEY = "internal.classified";
 	public static final String DEPENDENCY_PACKAGE_METADATA_KEY = "dependencyPackage";
 	public static final String LATEST_VALIDATION_REPORT_METADATA_KEY = "latestValidationReport";
+	public static final String SHOW_CUSTOM_CONCEPTS = "showCustomConcepts";
 
 	private String path;
 	private Long headTimestamp;
