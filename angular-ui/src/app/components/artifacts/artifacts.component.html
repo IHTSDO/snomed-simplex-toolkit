@@ -87,12 +87,15 @@
 
                     <!-- Input for other controls -->
                     <input matInput formControlName="{{controlName}}" *ngIf="controlName !== 'type'">
-                    <button *ngIf="form.controls[controlName]['value'] && controlName !== 'type'" matSuffix mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')">
+                    <button *ngIf="form.controls[controlName]['value'] && controlName !== 'type'" matSuffix 
+                        mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
+                        [disabled]= "form.get('type').value === 'concepts'">
                         <mat-icon>close</mat-icon>
                     </button>
 
                     <!-- Mat Select for 'type' control -->
                     <mat-select *ngIf="controlName === 'type'" formControlName="type">
+                        <mat-option *ngIf="!showConceptsArtifact" value="concepts">Concepts</mat-option>
                         <mat-option *ngFor="let type of artifactTypes" [value]="type">{{type | titlecase}}</mat-option>
                     </mat-select>
         

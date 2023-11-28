@@ -61,6 +61,14 @@ export class SimplexService {
     return this.http.post(`/api/${edition}/translations`, translation).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public showCustomConcepts(edition: string): Observable<any> {
+    return this.http.post(`/api/${edition}/concepts/show`, {}).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public hideCustomConcepts(edition: string): Observable<any> {
+    return this.http.post(`/api/${edition}/concepts/hide`, {}).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public deleteEdition(edition: string): Observable<any> {
     return this.http.delete(`/api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
   }

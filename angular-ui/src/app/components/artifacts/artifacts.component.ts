@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom, Subject } from 'rxjs';
@@ -10,7 +10,7 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
   templateUrl: './artifacts.component.html',
   styleUrls: ['./artifacts.component.scss']
 })
-export class ArtifactsComponent implements OnChanges, OnDestroy {
+export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   @Input() edition: string;
   
   subsets = [];
@@ -42,11 +42,30 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
               private simplexService: SimplexService,
               private snackBar: MatSnackBar) {}
 
+  ngOnInit() {
+    this.form.get('type').valueChanges.subscribe(value => {
+      this.toggleFormControls(value);
+    });
+  }
+
   ngOnChanges(changes: SimpleChanges) {
     if (changes['edition'] && changes['edition'].currentValue) {
       this.loadArtifacts(changes['edition'].currentValue);
       this.selectedArtifact = null;
     }
+  }
+
+  toggleFormControls(typeValue: string) {
+    this.formKeys.forEach(controlName => {
+      if (controlName !== 'type') {
+        const control = this.form.get(controlName);
+        if (typeValue === 'concepts') {
+          control.disable();
+        } else {
+          control.enable();
+        }
+      }
+    });
   }
 
   loadArtifacts(edition: string) {
@@ -173,6 +192,23 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
             }
           );
           break;
+      case 'concepts':
+          lastValueFrom(this.simplexService.showCustomConcepts(this.edition)).then(
+            (edition) => {
+              this.saving = false;
+              this.form.reset();
+              this.newArtifactMode = false;
+              this.loadArtifacts(this.edition);
+            },
+            (error) => {
+              console.error(error);
+              this.saving = false;
+              this.snackBar.open('Failed to enable custom concepts', 'Dismiss', {
+                duration: 5000
+              });
+            }
+          );
+          break;        
       }
     }
   }
