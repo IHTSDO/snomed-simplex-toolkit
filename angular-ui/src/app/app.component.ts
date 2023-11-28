@@ -8,6 +8,8 @@ import { ToastrService } from 'ngx-toastr';
 import {ModalService} from "./services/modal/modal.service";
 import {Subscription} from "rxjs";
 import {NewCodesystem} from "./models/codesystem";
+import { UiConfigurationService } from './services/ui-configuration/ui-configuration.service';
+import { SimplexService } from './services/simplex/simplex.service';
 
 @Component({
     selector: 'app-root',
@@ -32,13 +34,15 @@ export class AppComponent implements OnInit {
                 private envService: EnvService,
                 private toastr: ToastrService,
                 private titleService: Title,
-                private modalService: ModalService) {
+                private modalService: ModalService,
+                private simplexService: SimplexService) {
     }
 
-    ngOnInit() {
+    async ngOnInit() {
         this.titleService.setTitle('SNOMED CT Snowstorm Admin');
         this.environment = this.envService.env;
         this.assignFavicon();
+        this.simplexService.refreshUIConfiguration();
     }
 
     assignFavicon() {

@@ -3,17 +3,19 @@ import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SimplexService {
 
-  constructor(private http: HttpClient, private snackBar: MatSnackBar) { }
+  constructor(private http: HttpClient, private snackBar: MatSnackBar, private uiConfigurationService: UiConfigurationService) { }
 
   private handleError(error: HttpErrorResponse) {
     if (error.status === 403) {
-      const redirectUrl = `https://dev-ims.ihtsdotools.org/#/login?serviceReferer=${window.location.href}`;
+      let config: any = this.uiConfigurationService.getConfiguration();
+      const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href}`;
       window.location.href = redirectUrl;
     } else if (error.status === 504) {
       this.snackBar.open(`Error: Can't contact simplex server`, 'Dismiss', {
@@ -23,6 +25,12 @@ export class SimplexService {
     // Return an observable with a user-facing error message
     console.error(error)
     return throwError('Something went wrong; please try again later.');
+  }
+
+  public refreshUIConfiguration(): void {
+    this.http.get('/api/ui-configuration').subscribe((config) => {
+      this.uiConfigurationService.setConfiguration(config);
+    });
   }
 
   public getEditions(): Observable<any> {
@@ -117,7 +125,6 @@ export class SimplexService {
 
   // New download method
   public downloadConceptsSpreadsheet(edition: string): Observable<Blob> {
-    console.log('downloadConceptsSpreadsheet');
     const apiUrl = `/api/${edition}/concepts/spreadsheet`;
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
       catchError(this.handleError.bind(this))
