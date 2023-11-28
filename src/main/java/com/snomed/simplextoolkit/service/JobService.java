@@ -101,13 +101,13 @@ public class JobService {
 		}
 	}
 
-	public List<AsyncJob> listJobs(String codeSystem, String refsetId) {
+	public List<AsyncJob> listJobs(String codeSystem, String refsetId, JobType jobType) {
 		List<AsyncJob> jobs = new ArrayList<>(codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).values());
-		if (refsetId != null) {
-			jobs = jobs.stream().filter(job -> job instanceof ContentJob && refsetId.equals(((ContentJob)job).getRefsetId())).collect(Collectors.toList());
-		}
-		jobs.sort(Comparator.comparing(AsyncJob::getCreated).reversed());
-		return jobs;
+		return jobs.stream()
+				.filter(job -> jobType == null || job.getJobType() == jobType)
+				.filter(job -> refsetId == null || (job instanceof ContentJob && refsetId.equals(((ContentJob)job).getRefsetId())))
+				.sorted(Comparator.comparing(AsyncJob::getCreated).reversed())
+				.toList();
 	}
 
 	@Scheduled(fixedDelay = 3_600_000)// Every hour
