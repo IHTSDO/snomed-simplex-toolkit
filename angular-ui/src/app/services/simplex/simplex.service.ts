@@ -131,7 +131,11 @@ export class SimplexService {
   }
 
   public getJobs(edition: string, refsetId: string): Observable<any> {
-    return this.http.get(`/api/${edition}/jobs?refsetId=${refsetId}`).pipe(catchError(this.handleError.bind(this)));
+    if (refsetId === 'concepts') {
+      return this.http.get(`/api/${edition}/jobs?jobType=CONCEPT_CHANGE`).pipe(catchError(this.handleError.bind(this)));
+    } else {
+      return this.http.get(`/api/${edition}/jobs?refsetId=${refsetId}`).pipe(catchError(this.handleError.bind(this)));
+    }
   }
   
 }

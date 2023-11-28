@@ -107,6 +107,9 @@ export class JobsComponent implements OnChanges, OnInit {
   }
 
   downloadConceptsSpreadsheet() {
+    this.snackBar.open(`Requesting spreadsheet. The download will start soon.`, 'Dismiss', {
+      duration: 5000
+    });
     this.simplexService.downloadConceptsSpreadsheet(this.edition).subscribe(
       (fileBlob: Blob) => {
         const filename = 'conceptsSpreadsheet.xlsx'; // Example filename
@@ -114,6 +117,9 @@ export class JobsComponent implements OnChanges, OnInit {
       },
       error => {
         console.error('Download failed:', error);
+        this.snackBar.open(`Download failed`, 'Dismiss', {
+          duration: 5000
+        });
       }
     );
   }
