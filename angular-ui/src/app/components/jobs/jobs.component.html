@@ -1,5 +1,8 @@
 <h4>Imports</h4>
-
+<button mat-button color="primary" id="downloadConceptsSpreadsheet" (click)="downloadConceptsSpreadsheet()" *ngIf="selectedFileType == 'conceptsSpreadsheet'">
+    <span>Download</span><br>
+    <span>Concepts</span>
+</button>
 <div class="row">
     <mat-form-field>
         <mat-label>File type</mat-label>

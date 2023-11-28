@@ -100,6 +100,32 @@ export class SimplexService {
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public uploadConceptsSpreadsheet(edition: string, file: File): Observable<any> {
+    const formData: FormData = new FormData();
+    formData.append('file', file, file.name);
+    const apiUrl = `/api/${edition}/concepts/spreadsheet`;
+    return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  // New download method
+  public downloadConceptsSpreadsheet(edition: string): Observable<Blob> {
+    console.log('downloadConceptsSpreadsheet');
+    const apiUrl = `/api/${edition}/concepts/spreadsheet`;
+    return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
+      catchError(this.handleError.bind(this))
+    );
+  }
+
+  // Method to trigger file download in the browser
+  public triggerDownload(file: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(file);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    window.URL.revokeObjectURL(url);
+  }
+
   public startClassification(edition: string): Observable<any> {
     return this.http.post(`/api/codesystems/${edition}/classify`, null).pipe(catchError(this.handleError.bind(this)));
   }

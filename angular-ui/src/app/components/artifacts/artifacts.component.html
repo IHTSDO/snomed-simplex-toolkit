@@ -3,6 +3,12 @@
         <h4>Edition Artifacts</h4>
         <div>
             <mat-list id="components-list">
+                <mat-list-item *ngIf="showConceptsArtifact" (click)="onClick(conceptsArtifact, 'concepts')" class="hoverable-item" matRipple
+                [ngClass]="{ 'selected': conceptsArtifact.conceptId === selectedArtifact?.conceptId }">
+                    {{ conceptsArtifact.pt.term }} 
+                    <span class="pill pill-purple">Concepts</span>
+                    <span class="artifact-info">{{conceptsArtifact.count}} records</span>
+                </mat-list-item>
                 <mat-list-item *ngFor="let item of translations" (click)="onClick(item, 'translation')" class="hoverable-item" matRipple
                 [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
                     {{ item.pt.term }} 

@@ -17,6 +17,13 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
   translations = [];
   maps = [];
   private cancelOngoingRequests$ = new Subject<void>();
+  showConceptsArtifact: boolean = false;
+  conceptsArtifact: any = { 
+    conceptId: 'concepts', 
+    fsn: { term:'Simple extension concepts' },
+    pt: { term:'Simple extension concepts' }, 
+    count: 0 
+  };
 
   selectedArtifact = null;
   newArtifactMode = false;
@@ -45,11 +52,19 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
   loadArtifacts(edition: string) {
     // Cancel ongoing requests
     this.cancelOngoingRequests$.next();
-
+    this.loadConceptsArtifact(edition);
     this.loadSubsets(edition);
     this.loadTranslations(edition);
     this.loadMaps(edition);
   }
+
+  loadConceptsArtifact(conceptId: string) {
+    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
+      (edition) => {
+        this.showConceptsArtifact = edition?.showCustomConcepts;
+      }
+    )
+  }    
 
   loadSubsets(edition: string) {
     this.subsets = [];
@@ -170,6 +185,8 @@ export class ArtifactsComponent implements OnChanges, OnDestroy {
         return 'pill-yellow';
       case 'translation':
         return 'pill-blue';
+      case 'concepts':
+        return 'pill-purple';
       default:
         return '';  // Default
   

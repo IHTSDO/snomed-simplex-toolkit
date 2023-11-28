@@ -25,7 +25,8 @@ export class JobsComponent implements OnChanges, OnInit {
     // {value: 'mapSpreadsheet', viewValue: 'Spreadsheet Map', artifactTypes: ['map']},
     {value: 'mapSpreadsheet', viewValue: 'Snap2SNOMED Map', artifactTypes: ['map']},
     {value: 'refsetToolTranslation', viewValue: 'Refset Tool Translation', artifactTypes: ['translation']},
-    {value: 'weblateTranslation', viewValue: 'Weblate Translation', artifactTypes: ['translation']}
+    {value: 'weblateTranslation', viewValue: 'Weblate Translation', artifactTypes: ['translation']},
+    {value: 'conceptsSpreadsheet', viewValue: 'Concepts Sppreadsheet', artifactTypes: ['concepts']}
   ];
   selectedLanguageCode: '';
 
@@ -104,6 +105,18 @@ export class JobsComponent implements OnChanges, OnInit {
       this.selectedFile = input.files[0];
     }
   }
+
+  downloadConceptsSpreadsheet() {
+    this.simplexService.downloadConceptsSpreadsheet(this.edition).subscribe(
+      (fileBlob: Blob) => {
+        const filename = 'conceptsSpreadsheet.xlsx'; // Example filename
+        this.simplexService.triggerDownload(fileBlob, filename);
+      },
+      error => {
+        console.error('Download failed:', error);
+      }
+    );
+  }
   
   async uploadFile(refsetId: string, componentType: string, fileType: string): Promise<void> {
     if (this.selectedFile && this.edition && componentType && fileType) {
@@ -141,6 +154,13 @@ export class JobsComponent implements OnChanges, OnInit {
             } else if (componentType === 'map' && fileType === 'mapSpreadsheet') {
               const response = await lastValueFrom(
                   this.simplexService.uploadSpreadsheetMap(this.edition, refsetId, this.selectedFile)
+              );
+              this.selectedFile = null;
+              this.loadJobs(false);
+              this.alert('File import job created');
+            } else if (componentType === 'concepts' && fileType === 'conceptsSpreadsheet') {
+              const response = await lastValueFrom(
+                  this.simplexService.uploadConceptsSpreadsheet(this.edition, this.selectedFile)
               );
               this.selectedFile = null;
               this.loadJobs(false);
