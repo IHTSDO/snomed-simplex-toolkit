@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.domain.*;
 import com.snomed.simplextoolkit.domain.ConceptIntent;
+import com.snomed.simplextoolkit.domain.Page;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.service.job.ChangeSummary;
 import com.snomed.simplextoolkit.service.job.ContentJob;
@@ -44,11 +45,16 @@ public class CustomConceptService {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
+	public Page<ConceptMini> findCustomConcepts(CodeSystem codeSystem, SnowstormClient snowstormClient, int offset, int limit) throws ServiceException {
+		String defaultModule = codeSystem.getDefaultModuleOrThrow();
+		return snowstormClient.findConceptsByModule(codeSystem, defaultModule, offset, limit);
+	}
+
 	public void downloadSpreadsheet(CodeSystem codeSystem, SnowstormClient snowstormClient, ServletOutputStream outputStream) throws ServiceException {
 		logger.info("Creating custom concept spreadsheet for {}", codeSystem.getShortName());
 		List<ConceptMini> langRefsets = translationService.listTranslations(codeSystem, snowstormClient);
 		String defaultModule = codeSystem.getDefaultModule();
-		List<Long> conceptIds = snowstormClient.findConceptsByModule(codeSystem, defaultModule).stream().map(ConceptMini::getConceptId).map(Long::parseLong).toList();
+		List<Long> conceptIds = snowstormClient.findAllConceptsByModule(codeSystem, defaultModule).stream().map(ConceptMini::getConceptId).map(Long::parseLong).toList();
 		List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
 		try (Workbook workbook = spreadsheetService.createConceptSpreadsheet(getInputSheetHeaders(translationService.listTranslations(codeSystem, snowstormClient)), concepts, langRefsets)) {
 			workbook.write(outputStream);

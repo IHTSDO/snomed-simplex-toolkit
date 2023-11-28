@@ -425,21 +425,27 @@ public class SnowstormClient {
 		return termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? CASE_INSENSITIVE : ENTIRE_TERM_CASE_SENSITIVE;
 	}
 
-	public List<ConceptMini> findConceptsByModule(CodeSystem codeSystem, String module) {
+	public List<ConceptMini> findAllConceptsByModule(CodeSystem codeSystem, String module) {
 		List<ConceptMini> completeList = new ArrayList<>();
 		int offset = 0;
 		int limit = 1000;
 		int loadedSize;
 		do {
-			ParameterizedTypeReference<Page<ConceptMini>> listOfConceptMinis = new ParameterizedTypeReference<>() {};
-			ResponseEntity<Page<ConceptMini>> exchange = restTemplate.exchange(format("/%s/concepts?module=%s&offset=%s&limit=%s", codeSystem.getWorkingBranchPath(), module, offset, limit), HttpMethod.GET, null,
-					listOfConceptMinis);
-			List<ConceptMini> page = exchange.getBody().getItems();
-			loadedSize = page.size();
-			completeList.addAll(page);
+			Page<ConceptMini> page = findConceptsByModule(codeSystem, module, offset, limit);
+			List<ConceptMini> list = page.getItems();
+			loadedSize = list.size();
+			completeList.addAll(list);
 			offset += limit;
 		} while (loadedSize == 1000);
 		return completeList;
+	}
+
+	public Page<ConceptMini> findConceptsByModule(CodeSystem codeSystem, String module, int offset, int limit) {
+		ParameterizedTypeReference<Page<ConceptMini>> listOfConceptMinisType = new ParameterizedTypeReference<>() {};
+		ResponseEntity<Page<ConceptMini>> exchange = restTemplate.exchange(
+				format("/%s/concepts?module=%s&offset=%s&limit=%s", codeSystem.getWorkingBranchPath(), module, offset, limit), HttpMethod.GET, null,
+				listOfConceptMinisType);
+		return exchange.getBody();
 	}
 
 	public List<Concept> loadBrowserFormatConcepts(List<Long> conceptIds, CodeSystem codeSystem) {

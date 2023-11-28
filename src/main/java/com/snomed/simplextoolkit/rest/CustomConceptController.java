@@ -4,6 +4,8 @@ import com.snomed.simplextoolkit.client.SnowstormClient;
 import com.snomed.simplextoolkit.client.SnowstormClientFactory;
 import com.snomed.simplextoolkit.client.domain.Branch;
 import com.snomed.simplextoolkit.client.domain.CodeSystem;
+import com.snomed.simplextoolkit.client.domain.ConceptMini;
+import com.snomed.simplextoolkit.domain.Page;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import com.snomed.simplextoolkit.service.CustomConceptService;
 import com.snomed.simplextoolkit.service.JobService;
@@ -31,6 +33,15 @@ public class CustomConceptController {
 
 	@Autowired
 	private JobService jobService;
+
+	@GetMapping
+	public Page<ConceptMini> findAll(@PathVariable String codeSystem,
+			@RequestParam(required = false, defaultValue = "0") int offset, @RequestParam(required = false, defaultValue = "100") int limit) throws ServiceException {
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return customConceptService.findCustomConcepts(theCodeSystem, snowstormClient, offset, limit);
+	}
 
 	@GetMapping(path = "/spreadsheet", produces="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	public void downloadCustomConceptSpreadsheet(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException, IOException {
