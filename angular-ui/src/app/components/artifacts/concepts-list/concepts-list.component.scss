@@ -2,5 +2,18 @@
     display: flex;
     align-items: center;
     justify-content: flex-end; /* Adjust as needed */
-  }
+}
+
+.skeleton-loader {
+  height: 16px;
+  width: 100%;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+}
   

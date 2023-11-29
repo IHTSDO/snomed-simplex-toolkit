@@ -17,6 +17,7 @@ export class ConceptsListComponent implements OnChanges {
   displayedColumns: string[] = ['conceptId', 'term', 'action'];
   concepts: any[] = [];
   loading = false;
+  loadingData = new Array(5); // Create an array with 5 empty elements for skeleton loader
   offset = 0;
   limit = 5;
   
