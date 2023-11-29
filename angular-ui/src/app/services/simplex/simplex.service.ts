@@ -131,6 +131,13 @@ export class SimplexService {
     );
   }
 
+  public downloadRefsetSpreadsheet(edition: string, refsetId: string ): Observable<Blob> {
+    const apiUrl = `/api/${edition}/refsets/simple/${refsetId}/spreadsheet`;
+    return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
+      catchError(this.handleError.bind(this))
+    );
+  }
+
   // Method to trigger file download in the browser
   public triggerDownload(file: Blob, filename: string): void {
     const url = window.URL.createObjectURL(file);

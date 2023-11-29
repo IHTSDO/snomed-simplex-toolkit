@@ -123,6 +123,24 @@ export class JobsComponent implements OnChanges, OnInit {
       }
     );
   }
+
+  downloadRefsetsSpreadsheet() {
+    this.snackBar.open(`Requesting spreadsheet. The download will start soon.`, 'Dismiss', {
+      duration: 5000
+    });
+    this.simplexService.downloadRefsetSpreadsheet(this.edition, this.artifact.conceptId).subscribe(
+      (fileBlob: Blob) => {
+        const filename = 'refsetSpreadsheet.xlsx'; // Example filename
+        this.simplexService.triggerDownload(fileBlob, filename);
+      },
+      error => {
+        console.error('Download failed:', error);
+        this.snackBar.open(`Download failed`, 'Dismiss', {
+          duration: 5000
+        });
+      }
+    );
+  }
   
   async uploadFile(refsetId: string, componentType: string, fileType: string): Promise<void> {
     if (this.selectedFile && this.edition && componentType && fileType) {
