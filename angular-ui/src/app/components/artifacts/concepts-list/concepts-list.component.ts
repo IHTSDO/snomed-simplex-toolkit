@@ -17,15 +17,20 @@ export class ConceptsListComponent implements OnChanges {
   displayedColumns: string[] = ['conceptId', 'term', 'action'];
   concepts: any[] = [];
   loading = false;
-  loadingData = new Array(5); // Create an array with 5 empty elements for skeleton loader
+  loadingData = [];
   offset = 0;
   limit = 5;
   
   @ViewChild(MatPaginator) paginator: MatPaginator;
 
   constructor(private simplexService: SimplexService,
-    private snackBar: MatSnackBar) {}
+    private snackBar: MatSnackBar) {
+      this.initializeLoadingData();
+    }
 
+  initializeLoadingData() {
+    this.loadingData = new Array(this.limit).fill({}); // Create an array with 'limit' empty elements
+  }
 
   loadConcepts() {
     this.loading = true;
@@ -50,6 +55,7 @@ export class ConceptsListComponent implements OnChanges {
   onPageChange(event: PageEvent) {
     this.limit = event.pageSize;
     this.offset = event.pageIndex * event.pageSize;
+    this.initializeLoadingData();
     this.loadConcepts();
   }
 
