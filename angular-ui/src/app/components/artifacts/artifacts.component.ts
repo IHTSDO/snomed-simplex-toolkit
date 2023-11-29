@@ -22,7 +22,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
     conceptId: 'concepts', 
     fsn: { term:'Simple extension concepts' },
     pt: { term:'Simple extension concepts' }, 
-    count: 0 
+    count: '-' 
   };
 
   selectedArtifact = null;
@@ -81,6 +81,15 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
     lastValueFrom(this.simplexService.getEdition(this.edition)).then(
       (edition) => {
         this.showConceptsArtifact = edition?.showCustomConcepts;
+        if (this.showConceptsArtifact) {
+          console.log("showConceptsArtifact");
+          lastValueFrom(this.simplexService.getConcepts(this.edition,0,1)).then(
+            (concepts) => {
+              console.log("concepts", concepts);
+              this.conceptsArtifact.count = concepts.total;
+            }
+          )
+        }
       }
     )
   }    
