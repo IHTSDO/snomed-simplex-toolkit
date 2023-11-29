@@ -82,10 +82,8 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
       (edition) => {
         this.showConceptsArtifact = edition?.showCustomConcepts;
         if (this.showConceptsArtifact) {
-          console.log("showConceptsArtifact");
           lastValueFrom(this.simplexService.getConcepts(this.edition,0,1)).then(
             (concepts) => {
-              console.log("concepts", concepts);
               this.conceptsArtifact.count = concepts.total;
             }
           )

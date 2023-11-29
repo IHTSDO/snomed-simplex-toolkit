@@ -47,7 +47,26 @@ mat-form-field:last-child {
     margin-right: 0;
 }
 
-#downloadConceptsSpreadsheet {
-    float: right;
+.step-row {
+    display: flex;
+    align-items: center; /* this will vertically align the fields if they have different heights */
+    justify-content: start;
+    margin: 2rem;
+    gap: 2rem;
+    // font-size: 22px;
 }
 
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    background-color: rgb(72, 72, 220);
+    color: white;
+    border-radius: 50%;
+    font-family: 'Courier New', monospace;
+    font-size: larger;
+    font-weight: bold;
+  }
+  

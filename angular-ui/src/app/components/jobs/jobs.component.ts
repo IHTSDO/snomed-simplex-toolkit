@@ -26,7 +26,7 @@ export class JobsComponent implements OnChanges, OnInit {
     {value: 'mapSpreadsheet', viewValue: 'Snap2SNOMED Map', artifactTypes: ['map']},
     {value: 'refsetToolTranslation', viewValue: 'Refset Tool Translation', artifactTypes: ['translation']},
     {value: 'weblateTranslation', viewValue: 'Weblate Translation', artifactTypes: ['translation']},
-    {value: 'conceptsSpreadsheet', viewValue: 'Concepts Sppreadsheet', artifactTypes: ['concepts']}
+    {value: 'conceptsSpreadsheet', viewValue: 'Concepts Spreadsheet', artifactTypes: ['concepts']}
   ];
   selectedLanguageCode: '';
 
