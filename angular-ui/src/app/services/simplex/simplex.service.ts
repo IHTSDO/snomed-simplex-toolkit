@@ -1,7 +1,7 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
 
@@ -139,6 +139,13 @@ export class SimplexService {
     anchor.download = filename;
     anchor.click();
     window.URL.revokeObjectURL(url);
+  }
+
+  public getConcepts(edition: string, offset?: number, limit?: number): Observable<any> {
+    if (!offset) offset = 0;
+    if (!limit) limit = 100;
+    const url = `/api/${edition}/concepts?offset=${offset}&limit=${limit}`;
+    return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
   }
 
   public startClassification(edition: string): Observable<any> {

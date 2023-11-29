@@ -1,0 +1,21 @@
+<table mat-table [dataSource]="concepts">
+
+    <!--- Note that these columns can be defined in any order.
+          The actual rendered columns are set as a property on the row definition" -->
+  
+    <!-- ConceptId Column -->
+    <ng-container matColumnDef="conceptId">
+      <th mat-header-cell *matHeaderCellDef> ConceptId </th>
+      <td mat-cell *matCellDef="let element"> {{ element.conceptId }} </td>
+    </ng-container>
+  
+    <!-- Term Column -->
+    <ng-container matColumnDef="term">
+      <th mat-header-cell *matHeaderCellDef> Term </th>
+      <td mat-cell *matCellDef="let element"> {{ element.fsn?.term }} </td>
+    </ng-container>
+  
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>
+<mat-spinner [diameter]="20" *ngIf="loading" class="loading-spinner"></mat-spinner>

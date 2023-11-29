@@ -42,39 +42,42 @@
                 <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">{{ selectedArtifact?.type | titlecase }}</span>
             </h3>
             <br><br>
-            <div class="component-row">
-                <div class="component-col align-right">
-                    <span class="details-field-name"></span>
+            <div *ngIf="selectedArtifact?.type != 'concepts'">
+                <div class="component-row">
+                    <div class="component-col align-right">
+                        <span class="details-field-name"></span>
+                    </div>
+                    <div class="component-col">
+                        <span class="details-field-value"><a href="javascript:void(0);" (click)="browseToConcept(selectedArtifact.conceptId)">Open in Browser Tab</a></span>
+                    </div>
                 </div>
-                <div class="component-col">
-                    <span class="details-field-value"><a href="javascript:void(0);" (click)="browseToConcept(selectedArtifact.conceptId)">Open in Browser Tab</a></span>
+                <div class="component-row">
+                    <div class="component-col align-right">
+                        <span class="details-field-name">Fully specified name</span>
+                    </div>
+                    <div class="component-col">
+                        <span class="details-field-value">{{ selectedArtifact.fsn.term }}</span>
+                    </div>
                 </div>
-            </div>
-            <div class="component-row">
-                <div class="component-col align-right">
-                    <span class="details-field-name">Fully specified name</span>
+                <div class="component-row">
+                    <div class="component-col align-right">
+                        <span class="details-field-name">{{ selectedArtifact.type | titlecase }} identifier</span>
+                    </div>
+                    <div class="component-col">
+                        <span class="details-field-value">{{ selectedArtifact.conceptId }}</span>
+                    </div>
                 </div>
-                <div class="component-col">
-                    <span class="details-field-value">{{ selectedArtifact.fsn.term }}</span>
-                </div>
-            </div>
-            <div class="component-row">
-                <div class="component-col align-right">
-                    <span class="details-field-name">{{ selectedArtifact.type | titlecase }} identifier</span>
-                </div>
-                <div class="component-col">
-                    <span class="details-field-value">{{ selectedArtifact.conceptId }}</span>
-                </div>
-            </div>
-            <div class="component-row">
-                <div class="component-col align-right">
-                    <span class="details-field-name">Active member count</span>
-                </div>
-                <div class="component-col">
-                    <span class="details-field-value">{{ selectedArtifact.activeMemberCount }}</span>
+                <div class="component-row">
+                    <div class="component-col align-right">
+                        <span class="details-field-name">Active member count</span>
+                    </div>
+                    <div class="component-col">
+                        <span class="details-field-value">{{ selectedArtifact.activeMemberCount }}</span>
+                    </div>
                 </div>
             </div>
 
+            <app-concepts-list *ngIf="selectedArtifact.type === 'concepts'" [edition]="edition"></app-concepts-list>
             <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition"></app-jobs>
 
         </div>

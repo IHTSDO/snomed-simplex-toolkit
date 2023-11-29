@@ -55,6 +55,7 @@ import { ArtifactsComponent } from './components/artifacts/artifacts.component';
 import {MatSelectModule} from '@angular/material/select';
 import { JobsComponent } from './components/jobs/jobs.component';
 import { TimeAgoPipe } from './pipes/timeAgo/time-ago.pipe';
+import { ConceptsListComponent } from './components/artifacts/concepts-list/concepts-list.component';
 
 // SERVICE IMPORTS
 
@@ -88,7 +89,8 @@ import { TimeAgoPipe } from './pipes/timeAgo/time-ago.pipe';
         CamelToTitlePipe,
         ArtifactsComponent,
         JobsComponent,
-        TimeAgoPipe
+        TimeAgoPipe,
+        ConceptsListComponent
         ],
     imports: [
         BrowserModule,
