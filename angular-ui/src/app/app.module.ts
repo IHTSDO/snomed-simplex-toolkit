@@ -56,6 +56,7 @@ import {MatSelectModule} from '@angular/material/select';
 import { JobsComponent } from './components/jobs/jobs.component';
 import { TimeAgoPipe } from './pipes/timeAgo/time-ago.pipe';
 import { ConceptsListComponent } from './components/artifacts/concepts-list/concepts-list.component';
+import { MatPaginatorModule } from '@angular/material/paginator';
 
 // SERVICE IMPORTS
 
@@ -111,7 +112,8 @@ import { ConceptsListComponent } from './components/artifacts/concepts-list/conc
         MatInputModule,
         MatProgressSpinnerModule,
         MatSnackBarModule,
-        MatSelectModule
+        MatSelectModule,
+        MatPaginatorModule
     ],
     providers: [
         AuthenticationService,
