@@ -31,7 +31,7 @@
     <th mat-header-cell *matHeaderCellDef></th>
     <td mat-cell *matCellDef="let element">
       <ng-container *ngIf="!loading; else loadingAction">
-        <a href="javascript:void(0);" (click)="browseToConcept(element.conceptId)">Open in Browser Tab</a>
+        <a href="javascript:void(0);" (click)="browseToConcept(element.conceptId)">Open in Browser</a>
       </ng-container>
       <ng-template #loadingAction>
         <div class="skeleton-loader" style="width: 50%;"></div>

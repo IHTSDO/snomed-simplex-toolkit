@@ -37,7 +37,7 @@
             Select an artifact to view details
         </p>
         <div *ngIf="!newArtifactMode && selectedArtifact">
-            <h3 style="font-size: 2em;">
+            <h3>
                 {{ selectedArtifact?.pt.term }}
                 <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">{{ selectedArtifact?.type | titlecase }}</span>
             </h3>

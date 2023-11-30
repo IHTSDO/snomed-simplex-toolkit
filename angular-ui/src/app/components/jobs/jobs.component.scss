@@ -62,11 +62,16 @@ mat-form-field:last-child {
     justify-content: center;
     width: 30px;
     height: 30px;
+    min-width: 30px; /* Ensure minimum width */
+    min-height: 30px; /* Ensure minimum height */
     background-color: rgb(72, 72, 220);
     color: white;
     border-radius: 50%;
     font-family: 'Courier New', monospace;
     font-size: larger;
     font-weight: bold;
+    white-space: nowrap; /* Prevents text wrapping */
+    overflow: hidden; /* Keeps content within the bounds */
   }
+  
   
