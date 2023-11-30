@@ -1,5 +1,5 @@
 <div class="component-row">
-    <div class="component-col">
+    <div class="component-col-left">
         <h4>Edition Artifacts</h4>
         <div>
             <mat-list id="components-list">
@@ -32,15 +32,15 @@
             <button mat-flat-button color="primary" (click)="newArtifactMode = true" *ngIf="!(loadingTranslations || loadingSubsets || loadingMaps || saving)">New Artifact</button>
         </div>
     </div>
-    <div class="component-col">
+    <div class="component-col-right">
         <p *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
             Select an artifact to view details
         </p>
         <div *ngIf="!newArtifactMode && selectedArtifact">
-            <h3>
+            <h4>
                 {{ selectedArtifact?.pt.term }}
                 <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">{{ selectedArtifact?.type | titlecase }}</span>
-            </h3>
+            </h4>
             <br><br>
             <div *ngIf="selectedArtifact?.type != 'concepts'">
                 <div class="component-row">
@@ -82,7 +82,7 @@
 
         </div>
         <div *ngIf="newArtifactMode">
-            <h5>New Artifact</h5>
+            <h4>New Artifact</h4>
             <br><br>
             <form [formGroup]="form">
                 <mat-form-field *ngFor="let controlName of formKeys">

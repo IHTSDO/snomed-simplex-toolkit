@@ -16,6 +16,15 @@ flex: 1;
 margin: 0 10px;
 }
 
+.component-col-left {
+  flex: 2;
+  margin: 0 10px;
+}
+.component-col-right {
+  flex: 3;
+  margin: 0 10px;
+}
+
 .selected {
 background-color: rgba(147, 197, 231, 0.993);
 }

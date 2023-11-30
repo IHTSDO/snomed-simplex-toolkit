@@ -57,6 +57,8 @@ import { JobsComponent } from './components/jobs/jobs.component';
 import { TimeAgoPipe } from './pipes/timeAgo/time-ago.pipe';
 import { ConceptsListComponent } from './components/artifacts/concepts-list/concepts-list.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
+import {MatSidenavModule} from '@angular/material/sidenav';
+
 
 // SERVICE IMPORTS
 
@@ -113,7 +115,8 @@ import { MatPaginatorModule } from '@angular/material/paginator';
         MatProgressSpinnerModule,
         MatSnackBarModule,
         MatSelectModule,
-        MatPaginatorModule
+        MatPaginatorModule,
+        MatSidenavModule
     ],
     providers: [
         AuthenticationService,

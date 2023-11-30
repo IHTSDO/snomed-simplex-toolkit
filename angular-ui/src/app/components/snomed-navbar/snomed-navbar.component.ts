@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { User } from '../../models/user';
 import { AuthenticationService } from '../../services/authentication/authentication.service';
@@ -11,6 +11,8 @@ import {Location} from '@angular/common';
     styleUrls: ['./snomed-navbar.component.scss']
 })
 export class SnomedNavbarComponent implements OnInit {
+
+    @Input() selectedEdition: any = null;
 
     environment: string;
     path: string;

@@ -1,7 +1,7 @@
 <div class="component-row">
     <div class="component-col">
         <div class="component-container">
-            <p>Releases</p>
+            <h4>Releases</h4>
             <mat-list id="components-list">
                 <mat-list-item *ngFor="let item of releases">
                     <span class="release-name">{{ item.name }}</span>
@@ -15,14 +15,14 @@
     </div>
     <div class="component-col align-right">
         <div class="component-container">
-            <p>Release actions</p>
+            <h4>Release actions</h4>
             <button mat-flat-button color="accent" (click)="runClassification()">RUN CLASSIFICATION</button>
             <button mat-flat-button color="accent" disabled>RUN VALIDATION</button>
             <button mat-flat-button color="accent" disabled>REVIEW IN THE BROWSER</button>
             <button mat-flat-button color="accent" disabled>COMPLETE RELEASE CYCLE</button>
         </div>
         <div class="component-container">
-            <p>Utilities</p>
+            <h4>Utilities</h4>
             <button mat-flat-button color="accent" disabled>DAILY BUILD BROWSER</button>
             <button mat-flat-button color="accent" (click)="exportSnapshot()">EXPORT PREVIEW RF2 SNAPSHOT</button>
             <button mat-flat-button color="accent" (click)="exportDelta()">EXPORT PREVIEW RF2 DELTA</button>

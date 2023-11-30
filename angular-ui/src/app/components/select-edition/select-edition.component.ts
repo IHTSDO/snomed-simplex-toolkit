@@ -1,7 +1,8 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
+import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 
 @Component({
   selector: 'app-select-edition',
@@ -11,8 +12,8 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 export class SelectEditionComponent {
 
   editions = [];
-  editionFields = ["name", "namespace", "defaultModule", "defaultModuleDisplay", "dependantVersionEffectiveTime"];
-  selectedEdition: any;
+  editionFields = ["name", "namespace", "defaultModule", "defaultModuleDisplay", "dependantVersionEffectiveTime", "shortName"];
+  @Input() selectedEdition: any;
   newEditionMode= false;
   loading = false;
   deleting = false;
@@ -20,7 +21,8 @@ export class SelectEditionComponent {
   @Output() editionSelected = new EventEmitter<any>();
 
   constructor(private simplexService: SimplexService,
-              private snackBar: MatSnackBar) {}
+              private snackBar: MatSnackBar,
+              private uiConfigurationService: UiConfigurationService) {}
 
   ngOnInit() {
    this.loadEditions(); 
@@ -35,7 +37,7 @@ export class SelectEditionComponent {
         editions.items = editions.items.filter((item) => item.name);
         this.editions = editions.items;
         this.loading = false;
-        if (this.editions.length > 0) { this.onEditionClick(this.editions[0]) } 
+        if (this.editions.length > 0 && !this.selectedEdition) { this.onEditionClick(this.editions[0]) } 
       },
       (error) => {
         console.error(error);
@@ -50,6 +52,7 @@ export class SelectEditionComponent {
   onEditionClick(item: any) {
     this.selectedEdition = item;
     this.editionSelected.emit(item);
+    this.uiConfigurationService.setSelectedEdition(item);
   }
 
   toggleNewEditionMode() {

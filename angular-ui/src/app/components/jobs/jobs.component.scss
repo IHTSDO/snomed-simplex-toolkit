@@ -50,7 +50,7 @@ mat-form-field:last-child {
 .step-row {
     display: flex;
     align-items: center; /* this will vertically align the fields if they have different heights */
-    justify-content: start;
+    justify-content: flex-start;
     margin: 2rem;
     gap: 2rem;
     // font-size: 22px;

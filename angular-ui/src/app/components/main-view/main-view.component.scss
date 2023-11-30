@@ -25,10 +25,44 @@ div.main-view {
     margin-right: 1rem;
 }
 
-.tab-spinner {
-    margin-left: 1rem;
-}
-
 .spacer {
     width: 20px;
 }
+
+.example-container {
+    position: absolute;
+    top: 4rem;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  
+  mat-nav-list {
+    width: 60px;
+    overflow: hidden;
+    transition: width 0.3s;
+  
+    span {
+      opacity: 0;
+      display: none;
+    }
+  }
+  
+  mat-drawer:hover {
+    mat-nav-list {
+      width: 180px;
+      span {
+        display: inline-block;
+        opacity: 1;
+        margin: auto 10px;
+        transition: all 0.1s ease-in 0.2s;
+      }
+    }
+  }
+
+  .selected-menu-item {
+    /* Your styling for selected menu item, e.g., background color, font style */
+    background-color: rgb(124, 192, 224);
+    font-weight: bold;
+}
+

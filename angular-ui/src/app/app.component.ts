@@ -6,10 +6,11 @@ import { BranchingService } from './services/branching/branching.service';
 import { EnvService } from './services/environment/env.service';
 import { ToastrService } from 'ngx-toastr';
 import {ModalService} from "./services/modal/modal.service";
-import {Subscription} from "rxjs";
+import {Subscription, lastValueFrom} from "rxjs";
 import {NewCodesystem} from "./models/codesystem";
 import { UiConfigurationService } from './services/ui-configuration/ui-configuration.service';
 import { SimplexService } from './services/simplex/simplex.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
     selector: 'app-root',
@@ -29,13 +30,17 @@ export class AppComponent implements OnInit {
     activeCodesystem: any;
     activeCodesystemSubscription: Subscription;
 
+    selectedEdition: any = null;
+
     constructor(private authoringService: AuthoringService,
                 private branchingService: BranchingService,
                 private envService: EnvService,
                 private toastr: ToastrService,
                 private titleService: Title,
                 private modalService: ModalService,
-                private simplexService: SimplexService) {
+                private simplexService: SimplexService,
+                private snackBar: MatSnackBar,
+                private uiConfigurationService: UiConfigurationService) {
     }
 
     async ngOnInit() {
@@ -43,6 +48,11 @@ export class AppComponent implements OnInit {
         this.environment = this.envService.env;
         this.assignFavicon();
         this.simplexService.refreshUIConfiguration();
+        this.loadFirstEdition();
+        this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+            this.selectedEdition = edition;
+        });
+  
     }
 
     assignFavicon() {
@@ -70,4 +80,20 @@ export class AppComponent implements OnInit {
     cloneObject(object): any {
         return JSON.parse(JSON.stringify(object));
     }
+
+    loadFirstEdition() {
+        lastValueFrom(this.simplexService.getEditions()).then(
+          (editions) => {
+            // remove editions with empty name
+            editions.items = editions.items.filter((item) => item.name);
+            if (editions.items.length > 0) { this.selectedEdition = editions.items[0] } 
+          },
+          (error) => {
+            console.error(error);
+            this.snackBar.open('Failed to load editions', 'Dismiss', {
+              duration: 5000
+            });
+          }
+        );
+      }
 }

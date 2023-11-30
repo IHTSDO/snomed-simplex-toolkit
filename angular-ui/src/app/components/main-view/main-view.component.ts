@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { ModalService } from '../../services/modal/modal.service';
 
 @Component({
@@ -8,8 +8,10 @@ import { ModalService } from '../../services/modal/modal.service';
 })
 export class MainViewComponent implements OnInit {
 
-    selectedEdition: any = null;
+    @Input() selectedEdition: any = null;
     changingEdition = false;
+
+    selectedMenuItem = 'artifacts';
 
     constructor(private modalService: ModalService) {
     }

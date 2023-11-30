@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, shareReplay } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -7,6 +7,7 @@ import { Observable, shareReplay } from 'rxjs';
 export class UiConfigurationService {
 
   private configuration: any;
+  private editionSubject = new BehaviorSubject<any>(null); // Initialized with a default value
 
   constructor() { }
 
@@ -16,5 +17,13 @@ export class UiConfigurationService {
 
   getConfiguration(): Observable<any> {
     return this.configuration;
+  }
+
+  setSelectedEdition(edition: any) {
+    this.editionSubject.next(edition); // Emitting the new value
+  }
+
+  getSelectedEdition(): Observable<any> {
+    return this.editionSubject.asObservable(); // Returning the observable
   }
 }
