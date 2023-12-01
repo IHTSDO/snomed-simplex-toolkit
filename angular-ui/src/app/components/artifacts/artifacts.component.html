@@ -33,9 +33,9 @@
         </div>
     </div>
     <div class="component-col-right">
-        <p *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
+        <h4 *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
             Select an artifact to view details
-        </p>
+        </h4>
         <div *ngIf="!newArtifactMode && selectedArtifact">
             <h4>
                 {{ selectedArtifact?.pt.term }}

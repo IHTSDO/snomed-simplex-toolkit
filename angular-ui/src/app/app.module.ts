@@ -58,6 +58,7 @@ import { TimeAgoPipe } from './pipes/timeAgo/time-ago.pipe';
 import { ConceptsListComponent } from './components/artifacts/concepts-list/concepts-list.component';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatRadioModule} from '@angular/material/radio';
 
 
 // SERVICE IMPORTS
@@ -116,7 +117,8 @@ import {MatSidenavModule} from '@angular/material/sidenav';
         MatSnackBarModule,
         MatSelectModule,
         MatPaginatorModule,
-        MatSidenavModule
+        MatSidenavModule,
+        MatRadioModule
     ],
     providers: [
         AuthenticationService,

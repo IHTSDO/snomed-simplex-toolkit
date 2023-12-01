@@ -28,6 +28,7 @@ export class JobsComponent implements OnChanges, OnInit {
     {value: 'weblateTranslation', viewValue: 'Weblate Translation', artifactTypes: ['translation']},
     {value: 'conceptsSpreadsheet', viewValue: 'Concepts Spreadsheet', artifactTypes: ['concepts']}
   ];
+  filteredFileTypes = [];
   selectedLanguageCode: '';
 
   private subscription: Subscription;
@@ -43,9 +44,8 @@ export class JobsComponent implements OnChanges, OnInit {
 
   ngOnChanges() {
     this.loadJobs(true);
-    if (this.filteredFileTypes().length > 0) {
-      this.selectedFileType = this.filteredFileTypes()[0].value;
-    }
+    this.selectedFileType = null;
+    this.filterFileTypes();
   }
 
   loadJobs(clear: boolean) {
@@ -206,8 +206,11 @@ export class JobsComponent implements OnChanges, OnInit {
     });
   }
 
-  filteredFileTypes() {
-    return this.fileTypes.filter(type => type.artifactTypes.includes(this.artifact.type));
+  filterFileTypes() {
+    this.filteredFileTypes = this.fileTypes.filter(type => type.artifactTypes.includes(this.artifact.type));
+    if (this.filteredFileTypes.length === 1) {
+      this.selectedFileType = this.filteredFileTypes[0].value;
+    }
   }
 
 }

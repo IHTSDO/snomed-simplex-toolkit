@@ -1,13 +1,12 @@
+<h4>How to edit this artifact?</h4>
+<br>
+<p>Select source:</p>
 <div class="row">
-    <mat-form-field>
-        <mat-label>File type</mat-label>
-        <mat-select [(ngModel)]="selectedFileType">
-            <mat-option *ngFor="let type of filteredFileTypes()" [value]="type.value">{{ type.viewValue }}</mat-option>
-        </mat-select>
-    </mat-form-field>
+        <mat-radio-group [(ngModel)]="selectedFileType">
+            <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">{{ type.viewValue }}</mat-radio-button>
+        </mat-radio-group>
 </div>
 
-<h4>How to edit this artifact?</h4>
 
 <div *ngIf="selectedFileType == 'conceptsSpreadsheet'">
     <div class="step-row">
