@@ -12,6 +12,7 @@ import com.snomed.simplextoolkit.service.job.DummyChangeMonitor;
 import com.snomed.simplextoolkit.service.spreadsheet.HeaderConfiguration;
 import com.snomed.simplextoolkit.service.spreadsheet.SheetHeader;
 import com.snomed.simplextoolkit.service.spreadsheet.SheetRowToComponentIntentExtractor;
+import jakarta.servlet.ServletOutputStream;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -20,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.servlet.ServletOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;

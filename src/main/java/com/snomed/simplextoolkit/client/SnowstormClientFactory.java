@@ -35,6 +35,9 @@ public class SnowstormClientFactory {
 	public SnowstormClient getClient() throws ServiceException {
 		try {
 			String authenticationToken = getAuthenticationToken();
+			if (authenticationToken == null) {
+				throw new ServiceException("Authentication token is missing. Unable to process request.");
+			}
 			return clientCache.get(authenticationToken, () -> new SnowstormClient(snowstormUrl, authenticationToken, objectMapper));
 		} catch (ExecutionException e) {
 			throw new ServiceException("Failed to create Snowstorm client", e);

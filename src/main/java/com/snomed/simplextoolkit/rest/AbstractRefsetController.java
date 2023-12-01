@@ -11,11 +11,11 @@ import com.snomed.simplextoolkit.rest.pojos.CreateConceptRequest;
 import com.snomed.simplextoolkit.service.RefsetUpdateService;
 import com.snomed.simplextoolkit.service.job.ChangeSummary;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
