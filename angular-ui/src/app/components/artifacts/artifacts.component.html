@@ -37,20 +37,24 @@
             Select an artifact to view details
         </h4>
         <div *ngIf="!newArtifactMode && selectedArtifact">
-            <h4>
-                {{ selectedArtifact?.pt.term }}
-                <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">{{ selectedArtifact?.type | titlecase }}</span>
-            </h4>
+            <div class="title-container">
+                <div class="title-left-column">
+                    <h4>
+                        {{ selectedArtifact?.pt.term }}
+                        <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">
+                            {{ selectedArtifact?.type | titlecase }}
+                        </span>
+                    </h4>
+                </div>
+                <div class="title-right-column">
+                    <a href="javascript:void(0);" (click)="browseToConcept(selectedArtifact.conceptId)" id="open-artifact-in-tab">
+                        Open in Browser <mat-icon>open_in_new</mat-icon>
+                    </a>
+                </div>
+            </div>
+              
             <br><br>
             <div *ngIf="selectedArtifact?.type != 'concepts'">
-                <div class="component-row">
-                    <div class="component-col align-right">
-                        <span class="details-field-name"></span>
-                    </div>
-                    <div class="component-col">
-                        <span class="details-field-value"><a href="javascript:void(0);" (click)="browseToConcept(selectedArtifact.conceptId)">Open in Browser Tab</a></span>
-                    </div>
-                </div>
                 <div class="component-row">
                     <div class="component-col align-right">
                         <span class="details-field-name">Fully specified name</span>

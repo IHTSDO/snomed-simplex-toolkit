@@ -121,3 +121,22 @@ mat-list-item:not(:last-child) {
   font-weight: lighter;
   margin-left: 1rem;
 }
+
+/* Flex container */
+.title-container {
+  display: flex;
+  justify-content: space-between; /* This will space out the children */
+}
+
+/* Left column */
+.title-left-column {
+  align-self: flex-start; /* Aligns to the start of the flex container */
+  flex: 0 0 auto; /* This ensures the column does not grow or shrink */
+}
+
+/* Right column */
+.title-right-column {
+  align-self: flex-end; /* Aligns to the end of the flex container */
+  flex: 0 0 auto; /* This ensures the column does not grow or shrink */
+}
+
