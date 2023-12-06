@@ -314,22 +314,32 @@ public class SpreadsheetService {
 		} else if (cellType == CellType.NUMERIC) {
 			String rawValue = ((XSSFCell) cell).getRawValue();
 			if (rawValue.contains("E")) {
-				Pattern pattern = Pattern.compile("([0-9.]+)E\\+([0-9]+)");
-				Matcher matcher = pattern.matcher(rawValue);
-				if (matcher.matches()) {
-					// Replace segment and checksum. This method works in all tested cases up to max permitted length of 16 digits.
-					String part = matcher.group(1).replace(".", "");
-					part = part + "10";
-					char checkSum = VerhoeffCheck.calculateChecksum(part, false);
-					cellValue = part + checkSum;
-				} else {
-					throw new ServiceException(String.format("Unable to fix SNOMED CT concept id in column %s, row %s, the number is corrupted.", column + 1, row + 1));
-				}
+				cellValue = fixConceptCode(rawValue, column, row);
 			} else {
 				cellValue = Long.toString((long) cell.getNumericCellValue());
 			}
 		}
 
+		return cellValue;
+	}
+
+	protected static String fixConceptCode(String rawValue, int column, int row) throws ServiceException {
+		String cellValue;
+		Pattern pattern = Pattern.compile("([0-9.]+)E(\\+?)([0-9]+)");
+		Matcher matcher = pattern.matcher(rawValue);
+		if (matcher.matches()) {
+			// Replace segment and checksum. This method works in all tested cases up to max permitted length of 16 digits.
+			String part = matcher.group(1).replace(".", "");
+			if (matcher.group(2).isEmpty()) {
+				cellValue = part;
+			} else {
+				part = part + "10";
+				char checkSum = VerhoeffCheck.calculateChecksum(part, false);
+				cellValue = part + checkSum;
+			}
+		} else {
+			throw new ServiceException(String.format("Unable to fix SNOMED CT concept id in column %s, row %s, the number is corrupted. Value '%s'.", column + 1, row, rawValue));
+		}
 		return cellValue;
 	}
 
