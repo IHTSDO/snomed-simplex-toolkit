@@ -140,6 +140,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   }
   submit() {
     this.form.markAllAsTouched();
+    const type = this.form.value.type;
     if (this.form.valid) {
       const subset = {
         preferredTerm: this.form.value.preferredTerm
@@ -147,7 +148,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
       this.saving = true;
       // Set the form to disabled
       this.form.disable();
-      switch (this.form.value.type) {
+      switch (type) {
         case 'subset':
           lastValueFrom(this.simplexService.createSimpleRefset(this.edition, subset)).then(
             (edition) => {
