@@ -13,6 +13,7 @@ export class SimplexService {
   constructor(private http: HttpClient, private snackBar: MatSnackBar, private uiConfigurationService: UiConfigurationService) { }
 
   private handleError(error: HttpErrorResponse) {
+    console.log('Paso por handleError')
     if (error.status === 403) {
       let config: any = this.uiConfigurationService.getConfiguration();
       const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href}`;
@@ -20,6 +21,10 @@ export class SimplexService {
     } else if (error.status === 504) {
       this.snackBar.open(`Error: Can't contact simplex server`, 'Dismiss', {
         duration: 5000
+      });
+    }  else {
+      this.snackBar.open(`Error: ${ error.error.message}`, 'Dismiss', {
+        duration: 15000
       });
     } 
     // Return an observable with a user-facing error message

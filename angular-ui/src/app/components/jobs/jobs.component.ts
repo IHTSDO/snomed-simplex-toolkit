@@ -191,11 +191,11 @@ export class JobsComponent implements OnChanges, OnInit {
               this.alert('File import job created');
             } else {
               console.error('File upload failed: Invalid componentType or fileType');
-              this.alert('File upload failed: Invalid componentType or fileType');
+              // this.alert('File upload failed: Invalid componentType or fileType');
             }
         } catch (error) {
             console.error('File upload failed:', error);
-            this.alert('File upload failed:' + error.message);
+            // this.alert('File upload failed:' + error.message);
         }
     }
   }
