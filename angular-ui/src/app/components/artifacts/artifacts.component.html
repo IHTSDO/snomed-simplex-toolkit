@@ -47,7 +47,8 @@
                     </h4>
                 </div>
                 <div class="title-right-column">
-                    <a href="javascript:void(0);" (click)="browseToConcept(selectedArtifact.conceptId)" id="open-artifact-in-tab">
+                    <a href="javascript:void(0);" (click)="browseToConcept(selectedArtifact.conceptId)" 
+                    id="open-artifact-in-tab" *ngIf="selectedArtifact?.type != 'concepts'">
                         Open in Browser <mat-icon>open_in_new</mat-icon>
                     </a>
                 </div>
