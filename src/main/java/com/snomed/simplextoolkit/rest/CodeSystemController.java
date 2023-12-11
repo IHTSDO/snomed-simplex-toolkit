@@ -41,6 +41,8 @@ public class CodeSystemController {
 	public Page<CodeSystem> getCodeSystems() throws ServiceException {
 		List<CodeSystem> codeSystems = clientFactory.getClient().getCodeSystems();
 		securityService.updateUserRolePermissionCache(codeSystems);
+		// Filter out codesystems where the user has no role.
+		codeSystems = codeSystems.stream().filter(codeSystem -> !codeSystem.getUserRoles().isEmpty()).toList();
 		return new Page<>(codeSystems);
 	}
 
