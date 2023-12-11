@@ -7,6 +7,7 @@ import com.snomed.simplextoolkit.exceptions.ServiceException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,11 +26,13 @@ public class ExportController {
 	private SnowstormClientFactory snowstormClientFactory;
 
 	@GetMapping(value = "delta", produces="application/zip")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void getDelta(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException, IOException {
 		doExport("Delta", "DELTA", codeSystem, response);
 	}
 
 	@GetMapping(value = "snapshot", produces="application/zip")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void getSnapshot(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException, IOException {
 		doExport("Snapshot", "SNAPSHOT", codeSystem, response);
 	}

@@ -14,6 +14,7 @@ import com.snomed.simplextoolkit.service.job.AsyncJob;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestAttributes;
@@ -41,12 +42,14 @@ public class TranslationController {
 	private JobService jobService;
 
 	@GetMapping("{codeSystem}/translations")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<ConceptMini> listTranslations(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		return translationService.listTranslations(snowstormClient.getCodeSystemOrThrow(codeSystem), snowstormClientFactory.getClient());
 	}
 
 	@PostMapping("{codeSystem}/translations")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void createTranslation(@PathVariable String codeSystem, @RequestBody CreateConceptRequest request) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		snowstormClient.createSimpleMetadataConcept(Concepts.LANG_REFSET, request.getPreferredTerm(), Concepts.FOUNDATION_METADATA_CONCEPT_TAG,
@@ -54,6 +57,7 @@ public class TranslationController {
 	}
 
 //	@GetMapping(path = "{codeSystem}/translations/{refsetId}/spreadsheet", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+//  @PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 //	public void downloadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId, HttpServletResponse response) throws ServiceException, IOException {
 //		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 //		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
@@ -64,6 +68,7 @@ public class TranslationController {
 //	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob uploadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam String languageCode, @RequestParam MultipartFile file,
 			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase,
@@ -79,6 +84,7 @@ public class TranslationController {
 	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob uploadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam MultipartFile file,
 			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {

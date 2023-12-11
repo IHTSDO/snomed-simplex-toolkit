@@ -11,6 +11,7 @@ import com.snomed.simplextoolkit.service.SimpleRefsetService;
 import com.snomed.simplextoolkit.service.job.AsyncJob;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -44,6 +45,7 @@ public class SimpleRefsetController extends AbstractRefsetController {
 	}
 
 	@PutMapping(path = "{refsetId}/refset-tool", consumes = "multipart/form-data")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob uploadRefsetToolSubset(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam MultipartFile file,
 			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {

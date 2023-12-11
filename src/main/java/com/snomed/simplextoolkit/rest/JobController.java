@@ -5,6 +5,7 @@ import com.snomed.simplextoolkit.service.job.AsyncJob;
 import com.snomed.simplextoolkit.service.job.JobType;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class JobController {
 	private JobService service;
 
 	@GetMapping
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<AsyncJob> listJobs(@PathVariable String codeSystem, @RequestParam(required = false) String refsetId,
 			@RequestParam(required = false) JobType jobType) {
 
@@ -25,6 +27,7 @@ public class JobController {
 	}
 
 	@GetMapping("/{jobId}")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob getJob(@PathVariable String codeSystem, @PathVariable String jobId) {
 		return service.getAsyncJob(codeSystem, jobId);
 	}

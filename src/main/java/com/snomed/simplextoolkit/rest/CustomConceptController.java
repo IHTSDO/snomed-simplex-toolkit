@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,6 +36,7 @@ public class CustomConceptController {
 	private JobService jobService;
 
 	@GetMapping
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public Page<ConceptMini> findAll(@PathVariable String codeSystem,
 			@RequestParam(required = false, defaultValue = "0") int offset, @RequestParam(required = false, defaultValue = "100") int limit) throws ServiceException {
 
@@ -44,6 +46,7 @@ public class CustomConceptController {
 	}
 
 	@GetMapping(path = "/spreadsheet", produces="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void downloadCustomConceptSpreadsheet(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException, IOException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
@@ -53,6 +56,7 @@ public class CustomConceptController {
 
 
 	@PutMapping(path = "/spreadsheet", consumes = "multipart/form-data")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob updateCustomConceptList(@PathVariable String codeSystem, @RequestParam MultipartFile file) throws ServiceException, IOException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
@@ -63,6 +67,7 @@ public class CustomConceptController {
 
 	@PostMapping("/show")
 	@Operation(summary = "Show custom concepts option. This sets the showCustomConcepts flag on the codesystem object.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void showCustomConceptOption(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
@@ -71,6 +76,7 @@ public class CustomConceptController {
 
 	@PostMapping("/hide")
 	@Operation(summary = "Hide custom concepts option. This sets the showCustomConcepts flag on the codesystem object.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void hideCustomConceptOption(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);

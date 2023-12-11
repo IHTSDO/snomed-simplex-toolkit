@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -90,6 +91,16 @@ public class ControllerAdvice {
 		result.put("message", exception.getMessage());
 		logger.info("Exception with status code: {} - {}", statusCode, exception.getMessage());
 		return new ResponseEntity<>(result, HttpStatusCode.valueOf(statusCode));
+	}
+
+	@ExceptionHandler(AccessDeniedException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public HashMap<String, Object> handleAccessDeniedException(AccessDeniedException exception) {
+		logger.debug(exception.getMessage(), exception);
+		HashMap<String, Object> result = new HashMap<>();
+		result.put("error", HttpStatus.FORBIDDEN);
+		result.put("message", exception.getMessage());
+		return result;
 	}
 
 	@ExceptionHandler(Exception.class)
