@@ -1,13 +1,13 @@
 package com.snomed.simplextoolkit.client.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
 import org.apache.logging.log4j.util.Strings;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class CodeSystem {
 
@@ -27,6 +27,7 @@ public class CodeSystem {
 	private String latestValidationReport;
 	private long contentHeadTimestamp;
 	private Map<String, String> languages;
+	private Set<String> userRoles;
 	private List<ConceptMini> modules;
 
 	public CodeSystem() {
@@ -161,6 +162,10 @@ public class CodeSystem {
 
 	public void setContentHeadTimestamp(long contentHeadTimestamp) {
 		this.contentHeadTimestamp = contentHeadTimestamp;
+	}
+
+	public Set<String> getUserRoles() {
+		return userRoles;
 	}
 
 	@Override

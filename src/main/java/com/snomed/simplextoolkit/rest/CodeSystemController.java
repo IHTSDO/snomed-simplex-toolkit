@@ -35,7 +35,8 @@ public class CodeSystemController {
 
 	@GetMapping("{codeSystem}")
 	public CodeSystem getCodeSystemDetails(@PathVariable String codeSystem) throws ServiceException {
-		return clientFactory.getClient().getCodeSystemForDisplay(codeSystem);
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		return snowstormClient.getCodeSystemForDisplay(codeSystem);
 	}
 
 	@PostMapping

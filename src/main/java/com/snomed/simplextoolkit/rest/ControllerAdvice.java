@@ -1,10 +1,12 @@
 package com.snomed.simplextoolkit.rest;
 
 import com.snomed.simplextoolkit.exceptions.HTTPClientException;
+import com.snomed.simplextoolkit.exceptions.ServiceExceptionWithStatusCode;
 import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -76,8 +78,18 @@ public class ControllerAdvice {
 		HashMap<String, Object> result = new HashMap<>();
 		result.put("error", cause.getStatusCode());
 		result.put("message", "Client error: " + cause.getMessage());
-		logger.info("400", clientException);
+		logger.info("Http Client Exception.", clientException);
 		return new ResponseEntity<>(result, cause.getStatusCode());
+	}
+
+	@ExceptionHandler(ServiceExceptionWithStatusCode.class)
+	public ResponseEntity<HashMap<String, Object>> handleClientException(ServiceExceptionWithStatusCode exception) {
+		int statusCode = exception.getStatusCode();
+		HashMap<String, Object> result = new HashMap<>();
+		result.put("error", statusCode);
+		result.put("message", exception.getMessage());
+		logger.info("Exception with status code: {} - {}", statusCode, exception.getMessage());
+		return new ResponseEntity<>(result, HttpStatusCode.valueOf(statusCode));
 	}
 
 	@ExceptionHandler(Exception.class)

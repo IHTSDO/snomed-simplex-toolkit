@@ -39,7 +39,7 @@ public class ValidationServiceClient {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public ValidationServiceClient(@Value("${rvf.url}") String rvfUrl, @Value("${simplex.jms.queue.prefix}") String queuePrefix) {
+	public ValidationServiceClient(@Value("${rvf.url}") String rvfUrl, @Value("${jms.queue.prefix}") String queuePrefix) {
 		this.restTemplate = new RestTemplateBuilder().rootUri(rvfUrl).build();
 		this.queuePrefix = queuePrefix;
 	}

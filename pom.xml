@@ -46,6 +46,13 @@
 			<version>${logback.version}</version>
 		</dependency>
 
+		<!-- SNOMED International Single SignOn -->
+		<dependency>
+			<groupId>org.ihtsdo.otf</groupId>
+			<artifactId>ihtsdo-spring-sso</artifactId>
+			<version>5.0.0</version>
+		</dependency>
+
 		<!-- Excel file handling -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
@@ -61,6 +68,11 @@
 					<artifactId>log4j-api</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<version>2.15.0</version>
 		</dependency>
 
 		<dependency>
@@ -168,6 +180,7 @@
 						</executions>
 					</plugin>
 					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-resources-plugin</artifactId>
 						<version>3.3.1</version>
 						<executions>

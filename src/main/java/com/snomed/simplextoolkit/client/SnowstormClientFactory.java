@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.snomed.simplextoolkit.exceptions.ServiceException;
+import com.snomed.simplextoolkit.exceptions.ServiceExceptionWithStatusCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +37,7 @@ public class SnowstormClientFactory {
 		try {
 			String authenticationToken = getAuthenticationToken();
 			if (authenticationToken == null) {
-				throw new ServiceException("Authentication token is missing. Unable to process request.");
+				throw new ServiceExceptionWithStatusCode("Authentication token is missing. Unable to process request.", 403);
 			}
 			return clientCache.get(authenticationToken, () -> new SnowstormClient(snowstormUrl, authenticationToken, objectMapper));
 		} catch (ExecutionException e) {

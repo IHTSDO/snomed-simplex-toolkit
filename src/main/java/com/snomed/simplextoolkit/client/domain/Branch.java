@@ -1,6 +1,7 @@
 package com.snomed.simplextoolkit.client.domain;
 
 import java.util.Map;
+import java.util.Set;
 
 public class Branch {
 
@@ -14,6 +15,7 @@ public class Branch {
 	private String path;
 	private Long headTimestamp;
 	private Map<String, Object> metadata;
+	private Set<String> userRoles;
 
 	public String getPath() {
 		return path;
