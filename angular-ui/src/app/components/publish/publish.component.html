@@ -15,7 +15,7 @@
     </div>
     <div class="component-col align-right">
         <div class="component-container">
-            <h4>Release actions</h4>
+            <h4>Manage Current Authoring Cycle</h4>
             <button mat-flat-button color="accent" (click)="runClassification()">RUN CLASSIFICATION</button>
             <button mat-flat-button color="accent" disabled>RUN VALIDATION</button>
             <button mat-flat-button color="accent" disabled>REVIEW IN THE BROWSER</button>
@@ -28,6 +28,18 @@
             <button mat-flat-button color="accent" (click)="exportDelta()">EXPORT PREVIEW RF2 DELTA</button>
         </div>
     </div>
+    <div class="component-col">
+        <div class="component-container">
+            <h4>Releases will be listed here</h4>
+            <!-- <mat-list id="components-list">
+                <mat-list-item *ngFor="let item of releases">
+                    <span class="release-name">{{ item.name }}</span>
+                    <span class="pill pill-green" *ngIf="item.type == 'Edition'">{{ item.type }}</span>
+                    <span class="pill pill-blue" *ngIf="item.type == 'Extension'">{{ item.type }}</span>
+                    <span class="muted">Created on {{ item.date }}</span>
+                    <button mat-button color="accent" class="download">Download</button>
+                </mat-list-item>
+            </mat-list> -->
+        </div>
+    </div>
 </div>
-
-
