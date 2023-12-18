@@ -11,6 +11,7 @@ import {NewCodesystem} from "./models/codesystem";
 import { UiConfigurationService } from './services/ui-configuration/ui-configuration.service';
 import { SimplexService } from './services/simplex/simplex.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { LegalAgreementService } from './services/legal-agreement/legal-agreement.service';
 
 @Component({
     selector: 'app-root',
@@ -31,6 +32,7 @@ export class AppComponent implements OnInit {
     activeCodesystemSubscription: Subscription;
 
     selectedEdition: any = null;
+    showLegalModal: boolean = false;
 
     constructor(private authoringService: AuthoringService,
                 private branchingService: BranchingService,
@@ -40,7 +42,8 @@ export class AppComponent implements OnInit {
                 private modalService: ModalService,
                 private simplexService: SimplexService,
                 private snackBar: MatSnackBar,
-                private uiConfigurationService: UiConfigurationService) {
+                private uiConfigurationService: UiConfigurationService,
+                private legalAgreementService: LegalAgreementService) {
     }
 
     async ngOnInit() {
@@ -52,7 +55,10 @@ export class AppComponent implements OnInit {
         this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
             this.selectedEdition = edition;
         });
-  
+        if (!this.legalAgreementService.hasAgreed()) {
+            // If the user hasn't agreed yet, show the modal
+            this.showLegalModal = true;
+          }
     }
 
     assignFavicon() {
@@ -95,5 +101,15 @@ export class AppComponent implements OnInit {
             });
           }
         );
-      }
+    }
+
+    handleUserResponse(agreed: boolean) {
+        this.legalAgreementService.setAgreement(agreed);
+        if (!agreed) {
+          // If the user disagreed, redirect to https://snomed.org
+          window.location.href = 'https://snomed.org';
+        } else {
+          this.showLegalModal = false;
+        }
+    }
 }

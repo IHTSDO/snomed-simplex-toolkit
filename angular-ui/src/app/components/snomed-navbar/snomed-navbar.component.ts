@@ -4,6 +4,7 @@ import { User } from '../../models/user';
 import { AuthenticationService } from '../../services/authentication/authentication.service';
 import {PathingService} from '../../services/pathing/pathing.service';
 import {Location} from '@angular/common';
+import { LegalAgreementService } from 'src/app/services/legal-agreement/legal-agreement.service';
 
 @Component({
     selector: 'app-snomed-navbar',
@@ -35,7 +36,7 @@ export class SnomedNavbarComponent implements OnInit {
     activeTask: any;
     activeTaskSubscription: Subscription;
 
-    constructor(private authenticationService: AuthenticationService, private pathingService: PathingService, private location: Location) {
+    constructor(private authenticationService: AuthenticationService, private pathingService: PathingService, private location: Location, private legalAgreementService: LegalAgreementService) {
         this.environment = window.location.host.split(/[.]/)[0].split(/[-]/)[0];
         this.userSubscription = this.authenticationService.getUser().subscribe(data => this.user = data);
         this.branchesSubscription = this.pathingService.getBranches().subscribe(data => this.branches = data);
@@ -131,5 +132,10 @@ export class SnomedNavbarComponent implements OnInit {
 
     logout() {
         this.authenticationService.logout();
+    }
+
+    removeAgreementAndReload() {
+        this.legalAgreementService.removeAgreement();
+        window.location.reload();
     }
 }

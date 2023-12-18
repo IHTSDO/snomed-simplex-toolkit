@@ -3,4 +3,9 @@
         <img class="logo me-2 p-0" src="/assets/small_logo.png">
         <span class="title text-ghost-grey">Simplex: {{ selectedEdition?.name }}</span>
     </a>
+    <button mat-icon-button [matMenuTriggerFor]="menu" class="nav-button"><mat-icon>person</mat-icon></button>
+    <mat-menu #menu="matMenu">
+        <button mat-menu-item (click)="removeAgreementAndReload()">See legal agreement</button>
+        <button mat-menu-item>Logout</button>
+    </mat-menu>
 </nav>

@@ -1,1 +1,22 @@
-<p>legal-agreement works!</p>
+<div class="modal">
+    <div class="modal-content">
+      <h2>Legal Agreement</h2>
+      <p>Please read the following legal agreement carefully:</p>
+      <div class="legal-text">
+        <p><strong><span style="color:#333333;font-size:9pt;">SNOMED International Simplex Toolkit</span></strong><span style="color:#333333;font-size:9pt;">&nbsp;includes SNOMED Clinical Terms&reg; (SNOMED CT&reg;) which is used by permission of the SNOMED International. All rights reserved. SNOMED CT&reg; was originally created by the College of American Pathologists. &ldquo;SNOMED&rdquo;, &ldquo;SNOMED CT&rdquo; and &ldquo;SNOMED Clinical Terms&rdquo; are registered trademarks of the SNOMED International (</span><a href="http://www.snomed.org/"><span style="color:#428bca;font-size:9pt;">www.snomed.org</span></a><span style="color:#333333;font-size:9pt;">)</span></p>
+
+        <p><span style="color:#333333;font-size:9pt;">Use of SNOMED CT in&nbsp;</span><strong><span style="color:#333333;font-size:9pt;">SNOMED International Simplex Toolkit</span></strong><span style="color:#333333;font-size:9pt;">&nbsp;is governed by the conditions of the following SNOMED CT license issued by SNOMED International:</span></p>
+        <p><span style="color:#333333;font-size:9pt;">1. The meaning of the terms &ldquo;Affiliate&rdquo;, or &ldquo;Data Analysis System&rdquo;, &ldquo;Data Creation System&rdquo;, &ldquo;Derivative&rdquo;, &ldquo;End User&rdquo;, &ldquo;Extension&rdquo;, &ldquo;Member&rdquo;, &ldquo;Non-Member Territory&rdquo;, &ldquo;SNOMED CT&rdquo; and &ldquo;SNOMED CT Content&rdquo; are as defined in the SNOMED International Affiliate License Agreement (see&nbsp;</span><a href="http://snomed.org/license-affiliate"><span style="color:#428bca;font-size:9pt;">http://snomed.org/license-affiliate</span></a><span style="color:#333333;font-size:9pt;">).</span></p>
+        <p><span style="color:#333333;font-size:9pt;">2. Information about Affiliate Licensing is available at&nbsp;</span><a href="https://www.snomed.org/snomed-ct/get-snomed"><span style="color:#428bca;font-size:9pt;">https://www.snomed.org/snomed-ct/get-snomed</span></a><span style="color:#333333;font-size:9pt;">. Individuals or organizations wishing to register as SNOMED International Affiliates can register at&nbsp;</span><a href="https://mlds.ihtsdotools.org/"><span style="color:#428bca;font-size:9pt;">mlds.ihtsdotools.org</span></a><span style="color:#333333;font-size:9pt;">, subject to acceptance of the Affiliate License Agreement (see&nbsp;</span><a href="http://snomed.org/license-affiliate"><span style="color:#428bca;font-size:9pt;">http://snomed.org/license-affiliate)</span></a><span style="color:#333333;font-size:9pt;">.</span></p>
+        <p><span style="color:#333333;font-size:9pt;">3. The current list of SNOMED International Member Territories can be viewed at&nbsp;</span><a href="http://snomed.org/members"><span style="color:#428bca;font-size:9pt;">snomed.org/members</span></a><span style="color:#333333;font-size:9pt;">. Countries not included in that list are &quot;Non-Member Territories&quot;.</span></p>
+        <p><span style="color:#333333;font-size:9pt;">4. Only SNOMED International Affiliates may use&nbsp;</span><strong><span style="color:#333333;font-size:9pt;">SNOMED International Simplex Toolkit</span></strong><span style="color:#333333;font-size:9pt;">&nbsp;, either users in Member Countries or users with direct Affilicate Licenses with SI, subject to the affiliate license conditions.</span></p>
+        <p><span style="color:#333333;font-size:9pt;">5. SNOMED International provides the&nbsp;</span><strong><span style="color:#333333;font-size:9pt;">SNOMED International Simplex Toolkit</span></strong><span style="color:#333333;font-size:9pt;">&nbsp;as a free Web Application that does not include any dedicated support services. All questions  on the operation of this tool should be addressed using the public documentation and users forums.</span></p>
+
+</div>
+      <div class="actions">
+        <button mat-flat-button color="accent" (click)="agree()">Agree</button>
+        <button mat-flat-button color="warn" (click)="disagree()">Disagree</button>
+      </div>
+    </div>
+  </div>
+  

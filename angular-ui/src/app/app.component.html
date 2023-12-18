@@ -1,3 +1,4 @@
 <app-snomed-navbar [selectedEdition]="selectedEdition"></app-snomed-navbar>
 <app-main-view [selectedEdition]="selectedEdition"></app-main-view>
+<app-legal-agreement *ngIf="showLegalModal" (userResponse)="handleUserResponse($event)"></app-legal-agreement>
 <app-snomed-footer></app-snomed-footer>

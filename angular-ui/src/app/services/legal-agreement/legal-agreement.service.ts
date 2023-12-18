@@ -24,5 +24,9 @@ export class LegalAgreementService {
     }
   }
 
+  removeAgreement(): void {
+    this.cookieService.delete(this.AGREEMENT_COOKIE_NAME);
+  }
+
   // Additional utility methods can be added as needed
 }
