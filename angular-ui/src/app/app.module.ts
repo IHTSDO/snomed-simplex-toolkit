@@ -59,7 +59,8 @@ import { ConceptsListComponent } from './components/artifacts/concepts-list/conc
 import { MatPaginatorModule } from '@angular/material/paginator';
 import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatRadioModule} from '@angular/material/radio';
-
+import { CookieService } from 'ngx-cookie-service';
+import { LegalAgreementComponent } from './components/legal-agreement/legal-agreement.component';
 
 // SERVICE IMPORTS
 
@@ -94,7 +95,8 @@ import {MatRadioModule} from '@angular/material/radio';
         ArtifactsComponent,
         JobsComponent,
         TimeAgoPipe,
-        ConceptsListComponent
+        ConceptsListComponent,
+        LegalAgreementComponent
         ],
     imports: [
         BrowserModule,
@@ -127,6 +129,7 @@ import {MatRadioModule} from '@angular/material/radio';
         ModalService,
         PathingService,
         ConceptService,
+        CookieService,
         EnvServiceProvider,
         // {
         //     provide: HTTP_INTERCEPTORS,

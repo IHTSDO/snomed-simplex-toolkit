@@ -33,6 +33,7 @@
         "bootstrap": "^5.2.3",
         "guid-typescript": "^1.0.9",
         "jquery": "^3.5.1",
+        "ngx-cookie-service": "^16.1.0",
         "ngx-toastr": "^17.0.2",
         "rxjs": "~7.8.0",
         "tslib": "^2.3.0",
