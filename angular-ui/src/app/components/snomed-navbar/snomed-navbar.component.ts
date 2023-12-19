@@ -5,6 +5,7 @@ import { AuthenticationService } from '../../services/authentication/authenticat
 import {PathingService} from '../../services/pathing/pathing.service';
 import {Location} from '@angular/common';
 import { LegalAgreementService } from 'src/app/services/legal-agreement/legal-agreement.service';
+import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
 @Component({
     selector: 'app-snomed-navbar',
@@ -36,16 +37,21 @@ export class SnomedNavbarComponent implements OnInit {
     activeTask: any;
     activeTaskSubscription: Subscription;
 
-    constructor(private authenticationService: AuthenticationService, private pathingService: PathingService, private location: Location, private legalAgreementService: LegalAgreementService) {
-        this.environment = window.location.host.split(/[.]/)[0].split(/[-]/)[0];
-        this.userSubscription = this.authenticationService.getUser().subscribe(data => this.user = data);
-        this.branchesSubscription = this.pathingService.getBranches().subscribe(data => this.branches = data);
-        this.activeBranchSubscription = this.pathingService.getActiveBranch().subscribe(data => this.activeBranch = data);
-        this.projectsSubscription = this.pathingService.getProjects().subscribe(data => this.projects = data);
-        this.activeProjectSubscription = this.pathingService.getActiveProject().subscribe(data => this.activeProject = data);
-        this.tasksSubscription = this.pathingService.getTasks().subscribe(data => this.tasks = data);
-        this.activeTaskSubscription = this.pathingService.getActiveTask().subscribe(data => this.activeTask = data);
-    }
+    constructor(
+        private authenticationService: AuthenticationService, 
+        private pathingService: PathingService, 
+        private location: Location, 
+        private legalAgreementService: LegalAgreementService,
+        private simplexService: SimplexService) {
+            this.environment = window.location.host.split(/[.]/)[0].split(/[-]/)[0];
+            this.userSubscription = this.authenticationService.getUser().subscribe(data => this.user = data);
+            this.branchesSubscription = this.pathingService.getBranches().subscribe(data => this.branches = data);
+            this.activeBranchSubscription = this.pathingService.getActiveBranch().subscribe(data => this.activeBranch = data);
+            this.projectsSubscription = this.pathingService.getProjects().subscribe(data => this.projects = data);
+            this.activeProjectSubscription = this.pathingService.getActiveProject().subscribe(data => this.activeProject = data);
+            this.tasksSubscription = this.pathingService.getTasks().subscribe(data => this.tasks = data);
+            this.activeTaskSubscription = this.pathingService.getActiveTask().subscribe(data => this.activeTask = data);
+        }
 
     ngOnInit() {
         // this.authenticationService.setUser();
@@ -130,8 +136,13 @@ export class SnomedNavbarComponent implements OnInit {
         this.pathingService.setActiveTask(null);
     }
 
+    login() {
+        this.simplexService.login();
+    }
+
     logout() {
-        this.authenticationService.logout();
+        this.simplexService.logout();
+        // this.authenticationService.logout();
     }
 
     removeAgreementAndReload() {

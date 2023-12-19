@@ -15,9 +15,7 @@ export class SimplexService {
   private handleError(error: HttpErrorResponse) {
     console.log('Paso por handleError')
     if (error.status === 403) {
-      let config: any = this.uiConfigurationService.getConfiguration();
-      const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href}`;
-      window.location.href = redirectUrl;
+      this.login();
     } else if (error.status === 504) {
       this.snackBar.open(`Error: Can't contact simplex server`, 'Dismiss', {
         duration: 5000
@@ -30,6 +28,18 @@ export class SimplexService {
     // Return an observable with a user-facing error message
     console.error(error)
     return throwError('Something went wrong; please try again later.');
+  }
+
+  public login(): void{
+    let config: any = this.uiConfigurationService.getConfiguration();
+    const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href}`;
+    window.location.href = redirectUrl;
+  }
+
+  public logout(): void{
+    let config: any = this.uiConfigurationService.getConfiguration();
+    const redirectUrl = `${config.endpoints.imsEndpoint}logout?serviceReferer=${window.location.href}`;
+    window.location.href = redirectUrl;
   }
 
   public refreshUIConfiguration(): void {
