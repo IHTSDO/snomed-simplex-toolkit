@@ -13,7 +13,6 @@ export class SimplexService {
   constructor(private http: HttpClient, private snackBar: MatSnackBar, private uiConfigurationService: UiConfigurationService) { }
 
   private handleError(error: HttpErrorResponse) {
-    console.log('Paso por handleError')
     if (error.status === 403) {
       this.login();
     } else if (error.status === 504) {
@@ -27,7 +26,7 @@ export class SimplexService {
     } 
     // Return an observable with a user-facing error message
     console.error(error)
-    return throwError('Something went wrong; please try again later.');
+    return throwError(error);
   }
 
   public login(): void{

@@ -95,7 +95,6 @@ export class AppComponent implements OnInit {
             if (editions.items.length > 0) { this.selectedEdition = editions.items[0] } 
           },
           (error) => {
-            console.error(error);
             this.snackBar.open('Failed to load editions', 'Dismiss', {
               duration: 5000
             });
