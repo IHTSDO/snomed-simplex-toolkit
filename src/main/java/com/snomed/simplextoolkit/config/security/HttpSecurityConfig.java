@@ -26,6 +26,9 @@ public class HttpSecurityConfig {
 	private String requiredRole;
 
 	private final String[] excludedUrlPatterns = {
+			"/",
+			"/*",
+			"/assets/*",
 			"/api/version",
 			"/api/ui-configuration",
 			"/api/",
