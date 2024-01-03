@@ -46,3 +46,9 @@ If you are not running the API localy you can swap the `http://localhost:8080/ap
 ## Build
 
 Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+
+## Cypress Tests
+Run Cypress tests from the command line from this directory:
+```
+npx cypress run --config '{"baseUrl": "https://dev-simplex.example.org", "env":{"username":"some-username", "password":"some-password"}}'
+```
