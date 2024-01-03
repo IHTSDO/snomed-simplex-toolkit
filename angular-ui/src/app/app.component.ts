@@ -47,18 +47,19 @@ export class AppComponent implements OnInit {
     }
 
     async ngOnInit() {
-        this.titleService.setTitle('SNOMED CT Snowstorm Admin');
+        this.titleService.setTitle('Simplex');
         this.environment = this.envService.env;
         this.assignFavicon();
         this.simplexService.refreshUIConfiguration();
-        this.loadFirstEdition();
         this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
             this.selectedEdition = edition;
         });
         if (!this.legalAgreementService.hasAgreed()) {
             // If the user hasn't agreed yet, show the modal
             this.showLegalModal = true;
-          }
+        } else {
+            this.loadFirstEdition();
+        }
     }
 
     assignFavicon() {
@@ -105,10 +106,11 @@ export class AppComponent implements OnInit {
     handleUserResponse(agreed: boolean) {
         this.legalAgreementService.setAgreement(agreed);
         if (!agreed) {
-          // If the user disagreed, redirect to https://snomed.org
-          window.location.href = 'https://snomed.org';
+            // If the user disagreed, redirect to https://snomed.org
+            window.location.href = 'https://snomed.org';
         } else {
-          this.showLegalModal = false;
+            this.showLegalModal = false;
+            this.loadFirstEdition();
         }
     }
 }
