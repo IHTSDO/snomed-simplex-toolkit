@@ -9,7 +9,7 @@
 		<version>2.1.0</version>
 	</parent>
 
-	<artifactId>snomed-simplex-toolkit-api</artifactId>
+	<artifactId>snomed-simplex-toolkit</artifactId>
 	<name>SNOMED Simplex Toolkit: API</name>
 
 	<properties>
