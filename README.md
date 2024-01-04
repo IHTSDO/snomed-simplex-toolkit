@@ -46,7 +46,7 @@ the same folder as the jar file. Then copy in any lines that need to be changed 
 ## Run
 Start the application on the command line using Java:
 ```
-java -Xms2g -jar snomed-simplex-toolkit*.jar
+java -Xms2g -jar api/snomed-simplex-toolkit*.jar
 ```
 Once the application has started the user interface will be available at http://localhost:8081/simplex-toolkit/
 
