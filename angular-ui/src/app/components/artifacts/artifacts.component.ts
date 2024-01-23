@@ -242,7 +242,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
       (edition) => {
         const branch = edition.branchPath;
         let langs = Object.keys(edition.languages).join(',');
-        const tab = window.open(`https://dev-simplex.ihtsdotools.org/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}`, 'simplex-browser');
+        const tab = window.open(`/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}`, 'simplex-browser');
         tab.focus();
       }
     )
