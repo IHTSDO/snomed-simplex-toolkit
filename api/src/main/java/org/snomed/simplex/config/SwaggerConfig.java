@@ -21,7 +21,7 @@ public class SwaggerConfig {
 	public GroupedOpenApi apiDocs() {
 		return GroupedOpenApi.builder()
 				.group("simplex")
-				.packagesToScan("com.snomed.simplextoolkit.rest")
+				.packagesToScan("org.snomed.simplex")
 				// Don't show the error or root endpoints in Swagger
 //				.pathsToExclude("/error", "/")
 				.build();
