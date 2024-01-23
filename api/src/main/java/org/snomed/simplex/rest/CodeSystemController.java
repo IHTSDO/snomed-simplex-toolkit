@@ -38,8 +38,8 @@ public class CodeSystemController {
 	private SecurityService securityService;
 
 	@GetMapping
-	public Page<CodeSystem> getCodeSystems() throws ServiceException {
-		List<CodeSystem> codeSystems = clientFactory.getClient().getCodeSystems();
+	public Page<CodeSystem> getCodeSystems(@RequestParam(required = false, defaultValue = "false") boolean includeDetails) throws ServiceException {
+		List<CodeSystem> codeSystems = clientFactory.getClient().getCodeSystems(includeDetails);
 		securityService.updateUserRolePermissionCache(codeSystems);
 		// Filter out codesystems where the user has no role.
 		codeSystems = codeSystems.stream().filter(codeSystem -> !codeSystem.getUserRoles().isEmpty()).toList();

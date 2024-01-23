@@ -74,13 +74,15 @@ public class SnowstormClient {
 		}
 	}
 
-	public List<CodeSystem> getCodeSystems() throws ServiceException {
+	public List<CodeSystem> getCodeSystems(boolean includeDetails) throws ServiceException {
 		try {
 			ResponseEntity<Page<CodeSystem>> response = restTemplate.exchange("/codesystems", HttpMethod.GET, null, responseTypeCodeSystemPage);
 			List<CodeSystem> items = new ArrayList<>();
 			for (CodeSystem codeSystem : response.getBody().getItems()) {
 				if (!codeSystem.isPostcoordinated()) {
-					addCodeSystemBranchInfo(codeSystem);
+					if (includeDetails) {
+						addCodeSystemBranchInfo(codeSystem);
+					}
 					items.add(codeSystem);
 				}
 			}
