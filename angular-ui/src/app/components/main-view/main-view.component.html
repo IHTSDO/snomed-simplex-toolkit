@@ -22,7 +22,7 @@
             <app-artifacts [edition]="selectedEdition?.shortName"></app-artifacts>
         </div>
         <div *ngIf="selectedMenuItem == 'manage'">
-            <app-publish [edition]="selectedEdition?.shortName"></app-publish>
+            <app-manage-codesystem [edition]="selectedEdition?.shortName"></app-manage-codesystem>
         </div>
         <div *ngIf="selectedMenuItem == 'info'">
             <app-select-edition (editionSelected)="editionSelected($event)" [selectedEdition]="selectedEdition"></app-select-edition>

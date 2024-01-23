@@ -1,5 +1,5 @@
 target/
-
+application-*.properties
 local-files/*
 
 ### STS ###

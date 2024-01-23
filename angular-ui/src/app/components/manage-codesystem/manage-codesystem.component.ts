@@ -4,11 +4,11 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { lastValueFrom } from 'rxjs';
 
 @Component({
-  selector: 'app-publish',
-  templateUrl: './publish.component.html',
-  styleUrls: ['./publish.component.scss']
+  selector: 'app-manage-codesystem',
+  templateUrl: './manage-codesystem.component.html',
+  styleUrls: ['./manage-codesystem.component.scss']
 })
-export class PublishComponent {
+export class ManageCodesystemComponent {
   @Input() edition: string;
 
   releases: any[] = [

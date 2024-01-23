@@ -42,7 +42,7 @@ import { MatRippleModule } from '@angular/material/core';
 import { SubsetsComponent } from './components/subsets/subsets.component';
 import { MapsComponent } from './components/maps/maps.component';
 import { TranslationsComponent } from './components/translations/translations.component';
-import { PublishComponent } from './components/publish/publish.component';
+import { ManageCodesystemComponent } from './components/manage-codesystem/manage-codesystem.component';
 import {MatButtonModule} from '@angular/material/button';
 import { NewEditionComponent } from './components/new-edition/new-edition.component';
 import { ReactiveFormsModule } from '@angular/forms'; // Import the ReactiveFormsModule
@@ -90,7 +90,7 @@ import {MatMenuModule} from '@angular/material/menu';
         SubsetsComponent,
         MapsComponent,
         TranslationsComponent,
-        PublishComponent,
+        ManageCodesystemComponent,
         NewEditionComponent,
         CamelToTitlePipe,
         ArtifactsComponent,
