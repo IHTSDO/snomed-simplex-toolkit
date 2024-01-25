@@ -9,7 +9,7 @@
                     {{ edition.name }}
                 </mat-list-item>
             </mat-list>
-            <button mat-flat-button color="primary" (click)="newEditionMode = true" *ngIf="!loading">New Edition</button>
+            <button mat-flat-button color="primary" (click)="newEditionMode = true" *ngIf="!loading && isAdmin()">New Edition</button>
         </div>
     </div>
     <div class="component-col" id="details">
@@ -25,7 +25,7 @@
                 </div>
             </div>
             <br>
-            <button mat-flat-button color="warn" (click)="deleteEdition(selectedEdition)" *ngIf="!deleting && !loading">Delete Edition</button>
+            <button mat-flat-button color="warn" (click)="deleteEdition(selectedEdition)" *ngIf="!deleting && !loading && isAdmin()">Delete Edition</button>
             <p *ngIf="deleting" class="deleting"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Deleting Edition...</p>
         </div>
         <div *ngIf="newEditionMode">

@@ -180,5 +180,9 @@ export class SimplexService {
       return this.http.get(`/api/${edition}/jobs?refsetId=${refsetId}`).pipe(catchError(this.handleError.bind(this)));
     }
   }
-  
+
+  public getRoles(): Observable<any> {
+    return this.http.get('/api/auth').pipe(catchError(this.handleError.bind(this)));
+  }
+
 }

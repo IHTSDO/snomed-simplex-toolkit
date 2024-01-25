@@ -17,6 +17,7 @@ export class SelectEditionComponent {
   newEditionMode= false;
   loading = false;
   deleting = false;
+  roles: any[] = [];
 
   @Output() editionSelected = new EventEmitter<any>();
 
@@ -25,7 +26,27 @@ export class SelectEditionComponent {
               private uiConfigurationService: UiConfigurationService) {}
 
   ngOnInit() {
-   this.loadEditions(); 
+   this.loadEditions();
+   this.getRoles()
+  }
+
+  getRoles() {
+    lastValueFrom(this.simplexService.getRoles()).then(
+      (roles) => {
+        this.roles = roles;
+      },
+      (error) => {
+        console.error(error);
+        this.loading = false;
+        this.snackBar.open('Failed to load roles', 'Dismiss', {
+          duration: 5000
+        });
+      }
+    );
+  }
+
+  isAdmin(): boolean {
+    return this.roles.includes('ADMIN');
   }
 
   loadEditions() {
@@ -34,7 +55,7 @@ export class SelectEditionComponent {
     lastValueFrom(this.simplexService.getEditions()).then(
       (editions) => {
         // remove editions with empty name
-        editions.items = editions.items.filter((item) => item.name);
+        editions.items = editions.items.filter((item) => item.name); 
         this.editions = editions.items;
         this.loading = false;
         if (this.editions.length > 0 && !this.selectedEdition) { this.onEditionClick(this.editions[0]) } 
