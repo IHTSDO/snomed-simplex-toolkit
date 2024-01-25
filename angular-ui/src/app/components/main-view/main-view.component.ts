@@ -1,5 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { ModalService } from '../../services/modal/modal.service';
+import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 
 @Component({
     selector: 'app-main-view',
@@ -13,10 +14,15 @@ export class MainViewComponent implements OnInit {
 
     selectedMenuItem = 'artifacts';
 
-    constructor(private modalService: ModalService) {
+    constructor(private modalService: ModalService, private uiConfigurationService: UiConfigurationService) {
     }
 
     ngOnInit(): void {
+        this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+            if (edition && (edition.id !== this.selectedEdition?.id)) {
+                this.editionSelected(edition);
+            }
+        });
     }
 
 

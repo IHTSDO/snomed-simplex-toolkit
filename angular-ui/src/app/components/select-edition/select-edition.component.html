@@ -1,6 +1,6 @@
 <div class="component-row">
     <div class="component-col">
-        <div>
+        <!-- <div>
             <h4>Select an edition:</h4>
             <mat-list id="editions-list">
                 <mat-list-item *ngIf="loading"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item>
@@ -12,7 +12,7 @@
             <button mat-flat-button color="primary" (click)="newEditionMode = true" *ngIf="!loading && isAdmin()">New Edition</button>
         </div>
     </div>
-    <div class="component-col" id="details">
+    <div class="component-col" id="details"> -->
         <div *ngIf="!newEditionMode && selectedEdition">
             <h3>Details of: {{ selectedEdition?.name }}</h3>
             <br><br>
@@ -25,8 +25,11 @@
                 </div>
             </div>
             <br>
-            <button mat-flat-button color="warn" (click)="deleteEdition(selectedEdition)" *ngIf="!deleting && !loading && isAdmin()">Delete Edition</button>
-            <p *ngIf="deleting" class="deleting"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Deleting Edition...</p>
+            <div class="button-box">
+                <button mat-flat-button color="warn" (click)="deleteEdition(selectedEdition)" *ngIf="!deleting && !loading && isAdmin()">Delete Edition</button>
+                <button mat-flat-button color="primary" (click)="newEditionMode = true" *ngIf="!loading && isAdmin()">New Edition</button>
+                <p *ngIf="deleting" class="deleting"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Deleting Edition...</p>
+            </div>
         </div>
         <div *ngIf="newEditionMode">
             <app-new-edition (closePanel)="newEditionMode = false" (editionSaved)="loadEditions()"></app-new-edition>
