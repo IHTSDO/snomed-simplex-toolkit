@@ -7,6 +7,7 @@ import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -236,6 +237,23 @@ public class CodeSystemService {
 		}
 		for (String completedValidation : completedValidations) {
 			validationJobsToMonitor.remove(completedValidation);
+		}
+	}
+
+	public void addClassificationStatus(CodeSystem theCodeSystem) {
+		if (theCodeSystem.isClassified()) {
+			theCodeSystem.setClassificationStatus(ClassificationStatus.COMPLETE);
+		} else {
+			theCodeSystem.setClassificationStatus(ClassificationStatus.TODO);
+
+			AsyncJob latestJobOfType = jobService.getLatestJobOfType(theCodeSystem.getShortName(), "Classify");
+			if (latestJobOfType != null) {
+				if (latestJobOfType.isQueuedOrInProgress()) {
+					theCodeSystem.setClassificationStatus(ClassificationStatus.IN_PROGRESS);
+				} else if (latestJobOfType.getStatus() == JobStatus.ERROR) {
+					theCodeSystem.setClassificationStatus(ClassificationStatus.ERROR);
+				}
+			}
 		}
 	}
 }

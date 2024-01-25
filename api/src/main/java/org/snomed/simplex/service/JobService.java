@@ -27,7 +27,6 @@ import java.util.function.Consumer;
 public class JobService {
 
 	private final Map<String, Map<String, AsyncJob>> codeSystemJobs;
-
 	private final ExecutorService jobExecutorService;
 
 	@Autowired
@@ -126,5 +125,11 @@ public class JobService {
 				}
 			}
 		}
+	}
+
+	public AsyncJob getLatestJobOfType(String codeSystem, String display) {
+		List<AsyncJob> list = codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).values().stream()
+				.filter(job -> display.equals(job.getDisplay())).toList();
+		return list.isEmpty() ? null : list.get(list.size() - 1);
 	}
 }

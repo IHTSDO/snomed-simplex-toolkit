@@ -29,6 +29,10 @@ public abstract class AsyncJob {
 		this.display = display;
 	}
 
+	public boolean isQueuedOrInProgress() {
+		return status == JobStatus.QUEUED || status == JobStatus.IN_PROGRESS;
+	}
+
 	public String getDisplayWithStatus() {
 		return format("%s (%s)", display, status);
 	}

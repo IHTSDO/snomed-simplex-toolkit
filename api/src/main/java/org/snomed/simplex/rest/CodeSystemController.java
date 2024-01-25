@@ -2,6 +2,7 @@ package org.snomed.simplex.rest;
 
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.domain.ClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
@@ -51,6 +52,7 @@ public class CodeSystemController {
 	public CodeSystem getCodeSystemDetails(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem codeSystemForDisplay = snowstormClient.getCodeSystemForDisplay(codeSystem);
+		codeSystemService.addClassificationStatus(codeSystemForDisplay);
 		securityService.updateUserRolePermissionCache(Collections.singletonList(codeSystemForDisplay));
 		return codeSystemForDisplay;
 	}
@@ -67,8 +69,11 @@ public class CodeSystemController {
 	public AsyncJob createClassificationJob(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		if (theCodeSystem.isClassified()) {
+		codeSystemService.addClassificationStatus(theCodeSystem);
+        if (theCodeSystem.isClassified()) {
 			throw new ServiceException("This codesystem is already classified.");
+		} else if (theCodeSystem.getClassificationStatus() == ClassificationStatus.IN_PROGRESS) {
+			throw new ServiceException("Classification is already in progress.");
 		}
 
 		return jobService.startExternalServiceJob(theCodeSystem, "Classify", asyncJob -> codeSystemService.classify(asyncJob));

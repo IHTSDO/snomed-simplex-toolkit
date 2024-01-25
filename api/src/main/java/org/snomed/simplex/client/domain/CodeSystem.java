@@ -22,13 +22,14 @@ public class CodeSystem {
 	private String defaultModuleDisplay;
 	private boolean postcoordinated;
 	private boolean dailyBuildAvailable;
-	private boolean classified;
+	private ClassificationStatus classificationStatus;
 	private boolean showCustomConcepts;
 	private String latestValidationReport;
 	private long contentHeadTimestamp;
 	private Map<String, String> languages;
 	private Set<String> userRoles;
 	private List<ConceptMini> modules;
+	private boolean classified;
 
 	public CodeSystem() {
 	}
@@ -124,12 +125,12 @@ public class CodeSystem {
 		this.languages = languages;
 	}
 
-	public boolean isClassified() {
-		return classified;
+	public ClassificationStatus getClassificationStatus() {
+		return classificationStatus;
 	}
 
-	public void setClassified(boolean classified) {
-		this.classified = classified;
+	public void setClassificationStatus(ClassificationStatus classificationStatus) {
+		this.classificationStatus = classificationStatus;
 	}
 
 	public boolean isShowCustomConcepts() {
@@ -166,6 +167,14 @@ public class CodeSystem {
 
 	public Set<String> getUserRoles() {
 		return userRoles;
+	}
+
+	public void setClassified(boolean classified) {
+		this.classified = classified;
+	}
+
+	public boolean isClassified() {
+		return classified;
 	}
 
 	@Override
