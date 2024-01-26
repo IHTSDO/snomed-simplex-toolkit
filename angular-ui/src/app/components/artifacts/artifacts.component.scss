@@ -140,3 +140,34 @@ mat-list-item:not(:last-child) {
   flex: 0 0 auto; /* This ensures the column does not grow or shrink */
 }
 
+.skeleton-loader {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: transparent; /* Set background to transparent */
+}
+
+.skeleton-text {
+  height: 20px;
+  margin: 10px 0;
+  background-color: #eee;
+  border-radius: 10px; /* Rounded corners for each row */
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { background-color: #eee; }
+  50% { background-color: #ddd; }
+  100% { background-color: #eee; }
+}
+
+.skeleton-button {
+  display: inline-block;
+  height: 40px; /* Approximate height of your button */
+  width: 100px; /* Approximate width of your button */
+  border-radius: 20px; /* Fully rounded edges */
+  background-color: #eee;
+  animation: pulse 1.5s infinite ease-in-out;
+  margin: 10px 0;
+}
+

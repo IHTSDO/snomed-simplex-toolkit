@@ -3,31 +3,49 @@
         <h4>Edition Artifacts</h4>
         <div>
             <mat-list id="components-list">
-                <mat-list-item *ngIf="showConceptsArtifact" (click)="onClick(conceptsArtifact, 'concepts')" class="hoverable-item" matRipple
-                [ngClass]="{ 'selected': conceptsArtifact.conceptId === selectedArtifact?.conceptId }">
-                    {{ conceptsArtifact.pt.term }} 
-                    <span class="pill pill-purple">Concepts</span>
-                    <span class="artifact-info">{{conceptsArtifact.count}} records</span>
-                </mat-list-item>
-                <mat-list-item *ngFor="let item of translations" (click)="onClick(item, 'translation')" class="hoverable-item" matRipple
-                [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                    {{ item.pt.term }} 
-                    <span class="pill pill-blue">Translation</span>
-                    <span class="artifact-info">{{item.activeMemberCount}} records</span>
-                </mat-list-item>
-                <mat-list-item *ngFor="let item of maps" (click)="onClick(item, 'map')" class="hoverable-item" matRipple
-                [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                    {{ item.pt.term }} 
-                    <span class="pill pill-yellow">Map</span>
-                    <span class="artifact-info">{{item.activeMemberCount}} records</span>
-                </mat-list-item>
-                <mat-list-item *ngFor="let item of subsets" (click)="onClick(item, 'subset')" class="hoverable-item" matRipple
-                [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                    {{ item.pt.term }}
-                    <span class="pill pill-green">Subset</span>
-                    <span class="artifact-info">{{item.activeMemberCount}} records</span>
-                </mat-list-item>
-                <mat-list-item *ngIf="loadingTranslations || loadingSubsets || loadingMaps"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item>
+                <div *ngIf="loadingTranslations || loadingSubsets || loadingMaps">
+                    <!-- Repeat this block for as many skeleton items as you want -->
+                    <div class="skeleton-loader">
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-button"></div>
+
+                    </div>
+                </div>
+            
+                <!-- Actual List Items -->
+                <ng-container *ngIf="!(loadingTranslations || loadingSubsets || loadingMaps)">
+                    <!-- Repeat your mat-list-item here -->
+                    <mat-list-item *ngIf="showConceptsArtifact" (click)="onClick(conceptsArtifact, 'concepts')" class="hoverable-item" matRipple
+                    [ngClass]="{ 'selected': conceptsArtifact.conceptId === selectedArtifact?.conceptId }">
+                        {{ conceptsArtifact.pt.term }} 
+                        <span class="pill pill-purple">Concepts</span>
+                        <span class="artifact-info">{{conceptsArtifact.count}} records</span>
+                    </mat-list-item>
+                    <mat-list-item *ngFor="let item of translations" (click)="onClick(item, 'translation')" class="hoverable-item" matRipple
+                    [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
+                        {{ item.pt.term }} 
+                        <span class="pill pill-blue">Translation</span>
+                        <span class="artifact-info">{{item.activeMemberCount}} records</span>
+                    </mat-list-item>
+                    <mat-list-item *ngFor="let item of maps" (click)="onClick(item, 'map')" class="hoverable-item" matRipple
+                    [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
+                        {{ item.pt.term }} 
+                        <span class="pill pill-yellow">Map</span>
+                        <span class="artifact-info">{{item.activeMemberCount}} records</span>
+                    </mat-list-item>
+                    <mat-list-item *ngFor="let item of subsets" (click)="onClick(item, 'subset')" class="hoverable-item" matRipple
+                    [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
+                        {{ item.pt.term }}
+                        <span class="pill pill-green">Subset</span>
+                        <span class="artifact-info">{{item.activeMemberCount}} records</span>
+                    </mat-list-item>
+                <!-- <mat-list-item *ngIf="loadingTranslations || loadingSubsets || loadingMaps"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item> -->
+                </ng-container>
             </mat-list>
             <button mat-flat-button color="primary" (click)="newArtifactMode = true" *ngIf="!(loadingTranslations || loadingSubsets || loadingMaps || saving)">New Artifact</button>
         </div>
