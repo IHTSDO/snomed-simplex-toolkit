@@ -2,7 +2,23 @@
     <div class="component-col align-right">
         <div class="component-container">
             <h4>Manage Current Authoring Cycle</h4>
-            <button mat-flat-button color="accent" (click)="runClassification()">RUN CLASSIFICATION</button>
+
+            <button mat-flat-button color="accent" (click)="runClassification()" *ngIf="edition.classificationStatus == 'TODO' || edition.classificationStatus == 'ERROR'">
+                RUN CLASSIFICATION
+            </button>
+            <button mat-flat-button color="accent" *ngIf="edition.classificationStatus == 'COMPLETE'" [disabled]="true">
+                CLASSIFICATION COMPLETE
+            </button>
+            <button mat-flat-button color="accent" *ngIf="edition.classificationStatus == 'IN_PROGRESS'">
+                <span class="in-progress-button">CLASSIFICATION IN PROGRESS <mat-spinner class="white-spinner" [diameter]="17"></mat-spinner></span>
+            </button>
+            <p class="error-message" *ngIf="edition.classificationStatus == 'ERROR'">
+                * The classification process did not complete as expected. Please try again. If this issue does not resolve itself please contact technical support.
+            </p>
+            <button mat-flat-button color="accent"  [disabled]="true" *ngIf="!edition.classificationStatus">
+                <mat-spinner [diameter]="17"></mat-spinner>
+            </button>
+
             <button mat-flat-button color="accent" disabled>RUN VALIDATION</button>
             <button mat-flat-button color="accent" disabled>REVIEW IN THE BROWSER</button>
             <button mat-flat-button color="accent" disabled>COMPLETE RELEASE CYCLE</button>

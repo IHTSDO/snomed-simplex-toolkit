@@ -84,3 +84,22 @@ mat-list-item {
     font-size: 1.5rem;
     font-weight: bold;
   }
+
+  .error-message {
+    color: red;
+    margin: 5px;
+    font-style: italic;
+    width: 40rem;
+  }
+
+  .in-progress-button {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  ::ng-deep .white-spinner .mdc-circular-progress__indeterminate-circle-graphic circle {
+    stroke: white !important;
+  }
+  
+  
