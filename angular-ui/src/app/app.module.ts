@@ -62,6 +62,7 @@ import {MatRadioModule} from '@angular/material/radio';
 import { CookieService } from 'ngx-cookie-service';
 import { LegalAgreementComponent } from './components/legal-agreement/legal-agreement.component';
 import {MatMenuModule} from '@angular/material/menu';
+import {MatExpansionModule} from '@angular/material/expansion';
 
 // SERVICE IMPORTS
 
@@ -122,7 +123,8 @@ import {MatMenuModule} from '@angular/material/menu';
         MatPaginatorModule,
         MatSidenavModule,
         MatRadioModule,
-        MatMenuModule
+        MatMenuModule,
+        MatExpansionModule
     ],
     providers: [
         AuthenticationService,

@@ -2,11 +2,25 @@ import { Component, Input, OnChanges, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import { Subscription, catchError, lastValueFrom } from 'rxjs';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 
 @Component({
   selector: 'app-jobs',
   templateUrl: './jobs.component.html',
-  styleUrls: ['./jobs.component.scss']
+  styleUrls: ['./jobs.component.scss'],
+  animations: [
+    trigger('expandCollapse', [
+      state('true', style({ maxHeight: '500px' })),
+      state('false', style({ maxHeight: '0px', opacity: 0 })),
+      transition('false => true', [
+        style({ opacity: 0 }),
+        animate('300ms ease-in-out', style({ maxHeight: '500px', opacity: 1 }))
+      ]),
+      transition('true => false', [
+        animate('300ms ease-in-out', style({ maxHeight: '0px', opacity: 0 }))
+      ])
+    ])
+  ]
 })
 export class JobsComponent implements OnChanges, OnInit {
 
@@ -16,6 +30,7 @@ export class JobsComponent implements OnChanges, OnInit {
 
   jobs: any[] = [];
   loading = false;
+  showMapInfo = false;
 
   selectedFile: File = null;
   selectedFileType = null;
@@ -211,6 +226,10 @@ export class JobsComponent implements OnChanges, OnInit {
     if (this.filteredFileTypes.length === 1) {
       this.selectedFileType = this.filteredFileTypes[0].value;
     }
+  }
+
+  toggleMapInfo() {
+    this.showMapInfo = !this.showMapInfo;
   }
 
 }

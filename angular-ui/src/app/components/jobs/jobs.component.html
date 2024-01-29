@@ -105,11 +105,22 @@
     </div>
     <div class="step-row">
         <span class="step-number">2</span>
-        Export a map TSV file from Snap2Snomed
+        Export a map spreadsheet file (xlsx) from Snap2Snomed
+        <button mat-icon-button color="primary" (click)="toggleMapInfo()">
+            <mat-icon>info</mat-icon>
+        </button>
+    </div>
+    <div id="map-info" [@expandCollapse]="showMapInfo" [style.display]="showMapInfo ? 'block' : 'none'">
+        <div class="step-row">
+            <span></span><img src="/assets/export.jpeg" [height]="250">
+        </div>
+        <div class="step-row">
+            <span></span><b>Note: only rows marked with a 'mapped' status will be included in the import process.</b>
+        </div>
     </div>
     <div class="step-row">
         <span class="step-number">3</span>
-        Upload the map TSV file
+        Upload the map spreadsheet file
         <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
         <div class="file-selection">
             <!-- Button that triggers the hidden file input -->
