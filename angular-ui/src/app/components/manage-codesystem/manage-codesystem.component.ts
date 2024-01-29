@@ -46,6 +46,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       this.simplexService.startClassification(this.edition.shortName)
     );
     this.alert('Classification requested');
+    this.refreshEdition();
   }
 
   private alert(message: string) {
