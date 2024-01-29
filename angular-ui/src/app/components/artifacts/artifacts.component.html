@@ -107,7 +107,7 @@
         <div *ngIf="newArtifactMode">
             <h4>New Artifact</h4>
             <br><br>
-            <form [formGroup]="form">
+            <form [formGroup]="form" (keydown.enter)="$event.preventDefault(); submit()">
                 <mat-form-field *ngFor="let controlName of formKeys">
                     <mat-label>{{controlName | camelToTitle}}</mat-label>
 
