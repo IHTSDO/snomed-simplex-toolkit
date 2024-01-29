@@ -63,6 +63,7 @@ import { CookieService } from 'ngx-cookie-service';
 import { LegalAgreementComponent } from './components/legal-agreement/legal-agreement.component';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatExpansionModule} from '@angular/material/expansion';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 // SERVICE IMPORTS
 
@@ -124,7 +125,8 @@ import {MatExpansionModule} from '@angular/material/expansion';
         MatSidenavModule,
         MatRadioModule,
         MatMenuModule,
-        MatExpansionModule
+        MatExpansionModule,
+        MatTooltipModule
     ],
     providers: [
         AuthenticationService,
