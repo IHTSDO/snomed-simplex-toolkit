@@ -26,8 +26,27 @@ export class SelectEditionComponent {
               private uiConfigurationService: UiConfigurationService) {}
 
   ngOnInit() {
-   this.loadEditions();
-   this.getRoles()
+  //  this.loadEditions();
+   this.getRoles();
+   this.refreshSelectedEdition();
+  }
+
+  async refreshSelectedEdition() {
+    this.loading = true;
+    lastValueFrom(this.simplexService.getEdition(this.selectedEdition.shortName)).then(
+      (edition) => {
+        this.selectedEdition = edition;
+        this.loading = false;
+      },
+      (error) => {
+        console.error(error);
+        this.loading = false;
+        this.snackBar.open('Failed to refresh edition', 'Dismiss', {
+          duration: 5000
+        });
+        this.loading = false;
+      }
+    );
   }
 
   getRoles() {
