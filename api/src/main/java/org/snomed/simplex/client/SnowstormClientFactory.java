@@ -36,7 +36,7 @@ public class SnowstormClientFactory {
 	public SnowstormClient getClient() throws ServiceException {
 		try {
 			String authenticationToken = getAuthenticationToken();
-			if (authenticationToken == null) {
+			if (authenticationToken == null || authenticationToken.isEmpty()) {
 				throw new ServiceExceptionWithStatusCode("Authentication token is missing. Unable to process request.", 403);
 			}
 			return clientCache.get(authenticationToken, () -> new SnowstormClient(snowstormUrl, authenticationToken, objectMapper));

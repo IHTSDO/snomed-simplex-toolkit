@@ -31,6 +31,7 @@ public class Concept extends Component {
 		classAxioms = new ArrayList<>();
 		gciAxioms = new ArrayList<>();
 		relationships = new ArrayList<>();
+		alternateIdentifiers = new ArrayList<>();
 	}
 
 	public Concept addDescription(Description description) {
