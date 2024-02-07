@@ -416,7 +416,10 @@ public class SnowstormClient {
 		if (location == null) {
 			throw new ServiceException("Snowstorm did not return a location header for the RF2 export.");
 		}
-		restTemplate.execute(location + "/archive", HttpMethod.GET, null, httpResponse -> {
+		String archiveLocation = location + "/archive";
+		logger.info("Downloading export from {}", archiveLocation);
+		restTemplate.execute(archiveLocation, HttpMethod.GET,
+				httpRequest -> httpRequest.getHeaders().add("Accept", "application/zip"), httpResponse -> {
 			StreamUtils.copyViaTempFile(httpResponse.getBody(), outputStream, false);
 			return null;
 		});
