@@ -18,9 +18,9 @@ public class ConceptMini {
 
 	@JsonIgnore
 	public String getPtOrFsnOrConceptId() {
-		if (pt != null) {
+		if (pt != null && pt.getTerm() != null) {
 			return pt.getTerm();
-		} else if (fsn != null) {
+		} else if (fsn != null && fsn.getTerm() != null) {
 			return fsn.getTerm();
 		}
 		return conceptId;
