@@ -99,6 +99,35 @@ public class CodeSystemController {
 		return jobService.startExternalServiceJob(theCodeSystem, "Validate", asyncJob -> codeSystemService.validate(asyncJob));
 	}
 
+	@GetMapping(path = "{codeSystem}/validate/spreadsheet", produces="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	@ApiResponse(responseCode = "200", description = "The latest validation report was ready and downloaded okay.")
+	@ApiResponse(responseCode = "400", description = "The latest validation report is not ready for download.")
+	public void downloadValidationReport(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException, IOException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		ExternalServiceJob validationJob = codeSystemService.getLatestValidationJob(theCodeSystem);
+		codeSystemService.addValidationStatus(theCodeSystem, validationJob);
+		CodeSystemValidationStatus validationStatus = theCodeSystem.getValidationStatus();
+        switch (validationStatus) {
+            case TODO, IN_PROGRESS, SYSTEM_ERROR ->
+					throw new ServiceExceptionWithStatusCode("The latest validation report is not available.",
+							HttpStatus.BAD_REQUEST.value());
+
+			case STALE ->
+					throw new ServiceExceptionWithStatusCode("The latest validation report is now stale " +
+							"because the content has changed since the validation was started. " +
+							"Please create a new validation report for the current content.",
+							HttpStatus.BAD_REQUEST.value());
+
+			case COMPLETE, CONTENT_ERROR, CONTENT_WARNING -> {
+				response.setHeader("Content-Disposition", "attachment; filename=\"Simplex_Validation_Report.xlsx\"");
+				validationServiceClient.downloadLatestValidationAsSpreadsheet(
+						theCodeSystem, snowstormClient, validationJob, response.getOutputStream());
+			}
+        }
+	}
+
 	@DeleteMapping("{codeSystem}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void deleteCodeSystem(@PathVariable String codeSystem) throws ServiceException {

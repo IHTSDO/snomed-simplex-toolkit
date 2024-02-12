@@ -1,6 +1,7 @@
 package org.snomed.simplex.service;
 
 import org.snomed.simplex.client.domain.*;
+import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.domain.ComponentIntent;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.spreadsheet.HeaderConfiguration;
@@ -16,10 +17,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,6 +30,8 @@ import static org.snomed.simplex.client.domain.Concepts.IS_A;
 public class SpreadsheetService {
 
 	public static final XSSFFont BOLD_FONT = new XSSFFont();
+	public static final String NEW_LINE = "\n";
+
 	static {
 		BOLD_FONT.setBold(true);
 	}
@@ -160,6 +161,106 @@ public class SpreadsheetService {
 		resizeColumns(sheet, dataRows);
 
 		return workbook;
+	}
+
+	public Workbook createValidationReportSpreadsheet(ValidationReport validationReport) {
+		Workbook workbook = new XSSFWorkbook();
+		Sheet sheet = workbook.createSheet();
+
+		AtomicInteger rowOffset = new AtomicInteger(0);
+		Row headerRow = sheet.createRow(rowOffset.getAndIncrement());
+		int columnOffset = 0;
+		for (String columnName : List.of("Rule Type", "Concept Code", "Additional Detail")) {
+			Cell cell = headerRow.createCell(columnOffset++);
+			XSSFRichTextString textString = new XSSFRichTextString(columnName);
+			textString.applyFont(BOLD_FONT);
+			cell.setCellValue(textString);
+		}
+
+		ValidationReport.TestResult testResult = validationReport.rvfValidationResult().TestResult();
+		int errors = testResult.totalFailures();
+		int warnings = testResult.totalWarnings();
+
+		Row messageRow = sheet.createRow(rowOffset.getAndIncrement());
+		String message = getValidationSummaryMessage(errors, warnings);
+		Cell messageCell = messageRow.createCell(0);
+		XSSFRichTextString textString = new XSSFRichTextString(message);
+		messageCell.setCellValue(textString);
+
+		rowOffset.getAndIncrement();
+		rowOffset.getAndIncrement();
+
+        addValidationFailures(testResult.assertionsFailed(), true, rowOffset, sheet);
+        addValidationFailures(testResult.assertionsWarning(), false, rowOffset, sheet);
+
+		// Report Timestamp: Feb 7, 2024, 5:50:04 PM (UTC), Identifier: 1707327746182
+		Row metadataRow = sheet.createRow(rowOffset.getAndIncrement());
+		metadataRow.createCell(0).setCellValue(String.format("Report Timestamp: %s (UTC), Identifier: %s",
+				validationReport.rvfValidationResult().startTime(),
+				validationReport.rvfValidationResult().validationConfig().runId()));
+
+		return workbook;
+	}
+
+	private static void addValidationFailures(List<ValidationReport.Assertion> assertions, boolean error,
+											  AtomicInteger rowOffset, Sheet sheet) {
+
+		for (ValidationReport.Assertion assertion : assertions) {
+			Row ruleRow = sheet.createRow(rowOffset.getAndIncrement());
+
+			Cell cell = ruleRow.createCell(0);
+			String assertionText = assertion.assertionText();
+			int failureCount = assertion.failureCount();
+			String assertionMessage = String.format("%s: there %s %s failure of the following rule.\n" +
+					"\"%s\"",
+					error ? "Error" : "Warning",
+					failureCount == 1 ? "is" : "are",
+					failureCount,
+					assertionText);
+			XSSFRichTextString ruleText = new XSSFRichTextString(assertionMessage);
+			ruleText.applyFont(BOLD_FONT);
+			cell.setCellValue(ruleText);
+
+			Row failureRow = ruleRow;
+			for (ValidationReport.AssertionIssue failureInstance : assertion.firstNInstances()) {
+				failureRow.createCell(1).setCellValue(failureInstance.conceptId());
+
+				StringBuilder detailMessage = new StringBuilder();
+				String detail = failureInstance.detail();
+				// Only add detail if it's different to the overall assertion text
+				if (detail != null && !detail.equals(assertionText)) {
+					detailMessage.append(detail);
+				}
+
+				if (failureInstance.conceptFsn() != null) {
+					if (!detailMessage.isEmpty()) {
+						detailMessage.append(NEW_LINE);
+					}
+					detailMessage.append(failureInstance.conceptFsn());
+				}
+
+				if (!detailMessage.isEmpty()) {
+					failureRow.createCell(2).setCellValue(detailMessage.toString());
+				}
+
+				failureRow = sheet.createRow(rowOffset.getAndIncrement());// may be left blank if no failures left
+			}
+			rowOffset.getAndIncrement();
+		}
+	}
+
+	private static String getValidationSummaryMessage(int errors, int warnings) {
+		String message;
+		if (errors > 0 || warnings > 0) {
+			message = """
+					The automatic validation process has found some content issues. These must be fixed before the Edition can be released.
+
+					Some types of content issue trigger multiple validation rules, so fixing one issue many clear other rule failures for the same concept.""";
+		} else {
+			message = "The automatic validation process ran successfully and no content issues were found. " +
+					"Please also carefully review the content manually before release.";
+		}
+		return message;
 	}
 
 	private static Map<String, List<String>> getDescriptionsPerLangRefset(List<Description> descriptions, List<String> langRefsetIds) {
