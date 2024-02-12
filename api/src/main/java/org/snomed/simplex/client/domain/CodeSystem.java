@@ -23,6 +23,7 @@ public class CodeSystem {
 	private boolean postcoordinated;
 	private boolean dailyBuildAvailable;
 	private CodeSystemClassificationStatus classificationStatus;
+	private CodeSystemValidationStatus validationStatus;
 	private boolean showCustomConcepts;
 	private String latestValidationReport;
 	private long contentHeadTimestamp;
@@ -131,6 +132,14 @@ public class CodeSystem {
 
 	public void setClassificationStatus(CodeSystemClassificationStatus classificationStatus) {
 		this.classificationStatus = classificationStatus;
+	}
+
+	public CodeSystemValidationStatus getValidationStatus() {
+		return validationStatus;
+	}
+
+	public void setValidationStatus(CodeSystemValidationStatus validationStatus) {
+		this.validationStatus = validationStatus;
 	}
 
 	public boolean isShowCustomConcepts() {

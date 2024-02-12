@@ -1,23 +1,31 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
-import org.snomed.simplex.client.domain.ClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
+import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
+import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.rest.pojos.SetBranchRequest;
 import org.snomed.simplex.service.CodeSystemService;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.SecurityService;
 import org.snomed.simplex.service.job.AsyncJob;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
@@ -38,6 +46,9 @@ public class CodeSystemController {
 	@Autowired
 	private SecurityService securityService;
 
+	@Autowired
+	private ValidationServiceClient validationServiceClient;
+
 	@GetMapping
 	public Page<CodeSystem> getCodeSystems(@RequestParam(required = false, defaultValue = "false") boolean includeDetails) throws ServiceException {
 		List<CodeSystem> codeSystems = clientFactory.getClient().getCodeSystems(includeDetails);
@@ -53,6 +64,7 @@ public class CodeSystemController {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem codeSystemForDisplay = snowstormClient.getCodeSystemForDisplay(codeSystem);
 		codeSystemService.addClassificationStatus(codeSystemForDisplay);
+		codeSystemService.addValidationStatus(codeSystemForDisplay);
 		securityService.updateUserRolePermissionCache(Collections.singletonList(codeSystemForDisplay));
 		return codeSystemForDisplay;
 	}

@@ -10,7 +10,16 @@ public record ValidationReport(
 	public enum State { QUEUED, READY, RUNNING, FAILED, COMPLETE }
 
 	public record ValidationResult(
-			ValidationReport.TestResult TestResult) {
+			ValidationReport.ValidationConfig validationConfig,
+			ValidationReport.TestResult TestResult,
+			String startTime,
+			String endTime) {
+	}
+
+	public record ValidationConfig(
+			long runId,
+			long contentHeadTimestamp) {
+
 	}
 
 	public record TestResult(

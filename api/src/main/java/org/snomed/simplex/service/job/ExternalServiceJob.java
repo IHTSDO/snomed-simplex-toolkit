@@ -2,11 +2,14 @@ package org.snomed.simplex.service.job;
 
 public class ExternalServiceJob extends AsyncJob {
 
-	private String branch;
+	private final String branch;
+	private final long contentHeadTimestamp;
 	private String link;
 
-	public ExternalServiceJob(String codeSystem, String display) {
+	public ExternalServiceJob(String codeSystem, String display, String branch, long contentHeadTimestamp) {
 		super(codeSystem, display);
+		this.branch = branch;
+		this.contentHeadTimestamp = contentHeadTimestamp;
 	}
 
 	@Override
@@ -14,12 +17,12 @@ public class ExternalServiceJob extends AsyncJob {
 		return JobType.EXTERNAL_SERVICE;
 	}
 
-	public void setBranch(String branch) {
-		this.branch = branch;
-	}
-
 	public String getBranch() {
 		return branch;
+	}
+
+	public long getContentHeadTimestamp() {
+		return contentHeadTimestamp;
 	}
 
 	public String getLink() {

@@ -1,12 +1,16 @@
 package org.snomed.simplex.client.rvf;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
-import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.snomed.simplex.service.SpreadsheetService;
+import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.ContentDisposition;
@@ -34,14 +38,17 @@ public class ValidationServiceClient {
 	private static final String RVF_TS = "RVF_TS";
 	private static final String VALIDATION_RESPONSE_QUEUE = "termserver-release-validation.response";
 
-	private RestTemplate restTemplate;
+	private final RestTemplate restTemplate;
 	private final String queuePrefix;
+	private final SpreadsheetService spreadsheetService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public ValidationServiceClient(@Value("${rvf.url}") String rvfUrl, @Value("${jms.queue.prefix}") String queuePrefix) {
+	public ValidationServiceClient(@Value("${rvf.url}") String rvfUrl, @Value("${jms.queue.prefix}") String queuePrefix,
+								   @Autowired SpreadsheetService spreadsheetService) {
 		this.restTemplate = new RestTemplateBuilder().rootUri(rvfUrl).build();
 		this.queuePrefix = queuePrefix;
+		this.spreadsheetService = spreadsheetService;
 	}
 
 	public URI startValidation(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
@@ -137,7 +144,15 @@ public class ValidationServiceClient {
 		return new HttpEntity<>(body, headers);
 	}
 
-	public void setRestTemplate(RestTemplate restTemplate) {
-		this.restTemplate = restTemplate;
+	public void downloadLatestValidationAsSpreadsheet(CodeSystem codeSystem, SnowstormClient snowstormClient,
+													  ExternalServiceJob validationJob, OutputStream outputStream) throws ServiceException {
+
+		ValidationReport validationReport = getValidation(validationJob.getLink());
+		try (Workbook validationReportSpreadsheet = spreadsheetService.createValidationReportSpreadsheet(validationReport)) {
+			validationReportSpreadsheet.write(outputStream);
+		} catch (IOException e) {
+			throw new ServiceException("Failed to write validation spreadsheet to API response stream.", e);
+		}
 	}
+
 }

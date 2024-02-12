@@ -113,7 +113,7 @@ public class CodeSystemService {
 			snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(Branch.LATEST_VALIDATION_REPORT_METADATA_KEY, validationUri.toString()));
 			validationJobsToMonitor.put(validationUri.toString(), asyncJob);
 		} catch (ServiceException e) {
-			supportRegister.handleSystemIssue(asyncJob, "Failed to create validation job.", e);
+			supportRegister.handleSystemError(asyncJob, "Failed to create validation job.", e);
 		}
 	}
 
@@ -138,7 +138,7 @@ public class CodeSystemService {
 			asyncJob.setLink(classificationId);
 			classificationJobsToMonitor.put(classificationId, asyncJob);
 		} catch (ServiceException e) {
-			supportRegister.handleSystemIssue(asyncJob, "Failed to create classification.", e);
+			supportRegister.handleSystemError(asyncJob, "Failed to create classification.", e);
 		}
 	}
 
@@ -162,27 +162,27 @@ public class CodeSystemService {
 						snowstormClient.startClassificationSave(branch, classificationId);
 						logger.info("Start classification save. Branch:{}, classificationId:{}, jobId:{}", branch, classificationId, job.getId());
 					} else {
-						supportRegister.handleContentIssue(job, "Logically equivalent concepts have been found.");
+						supportRegister.handleTechnicalContentIssue(job, "Logically equivalent concepts have been found.");
 						classificationComplete = true;
 					}
 				} else if (status == SnowstormClassificationJob.Status.SAVED) {
 					logger.info("Classification saved. Branch:{}, classificationId:{}, jobId:{}", branch, classificationId, job.getId());
-					job.setStatus(JobStatus.COMPLETED);
+					job.setStatus(JobStatus.COMPLETE);
 					classificationComplete = true;
 				} else if (status == SnowstormClassificationJob.Status.FAILED) {
-					supportRegister.handleSystemIssue(job, "Classification failed to run in Terminology Server.");
+					supportRegister.handleSystemError(job, "Classification failed to run in Terminology Server.");
 					classificationComplete = true;
 				} else if (status == SnowstormClassificationJob.Status.SAVE_FAILED) {
-					supportRegister.handleSystemIssue(job, "Classification failed to save in Terminology Server.");
+					supportRegister.handleSystemError(job, "Classification failed to save in Terminology Server.");
 					classificationComplete = true;
 				} else if (status == SnowstormClassificationJob.Status.STALE) {
 					logger.info("Classification stale. Branch:{}, classificationId:{}, jobId:{}", branch, classificationId, job.getId());
-					job.setStatus(JobStatus.ERROR);
+					job.setStatus(JobStatus.SYSTEM_ERROR);
 					job.setErrorMessage("Classification became stale because of new content changes. Please try again.");
 					classificationComplete = true;
 				}
 			} catch (ServiceException e) {
-				supportRegister.handleSystemIssue(job, "Terminology Server API issue.", e);
+				supportRegister.handleSystemError(job, "Terminology Server API issue.", e);
 				classificationComplete = true;
 			}
 			if (classificationComplete) {
@@ -214,21 +214,21 @@ public class CodeSystemService {
 						ValidationReport.TestResult testResult = validationResult.TestResult();
 						if (testResult.totalFailures() > 0) {
 							job.setErrorMessage("Validation errors were found in the content.");
-							job.setStatus(JobStatus.CONTENT_ISSUE);
+							job.setStatus(JobStatus.USER_CONTENT_ERROR);
 						} else if (testResult.totalWarnings() > 0) {
 							job.setErrorMessage("Validation warnings were found in the content.");
-							job.setStatus(JobStatus.CONTENT_ISSUE);
+							job.setStatus(JobStatus.USER_CONTENT_WARNING);
 						} else {
-							job.setStatus(JobStatus.COMPLETED);
+							job.setStatus(JobStatus.COMPLETE);
 						}
 						validationComplete = true;
 					} else if (status == ValidationReport.State.FAILED) {
-						supportRegister.handleSystemIssue(job, "RVF report failed.");
+						supportRegister.handleSystemError(job, "RVF report failed.");
 						validationComplete = true;
 					}
 				}
 			} catch (ServiceException e) {
-				supportRegister.handleSystemIssue(job, "Terminology Server or RVF API issue.", e);
+				supportRegister.handleSystemError(job, "Terminology Server or RVF API issue.", e);
 				validationComplete = true;
 			}
 			if (validationComplete) {
@@ -265,5 +265,42 @@ public class CodeSystemService {
 			}
 		}
 		theCodeSystem.setClassificationStatus(status);
+	}
+
+	public void addValidationStatus(CodeSystem codeSystem) {
+		addValidationStatus(codeSystem, getLatestValidationJob(codeSystem));
+	}
+
+	public void addValidationStatus(CodeSystem codeSystem, ExternalServiceJob latestValidationJob) {
+		CodeSystemValidationStatus status = CodeSystemValidationStatus.TODO;
+		if (latestValidationJob != null) {
+			switch (latestValidationJob.getStatus()) {
+				case QUEUED, IN_PROGRESS ->
+						status = CodeSystemValidationStatus.IN_PROGRESS;
+				case SYSTEM_ERROR ->
+						status = CodeSystemValidationStatus.SYSTEM_ERROR;
+				case TECHNICAL_CONTENT_ISSUE ->
+						// Not expected
+						status = CodeSystemValidationStatus.SYSTEM_ERROR;
+				case USER_CONTENT_ERROR ->
+						status = CodeSystemValidationStatus.CONTENT_ERROR;
+				case USER_CONTENT_WARNING ->
+						status = CodeSystemValidationStatus.CONTENT_WARNING;
+				case COMPLETE ->
+						status = CodeSystemValidationStatus.COMPLETE;
+			}
+			if (status.isCanTurnStale() && latestValidationJob.getContentHeadTimestamp() != codeSystem.getContentHeadTimestamp()) {
+				logger.info("Validation report {} was {} is now stale.", latestValidationJob.getLink(), status);
+				logger.debug("Validation report {} was {} is now stale, validationHead:{}, contentHead:{}.",
+						latestValidationJob.getLink(), status, latestValidationJob.getContentHeadTimestamp(), codeSystem.getContentHeadTimestamp());
+
+				status = CodeSystemValidationStatus.STALE;
+			}
+		}
+		codeSystem.setValidationStatus(status);
+	}
+
+	public ExternalServiceJob getLatestValidationJob(CodeSystem codeSystem) {
+        return (ExternalServiceJob) jobService.getLatestJobOfType(codeSystem.getShortName(), "Validate");
 	}
 }
