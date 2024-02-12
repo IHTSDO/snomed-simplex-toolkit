@@ -41,9 +41,10 @@ public class JobService {
 
 	public AsyncJob startExternalServiceJob(CodeSystem codeSystem, String display, Consumer<ExternalServiceJob> function) {
 		String shortName = codeSystem.getShortName();
-		ExternalServiceJob asyncJob = new ExternalServiceJob(shortName, display);
+		ExternalServiceJob asyncJob = new ExternalServiceJob(shortName, display,
+				codeSystem.getWorkingBranchPath(), codeSystem.getContentHeadTimestamp());
+
 		asyncJob.setSecurityContext(SecurityContextHolder.getContext());
-		asyncJob.setBranch(codeSystem.getWorkingBranchPath());
 		asyncJob.setStatus(JobStatus.IN_PROGRESS);
 
 		function.accept(asyncJob);
@@ -75,12 +76,12 @@ public class JobService {
 				asyncJob.setStatus(JobStatus.IN_PROGRESS);
 				ChangeSummary changeSummary = function.run(asyncJob);
 				asyncJob.setChangeSummary(changeSummary);
-				asyncJob.setStatus(JobStatus.COMPLETED);
+				asyncJob.setStatus(JobStatus.COMPLETE);
 			} catch (ServiceException e) {
-				asyncJob.setStatus(JobStatus.ERROR);
+				asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
 				asyncJob.setServiceException(e);
 			} catch (Exception e) {
-				supportRegister.handleSystemIssue(asyncJob, "Unexpected error.", new ServiceException("Unexpected error.", e));
+				supportRegister.handleSystemError(asyncJob, "Unexpected error.", new ServiceException("Unexpected error.", e));
 			} finally {
 				if (onCompleteRunnable != null) {
 					onCompleteRunnable.run();

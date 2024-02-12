@@ -22,7 +22,7 @@ public class CodeSystem {
 	private String defaultModuleDisplay;
 	private boolean postcoordinated;
 	private boolean dailyBuildAvailable;
-	private ClassificationStatus classificationStatus;
+	private CodeSystemClassificationStatus classificationStatus;
 	private boolean showCustomConcepts;
 	private String latestValidationReport;
 	private long contentHeadTimestamp;
@@ -125,11 +125,11 @@ public class CodeSystem {
 		this.languages = languages;
 	}
 
-	public ClassificationStatus getClassificationStatus() {
+	public CodeSystemClassificationStatus getClassificationStatus() {
 		return classificationStatus;
 	}
 
-	public void setClassificationStatus(ClassificationStatus classificationStatus) {
+	public void setClassificationStatus(CodeSystemClassificationStatus classificationStatus) {
 		this.classificationStatus = classificationStatus;
 	}
 

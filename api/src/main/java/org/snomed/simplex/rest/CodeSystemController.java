@@ -72,7 +72,7 @@ public class CodeSystemController {
 		codeSystemService.addClassificationStatus(theCodeSystem);
         if (theCodeSystem.isClassified()) {
 			throw new ServiceException("This codesystem is already classified.");
-		} else if (theCodeSystem.getClassificationStatus() == ClassificationStatus.IN_PROGRESS) {
+		} else if (theCodeSystem.getClassificationStatus() == CodeSystemClassificationStatus.IN_PROGRESS) {
 			throw new ServiceException("Classification is already in progress.");
 		}
 

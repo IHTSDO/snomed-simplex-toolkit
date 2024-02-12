@@ -241,19 +241,29 @@ public class CodeSystemService {
 	}
 
 	public void addClassificationStatus(CodeSystem theCodeSystem) {
+		CodeSystemClassificationStatus status;
 		if (theCodeSystem.isClassified()) {
-			theCodeSystem.setClassificationStatus(ClassificationStatus.COMPLETE);
+			status = CodeSystemClassificationStatus.COMPLETE;
 		} else {
-			theCodeSystem.setClassificationStatus(ClassificationStatus.TODO);
+			status = CodeSystemClassificationStatus.TODO;
 
 			AsyncJob latestJobOfType = jobService.getLatestJobOfType(theCodeSystem.getShortName(), "Classify");
 			if (latestJobOfType != null) {
-				if (latestJobOfType.isQueuedOrInProgress()) {
-					theCodeSystem.setClassificationStatus(ClassificationStatus.IN_PROGRESS);
-				} else if (latestJobOfType.getStatus() == JobStatus.ERROR) {
-					theCodeSystem.setClassificationStatus(ClassificationStatus.ERROR);
+				switch (latestJobOfType.getStatus()) {
+					case QUEUED, IN_PROGRESS ->
+							status = CodeSystemClassificationStatus.IN_PROGRESS;
+					case SYSTEM_ERROR ->
+							status = CodeSystemClassificationStatus.SYSTEM_ERROR;
+					case TECHNICAL_CONTENT_ISSUE ->
+							status = CodeSystemClassificationStatus.EQUIVALENT_CONCEPTS;
+					case USER_CONTENT_ERROR, USER_CONTENT_WARNING ->
+							// Not expected
+							status = CodeSystemClassificationStatus.SYSTEM_ERROR;
+					case COMPLETE ->
+							status = CodeSystemClassificationStatus.COMPLETE;
 				}
 			}
 		}
+		theCodeSystem.setClassificationStatus(status);
 	}
 }
