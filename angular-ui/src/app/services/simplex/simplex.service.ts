@@ -173,8 +173,10 @@ export class SimplexService {
     return this.http.post(`/api/codesystems/${edition}/classify`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public getJobs(edition: string, refsetId: string): Observable<any> {
-    if (refsetId === 'concepts') {
+  public getJobs(edition: string, refsetId?: string): Observable<any> {
+    if (!refsetId) {
+      return this.http.get(`/api/${edition}/jobs`).pipe(catchError(this.handleError.bind(this)));
+    } else if (refsetId === 'concepts') {
       return this.http.get(`/api/${edition}/jobs?jobType=CONCEPT_CHANGE`).pipe(catchError(this.handleError.bind(this)));
     } else {
       return this.http.get(`/api/${edition}/jobs?refsetId=${refsetId}`).pipe(catchError(this.handleError.bind(this)));
@@ -183,6 +185,17 @@ export class SimplexService {
 
   public getRoles(): Observable<any> {
     return this.http.get('/api/auth').pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public startValidation(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/validate`, null).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getValidationResultSpreadsheet(edition: string): Observable<any> {
+    const apiUrl = `/api/codesystems/${edition}/validate/spreadsheet`;
+    return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
+      catchError(this.handleError.bind(this))
+    );
   }
 
 }

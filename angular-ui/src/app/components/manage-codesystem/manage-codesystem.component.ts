@@ -12,13 +12,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   @Input() edition: any;
   private refreshSubscription: Subscription;
 
-
-  releases: any[] = [
-    { name: '20210131', date: '2021-01-31', type: 'Edition' },
-    { name: '20210131', date: '2021-01-31', type: 'Extension' },
-    { name: '20200731', date: '2020-07-31', type: 'Edition' },
-    { name: '20200131', date: '2020-01-31', type: 'Edition' }
-  ];
+  jobs: any[] = [];
+  releases: any[] = [];
 
   constructor(private simplexService: SimplexService,
     private snackBar: MatSnackBar) {}
@@ -29,6 +24,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     // console.log('Classification status', this.edition.classificationStatus);
     this.refreshEdition();
     this.startRefresh();
+    this.refreshJobs();
   }
 
   ngOnDestroy(): void {
@@ -46,6 +42,14 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       this.simplexService.startClassification(this.edition.shortName)
     );
     this.alert('Classification requested');
+    this.refreshEdition();
+  }
+
+  async runValidation() {
+    const response = await lastValueFrom(
+      this.simplexService.startValidation(this.edition.shortName)
+    );
+    this.alert('Validation requested');
     this.refreshEdition();
   }
 
@@ -73,6 +77,14 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     if (this.refreshSubscription) {
       this.refreshSubscription.unsubscribe();
     }
+  }
+
+  async refreshJobs() {
+    const response = await lastValueFrom(
+      this.simplexService.getJobs(this.edition.shortName)
+    );
+    this.jobs = response;
+    console.log(response)
   }
 
   async refreshEdition() {
