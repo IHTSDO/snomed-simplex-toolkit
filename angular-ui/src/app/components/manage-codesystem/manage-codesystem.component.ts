@@ -89,7 +89,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       this.simplexService.getJobs(this.edition.shortName)
     );
     this.jobs = response;
-    console.log(response)
   }
 
   async refreshEdition() {
