@@ -24,7 +24,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     // console.log('Classification status', this.edition.classificationStatus);
     this.refreshEdition();
     this.startRefresh();
-    this.refreshJobs();
   }
 
   ngOnDestroy(): void {
@@ -38,6 +37,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   async runClassification() {
+    this.edition.classificationStatus = 'IN_PROGRESS';
     const response = await lastValueFrom(
       this.simplexService.startClassification(this.edition.shortName)
     );
@@ -46,6 +46,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   async runValidation() {
+    this.edition.validationStatus = 'IN_PROGRESS';
     const response = await lastValueFrom(
       this.simplexService.startValidation(this.edition.shortName)
     );
@@ -92,6 +93,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       this.simplexService.getEdition(this.edition.shortName)
     );
     this.edition = response;
+    this.refreshJobs();
   }
 
 }
