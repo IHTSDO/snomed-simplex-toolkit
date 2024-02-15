@@ -22,6 +22,9 @@
             <button mat-flat-button color="accent" (click)="runValidation()" *ngIf="edition.validationStatus == 'TODO' || edition.validationStatus == 'ERROR'">
                 RUN VALIDATION
             </button>
+            <button mat-flat-button color="accent" (click)="downloadValidationResults()" *ngIf="edition.validationStatus == 'CONTENT_ERROR'">
+                VALIDATION RESULT: ERRORS FOUND (DOWNLOAD)
+            </button>
             <button mat-flat-button color="accent" *ngIf="edition.validationStatus == 'COMPLETE'" [disabled]="true">
                 VALIDATION COMPLETE
             </button>
@@ -47,16 +50,16 @@
     </div>
     <div class="component-col">
         <div class="component-container">
-            <h4>Results</h4>
-            <!-- <mat-list id="components-list">
-                <mat-list-item *ngFor="let item of releases">
-                    <span class="release-name">{{ item.name }}</span>
-                    <span class="pill pill-green" *ngIf="item.type == 'Edition'">{{ item.type }}</span>
-                    <span class="pill pill-blue" *ngIf="item.type == 'Extension'">{{ item.type }}</span>
-                    <span class="muted">Created on {{ item.date }}</span>
-                    <button mat-button color="accent" class="download">Download</button>
+            <h4>Jobs</h4>
+            <mat-list id="components-list">
+                <mat-list-item *ngFor="let item of jobs">
+                    <span class="release-name">{{ item.display }}</span>
+                    <span class="pill pill-green">{{ item.status }}</span>
+                    <span class="pill pill-blue">{{ item.jobType }}</span>
+                    <span class="muted">Created on {{ item.created | timeAgo }}</span>
+                    <!-- <button mat-button color="accent" class="download">Download</button> -->
                 </mat-list-item>
-            </mat-list> -->
+            </mat-list>
         </div>
     </div>
 </div>

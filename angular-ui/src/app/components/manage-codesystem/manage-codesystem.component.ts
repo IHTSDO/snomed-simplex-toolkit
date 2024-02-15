@@ -54,6 +54,10 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     this.refreshEdition();
   }
 
+  downloadValidationResults() {
+    window.open('api/codesystems/' + this.edition.shortName + '/validate/spreadsheet');
+  }
+
   private alert(message: string) {
     this.snackBar.open(message, 'Dismiss', {
       duration: 5000
