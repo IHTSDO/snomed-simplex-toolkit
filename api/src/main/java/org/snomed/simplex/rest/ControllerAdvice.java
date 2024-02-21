@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;
@@ -95,7 +96,7 @@ public class ControllerAdvice {
 
 	@ExceptionHandler(AccessDeniedException.class)
 	@ResponseStatus(HttpStatus.FORBIDDEN)
-	public HashMap<String, Object> handleAccessDeniedException(AccessDeniedException exception) {
+	public Map<String, Object> handleAccessDeniedException(AccessDeniedException exception) {
 		logger.debug(exception.getMessage(), exception);
 		HashMap<String, Object> result = new HashMap<>();
 		result.put("error", HttpStatus.FORBIDDEN);

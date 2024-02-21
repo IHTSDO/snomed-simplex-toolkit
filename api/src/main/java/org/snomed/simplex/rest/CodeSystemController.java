@@ -9,6 +9,7 @@ import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
+import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
@@ -48,6 +49,9 @@ public class CodeSystemController {
 
 	@Autowired
 	private ValidationServiceClient validationServiceClient;
+
+	@Autowired
+	private ReleaseServiceClient releaseServiceClient;
 
 	@GetMapping
 	public Page<CodeSystem> getCodeSystems(@RequestParam(required = false, defaultValue = "false") boolean includeDetails) throws ServiceException {
@@ -126,6 +130,25 @@ public class CodeSystemController {
 						theCodeSystem, snowstormClient, validationJob, response.getOutputStream());
 			}
         }
+	}
+
+	@GetMapping(path = "{codeSystem}/packaging-product")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public ReleaseServiceClient.Product getReleaseProduct(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return releaseServiceClient.getCreateProduct(theCodeSystem);
+	}
+
+	@PutMapping(path = "{codeSystem}/packaging-product/configuration")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public ReleaseServiceClient.Product updateReleaseProduct(
+			@PathVariable String codeSystem,
+			@RequestBody ReleaseServiceClient.ProductUpdateRequest configUpdate) throws ServiceException {
+
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return releaseServiceClient.updateProductConfiguration(theCodeSystem, configUpdate);
 	}
 
 	@DeleteMapping("{codeSystem}")

@@ -32,6 +32,10 @@ public class CodeSystem {
 	private List<ConceptMini> modules;
 	private boolean classified;
 
+	private CodeSystemVersion latestVersion;
+
+	public record CodeSystemVersion(int effectiveDate, String branchPath) {}
+
 	public CodeSystem() {
 	}
 
@@ -184,6 +188,10 @@ public class CodeSystem {
 
 	public boolean isClassified() {
 		return classified;
+	}
+
+	public CodeSystemVersion getLatestVersion() {
+		return latestVersion;
 	}
 
 	@Override

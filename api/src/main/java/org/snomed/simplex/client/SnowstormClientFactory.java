@@ -20,16 +20,16 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class SnowstormClientFactory {
 
-	@Value("${snowstorm.url}")
-	private String snowstormUrl;
+	private final String snowstormUrl;
 
 	private final Cache<String, SnowstormClient> clientCache;
 	private final ObjectMapper objectMapper;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public SnowstormClientFactory() {
+	public SnowstormClientFactory(@Value("${snowstorm.url}") String snowstormUrl) {
 		this.clientCache = CacheBuilder.newBuilder().expireAfterAccess(5L, TimeUnit.MINUTES).build();
 		this.objectMapper = (new ObjectMapper()).setSerializationInclusion(JsonInclude.Include.NON_NULL);
+		this.snowstormUrl = snowstormUrl;
 		logger.info("Snowstorm URL set as '{}'", snowstormUrl);
 	}
 

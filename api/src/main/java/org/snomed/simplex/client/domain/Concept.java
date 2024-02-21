@@ -7,7 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.snomed.simplex.client.domain.Description.Type.FSN;
+
 public class Concept extends Component {
+
+	public static final String PRIMITIVE = "PRIMITIVE";
 
 	private String conceptId;
 	private String definitionStatus;
@@ -26,7 +30,7 @@ public class Concept extends Component {
 
 	public Concept(String moduleId) {
 		super(moduleId);
-		definitionStatus = "PRIMITIVE";
+		definitionStatus = PRIMITIVE;
 		descriptions = new ArrayList<>();
 		classAxioms = new ArrayList<>();
 		gciAxioms = new ArrayList<>();
@@ -60,10 +64,18 @@ public class Concept extends Component {
 
 	@JsonIgnore
 	public String getEnSemanticTag() {
-		Optional<Description> fsn = descriptions.stream().filter(description -> description.isActive() && description.getType() == Description.Type.FSN &&
-				description.getLang().equals("en")).findFirst();
+		Optional<Description> fsn = getEnFSN();
 		String term = fsn.orElse(new Description().setTerm("Finding (finding)")).getTerm();
 		return term.substring(term.lastIndexOf("("));
+	}
+
+	public Optional<Description> getEnFSN() {
+        return descriptions.stream().filter(description -> description.isActive() && description.getType() == FSN &&
+                description.getLang().equals("en")).findFirst();
+	}
+
+	public boolean isDefined() {
+		return !definitionStatus.equals(PRIMITIVE);
 	}
 
 	public String getConceptId() {

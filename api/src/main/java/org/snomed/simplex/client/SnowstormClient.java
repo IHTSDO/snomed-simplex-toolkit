@@ -16,6 +16,8 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
@@ -225,7 +227,7 @@ public class SnowstormClient {
 
 	public List<ConceptMini> getRefsets(String refsetEcl, CodeSystem codeSystem) throws ServiceException {
 		// Get refset concepts from code system branch and module
-		Map<String, ConceptMini> refsetConceptMap = getConcepts(refsetEcl, codeSystem).getItems().stream()
+		Map<String, ConceptMini> refsetConceptMap = getConcepts(refsetEcl, codeSystem, codeSystem.getDefaultModuleOrThrow()).getItems().stream()
 				.peek(conceptMini -> conceptMini.setActiveMemberCount(0L))
 				.collect(Collectors.toMap(ConceptMini::getConceptId, Function.identity()));
 
@@ -248,9 +250,9 @@ public class SnowstormClient {
 		return refsetConcepts;
 	}
 
-	private Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem) throws ServiceException {
+	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter) throws ServiceException {
 		try {
-			String url = format("/%s/concepts?ecl=%s&module=%s&limit=300", codeSystem.getWorkingBranchPath(), ecl, codeSystem.getDefaultModuleOrThrow());
+			String url = format("/%s/concepts?ecl=%s%s&limit=300", codeSystem.getWorkingBranchPath(), ecl, moduleFilter != null ? String.format("&module=%s", moduleFilter) : "");
 			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(url, HttpMethod.GET, null, responseTypeConceptMiniPage);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
@@ -458,6 +460,15 @@ public class SnowstormClient {
 		ResponseEntity<List<Concept>> response = restTemplate.exchange(format("/browser/%s/concepts/bulk-load", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
 				new HttpEntity<>(new ConceptBulkLoadRequest(conceptIds)), listOfConcepts);
 		return response.getBody();
+	}
+
+	public List<Concept> loadBrowserFormatConceptsUsingGet(List<Long> conceptIds, CodeSystem codeSystem) {
+		ParameterizedTypeReference<Page<Concept>> pageOfConcepts = new ParameterizedTypeReference<>(){};
+		Map<String, String> params = new HashMap<>();
+		params.put("conceptIds", Strings.join(conceptIds, ','));
+		ResponseEntity<Page<Concept>> response = restTemplate.exchange(format("/browser/%s/concepts?conceptIds={conceptIds}", codeSystem.getWorkingBranchPath()), HttpMethod.GET,
+				null, pageOfConcepts, params);
+		return response.getBody().getItems();
 	}
 
 	public void createUpdateBrowserFormatConcepts(List<Concept> conceptsToUpdate, CodeSystem codeSystem) throws ServiceException {
