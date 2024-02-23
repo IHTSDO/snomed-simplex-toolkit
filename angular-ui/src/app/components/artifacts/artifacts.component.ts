@@ -77,6 +77,10 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
     this.loadMaps(edition);
   }
 
+  refreshArtifacts() {
+    this.loadArtifacts(this.edition);
+  }
+
   loadConceptsArtifact(conceptId: string) {
     lastValueFrom(this.simplexService.getEdition(this.edition)).then(
       (edition) => {

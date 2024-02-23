@@ -28,9 +28,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     private snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
-    // console.log('Classification status', this.edition.classificationStatus);
-    // this.edition.classificationStatus = 'COMPLETE';
-    // console.log('Classification status', this.edition.classificationStatus);
     this.refreshEdition();
     this.startRefresh();
   }

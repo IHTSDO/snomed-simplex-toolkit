@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import { Subscription, catchError, lastValueFrom } from 'rxjs';
@@ -28,6 +28,8 @@ export class JobsComponent implements OnChanges, OnInit {
   @Input() refsetId: string;
   @Input() artifact: any;
 
+  @Output() jobCompleted = new EventEmitter<any>();
+  
   jobs: any[] = [];
   loading = false;
   showMapInfo = false;
@@ -81,8 +83,17 @@ export class JobsComponent implements OnChanges, OnInit {
       })
     )
     .subscribe(data => {
+      const previousInProgressJobs = this.jobs.filter(job => job.status === 'IN_PROGRESS');
       this.jobs = data.slice(0, 3);
       this.loading = false;
+
+      // After updating jobs, check if any previously IN_PROGRESS jobs are now COMPLETED
+      previousInProgressJobs.forEach(prevJob => {
+        const updatedJob = this.jobs.find(job => job.id === prevJob.id);
+        if (updatedJob && updatedJob.status === 'COMPLETE') {
+          this.jobCompleted.emit(updatedJob); // Emit the job that was completed
+        }
+      });
       
       const hasInProgressJob = this.jobs.some(job => job.status === 'IN_PROGRESS');
       
