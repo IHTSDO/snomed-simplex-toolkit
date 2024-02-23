@@ -12,7 +12,7 @@
     <div class="step-row">
         <span class="step-number">1</span>
         Download existing concepts as a spreadsheet
-        <button mat-flat-button color="primary" id="downloadConceptsSpreadsheet" (click)="downloadConceptsSpreadsheet()">
+        <button mat-flat-button color="primary" id="downloadConceptsSpreadsheet" (click)="downloadConceptsSpreadsheet()" [disabled]="downloadConceptFileDisabled">
             <span>Download</span>
         </button>
     </div>

@@ -48,6 +48,8 @@ export class JobsComponent implements OnChanges, OnInit {
   filteredFileTypes = [];
   selectedLanguageCode: '';
 
+  downloadConceptFileDisabled = false;
+
   private subscription: Subscription;
   private intervalId?: any;  // Declare an intervalId property
 
@@ -133,6 +135,7 @@ export class JobsComponent implements OnChanges, OnInit {
   }
 
   downloadConceptsSpreadsheet() {
+    this.downloadConceptFileDisabled = true;
     this.snackBar.open(`Requesting spreadsheet. The download will start soon.`, 'Dismiss', {
       duration: 5000
     });
@@ -140,6 +143,9 @@ export class JobsComponent implements OnChanges, OnInit {
       (fileBlob: Blob) => {
         const filename = 'conceptsSpreadsheet.xlsx'; // Example filename
         this.simplexService.triggerDownload(fileBlob, filename);
+        setTimeout(() => {
+          this.downloadConceptFileDisabled = false;
+        }, 5000);
       },
       error => {
         console.error('Download failed:', error);
