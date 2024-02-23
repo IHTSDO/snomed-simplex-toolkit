@@ -1,0 +1,65 @@
+.timeline-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%; /* Full width */
+    justify-content: center; /* Center justify content */
+    text-align: center; /* Center text */
+  }
+  
+  .stage {
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+    width: 100%; /* Full width */
+    margin-bottom: 1rem;
+  }
+
+  .col {
+    flex: 1;
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+    width: 100%; /* Full width */
+  }
+  
+  .stage-name, .stage-description {
+    flex: 1; /* Both take up equal space */
+    text-align: center; /* Center text */
+    padding: 10px;
+    min-height: 50px; /* Adjust to your needs */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .stage-name {
+    border: solid 1px #000;
+    background-color: #6b8db5;
+    color: #3c3a3a;
+    margin-right: 10px; /* Adjust space between name and description */
+    border-radius: 25px;
+  }
+  
+  .stage-active {
+    background-color: #127d1b;
+    color: #fff;
+    border: solid 3px #000;
+  }
+  
+  .stage-description {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  
+  .stage-active .stage-description {
+    visibility: visible; /* Only show for active stage */
+  }
+  
+  .arrow-down {
+    width: 0; 
+    height: 0; 
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: 30px solid #000;
+  }
+  

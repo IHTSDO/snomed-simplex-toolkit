@@ -1,8 +1,8 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, lastValueFrom, of, throwError } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
 
 @Injectable({
@@ -197,5 +197,32 @@ export class SimplexService {
       catchError(this.handleError.bind(this))
     );
   }
+
+
+  public getCodeSystemReleaseStatus(edition: string): Observable<string> {
+    return this.getEdition(edition).pipe(
+      switchMap(codeSystem => {
+        let status = '';
+        if (!codeSystem.releasePreparation) {
+          status = 'Authoring';
+        } else if (codeSystem.releasePreparation && codeSystem.classificationStatus === 'TODO') {
+          status = 'Content Cut-off';
+        } else if (codeSystem.releasePreparation && codeSystem.classificationStatus === 'COMPLETE' &&
+                  (codeSystem.validationStatus === 'TODO' || codeSystem.validationStatus === 'STALE')) {
+          status = 'Classification Completed';
+        } else if (codeSystem.releasePreparation && codeSystem.classificationStatus === 'COMPLETE' &&
+                  (codeSystem.validationStatus === 'CONTENT_WARNING' || codeSystem.validationStatus === 'COMPLETE')) {
+          status = 'Validation Completed';
+        }
+        return of(status);
+      }),
+      catchError(error => {
+        console.error('Error fetching edition status:', error);
+        // Return or throw an Observable error. This can be customized based on how you want to handle errors.
+        return of('Error'); // This could be replaced with a more sophisticated error handling strategy.
+      })
+    );
+  }
+
 
 }

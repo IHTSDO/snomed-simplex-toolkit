@@ -64,6 +64,7 @@ import { LegalAgreementComponent } from './components/legal-agreement/legal-agre
 import {MatMenuModule} from '@angular/material/menu';
 import {MatExpansionModule} from '@angular/material/expansion';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import { TimelineComponent } from './components/timeline/timeline.component';
 
 // SERVICE IMPORTS
 
@@ -99,7 +100,8 @@ import {MatTooltipModule} from '@angular/material/tooltip';
         JobsComponent,
         TimeAgoPipe,
         ConceptsListComponent,
-        LegalAgreementComponent
+        LegalAgreementComponent,
+        TimelineComponent
         ],
     imports: [
         BrowserModule,

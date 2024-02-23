@@ -1,7 +1,13 @@
 <div class="component-row">
     <div class="component-col-left">
         <h4>Edition Artifacts</h4>
-        <div>
+        <div *ngIf="!edition">
+            <div class="waiting">
+                Waiting for edition information
+                <mat-spinner [diameter]="20"></mat-spinner>
+            </div>
+        </div>
+        <div *ngIf="edition">
             <mat-list id="components-list">
                 <div *ngIf="loadingTranslations || loadingSubsets || loadingMaps">
                     <!-- Repeat this block for as many skeleton items as you want -->

@@ -1,11 +1,12 @@
 .component-container {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    align-items: flex-start;
+    justify-content: center;
+    align-items: center;
     gap: 1rem;
     margin-top: 2rem;
     overflow: hidden;
+    padding: 1rem;
 }
 
 button  {
@@ -16,7 +17,9 @@ button  {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+    gap: 1rem;
+
 }
     
 .component-col {
@@ -102,4 +105,59 @@ mat-list-item {
     stroke: white !important;
   }
   
+  app-timeline {
+    width: 100%;
+  }
+
+  .arrow-down {
+    width: 0; 
+    height: 0; 
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 20px solid #585353;
+  }
+
+  .stage-name {
+    background-color: #E6E9EE;
+    color: #000000;
+    margin-right: 10px; /* Adjust space between name and description */
+    border-radius: 25px;
+    padding: 1rem;
+    width: 75%;
+    text-align: center;
+    display: flex;
+    align-items: center; /* This vertically aligns the icon with the text */
+    justify-content: space-between;
+  }
+
+  .completed-stage {
+    background-color: #E6E9EE;
+  }
+
+  .current-stage {
+    background-color: #E6E9EE;
+    font-size: large;
+    border: solid 2px #6DBBA1;  
+  }
+
+  .completed-icon {
+    color: #6DBBA1;
+  }
+
+  .errors-icon {
+    color: #CE0037;
+  }
+
+  .header-container {
+    display: flex;
+    align-items: center; /* Aligns items vertically in the center */
+    justify-content: left; /* Centers the content horizontally */
+    gap: 8px; /* Adjusts the space between the text and spinner */
+    margin-top: 2rem;
+    margin-left: 4rem;
+  }
+  
+  h4 {
+    margin: 0; /* Removes default margin to allow for better centering */
+  }
   

@@ -1,0 +1,20 @@
+<div class="timeline-container">
+    <div *ngFor="let stage of timeline; let i = index">
+    <div class="stage">
+        <div class="col">
+            <div class="stage-name" [ngClass]="stage.name == activeStage ? 'stage-active' : '' ">{{ stage.name }}</div>
+        </div>
+        <div class="col">
+            <div *ngIf="stage.name == activeStage" class="stage-description" [innerHTML]="stage.description"></div>
+        </div>
+    </div>
+    <!-- Arrow logic remains unchanged -->
+    <div class="stage">
+        <div class="col">
+            <div *ngIf="i < timeline.length - 1" class="arrow-down"></div>
+        </div>
+        <div class="col"></div>
+    </div>
+    </div>
+  </div>
+  

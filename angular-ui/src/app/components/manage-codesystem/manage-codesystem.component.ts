@@ -14,6 +14,15 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
 
   jobs: any[] = [];
   releases: any[] = [];
+  activeStage: string;
+  loadingReleaseStatus = false;
+
+  releaseStages = [
+    { name: 'Authoring', completed: false, active: false, actionsAvailable: ['Content cut-off'] },
+    { name: 'Classification', completed: false, active: false, actionsAvailable: ['Classify'] },
+    { name: 'Validation', completed: false, active: false, actionsAvailable: ['Validate', 'Review in browser', 'Download alpha release', 'Upload content fixes', 'Mark release as done'] },
+    { name: 'Release preparation', completed: false, active: false, actionsAvailable: ['Download release', 'Prepare for new authoring cycle']}
+  ];
 
   constructor(private simplexService: SimplexService,
     private snackBar: MatSnackBar) {}
@@ -32,6 +41,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['edition']) {
+      this,this.activeStage = null;
       this.refreshEdition();
     }
   }
@@ -92,11 +102,26 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   async refreshEdition() {
+    this.loadingReleaseStatus = true;
     const response = await lastValueFrom(
       this.simplexService.getEdition(this.edition.shortName)
     );
     this.edition = response;
     this.refreshJobs();
+    this.activeStage = await lastValueFrom(this.simplexService.getCodeSystemReleaseStatus(this.edition.shortName));
+    let found = false;
+    for (const stage of this.releaseStages) {
+      if (!found && stage.name!= this.activeStage) {
+        stage.completed = true;
+      }
+      if (stage.name === this.activeStage) {
+        stage.active = true;
+        found = true;
+      } else {
+        stage.active = false;
+      }
+    }
+    this.loadingReleaseStatus = false;
   }
 
 }
