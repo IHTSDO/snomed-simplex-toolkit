@@ -1,5 +1,11 @@
 package org.snomed.simplex.service;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRichTextString;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.domain.ComponentIntent;
@@ -7,22 +13,22 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.spreadsheet.HeaderConfiguration;
 import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFFont;
-import org.apache.poi.xssf.usermodel.XSSFRichTextString;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.snomed.simplex.util.CollectionUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.snomed.simplex.client.domain.Concepts.IS_A;
 
@@ -167,14 +173,19 @@ public class SpreadsheetService {
 		Workbook workbook = new XSSFWorkbook();
 		Sheet sheet = workbook.createSheet();
 
+		CellStyle cellStyle = getCellStyle(workbook);
+
 		AtomicInteger rowOffset = new AtomicInteger(0);
 		Row headerRow = sheet.createRow(rowOffset.getAndIncrement());
 		int columnOffset = 0;
-		for (String columnName : List.of("Rule Type", "Concept Code", "Additional Detail")) {
-			Cell cell = headerRow.createCell(columnOffset++);
-			XSSFRichTextString textString = new XSSFRichTextString(columnName);
+        for (Pair<String, Integer> headerColumn : List.of(Pair.of("Rule Type", 60_000), Pair.of("Concept Code", 30_00), Pair.of("Additional Detail", 65_000))) {
+			Cell cell = headerRow.createCell(columnOffset);
+			XSSFRichTextString textString = new XSSFRichTextString(headerColumn.getLeft());
 			textString.applyFont(BOLD_FONT);
 			cell.setCellValue(textString);
+			cell.setCellStyle(cellStyle);
+			sheet.setColumnWidth(columnOffset, headerColumn.getRight());
+			columnOffset++;
 		}
 
 		ValidationReport.TestResult testResult = validationReport.rvfValidationResult().TestResult();
@@ -186,24 +197,28 @@ public class SpreadsheetService {
 		Cell messageCell = messageRow.createCell(0);
 		XSSFRichTextString textString = new XSSFRichTextString(message);
 		messageCell.setCellValue(textString);
+		messageCell.setCellStyle(cellStyle);
 
 		rowOffset.getAndIncrement();
 		rowOffset.getAndIncrement();
 
-        addValidationFailures(testResult.assertionsFailed(), true, rowOffset, sheet);
-        addValidationFailures(testResult.assertionsWarning(), false, rowOffset, sheet);
+        addValidationFailures(testResult.assertionsFailed(), true, rowOffset, sheet, cellStyle);
+        addValidationFailures(testResult.assertionsWarning(), false, rowOffset, sheet, cellStyle);
 
+		// Example:
 		// Report Timestamp: Feb 7, 2024, 5:50:04 PM (UTC), Identifier: 1707327746182
 		Row metadataRow = sheet.createRow(rowOffset.getAndIncrement());
 		metadataRow.createCell(0).setCellValue(String.format("Report Timestamp: %s (UTC), Identifier: %s",
 				validationReport.rvfValidationResult().startTime(),
 				validationReport.rvfValidationResult().validationConfig().runId()));
 
+		resizeColumns(sheet);
+
 		return workbook;
 	}
 
 	private static void addValidationFailures(List<ValidationReport.Assertion> assertions, boolean error,
-											  AtomicInteger rowOffset, Sheet sheet) {
+											  AtomicInteger rowOffset, Sheet sheet, CellStyle cellStyle) {
 
 		for (ValidationReport.Assertion assertion : assertions) {
 			Row ruleRow = sheet.createRow(rowOffset.getAndIncrement());
@@ -211,18 +226,21 @@ public class SpreadsheetService {
 			Cell cell = ruleRow.createCell(0);
 			String assertionText = assertion.assertionText();
 			int failureCount = assertion.failureCount();
-			String assertionMessage = String.format("%s: there %s %s failure of the following rule.\n" +
+			boolean single = failureCount == 1;
+			String assertionMessage = String.format("%s: there %s %s %s of the following rule.\n" +
 					"\"%s\"",
 					error ? "Error" : "Warning",
-					failureCount == 1 ? "is" : "are",
+					single ? "is" : "are",
 					failureCount,
+					single ? "failure" : "failures",
 					assertionText);
 			XSSFRichTextString ruleText = new XSSFRichTextString(assertionMessage);
 			ruleText.applyFont(BOLD_FONT);
 			cell.setCellValue(ruleText);
+			cell.setCellStyle(cellStyle);
 
 			Row failureRow = ruleRow;
-			for (ValidationReport.AssertionIssue failureInstance : assertion.firstNInstances()) {
+			for (ValidationReport.AssertionIssue failureInstance : CollectionUtils.orEmpty(assertion.firstNInstances())) {
 				failureRow.createCell(1).setCellValue(failureInstance.conceptId());
 
 				StringBuilder detailMessage = new StringBuilder();
@@ -293,7 +311,12 @@ public class SpreadsheetService {
 		return cellStyle;
 	}
 
-	private static void resizeColumns(Sheet sheet, List<Row> dataRows) {
+	private static void resizeColumns(Sheet sheet) {
+		List<Row> rows = IntStream.range(0, sheet.getLastRowNum()).mapToObj(sheet::getRow).toList();
+		resizeColumns(sheet, rows);
+	}
+
+	private static void resizeColumns(Sheet sheet, List<Row> rows) {
 		for (int col = 0; col < 50; col++) {
 			sheet.autoSizeColumn(col);
 			int columnWidth = sheet.getColumnWidth(col);
@@ -301,12 +324,15 @@ public class SpreadsheetService {
 				sheet.setColumnWidth(col, 15_000);
 				// Adjust the height of cells with long strings.
 				// The API does not seem capable of doing this automatically on a way that works on all platforms.
-				for (Row dataRow : dataRows) {
+				for (Row dataRow : rows) {
+					if (dataRow == null) continue;
 					Cell cell = dataRow.getCell(col);
 					if (cell != null) {
 						RichTextString richStringCellValue = cell.getRichStringCellValue();
-						int lines = (richStringCellValue.getString().length() / 65) + 1;
-						dataRow.setHeight((short) (dataRow.getHeight() * lines));
+						String string = richStringCellValue.getString();
+						int lines = (string.length() / 65) + 1;
+						int newLines = string.split("\n").length - 1;
+						dataRow.setHeight((short) (dataRow.getHeight() * (lines + newLines)));
 					}
 				}
 			}
