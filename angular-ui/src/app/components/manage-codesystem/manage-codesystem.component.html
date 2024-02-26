@@ -16,7 +16,12 @@
 
             <div class="component-row">
                 <div class="arrow-down"></div>
-                <button mat-flat-button color="accent" [disabled]="activeStage != 'Authoring'">COMPLETE AUTHORING</button>
+                <button mat-flat-button color="accent" *ngIf="activeStage != 'Authoring'" [disabled]="loadingReleaseStatus" (click)="stopReleasePreparation()">
+                    CANCEL RELEASE AND GO BACK TO AUTHORING
+                </button>
+                <button mat-flat-button color="accent" *ngIf="activeStage == 'Authoring'" [disabled]="loadingReleaseStatus" (click)="startReleasePreparation()">
+                    COMPLETE AUTHORING
+                </button>
             </div>
             
             <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Classification Completed' || activeStage == 'Validation Completed'), 
@@ -31,7 +36,7 @@
             <div class="component-row">
                 <div class="arrow-down"></div>
                 <button mat-flat-button color="accent" (click)="runClassification()" *ngIf="(edition.classificationStatus == 'TODO' || edition.classificationStatus == 'ERROR')"
-                [disabled]="activeStage != 'Content Cut-off'">
+                [disabled]="activeStage != 'Content Cut-off' || loadingReleaseStatus">
                     RUN CLASSIFICATION
                 </button>
                 <button mat-flat-button color="accent" *ngIf="edition.classificationStatus == 'COMPLETE'" [disabled]="true">
@@ -62,7 +67,7 @@
             <div class="component-row">
                 <div class="arrow-down"></div>
                 <button mat-flat-button color="accent" (click)="runValidation()" *ngIf="(edition.validationStatus == 'TODO' || edition.validationStatus == 'ERROR')"
-                    [disabled]="activeStage != 'Classification Completed'">
+                    [disabled]="activeStage != 'Classification Completed' || loadingReleaseStatus">
                     RUN VALIDATION
                 </button>
                 <button mat-flat-button color="accent" (click)="downloadValidationResults()" *ngIf="edition.validationStatus == 'CONTENT_ERROR'">
@@ -93,7 +98,7 @@
 
             <div class="component-row">
                 <div class="arrow-down"></div>
-                <button mat-flat-button color="accent" [disabled]="activeStage != 'Validation Completed'">>REVIEW RELEASE IN THE BROWSER</button>
+                <button mat-flat-button color="accent" [disabled]="activeStage != 'Validation Completed' || loadingReleaseStatus">>REVIEW RELEASE IN THE BROWSER</button>
             </div>
 
             <div class="stage-name">
@@ -103,7 +108,7 @@
 
             <div class="component-row">
                 <div class="arrow-down"></div>
-                <button mat-flat-button color="accent" [disabled]="activeStage != 'Validation Completed'">COMPLETE RELEASE CYCLE</button>
+                <button mat-flat-button color="accent" [disabled]="activeStage != 'Validation Completed' || loadingReleaseStatus">COMPLETE RELEASE CYCLE</button>
             </div>
         </div>
         <!-- <div class="component-container">

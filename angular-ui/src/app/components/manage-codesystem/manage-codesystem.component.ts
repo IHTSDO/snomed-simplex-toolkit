@@ -91,6 +91,32 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  startReleasePreparation() {
+    this.simplexService.startReleasePreparation(this.edition.shortName).subscribe(
+      (response: any) => {
+        this.alert('Release preparation started');
+        this.refreshEdition();
+      },
+      error => {
+        console.error('Release preparation failed:', error);
+        this.alert('Release preparation failed');
+      }
+    );
+  }
+
+  stopReleasePreparation() {
+    this.simplexService.stopReleasePreparation(this.edition.shortName).subscribe(
+      (response: any) => {
+        this.alert('Release preparation started');
+        this.refreshEdition();
+      },
+      error => {
+        console.error('Release preparation failed:', error);
+        this.alert('Release preparation failed');
+      }
+    );
+  }
+
   async refreshJobs() {
     const response = await lastValueFrom(
       this.simplexService.getJobs(this.edition.shortName)

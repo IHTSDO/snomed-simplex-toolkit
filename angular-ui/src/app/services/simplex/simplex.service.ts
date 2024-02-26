@@ -198,19 +198,27 @@ export class SimplexService {
     );
   }
 
+  public startReleasePreparation(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/start-release-prep`, null).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public stopReleasePreparation(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/stop-release-prep`, null).pipe(catchError(this.handleError.bind(this)));
+  }
+
 
   public getCodeSystemReleaseStatus(edition: string): Observable<string> {
     return this.getEdition(edition).pipe(
       switchMap(codeSystem => {
         let status = '';
-        if (!codeSystem.releasePreparation) {
+        if (!codeSystem.preparingRelease) {
           status = 'Authoring';
-        } else if (codeSystem.releasePreparation && codeSystem.classificationStatus === 'TODO') {
+        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'TODO') {
           status = 'Content Cut-off';
-        } else if (codeSystem.releasePreparation && codeSystem.classificationStatus === 'COMPLETE' &&
+        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
                   (codeSystem.validationStatus === 'TODO' || codeSystem.validationStatus === 'STALE')) {
           status = 'Classification Completed';
-        } else if (codeSystem.releasePreparation && codeSystem.classificationStatus === 'COMPLETE' &&
+        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
                   (codeSystem.validationStatus === 'CONTENT_WARNING' || codeSystem.validationStatus === 'COMPLETE')) {
           status = 'Validation Completed';
         }

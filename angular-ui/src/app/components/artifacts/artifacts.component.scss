@@ -179,3 +179,32 @@ mat-list-item:not(:last-child) {
   align-items: center;
   justify-content: flex-start;
 }
+
+.header-container {
+  display: flex;
+  align-items: center; /* Aligns items vertically in the center */
+  justify-content: left; /* Centers the content horizontally */
+  gap: 8px; /* Adjusts the space between the text and spinner */
+  margin-top: 2rem;
+  margin-left: 4rem;
+}
+
+.header-container h4 {
+  margin: 0; /* Removes default margin to allow for better centering */
+}
+
+.status-message {
+  font-size: 1.4rem;
+  font-weight: 400;
+  font-style: italic;
+  margin: 0px;
+}
+
+.edit-blocked-message {
+  font-size: 1.4rem;
+  font-weight: 400;
+  font-style: italic;
+  margin: 0px;
+  color: rgb(149, 27, 27);
+  margin-top: 6rem;
+}

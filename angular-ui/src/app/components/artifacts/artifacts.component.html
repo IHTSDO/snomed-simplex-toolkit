@@ -1,6 +1,11 @@
 <div class="component-row">
     <div class="component-col-left">
-        <h4>Edition Artifacts</h4>
+        <div class="header-container">
+            <h4>Edition artifacts</h4>
+            <mat-spinner *ngIf="loadingReleaseStatus" [diameter]="17"></mat-spinner>
+            <!-- <span class="pill pill-blue" *ngIf="!loadingReleaseStatus && edition">{{releaseStatus}}</span> -->
+            <span class="status-message" *ngIf="!loadingReleaseStatus && edition">(Release cycle status: {{releaseStatus}})</span>
+        </div>
         <div *ngIf="!edition">
             <div class="waiting">
                 Waiting for edition information
@@ -53,7 +58,10 @@
                 <!-- <mat-list-item *ngIf="loadingTranslations || loadingSubsets || loadingMaps"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item> -->
                 </ng-container>
             </mat-list>
-            <button mat-flat-button color="primary" (click)="newArtifactMode = true" *ngIf="!(loadingTranslations || loadingSubsets || loadingMaps || saving)">New Artifact</button>
+            <button mat-flat-button color="primary" (click)="newArtifactMode = true"  
+                [disabled]="loadingTranslations || loadingSubsets || loadingMaps || saving || loadingReleaseStatus || releaseStatus != 'Authoring'">
+                New Artifact
+            </button>
         </div>
     </div>
     <div class="component-col-right">
@@ -107,7 +115,10 @@
             </div>
 
             <app-concepts-list *ngIf="selectedArtifact.type === 'concepts'" [edition]="edition"></app-concepts-list>
-            <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition" (jobCompleted)="refreshArtifacts()"></app-jobs>
+            <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition" (jobCompleted)="refreshArtifacts()"
+            *ngIf="!loadingReleaseStatus && releaseStatus == 'Authoring'">
+            </app-jobs>
+            <p class="edit-blocked-message" *ngIf="!loadingReleaseStatus && releaseStatus != 'Authoring'">Content cannot be edited after the release preparation has started.</p>
 
         </div>
         <div *ngIf="newArtifactMode">
