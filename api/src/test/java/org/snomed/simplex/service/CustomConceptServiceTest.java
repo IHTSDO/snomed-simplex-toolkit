@@ -58,7 +58,7 @@ class CustomConceptServiceTest {
 		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
 		codeSystem.setDefaultModule(dummyModule);
 		List<ConceptIntent> conceptIntents = new ArrayList<>();
-		conceptIntents.add(new ConceptIntent("429926006", 1)
+		conceptIntents.add(new ConceptIntent("  429926006  ", 1)
 				.addTerm("CT of left middle ear", Concepts.US_LANG_REFSET)
 				.addTerm("Scan of left middle ear using CT machine", patientFriendlyTerm)
 				.addTerm("CT of left middle ear", patientFriendlyTerm)

@@ -16,6 +16,9 @@ public class ConceptIntent implements ComponentIntent {
 
 	public ConceptIntent(String parentCode, int row) {
 		this();
+		if (parentCode != null) {
+			parentCode = parentCode.trim();
+		}
 		this.parentCode = parentCode;
 		this.rowNumber = row;
 	}
