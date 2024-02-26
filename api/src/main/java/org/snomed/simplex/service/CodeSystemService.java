@@ -79,9 +79,18 @@ public class CodeSystemService {
 	}
 
 	private static void setDefaultModule(String moduleId, CodeSystem newCodeSystem, SnowstormClient snowstormClient) {
+		setCodeSystemMetadata(Branch.DEFAULT_MODULE_ID_METADATA_KEY, moduleId, newCodeSystem, snowstormClient);
+	}
+
+	public void setPreparingReleaseFlag(CodeSystem codeSystem, boolean flag) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		setCodeSystemMetadata(Branch.PREPARING_RELEASE_METADATA_KEY, String.valueOf(flag), codeSystem, snowstormClient);
+	}
+
+	private static void setCodeSystemMetadata(String key, String value, CodeSystem codeSystem, SnowstormClient snowstormClient) {
 		Map<String, String> newMetadata = new HashMap<>();
-		newMetadata.put("defaultModuleId", moduleId);
-		snowstormClient.upsertBranchMetadata(newCodeSystem.getBranchPath(), newMetadata);
+		newMetadata.put(key, value);
+		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), newMetadata);
 	}
 
 	private void createModuleOntologyExpression(String moduleId, CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {

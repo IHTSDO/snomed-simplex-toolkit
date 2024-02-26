@@ -16,8 +16,6 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
@@ -143,6 +141,7 @@ public class SnowstormClient {
 		codeSystem.setShowCustomConcepts("true".equals(branch.getMetadataValue(Branch.SHOW_CUSTOM_CONCEPTS)));
 		codeSystem.setDependencyPackage(branch.getMetadataValue(Branch.DEPENDENCY_PACKAGE_METADATA_KEY));
 		codeSystem.setLatestValidationReport(branch.getMetadataValue(Branch.LATEST_VALIDATION_REPORT_METADATA_KEY));
+		codeSystem.setPreparingRelease("true".equalsIgnoreCase(branch.getMetadataValue(Branch.PREPARING_RELEASE_METADATA_KEY)));
 	}
 
 	public Branch getBranchOrThrow(String branchPath) throws ServiceException {

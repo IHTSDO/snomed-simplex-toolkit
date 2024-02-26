@@ -15,6 +15,16 @@ public class CodeSystem {
 	private String shortName;
 	private String branchPath;
 	private String simplexWorkingBranch;
+
+	private CodeSystemClassificationStatus classificationStatus;
+	private CodeSystemValidationStatus validationStatus;
+	private boolean showCustomConcepts;
+	private boolean classified;
+	private boolean preparingRelease;
+	private String latestValidationReport;
+	private long contentHeadTimestamp;
+	private Set<String> userRoles;
+
 	private Integer dependantVersionEffectiveTime;
 	private String dependencyPackage;
 	private String namespace;
@@ -22,16 +32,8 @@ public class CodeSystem {
 	private String defaultModuleDisplay;
 	private boolean postcoordinated;
 	private boolean dailyBuildAvailable;
-	private CodeSystemClassificationStatus classificationStatus;
-	private CodeSystemValidationStatus validationStatus;
-	private boolean showCustomConcepts;
-	private String latestValidationReport;
-	private long contentHeadTimestamp;
 	private Map<String, String> languages;
-	private Set<String> userRoles;
 	private List<ConceptMini> modules;
-	private boolean classified;
-
 	private CodeSystemVersion latestVersion;
 
 	public record CodeSystemVersion(int effectiveDate, String branchPath) {}
@@ -192,6 +194,14 @@ public class CodeSystem {
 
 	public CodeSystemVersion getLatestVersion() {
 		return latestVersion;
+	}
+
+	public void setPreparingRelease(boolean preparingRelease) {
+		this.preparingRelease = preparingRelease;
+	}
+
+	public boolean isPreparingRelease() {
+		return preparingRelease;
 	}
 
 	@Override

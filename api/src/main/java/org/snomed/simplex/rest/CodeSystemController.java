@@ -165,4 +165,20 @@ public class CodeSystemController {
 		snowstormClient.setCodeSystemWorkingBranch(theCodeSystem, request.getBranchPath());
 	}
 
+	@PostMapping("{codeSystem}/start-release-prep")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void startReleasePrep(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		codeSystemService.setPreparingReleaseFlag(theCodeSystem, true);
+	}
+
+	@PostMapping("{codeSystem}/stop-release-prep")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void stopReleasePrep(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		codeSystemService.setPreparingReleaseFlag(theCodeSystem, false);
+	}
+
 }
