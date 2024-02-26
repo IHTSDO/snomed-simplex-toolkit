@@ -1,6 +1,10 @@
 package org.snomed.simplex.service;
 
+import org.snomed.simplex.client.SnowstormClient;
+import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.exceptions.ServiceException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -21,13 +25,16 @@ public class SecurityService {
 	@Value("${permission.admin.group}")
 	private String adminGroup;
 
+	@Autowired
+	private SnowstormClientFactory snowstormClientFactory;
+
 	private final Map<String, Map<String, Set<String>>> userCodesystemRoleCache;
 
 	public SecurityService() {
 		userCodesystemRoleCache = new HashMap<>();
 	}
 
-	public void updateUserRolePermissionCache(List<CodeSystem> codeSystems) {
+	public synchronized void updateUserRolePermissionCache(List<CodeSystem> codeSystems) {
 		SecurityContext context = SecurityContextHolder.getContext();
 		Authentication authentication = context.getAuthentication();
 		Map<String, Set<String>> codesystemRoleCache = userCodesystemRoleCache.computeIfAbsent((String) authentication.getPrincipal(), i -> new HashMap<>());
@@ -51,6 +58,16 @@ public class SecurityService {
 			return true;
 		}
 
+		if (!userCodesystemRoleCache.containsKey(codesystem)) {
+			try {
+				SnowstormClient client = snowstormClientFactory.getClient();
+				CodeSystem codeSystem = client.getCodeSystemOrThrow(codesystem);
+				updateUserRolePermissionCache(Collections.singletonList(codeSystem));
+			} catch (ServiceException e) {
+				// Framework prevents throwing this up. Just return false.
+				return false;
+			}
+		}
 		return userCodesystemRoleCache.getOrDefault((String) authentication.getPrincipal(), Collections.emptyMap())
 				.getOrDefault(codesystem, Collections.emptySet()).contains(role);
 	}
