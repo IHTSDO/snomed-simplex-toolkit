@@ -221,6 +221,9 @@ export class SimplexService {
         } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
                   (codeSystem.validationStatus === 'CONTENT_WARNING' || codeSystem.validationStatus === 'COMPLETE')) {
           status = 'Validation Completed';
+        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
+                (codeSystem.validationStatus === 'CONTENT_ERROR')) {
+        status = 'Review validation results';
         }
         return of(status);
       }),

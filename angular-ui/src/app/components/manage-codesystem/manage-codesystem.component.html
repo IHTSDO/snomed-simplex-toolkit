@@ -88,8 +88,19 @@
             </div>
 
             <div class="stage-name" [ngClass]="{ 'completed-stage' : false, 
-                                                 'current-stage' : (activeStage == 'Validation Completed') }">
-                <span style="flex-grow: 1; text-align: center;">Review validation errors</span>
+                                                 'current-stage' : (activeStage == 'Validation Completed') }"
+                *ngIf="activeStage == 'Validation Completed'">
+                <span style="flex-grow: 1; text-align: center;">Validation Complete</span>
+                <mat-icon class="completed-icon" 
+                    *ngIf="false">
+                    check_circle
+                </mat-icon>
+            </div>
+
+            <div class="stage-name" [ngClass]="{ 'completed-stage' : false, 
+                                                 'current-stage' : (activeStage == 'Review validation results') }"
+                *ngIf="activeStage != 'Validation Completed'">
+                <span style="flex-grow: 1; text-align: center;">Review and fix validation errors</span>
                 <mat-icon class="completed-icon" 
                     *ngIf="false">
                     check_circle
