@@ -16,10 +16,10 @@
 
             <div class="component-row">
                 <div class="arrow-down"></div>
-                <button mat-flat-button color="accent" *ngIf="activeStage != 'Authoring'" [disabled]="loadingReleaseStatus" (click)="stopReleasePreparation()">
+                <button mat-flat-button color="accent" *ngIf="activeStage != 'Authoring'" (click)="stopReleasePreparation()">
                     CANCEL RELEASE AND GO BACK TO AUTHORING
                 </button>
-                <button mat-flat-button color="accent" *ngIf="activeStage == 'Authoring'" [disabled]="loadingReleaseStatus" (click)="startReleasePreparation()">
+                <button mat-flat-button color="accent" *ngIf="activeStage == 'Authoring'" (click)="startReleasePreparation()">
                     COMPLETE AUTHORING
                 </button>
             </div>

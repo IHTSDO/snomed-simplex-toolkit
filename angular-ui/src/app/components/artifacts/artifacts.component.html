@@ -23,8 +23,7 @@
                         <div class="skeleton-text"></div>
                         <div class="skeleton-text"></div>
                         <div class="skeleton-text"></div>
-                        <div class="skeleton-button"></div>
-
+                        <!-- <div class="skeleton-button"></div> -->
                     </div>
                 </div>
             
@@ -58,10 +57,11 @@
                 <!-- <mat-list-item *ngIf="loadingTranslations || loadingSubsets || loadingMaps"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item> -->
                 </ng-container>
             </mat-list>
-            <button mat-flat-button color="primary" (click)="newArtifactMode = true"  
+            <button mat-flat-button color="primary" (click)="newArtifactMode = true"
                 [disabled]="loadingTranslations || loadingSubsets || loadingMaps || saving || loadingReleaseStatus || releaseStatus != 'Authoring'">
                 New Artifact
             </button>
+            <p class="edit-blocked-message" *ngIf="!loadingReleaseStatus && releaseStatus != 'Authoring'">Creation of artifacts is disabled during release preparation</p>
         </div>
     </div>
     <div class="component-col-right">
@@ -118,7 +118,7 @@
             <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition" (jobCompleted)="refreshArtifacts()"
             *ngIf="!loadingReleaseStatus && releaseStatus == 'Authoring'">
             </app-jobs>
-            <p class="edit-blocked-message" *ngIf="!loadingReleaseStatus && releaseStatus != 'Authoring'">Content cannot be edited after the release preparation has started.</p>
+            <p class="edit-blocked-message" *ngIf="!loadingReleaseStatus && releaseStatus != 'Authoring'">Content editing is frozen for release preparation.</p>
 
         </div>
         <div *ngIf="newArtifactMode">

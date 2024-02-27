@@ -216,7 +216,7 @@ export class SimplexService {
         } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'TODO') {
           status = 'Content Cut-off';
         } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
-                  (codeSystem.validationStatus === 'TODO' || codeSystem.validationStatus === 'STALE')) {
+                  (codeSystem.validationStatus === 'TODO' || codeSystem.validationStatus === 'STALE' || codeSystem.validationStatus === 'IN_PROGRESS')) {
           status = 'Classification Completed';
         } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
                   (codeSystem.validationStatus === 'CONTENT_WARNING' || codeSystem.validationStatus === 'COMPLETE')) {
