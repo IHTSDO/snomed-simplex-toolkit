@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.snomed.simplex.client.domain.Description.Acceptability.PREFERRED;
@@ -251,7 +252,8 @@ public class SnowstormClient {
 
 	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter) throws ServiceException {
 		try {
-			String url = format("/%s/concepts?ecl=%s%s&limit=300", codeSystem.getWorkingBranchPath(), ecl, moduleFilter != null ? String.format("&module=%s", moduleFilter) : "");
+			String url = format("/%s/concepts?ecl=%s%s&limit=10000", codeSystem.getWorkingBranchPath(), ecl,
+					moduleFilter != null ? String.format("&module=%s", moduleFilter) : "");
 			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(url, HttpMethod.GET, null, responseTypeConceptMiniPage);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
@@ -452,6 +454,37 @@ public class SnowstormClient {
 				format("/%s/concepts?module=%s&offset=%s&limit=%s", codeSystem.getWorkingBranchPath(), module, offset, limit), HttpMethod.GET, null,
 				listOfConceptMinisType);
 		return exchange.getBody();
+	}
+
+	public Supplier<ConceptMini> getConceptStream(String branch, String ecl) {
+		return new Supplier<>() {
+
+			private List<ConceptMini> items;
+			private int itemOffset = 0;
+			private String searchAfter = "";
+
+			private final ParameterizedTypeReference<Page<ConceptMini>> listOfConceptMinisType = new ParameterizedTypeReference<>() {};
+
+			@Override
+			public ConceptMini get() {
+				if (items == null || itemOffset == items.size()) {
+					ResponseEntity<Page<ConceptMini>> pageResponse = restTemplate.exchange(
+							format("/%s/concepts?ecl=%s&limit=%s&searchAfter=%s", branch, ecl, 10_000, searchAfter),
+							HttpMethod.GET, null, listOfConceptMinisType);
+					Page<ConceptMini> page = pageResponse.getBody();
+					if (page == null) {
+						return null;
+					}
+					items = page.getItems();
+					if (items.isEmpty()) {
+						return null;
+					}
+					searchAfter = page.getSearchAfter();
+					itemOffset = 0;
+				}
+				return items.get(itemOffset++);
+			}
+		};
 	}
 
 	public List<Concept> loadBrowserFormatConcepts(List<Long> conceptIds, CodeSystem codeSystem) {

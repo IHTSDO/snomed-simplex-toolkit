@@ -20,7 +20,14 @@ public class ConceptMini {
 	public String getPtOrFsnOrConceptId() {
 		if (pt != null && pt.getTerm() != null) {
 			return pt.getTerm();
-		} else if (fsn != null && fsn.getTerm() != null) {
+		} else {
+			return getFsnTermOrConceptId();
+		}
+	}
+
+	@JsonIgnore
+	public String getFsnTermOrConceptId() {
+		if (fsn != null && fsn.getTerm() != null) {
 			return fsn.getTerm();
 		}
 		return conceptId;
