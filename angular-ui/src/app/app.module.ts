@@ -65,6 +65,8 @@ import {MatMenuModule} from '@angular/material/menu';
 import {MatExpansionModule} from '@angular/material/expansion';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import { TimelineComponent } from './components/timeline/timeline.component';
+import { ValidationResultsComponent } from './components/validation-results/validation-results.component';
+import {MatCardModule} from '@angular/material/card';
 
 // SERVICE IMPORTS
 
@@ -101,7 +103,8 @@ import { TimelineComponent } from './components/timeline/timeline.component';
         TimeAgoPipe,
         ConceptsListComponent,
         LegalAgreementComponent,
-        TimelineComponent
+        TimelineComponent,
+        ValidationResultsComponent
         ],
     imports: [
         BrowserModule,
@@ -128,7 +131,8 @@ import { TimelineComponent } from './components/timeline/timeline.component';
         MatRadioModule,
         MatMenuModule,
         MatExpansionModule,
-        MatTooltipModule
+        MatTooltipModule,
+        MatCardModule
     ],
     providers: [
         AuthenticationService,

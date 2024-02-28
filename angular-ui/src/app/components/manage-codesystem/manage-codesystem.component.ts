@@ -132,7 +132,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     this.edition = response;
     this.refreshJobs();
     this.activeStage = await lastValueFrom(this.simplexService.getCodeSystemReleaseStatus(this.edition.shortName));
-    console.log('Active stage:', this.activeStage);
     let found = false;
     for (const stage of this.releaseStages) {
       if (!found && stage.name!= this.activeStage) {
@@ -145,7 +144,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
         stage.active = false;
       }
     }
-    console.log('Release stages:', this.releaseStages);
     this.loadingReleaseStatus = false;
   }
 

@@ -198,6 +198,10 @@ export class SimplexService {
     );
   }
 
+  public getValidationResults(edition: string): Observable<any> {
+    return this.http.get(`/api/codesystems/${edition}/validate/issues`).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public startReleasePreparation(edition: string): Observable<any> {
     return this.http.post(`/api/codesystems/${edition}/start-release-prep`, null).pipe(catchError(this.handleError.bind(this)));
   }
