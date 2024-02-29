@@ -32,7 +32,7 @@ export class ConceptsListComponent implements OnChanges {
     this.loadingData = new Array(this.limit).fill({}); // Create an array with 'limit' empty elements
   }
 
-  loadConcepts() {
+  public loadConcepts() {
     this.loading = true;
     this.simplexService.getConcepts(this.edition, this.offset, this.limit)
       .subscribe({

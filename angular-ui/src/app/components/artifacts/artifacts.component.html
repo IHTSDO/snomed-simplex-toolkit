@@ -114,7 +114,7 @@
                 </div>
             </div>
 
-            <app-concepts-list *ngIf="selectedArtifact.type === 'concepts'" [edition]="edition"></app-concepts-list>
+            <app-concepts-list #conceptsList *ngIf="selectedArtifact.type === 'concepts'" [edition]="edition"></app-concepts-list>
             <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition" (jobCompleted)="refreshArtifacts()"
             *ngIf="!loadingReleaseStatus && releaseStatus == 'Authoring'">
             </app-jobs>

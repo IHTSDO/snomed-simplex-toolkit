@@ -1,9 +1,10 @@
-import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
+import { ConceptsListComponent } from './concepts-list/concepts-list.component';
 
 @Component({
   selector: 'app-artifacts',
@@ -12,6 +13,8 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 })
 export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   @Input() edition: string;
+
+  @ViewChild('conceptsList') conceptsList: ConceptsListComponent;
   
   subsets = [];
   translations = [];
@@ -86,6 +89,9 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
             this.releaseStatus = status;
             this.loadingReleaseStatus = false;
     });
+    if (this.conceptsList) {
+      this.conceptsList.loadConcepts();
+    }
   }
 
   refreshArtifacts() {
