@@ -50,6 +50,9 @@ public class ValidationService {
 
     private void buildValidationFixMap(List<ValidationReport.Assertion> assertions, HashMap<String, ValidationFix> fixesRequired) {
         for (ValidationReport.Assertion assertion : assertions) {
+            if (assertion.firstNInstances() == null) {
+                continue;
+            }
             String assertionUuid = assertion.assertionUuid();
             boolean fixFound = false;
             for (Map.Entry<String, Set<String>> fixToAssertionIds : validationFixMethodToAssertionIdMap.entrySet()) {
