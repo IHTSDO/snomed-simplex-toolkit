@@ -8,6 +8,7 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
+import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.domain.Page;
@@ -20,6 +21,8 @@ import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.SecurityService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.snomed.simplex.service.validation.ValidationFixList;
+import org.snomed.simplex.service.validation.ValidationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PostAuthorize;
@@ -49,6 +52,9 @@ public class CodeSystemController {
 
 	@Autowired
 	private ValidationServiceClient validationServiceClient;
+
+	@Autowired
+	private ValidationService validationService;
 
 	@Autowired
 	private ReleaseServiceClient releaseServiceClient;
@@ -103,6 +109,15 @@ public class CodeSystemController {
 		return jobService.startExternalServiceJob(theCodeSystem, "Validate", asyncJob -> codeSystemService.validate(asyncJob));
 	}
 
+	@GetMapping("{codeSystem}/validate/issues")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public ValidationFixList getValidationFixList(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		ValidationReport validationReport = getCompletedValidationReportOrThrow(theCodeSystem);
+		return validationService.getValidationFixList(codeSystem, validationReport);
+	}
+
 	@GetMapping(path = "{codeSystem}/validate/spreadsheet", produces="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	@ApiResponse(responseCode = "200", description = "The latest validation report was ready and downloaded okay.")
@@ -110,26 +125,29 @@ public class CodeSystemController {
 	public void downloadValidationReport(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException, IOException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		ValidationReport validationReport = getCompletedValidationReportOrThrow(theCodeSystem);
+		response.setHeader("Content-Disposition", "attachment; filename=\"Simplex_Validation_Report.xlsx\"");
+		validationServiceClient.downloadLatestValidationAsSpreadsheet(
+				theCodeSystem, snowstormClient, validationReport, response.getOutputStream());
+
+	}
+
+	private ValidationReport getCompletedValidationReportOrThrow(CodeSystem theCodeSystem) throws ServiceException {
 		ExternalServiceJob validationJob = codeSystemService.getLatestValidationJob(theCodeSystem);
 		codeSystemService.addValidationStatus(theCodeSystem, validationJob);
 		CodeSystemValidationStatus validationStatus = theCodeSystem.getValidationStatus();
-        switch (validationStatus) {
-            case TODO, IN_PROGRESS, SYSTEM_ERROR ->
+		switch (validationStatus) {
+			case TODO, IN_PROGRESS, SYSTEM_ERROR ->
 					throw new ServiceExceptionWithStatusCode("The latest validation report is not available.",
 							HttpStatus.BAD_REQUEST.value());
-
-			case STALE ->
-					throw new ServiceExceptionWithStatusCode("The latest validation report is now stale " +
-							"because the content has changed since the validation was started. " +
-							"Please create a new validation report for the current content.",
-							HttpStatus.BAD_REQUEST.value());
-
-			case COMPLETE, CONTENT_ERROR, CONTENT_WARNING -> {
-				response.setHeader("Content-Disposition", "attachment; filename=\"Simplex_Validation_Report.xlsx\"");
-				validationServiceClient.downloadLatestValidationAsSpreadsheet(
-						theCodeSystem, snowstormClient, validationJob, response.getOutputStream());
-			}
-        }
+		}
+		String validationReportUrl;
+		if (validationJob != null) {
+			validationReportUrl = validationJob.getLink();
+		} else {
+			validationReportUrl = theCodeSystem.getLatestValidationReport();
+		}
+		return validationServiceClient.getValidation(validationReportUrl);
 	}
 
 	@GetMapping(path = "{codeSystem}/packaging-product")

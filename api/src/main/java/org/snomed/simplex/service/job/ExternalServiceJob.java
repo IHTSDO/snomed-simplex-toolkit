@@ -1,5 +1,7 @@
 package org.snomed.simplex.service.job;
 
+import org.snomed.simplex.client.domain.CodeSystem;
+
 public class ExternalServiceJob extends AsyncJob {
 
 	private final String branch;
@@ -10,6 +12,12 @@ public class ExternalServiceJob extends AsyncJob {
 		super(codeSystem, display);
 		this.branch = branch;
 		this.contentHeadTimestamp = contentHeadTimestamp;
+	}
+
+	public ExternalServiceJob(CodeSystem codeSystem, String display) {
+		super(codeSystem.getShortName(), display);
+		branch = codeSystem.getWorkingBranchPath();
+		contentHeadTimestamp = codeSystem.getContentHeadTimestamp();
 	}
 
 	@Override

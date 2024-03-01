@@ -9,7 +9,6 @@ import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.SpreadsheetService;
-import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -112,14 +111,14 @@ public class ValidationServiceClient {
 		body.add("rf2DeltaOnly", "true");
 		body.add("effectiveTime", effectiveTime);
 
-//		String previousPackage = codeSystem.getPreviousPackage();
+//		String previousPackage = codeSystem.getDependencyPackage();
 //		if (previousPackage != null) {
 			body.add("previousRelease", "empty-rf2-snapshot.zip");
 //		}
-//		String dependencyPackage = codeSystem.getDependencyPackage();
-//		if (dependencyPackage != null) {
+		String dependencyPackage = codeSystem.getDependencyPackage();
+		if (dependencyPackage != null) {
 			body.add("dependencyRelease", codeSystem.getDependencyPackage());
-//		}
+		}
 
 		body.add("groups", "common-authoring");
 		body.add("enableDrools", "true");
@@ -135,8 +134,6 @@ public class ValidationServiceClient {
 		SecurityContext context = SecurityContextHolder.getContext();
 		System.out.println(context);
 		System.out.println();
-//		body.add("username", this.username);
-//		body.add("authenticationToken", this.authenticationToken);
 
 
 		HttpHeaders headers = new HttpHeaders();
@@ -145,9 +142,8 @@ public class ValidationServiceClient {
 	}
 
 	public void downloadLatestValidationAsSpreadsheet(CodeSystem codeSystem, SnowstormClient snowstormClient,
-													  ExternalServiceJob validationJob, OutputStream outputStream) throws ServiceException {
+													  ValidationReport validationReport, OutputStream outputStream) throws ServiceException {
 
-		ValidationReport validationReport = getValidation(validationJob.getLink());
 		try (Workbook validationReportSpreadsheet = spreadsheetService.createValidationReportSpreadsheet(validationReport)) {
 			validationReportSpreadsheet.write(outputStream);
 		} catch (IOException e) {

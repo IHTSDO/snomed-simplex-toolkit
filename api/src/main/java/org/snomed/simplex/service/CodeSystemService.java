@@ -1,5 +1,7 @@
 package org.snomed.simplex.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.*;
@@ -9,8 +11,6 @@ import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -219,17 +219,7 @@ public class CodeSystemService {
 				if (status != null) {
 					if (status == ValidationReport.State.COMPLETE) {
 						logger.info("Validation completed. Branch:{}, RVF Job:{}, Status:{}", job.getBranch(), validationUrl, status);
-						ValidationReport.ValidationResult validationResult = validationReport.rvfValidationResult();
-						ValidationReport.TestResult testResult = validationResult.TestResult();
-						if (testResult.totalFailures() > 0) {
-							job.setErrorMessage("Validation errors were found in the content.");
-							job.setStatus(JobStatus.USER_CONTENT_ERROR);
-						} else if (testResult.totalWarnings() > 0) {
-							job.setErrorMessage("Validation warnings were found in the content.");
-							job.setStatus(JobStatus.USER_CONTENT_WARNING);
-						} else {
-							job.setStatus(JobStatus.COMPLETE);
-						}
+						setValidationJobStatusAndMessage(job, validationReport);
 						validationComplete = true;
 					} else if (status == ValidationReport.State.FAILED) {
 						supportRegister.handleSystemError(job, "RVF report failed.");
@@ -246,6 +236,20 @@ public class CodeSystemService {
 		}
 		for (String completedValidation : completedValidations) {
 			validationJobsToMonitor.remove(completedValidation);
+		}
+	}
+
+	private static void setValidationJobStatusAndMessage(ExternalServiceJob job, ValidationReport validationReport) {
+		ValidationReport.ValidationResult validationResult = validationReport.rvfValidationResult();
+		ValidationReport.TestResult testResult = validationResult.TestResult();
+		if (testResult.totalFailures() > 0) {
+			job.setErrorMessage("Validation errors were found in the content.");
+			job.setStatus(JobStatus.USER_CONTENT_ERROR);
+		} else if (testResult.totalWarnings() > 0) {
+			job.setErrorMessage("Validation warnings were found in the content.");
+			job.setStatus(JobStatus.USER_CONTENT_WARNING);
+		} else {
+			job.setStatus(JobStatus.COMPLETE);
 		}
 	}
 
@@ -276,27 +280,22 @@ public class CodeSystemService {
 		theCodeSystem.setClassificationStatus(status);
 	}
 
-	public void addValidationStatus(CodeSystem codeSystem) {
+	public void addValidationStatus(CodeSystem codeSystem) throws ServiceException {
 		addValidationStatus(codeSystem, getLatestValidationJob(codeSystem));
 	}
 
-	public void addValidationStatus(CodeSystem codeSystem, ExternalServiceJob latestValidationJob) {
+	public void addValidationStatus(CodeSystem codeSystem, ExternalServiceJob latestValidationJob) throws ServiceException {
 		CodeSystemValidationStatus status = CodeSystemValidationStatus.TODO;
 		if (latestValidationJob != null) {
 			switch (latestValidationJob.getStatus()) {
-				case QUEUED, IN_PROGRESS ->
-						status = CodeSystemValidationStatus.IN_PROGRESS;
-				case SYSTEM_ERROR ->
-						status = CodeSystemValidationStatus.SYSTEM_ERROR;
+				case QUEUED, IN_PROGRESS -> status = CodeSystemValidationStatus.IN_PROGRESS;
+				case SYSTEM_ERROR -> status = CodeSystemValidationStatus.SYSTEM_ERROR;
 				case TECHNICAL_CONTENT_ISSUE ->
-						// Not expected
+					// Not expected
 						status = CodeSystemValidationStatus.SYSTEM_ERROR;
-				case USER_CONTENT_ERROR ->
-						status = CodeSystemValidationStatus.CONTENT_ERROR;
-				case USER_CONTENT_WARNING ->
-						status = CodeSystemValidationStatus.CONTENT_WARNING;
-				case COMPLETE ->
-						status = CodeSystemValidationStatus.COMPLETE;
+				case USER_CONTENT_ERROR -> status = CodeSystemValidationStatus.CONTENT_ERROR;
+				case USER_CONTENT_WARNING -> status = CodeSystemValidationStatus.CONTENT_WARNING;
+				case COMPLETE -> status = CodeSystemValidationStatus.COMPLETE;
 			}
 			if (status.isCanTurnStale() && latestValidationJob.getContentHeadTimestamp() != codeSystem.getContentHeadTimestamp()) {
 				logger.info("Validation report {} was {} is now stale.", latestValidationJob.getLink(), status);
@@ -304,6 +303,22 @@ public class CodeSystemService {
 						latestValidationJob.getLink(), status, latestValidationJob.getContentHeadTimestamp(), codeSystem.getContentHeadTimestamp());
 
 				status = CodeSystemValidationStatus.STALE;
+			}
+		} else {
+			// Service may have been restarted. Attempt recovery of status using existing report.
+			if (codeSystem.getLatestValidationReport() != null) {
+				ValidationReport validationReport = validationServiceClient.getValidation(codeSystem.getLatestValidationReport());
+				ExternalServiceJob tempJob = new ExternalServiceJob(codeSystem, "temp job");
+				setValidationJobStatusAndMessage(tempJob, validationReport);
+				switch (tempJob.getStatus()) {
+					case USER_CONTENT_ERROR -> status = CodeSystemValidationStatus.CONTENT_ERROR;
+					case USER_CONTENT_WARNING -> status = CodeSystemValidationStatus.CONTENT_WARNING;
+					case COMPLETE -> status = CodeSystemValidationStatus.COMPLETE;
+				}
+				long validationHead = validationReport.rvfValidationResult().validationConfig().contentHeadTimestamp();
+				if (status.isCanTurnStale() && validationHead != codeSystem.getContentHeadTimestamp()) {
+					status = CodeSystemValidationStatus.STALE;
+				}
 			}
 		}
 		codeSystem.setValidationStatus(status);
