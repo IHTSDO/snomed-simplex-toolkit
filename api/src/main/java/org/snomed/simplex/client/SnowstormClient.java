@@ -2,15 +2,15 @@ package org.snomed.simplex.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.logging.log4j.util.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.HTTPClientException;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.StreamUtils;
 import org.snomed.simplex.util.CollectionUtils;
-import org.apache.logging.log4j.util.Strings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -28,12 +28,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
 import static org.snomed.simplex.client.domain.Description.Acceptability.PREFERRED;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
 import static org.snomed.simplex.client.domain.Description.Type.FSN;
 import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
-import static java.lang.String.format;
 
 public class SnowstormClient {
 
@@ -468,9 +468,15 @@ public class SnowstormClient {
 			@Override
 			public ConceptMini get() {
 				if (items == null || itemOffset == items.size()) {
-					ResponseEntity<Page<ConceptMini>> pageResponse = restTemplate.exchange(
-							format("/%s/concepts?ecl=%s&limit=%s&searchAfter=%s", branch, ecl, 10_000, searchAfter),
-							HttpMethod.GET, null, listOfConceptMinisType);
+					Map<String, Object> searchRequest = new HashMap<>();
+					searchRequest.put("form", "inferred");
+					searchRequest.put("eclFilter", ecl);
+					searchRequest.put("limit", 10_000);
+					searchRequest.put("searchAfter", searchAfter);
+
+					String url = format("/%s/concepts/search", branch);
+					ResponseEntity<Page<ConceptMini>> pageResponse = restTemplate.exchange(url,
+							HttpMethod.POST, new HttpEntity<>(searchRequest), listOfConceptMinisType);
 					Page<ConceptMini> page = pageResponse.getBody();
 					if (page == null) {
 						return null;
