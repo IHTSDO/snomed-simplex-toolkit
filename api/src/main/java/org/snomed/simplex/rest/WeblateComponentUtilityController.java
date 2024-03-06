@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
 
 @RestController
@@ -30,7 +31,7 @@ public class WeblateComponentUtilityController {
 		snowstormClient.getBranchOrThrow(branch);
 
 		response.setContentType("text/csv");
-		try (BufferedWriter writer = new BufferedWriter(response.getWriter())) {
+		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(response.getOutputStream(), StandardCharsets.UTF_8))) {
 			// source,target,context,developer_comments
 			// "Adenosine deaminase 2 deficiency","Adenosine deaminase 2 deficiency",987840791000119102,"http://snomed.info/id/987840791000119102 - Adenosine deaminase 2 deficiency (disorder)"
 			writer.write("source,target,context,developer_comments");
