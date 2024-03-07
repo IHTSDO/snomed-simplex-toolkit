@@ -5,30 +5,34 @@
             <mat-spinner *ngIf="loadingReleaseStatus" [diameter]="17"></mat-spinner>
         </div>
         <div class="component-container">
-            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Content Cut-off' || activeStage == 'Classification Completed' || activeStage == 'Validation Completed'), 
+            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Content Cut-off' || activeStage == 'Classification Completed' || activeStage == 'Validation Completed' || activeStage == 'Review validation results'), 
                                                  'current-stage' : (activeStage == 'Authoring') }">
-                <span style="flex-grow: 1; text-align: center;">Authoring</span>
-                <mat-icon class="completed-icon" 
-                    *ngIf="activeStage == 'Content Cut-off' || activeStage == 'Classification Completed' || activeStage == 'Validation Completed'">
-                    check_circle
-                </mat-icon>
+                <div class="component-row">
+                    <span style="flex-grow: 1; text-align: center;">Authoring</span>
+                    <mat-icon class="completed-icon" 
+                        *ngIf="activeStage == 'Content Cut-off' || activeStage == 'Classification Completed' || activeStage == 'Validation Completed' || activeStage == 'Review validation results'">
+                        check_circle
+                    </mat-icon>
+                </div>
+                <br>
+                <div class="component-row">
+                    
+                    <button mat-flat-button color="accent" *ngIf="activeStage != 'Authoring'" (click)="stopReleasePreparation()">
+                        CANCEL RELEASE AND GO BACK TO AUTHORING
+                    </button>
+                    <button mat-flat-button color="accent" *ngIf="activeStage == 'Authoring'" (click)="startReleasePreparation()">
+                        COMPLETE AUTHORING
+                    </button>
+                </div>
             </div>
+            <div class="arrow-down"></div>
 
-            <div class="component-row">
-                <div class="arrow-down"></div>
-                <button mat-flat-button color="accent" *ngIf="activeStage != 'Authoring'" (click)="stopReleasePreparation()">
-                    CANCEL RELEASE AND GO BACK TO AUTHORING
-                </button>
-                <button mat-flat-button color="accent" *ngIf="activeStage == 'Authoring'" (click)="startReleasePreparation()">
-                    COMPLETE AUTHORING
-                </button>
-            </div>
             
-            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Classification Completed' || activeStage == 'Validation Completed'), 
+            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Classification Completed' || activeStage == 'Validation Completed' || activeStage == 'Review validation results'), 
                                                  'current-stage' : (activeStage == 'Content Cut-off') }">
                 <span style="flex-grow: 1; text-align: center;">Authoring Complete - Release Preparation</span>
                 <mat-icon class="completed-icon" 
-                    *ngIf="activeStage == 'Classification Completed' || activeStage == 'Validation Completed'">
+                    *ngIf="activeStage == 'Classification Completed' || activeStage == 'Validation Completed' || activeStage == 'Review validation results'">
                     check_circle
                 </mat-icon>
             </div>
@@ -53,13 +57,13 @@
                 </button>
             </div>
 
-            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Validation Completed'), 
+            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Validation Completed' || activeStage == 'Review validation results'), 
                                                  'current-stage' : (activeStage == 'Classification Completed') }">
                 <span style="flex-grow: 1; text-align: center;">
                     Classification Completed
                 </span>
                 <mat-icon class="completed-icon" 
-                    *ngIf="activeStage == 'Validation Completed'">
+                    *ngIf="activeStage == 'Validation Completed' || activeStage == 'Review validation results'">
                     check_circle
                 </mat-icon>
             </div>
@@ -130,12 +134,14 @@
         </div> -->
     </div>
     <div class="component-col">
-        <div class="component-container">
-            <!-- <app-validation-results [edition]="edition.shortName" *ngIf="activeStage == 'Review validation results'"></app-validation-results> -->
-            <h4>Next steps:</h4>
+        <div class="right-container">
+            <app-validation-results class="validation-container"
+                [edition]="edition.shortName" *ngIf="activeStage == 'Review validation results'">
+            </app-validation-results>
+            <!-- <h4>Next steps:</h4>
             <h5>Current Status: Classification Completed</h5>
             <p>The edition was classified correctly. <br>
-                To progress to the next phase run the validation process and fix any remainig errors.</p>
+                To progress to the next phase run the validation process and fix any remainig errors.</p> -->
             <h4 *ngIf="jobs.length">Jobs</h4>
             <mat-list id="components-list">
                 <mat-list-item *ngFor="let item of jobs">

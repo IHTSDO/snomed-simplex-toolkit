@@ -1,0 +1,19 @@
+.validation-container {
+  margin: 20px;
+  width: 100%;
+}
+
+.aligned-p {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.warning {
+  color: #ffcc00;
+}
+
+.error {
+  color: #ff0000;
+}

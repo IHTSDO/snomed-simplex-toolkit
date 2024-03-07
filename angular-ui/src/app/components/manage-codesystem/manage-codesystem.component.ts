@@ -24,6 +24,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     { name: 'Release preparation', completed: false, active: false, actionsAvailable: ['Download release', 'Prepare for new authoring cycle']}
   ];
 
+  humanReadableIssueAdvice: string[] = [
+    'Issues found in the following descriptions. Please update the descriptions to resolve the issues.',
+  ];
   constructor(private simplexService: SimplexService,
     private snackBar: MatSnackBar) {}
 
