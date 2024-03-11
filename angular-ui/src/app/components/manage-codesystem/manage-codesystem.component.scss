@@ -139,8 +139,8 @@ mat-list-item {
 
   .current-stage {
     background-color: #E6E9EE;
-    font-size: large;
-    border: solid 2px #6DBBA1;  
+    border: solid 2px #6DBBA1;
+    font-weight: bold;
   }
 
   .completed-icon {
@@ -179,4 +179,14 @@ mat-list-item {
     margin-right: 2rem;
     overflow: hidden;
     padding: 1rem;
+}
+
+.stage-title {
+  flex-grow: 1; 
+  text-align: center;
+  font-size: large;
+}
+
+.centered {
+  align-items: center;
 }

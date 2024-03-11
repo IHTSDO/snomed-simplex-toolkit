@@ -21,7 +21,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     { name: 'Authoring', completed: false, active: false, actionsAvailable: ['Content cut-off'] },
     { name: 'Classification', completed: false, active: false, actionsAvailable: ['Classify'] },
     { name: 'Validation', completed: false, active: false, actionsAvailable: ['Validate', 'Review in browser', 'Download alpha release', 'Upload content fixes', 'Mark release as done'] },
-    { name: 'Release preparation', completed: false, active: false, actionsAvailable: ['Download release', 'Prepare for new authoring cycle']}
+    { name: 'Release ready', completed: false, active: false, actionsAvailable: ['Download release', 'Prepare for new authoring cycle']}
   ];
 
   humanReadableIssueAdvice: string[] = [

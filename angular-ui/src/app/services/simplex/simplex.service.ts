@@ -227,7 +227,7 @@ export class SimplexService {
           status = 'Validation Completed';
         } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
                 (codeSystem.validationStatus === 'CONTENT_ERROR')) {
-        status = 'Review validation results';
+                  status = 'Classification Completed'; // status = 'Review validation results';
         }
         return of(status);
       }),
