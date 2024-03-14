@@ -217,17 +217,14 @@ export class SimplexService {
         let status = '';
         if (!codeSystem.preparingRelease) {
           status = 'Authoring';
-        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'TODO') {
-          status = 'Content Cut-off';
-        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
-                  (codeSystem.validationStatus === 'TODO' || codeSystem.validationStatus === 'STALE' || codeSystem.validationStatus === 'IN_PROGRESS')) {
-          status = 'Classification Completed';
-        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
-                  (codeSystem.validationStatus === 'CONTENT_WARNING' || codeSystem.validationStatus === 'COMPLETE')) {
-          status = 'Validation Completed';
-        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' &&
-                (codeSystem.validationStatus === 'CONTENT_ERROR')) {
-                  status = 'Classification Completed'; // status = 'Review validation results';
+        } else if (codeSystem.preparingRelease && (codeSystem.classificationStatus !== 'COMPLETE' || 
+                   (codeSystem.validationStatus !== 'COMPLETE' && codeSystem.validationStatus !== 'CONTENT_WARNING'))) {
+          status = 'Preparing release';
+        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' && 
+                  (codeSystem.validationStatus === 'COMPLETE' || codeSystem.validationStatus === 'CONTENT_WARNING')) {
+          status = 'Release ready';
+        } else {
+          status = 'Unknown';
         }
         return of(status);
       }),

@@ -1,73 +1,46 @@
 <div class="component-row">
     <div class="component-col">
         <div class="header-container">
-            <h4>Manage Current Authoring Cycle:</h4>
+            <h4>Manage Current Editing Cycle:</h4>
             <mat-spinner *ngIf="loadingReleaseStatus" [diameter]="17"></mat-spinner>
         </div>
         <div class="component-container">
-            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Content Cut-off' || activeStage == 'Classification Completed' || activeStage == 'Validation Completed' || activeStage == 'Review validation results'), 
+            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Preparing release' || activeStage == 'Release ready'), 
                                                  'current-stage' : (activeStage == 'Authoring') }">
                     <div class="component-col centered">
-                        <span class="stage-title">Authoring</span>
-                        <button mat-button color="accent" *ngIf="activeStage != 'Authoring'" (click)="stopReleasePreparation()">
-                            CANCEL RELEASE AND GO BACK TO AUTHORING
-                        </button>
+                        <span class="stage-title">Editing</span>
                         <button mat-button color="accent" *ngIf="activeStage == 'Authoring'" (click)="startReleasePreparation()">
-                            COMPLETE AUTHORING
+                            CLOSE EDITING AND START RELEASE PREPARATION
+                        </button>
+                        <button mat-button color="accent" *ngIf="activeStage != 'Authoring'" (click)="stopReleasePreparation()">
+                            CANCEL RELEASE PREPARATION AND GO BACK TO EDITING
                         </button>
                     </div>
                     <mat-icon class="completed-icon" 
-                        *ngIf="activeStage == 'Content Cut-off' || activeStage == 'Classification Completed' || activeStage == 'Validation Completed' || activeStage == 'Review validation results'">
+                        *ngIf="(activeStage == 'Preparing release' || activeStage == 'Release ready')">
                         check_circle
                     </mat-icon>
             </div>
             <div class="arrow-down"></div>
 
-            
-            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Classification Completed' || activeStage == 'Validation Completed' || activeStage == 'Review validation results'), 
-                                                 'current-stage' : (activeStage == 'Content Cut-off') }">
-                <div class="component-col centered">
-                    <span class="stage-title">Release Preparation - Classification</span>
-                    <button mat-button color="accent" (click)="runClassification()" *ngIf="(edition.classificationStatus == 'TODO' || edition.classificationStatus == 'ERROR')"
-                        [disabled]="activeStage != 'Content Cut-off' || loadingReleaseStatus">
-                            RUN CLASSIFICATION
-                    </button>
-                    <button mat-button color="accent" *ngIf="edition.classificationStatus == 'COMPLETE'" [disabled]="true">
-                        CLASSIFICATION SUCCESSFUL
-                    </button>
-                    <button mat-button color="accent" *ngIf="edition.classificationStatus == 'IN_PROGRESS'">
-                        <span class="in-progress-button">CLASSIFICATION IN PROGRESS <mat-spinner class="white-spinner" [diameter]="17"></mat-spinner></span>
-                    </button>
-                    <p class="error-message" *ngIf="edition.classificationStatus == 'ERROR'">
-                        * The classification process did not complete as expected. Please try again. If this issue does not resolve itself please contact technical support.
-                    </p>
-                    <button mat-button color="accent"  [disabled]="true" *ngIf="!edition.classificationStatus">
-                        <mat-spinner [diameter]="17"></mat-spinner>
-                    </button>
-                </div>
-                <mat-icon class="completed-icon" 
-                    *ngIf="activeStage == 'Classification Completed' || activeStage == 'Validation Completed' || activeStage == 'Review validation results'">
-                    check_circle
-                </mat-icon>
-            </div>
-            <div class="arrow-down"></div>
-                
-
-            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Validation Completed' || activeStage == 'Review validation results'), 
-                                                 'current-stage' : (activeStage == 'Classification Completed') }">
+            <div class="stage-name" [ngClass]="{ 'completed-stage' : (activeStage == 'Release ready'), 
+                                                 'current-stage' : (activeStage == 'Preparing release') }">
                 <div class="component-col centered">
                     <span class="stage-title">
-                        Release preparation - Validation
+                        Preparing release
                     </span>
                     <button mat-button color="accent" (click)="runValidation()" *ngIf="(edition.validationStatus == 'TODO' || edition.validationStatus == 'ERROR')"
                         [disabled]="activeStage != 'Classification Completed' || loadingReleaseStatus">
-                        RUN VALIDATION
+                        RUN CLASSIFICATION AND VALIDATION
                     </button>
                     <button mat-button color="accent" (click)="downloadValidationResults()" *ngIf="edition.validationStatus == 'CONTENT_ERROR'">
-                        VALIDATION RESULT: ERRORS FOUND (REVIEW)
+                        VALIDATION RESULT: REVIEW ERRORS
+                    </button>
+                    <button mat-button color="accent" (click)="downloadValidationResults()" *ngIf="edition.validationStatus == 'CONTENT_WARNING'">
+                        VALIDATION RESULT: REVIEW WARNINGS
                     </button>
                     <button mat-button color="accent" *ngIf="edition.validationStatus == 'COMPLETE'" [disabled]="true">
-                        VALIDATION COMPLETE
+                        VALIDATION RESULT: NO ISSUES
                     </button>
                     <button mat-button color="accent" *ngIf="edition.validationStatus == 'IN_PROGRESS'">
                         <span class="in-progress-button">VALIDATION IN PROGRESS <mat-spinner class="white-spinner" [diameter]="17"></mat-spinner></span>
@@ -81,62 +54,21 @@
                 </div>
                 
                 <mat-icon class="completed-icon" 
-                    *ngIf="activeStage == 'Validation Completed' || activeStage == 'Review validation results'">
+                    *ngIf="activeStage == 'Release ready'">
                     check_circle
                 </mat-icon>
             </div>
-
             <div class="component-row">
                 <div class="arrow-down"></div>
             </div>
 
-            <!-- <div class="stage-name" [ngClass]="{ 'completed-stage' : false, 
-                                                 'current-stage' : (activeStage == 'Validation Completed') }"
-                *ngIf="activeStage == 'Validation Completed'">
-                <div class="component-col centered">
-                    <span class="stage-title">Validation Complete</span>
-                </div>
-                <mat-icon class="completed-icon" 
-                    *ngIf="false">
-                    check_circle
-                </mat-icon>
-            </div>
-
-            <div class="stage-name" [ngClass]="{ 'completed-stage' : false, 
-                                                 'current-stage' : (activeStage == 'Review validation results') }"
-                *ngIf="activeStage != 'Validation Completed'">
-                <div class="component-col centered">
-                    <span class="stage-title">Review and fix validation errors</span>
-                    <button mat-button color="accent" [disabled]="activeStage != 'Validation Completed' || loadingReleaseStatus">REVIEW RELEASE IN THE BROWSER</button>
-                </div>
-                <mat-icon class="completed-icon" 
-                    *ngIf="false">
-                    check_circle
-                </mat-icon>
-            </div> -->
-
-            <!-- <div class="component-row">
-                <div class="arrow-down"></div>
-            </div> -->
-
-            <div class="stage-name">
+            <div class="stage-name" [ngClass]="{ 'current-stage' : (activeStage == 'Release ready') }">
                 <div class="component-col centered">
                     <span class="stage-title">Release ready for publication</span>
-                    <button mat-button color="accent" [disabled]="activeStage != 'Validation Completed' || loadingReleaseStatus">PUBLISH AND COMPLETE RELEASE CYCLE</button>
+                    <button mat-button color="accent" [disabled]="activeStage != 'Release ready'">PUBLISH AND COMPLETE RELEASE CYCLE</button>
                 </div>
-                <!-- <mat-icon>check_circle</mat-icon> -->
             </div>
-
-            <!-- <div class="component-row">
-                <div class="arrow-down"></div>
-            </div> -->
         </div>
-        <!-- <div class="component-container">
-            <h4>Utilities</h4>
-            <button mat-flat-button color="accent" disabled>DAILY BUILD BROWSER</button>
-            <button mat-flat-button color="accent" (click)="exportSnapshot()">EXPORT PREVIEW RF2 SNAPSHOT</button>
-            <button mat-flat-button color="accent" (click)="exportDelta()">EXPORT PREVIEW RF2 DELTA</button>
-        </div> -->
     </div>
     <div class="component-col">
         <div class="right-container">
