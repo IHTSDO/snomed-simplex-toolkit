@@ -6,7 +6,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { HeaderInterceptor } from './interceptors/header.interceptor';
-import { NgbTypeaheadModule } from '@ng-bootstrap/ng-bootstrap';
+// import { NgbTypeaheadModule } from '@ng-bootstrap/ng-bootstrap';
 import { SnomedNavbarComponent } from './components/snomed-navbar/snomed-navbar.component';
 import { SnomedFooterComponent } from './components/snomed-footer/snomed-footer.component';
 import { AuthenticationService } from './services/authentication/authentication.service';
@@ -111,7 +111,7 @@ import {MatCardModule} from '@angular/material/card';
         FormsModule,
         HttpClientModule,
         BrowserAnimationsModule,
-        NgbTypeaheadModule,
+        // NgbTypeaheadModule,
         AppRoutingModule,
         ToastrModule.forRoot(),
         MatTabsModule,
