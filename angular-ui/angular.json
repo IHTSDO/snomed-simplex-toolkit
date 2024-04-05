@@ -80,10 +80,10 @@
           },
           "configurations": {
             "production": {
-              "browserTarget": "simplex-ui:build:production"
+              "buildTarget": "simplex-ui:build:production"
             },
             "development": {
-              "browserTarget": "simplex-ui:build:development"
+              "buildTarget": "simplex-ui:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -91,7 +91,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "simplex-ui:build"
+            "buildTarget": "simplex-ui:build"
           }
         },
         "cypress-run": {
