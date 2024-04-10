@@ -68,10 +68,11 @@ class TranslationServiceTest {
 	}
 
 	@Test
-	void testBlankHeader() {
+	void testBlankHeader() throws ServiceException {
+		SnowstormClient client = snowstormClientFactory.getClient();
 		try {
 			service.uploadTranslationAsWeblateCSV("", "fr", testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"), false,
-					snowstormClientFactory.getClient(), new DummyProgressMonitor());
+					client, new DummyProgressMonitor());
 			fail();
 		} catch (ServiceException e) {
 			assertEquals("Unrecognised CSV header ''", e.getMessage());
