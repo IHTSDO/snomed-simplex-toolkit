@@ -40,9 +40,8 @@ public class ReleaseServiceClient {
         Product product = getProduct(codeSystem);
         if (product == null) {
             createProduct(codeSystem);
-            product = getProduct(codeSystem);
             int year = new GregorianCalendar().get(Calendar.YEAR);
-            updateProductConfiguration(codeSystem, new ProductUpdateRequest("", String.valueOf(year)));
+            product = updateProductConfiguration(codeSystem, new ProductUpdateRequest("", String.valueOf(year)));
         }
         return product;
     }
@@ -50,8 +49,6 @@ public class ReleaseServiceClient {
     public Product updateProductConfiguration(
             CodeSystem codeSystem,
             ProductUpdateRequest productUpdateRequest) throws ServiceException {
-
-        getCreateProduct(codeSystem);
 
         ProductUpdateRequestInternal updateRequest = new ProductUpdateRequestInternal(productUpdateRequest);
         updateRequest.setAssertionGroupNames("common-authoring");
