@@ -203,16 +203,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     this.alert('Finalizing release');
     this.simplexService.finalizeRelease(this.edition.shortName).subscribe(
       (response: any) => {
-        this.alert('Release publication started');
-        if (this.jobComponent) {
-          this.jobComponent.loadJobs(true);
-        }
+        this.alert('Release preparation was cancelled');
         this.refreshEdition();
       },
       error => {
-        console.error('Release publication failed:', error);
-        this.alert('Release publication failed');
-        this.refreshEdition();
+        console.error('Release preparation cancel failed:', error);
+        this.alert('Release preparation cancel failed');
       }
     );
   }
