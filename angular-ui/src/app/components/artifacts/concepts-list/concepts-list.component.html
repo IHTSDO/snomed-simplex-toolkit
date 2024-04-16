@@ -26,6 +26,21 @@
     </td>
   </ng-container>
 
+  <!-- Active Column -->
+  <ng-container matColumnDef="active">
+    <th mat-header-cell *matHeaderCellDef>  </th>
+    <td mat-cell *matCellDef="let element" ngClass="'inactive' : !element.active">
+      <ng-container *ngIf="!loading; else loadingActive">
+        <span *ngIf="element.active">Active</span>
+        <span *ngIf="!element.active">Inactive</span>
+        <!-- {{ element.active }} -->
+      </ng-container>
+      <ng-template #loadingActive>
+        <div class="skeleton-loader"></div>
+      </ng-template>
+    </td>
+  </ng-container>
+
   <!-- Action Column -->
   <ng-container matColumnDef="action">
     <th mat-header-cell *matHeaderCellDef></th>
