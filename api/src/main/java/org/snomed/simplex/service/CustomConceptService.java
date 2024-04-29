@@ -80,6 +80,9 @@ public class CustomConceptService {
 		String jobId = asyncJob.getId();
 		String defaultModule = codeSystem.getDefaultModuleOrThrow();
 
+		// Clean concept intents
+		replaceNonBreakingSpaces(conceptIntents);
+
 		for (List<ConceptIntent> intents : Lists.partition(conceptIntents, 100)) {
 			logger.info("Processing concept updates, batch of {}, Branch:{}, Job:{}", intents.size(), codeSystem.getWorkingBranchPath(), jobId);
 			Set<String> parentCodes = intents.stream().map(ConceptIntent::getParentCode).filter(not(String::isEmpty)).collect(Collectors.toSet());
@@ -210,6 +213,22 @@ public class CustomConceptService {
 			}
 		}
 		return changeSummary;
+	}
+
+	private void replaceNonBreakingSpaces(List<ConceptIntent> conceptIntents) {
+		for (ConceptIntent conceptIntent : conceptIntents) {
+			for (List<String> terms : conceptIntent.getLangRefsetTerms().values()) {
+				ListIterator<String> listIterator = terms.listIterator();
+				while (listIterator.hasNext()) {
+					String term = listIterator.next();
+					// Replace non-breaking spaces
+					String newTerm = term.replaceAll("\\h", " ");
+					if (!newTerm.equals(term)) {
+						listIterator.set(newTerm);
+					}
+				}
+			}
+		}
 	}
 
 	// Copying the inferred relationships from the parent to a primitive concept gives a good preview of the inferred form
