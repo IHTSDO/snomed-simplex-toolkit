@@ -588,6 +588,13 @@ public class SnowstormClient {
 		}
 	}
 
+	public Map<String, ConceptMini> getCodeSystemRefsetsWithTypeInformation(CodeSystem codeSystem) {
+		String url = format("/browser/%s/members?limit=1&module=%s", codeSystem.getBranchPath(), codeSystem.getDefaultModule());
+		System.out.println(url);
+		ResponseEntity<RefsetAggregationPage> refsetAggregationResponse = restTemplate.getForEntity(url, RefsetAggregationPage.class);
+		return refsetAggregationResponse.getBody().getReferenceSets();
+	}
+
 	private void waitForAsyncJob(URI location, String completed, String failed) throws ServiceException {
 		int anHour = 1_000 * 60 * 60;
 		Date start = new Date();

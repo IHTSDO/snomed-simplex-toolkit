@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Tag(name = "UI Configuration", description = "-")
-@RequestMapping(path = "/api", produces={MediaType.APPLICATION_JSON_VALUE})
+@RequestMapping("/api")
 public class UiConfigurationController {
 
 	@Autowired

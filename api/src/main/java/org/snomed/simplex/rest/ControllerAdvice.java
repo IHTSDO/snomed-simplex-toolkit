@@ -1,10 +1,10 @@
 package org.snomed.simplex.rest;
 
-import org.snomed.simplex.exceptions.HTTPClientException;
-import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.exceptions.HTTPClientException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.HashMap;

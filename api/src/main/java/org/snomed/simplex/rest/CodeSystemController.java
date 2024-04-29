@@ -11,6 +11,7 @@ import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
+import org.snomed.simplex.client.srs.manifest.domain.ReleaseBuild;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
@@ -23,14 +24,15 @@ import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.snomed.simplex.service.validation.ValidationFixList;
 import org.snomed.simplex.service.validation.ValidationService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -38,26 +40,29 @@ import java.util.List;
 @Tag(name = "Code Systems", description = "-")
 public class CodeSystemController {
 
-	@Autowired
-	private SnowstormClientFactory clientFactory;
+	private final SnowstormClientFactory clientFactory;
 
-	@Autowired
-	private CodeSystemService codeSystemService;
+	private final CodeSystemService codeSystemService;
 
-	@Autowired
-	private JobService jobService;
+	private final JobService jobService;
 
-	@Autowired
-	private SecurityService securityService;
+	private final SecurityService securityService;
 
-	@Autowired
-	private ValidationServiceClient validationServiceClient;
+	private final ValidationServiceClient validationServiceClient;
 
-	@Autowired
-	private ValidationService validationService;
+	private final ValidationService validationService;
 
-	@Autowired
-	private ReleaseServiceClient releaseServiceClient;
+	private final ReleaseServiceClient releaseServiceClient;
+
+	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService, JobService jobService, SecurityService securityService, ValidationServiceClient validationServiceClient, ValidationService validationService, ReleaseServiceClient releaseServiceClient) {
+		this.clientFactory = clientFactory;
+		this.codeSystemService = codeSystemService;
+		this.jobService = jobService;
+		this.securityService = securityService;
+		this.validationServiceClient = validationServiceClient;
+		this.validationService = validationService;
+		this.releaseServiceClient = releaseServiceClient;
+	}
 
 	@GetMapping
 	public Page<CodeSystem> getCodeSystems(@RequestParam(required = false, defaultValue = "false") boolean includeDetails) throws ServiceException {
@@ -98,7 +103,7 @@ public class CodeSystemController {
 			throw new ServiceException("Classification is already in progress.");
 		}
 
-		return jobService.startExternalServiceJob(theCodeSystem, "Classify", asyncJob -> codeSystemService.classify(asyncJob));
+		return jobService.startExternalServiceJob(theCodeSystem, "Classify", codeSystemService::classify);
 	}
 
 	@PostMapping("{codeSystem}/validate")
@@ -106,7 +111,7 @@ public class CodeSystemController {
 	public AsyncJob startValidation(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		return jobService.startExternalServiceJob(theCodeSystem, "Validate", asyncJob -> codeSystemService.validate(asyncJob));
+		return jobService.startExternalServiceJob(theCodeSystem, "Validate", codeSystemService::validate);
 	}
 
 	@GetMapping("{codeSystem}/validate/issues")
@@ -150,7 +155,7 @@ public class CodeSystemController {
 		return validationServiceClient.getValidation(validationReportUrl);
 	}
 
-	@GetMapping(path = "{codeSystem}/packaging-product")
+	@GetMapping(path = "{codeSystem}/product-packaging")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public ReleaseServiceClient.Product getReleaseProduct(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
@@ -158,7 +163,7 @@ public class CodeSystemController {
 		return releaseServiceClient.getCreateProduct(theCodeSystem);
 	}
 
-	@PutMapping(path = "{codeSystem}/packaging-product/configuration")
+	@PutMapping(path = "{codeSystem}/product-packaging/configuration")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public ReleaseServiceClient.Product updateReleaseProduct(
 			@PathVariable String codeSystem,
@@ -166,7 +171,23 @@ public class CodeSystemController {
 
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		// TODO: Test this. Is the readme header removed when the build is created and config updated without it?
 		return releaseServiceClient.updateProductConfiguration(theCodeSystem, configUpdate);
+	}
+
+	@PostMapping(path = "{codeSystem}/product-packaging/build")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void buildReleaseProduct(@PathVariable String codeSystem, @RequestParam(required = false) String effectiveTime)
+			throws ServiceException {
+
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		if (effectiveTime == null) {
+			effectiveTime = new SimpleDateFormat("yyyyMMdd").format(new Date());
+		}
+
+		ReleaseBuild releaseBuild = releaseServiceClient.buildProduct(theCodeSystem, effectiveTime);
+		// TODO: Convert to Simplex scheduled job.
 	}
 
 	@DeleteMapping("{codeSystem}")

@@ -1,6 +1,7 @@
 package org.snomed.simplex.client.domain;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.HashMap;
@@ -33,6 +34,7 @@ public class ConceptMini {
 		return conceptId;
 	}
 
+	@JsonAnySetter
 	public void addExtraField(String name, Object value) {
 		if (extraFields == null) {
 			extraFields = new HashMap<>();
