@@ -28,20 +28,7 @@ public class ReleaseManifestFile {
 	}
 
 	public ReleaseManifestFile copy(String name) {
-		ReleaseManifestFile clone = new ReleaseManifestFile(name);
-		if (sources != null) {
-			clone.sources = new HashSet<>(sources);
-		}
-		if (refset != null) {
-			clone.refset = new HashSet<>(refset);
-		}
-		if (field != null) {
-			clone.field = new HashSet<>(field);
-		}
-		if (code != null) {
-			clone.code = new HashSet<>(code);
-		}
-		return clone;
+		return new ReleaseManifestFile(name);
 	}
 
 	public void addSource(String source) {

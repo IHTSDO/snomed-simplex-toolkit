@@ -87,8 +87,8 @@ public class ReleaseServiceClient {
                     String.format("/centers/%s/products", releaseCenter),
                     new CreateProductRequest(getProductName(codeSystem.getShortName())),
                     Void.class);
-            int year = new GregorianCalendar().get(Calendar.YEAR);
-            product = updateProductConfiguration(codeSystem, new ProductUpdateRequest("", String.valueOf(year)));
+            int thisYear = new GregorianCalendar().get(Calendar.YEAR);
+            product = updateProductConfiguration(codeSystem, new ProductUpdateRequest("", String.valueOf(thisYear)));
         }
         return product;
     }
@@ -139,7 +139,9 @@ public class ReleaseServiceClient {
 
     private ReleaseBuild prepareReleaseBuild(CodeSystem codeSystem, String effectiveTime, SnowstormClient snowstormClient) throws ServiceException {
         logger.info("Generating manifest");
-        String manifestXml = releaseManifestService.generateManifestXml(codeSystem, effectiveTime, snowstormClient);
+
+        boolean editionPackage = true;
+        String manifestXml = releaseManifestService.generateManifestXml(codeSystem, effectiveTime, snowstormClient, editionPackage);
         uploadManifest(codeSystem, manifestXml);
         logger.info("Uploaded manifest");
 

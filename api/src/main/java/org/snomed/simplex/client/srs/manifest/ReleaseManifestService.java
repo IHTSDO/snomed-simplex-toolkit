@@ -31,16 +31,16 @@ public class ReleaseManifestService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public String generateManifestXml(CodeSystem codeSystem, String effectiveTime, SnowstormClient snowstormClient) throws ServiceException {
+	public String generateManifestXml(CodeSystem codeSystem, String effectiveTime, SnowstormClient snowstormClient, boolean editionPackage) throws ServiceException {
 		String formattedName = codeSystem.getName().replace("Extension", "").replace("Edition", "").replace(" ", "");
-		String rootFolderName = String.format("SnomedCT_%sSimplexExtension_PRODUCTION_%sT120000Z", formattedName, effectiveTime);
+		String rootFolderName = String.format("SnomedCT_%sSimplexEdition_Production_%sT120000Z", formattedName, effectiveTime);
 		ReleaseManifestFolder rootFolder = new ReleaseManifestFolder(rootFolderName);
 		ReleaseManifest manifest = new ReleaseManifest(rootFolder);
 		rootFolder.getOrAddFile(format("Readme_en_%s.txt", effectiveTime)).clearSource();
 
-		ReleaseManifestFolder fullFolder = rootFolder.getOrAddFolder("Full");
+		ReleaseManifestFolder snapshotFolder = rootFolder.getOrAddFolder("Snapshot");
 
-		ReleaseManifestFolder terminologyFolder = fullFolder.getOrAddFolder("Terminology");
+		ReleaseManifestFolder terminologyFolder = snapshotFolder.getOrAddFolder("Terminology");
 		terminologyFolder.getOrAddFile(getCoreComponentFilename("Concept", "", formattedName, effectiveTime));
 
 		List<String> languageCodes = new ArrayList<>(codeSystem.getLanguages().keySet());
@@ -57,8 +57,9 @@ public class ReleaseManifestService {
 		terminologyFolder.getOrAddFile(getCoreComponentFilename("RelationshipConcreteValues", "", formattedName, effectiveTime));
 		// OWLExpression file is added by the refset logic
 
-		Map<String, ConceptMini> refsets = snowstormClient.getCodeSystemRefsetsWithTypeInformation(codeSystem);
-		ReleaseManifestFolder refsetFolder = fullFolder.getOrAddFolder("Refset");
+		boolean filterByModule = !editionPackage;
+		Map<String, ConceptMini> refsets = snowstormClient.getCodeSystemRefsetsWithTypeInformation(codeSystem, filterByModule);
+		ReleaseManifestFolder refsetFolder = snapshotFolder.getOrAddFolder("Refset");
 		Set<String> refsetsWithMissingExportConfiguration = new HashSet<>();
 		for (ConceptMini refset : refsets.values()) {
 			if (refset.getConceptId().equals("554481000005106")) {// Ignore badly set up DK refset
@@ -86,7 +87,7 @@ public class ReleaseManifestService {
 				refsetsWithMissingExportConfiguration.add(refset.getConceptId());
 				continue;
 			}
-			ReleaseManifestFolder outputFolder = exportDir.startsWith("/") ? fullFolder : refsetFolder;
+			ReleaseManifestFolder outputFolder = exportDir.startsWith("/") ? snapshotFolder : refsetFolder;
 			String[] split = exportDir.split("/");
 			for (String folderName : split) {
 				if (!folderName.isEmpty()) {
@@ -107,7 +108,7 @@ public class ReleaseManifestService {
 					refsetsWithMissingExportConfiguration));
 		}
 
-		cloneFullToSnapshot(fullFolder, rootFolder.getOrAddFolder("Snapshot"));
+		cloneSnapshotToFull(snapshotFolder, rootFolder.getOrAddFolder("Full"));
 
 		ObjectMapper objectMapper = xmlConverter.getObjectMapper()
 				.configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -120,18 +121,18 @@ public class ReleaseManifestService {
 		}
 	}
 
-	private void cloneFullToSnapshot(ReleaseManifestFolder source, ReleaseManifestFolder target) {
+	private void cloneSnapshotToFull(ReleaseManifestFolder source, ReleaseManifestFolder target) {
 		for (ReleaseManifestFile file : orEmpty(source.getFile())) {
-			String name = file.getName().replace("_Full", "_Snapshot").replace("Full_", "Snapshot_");
+			String name = file.getName().replace("_Snapshot", "_Full").replace("Snapshot_", "Full_");
 			target.addFile(file.copy(name));
 		}
 		for (ReleaseManifestFolder folder : orEmpty(source.getFolder())) {
-			cloneFullToSnapshot(folder, target.getOrAddFolder(folder.getName()));
+			cloneSnapshotToFull(folder, target.getOrAddFolder(folder.getName()));
 		}
 	}
 
 	private String getCoreComponentFilename(String exportName, String langPostfix, String formattedName, String effectiveTime) {
-		return format("sct2_%s_%s%s_%s_%s.txt", exportName, "Full", langPostfix, formattedName, effectiveTime);
+		return format("sct2_%s_%s%s_%s_%s.txt", exportName, "Snapshot", langPostfix, formattedName, effectiveTime);
 	}
 
 	private String getRefsetFilename(String term, String exportName, String fieldTypes, String formattedName, String effectiveTime) {
@@ -149,7 +150,7 @@ public class ReleaseManifestService {
 			}
 			exportName = builder.toString();
 		}
-		return format("%s_%sRefset_%s%s_%s_%s.txt", prefix, fieldTypes, exportName, "Full", formattedName, effectiveTime);
+		return format("%s_%sRefset_%s%s_%s_%s.txt", prefix, fieldTypes, exportName, "Snapshot", formattedName, effectiveTime);
 	}
 
 }

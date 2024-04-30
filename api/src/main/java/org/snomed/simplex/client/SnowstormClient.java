@@ -588,8 +588,8 @@ public class SnowstormClient {
 		}
 	}
 
-	public Map<String, ConceptMini> getCodeSystemRefsetsWithTypeInformation(CodeSystem codeSystem) {
-		String url = format("/browser/%s/members?limit=1&module=%s", codeSystem.getBranchPath(), codeSystem.getDefaultModule());
+	public Map<String, ConceptMini> getCodeSystemRefsetsWithTypeInformation(CodeSystem codeSystem, boolean filterByModule) {
+		String url = format("/browser/%s/members?limit=1&module=%s", codeSystem.getBranchPath(), filterByModule ? codeSystem.getDefaultModule() : "");
 		System.out.println(url);
 		ResponseEntity<RefsetAggregationPage> refsetAggregationResponse = restTemplate.getForEntity(url, RefsetAggregationPage.class);
 		return refsetAggregationResponse.getBody().getReferenceSets();
