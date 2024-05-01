@@ -94,7 +94,7 @@ public class ReleaseManifestService {
 					outputFolder = outputFolder.getOrAddFolder(folderName);
 				}
 			}
-			String refsetFileName = getRefsetFilename(pt.getTerm(), exportName, fieldTypes, formattedName, effectiveTime);
+			String refsetFileName = getRefsetFilename(exportName, fieldTypes, formattedName, effectiveTime);
 			ReleaseManifestFile refsetFile = outputFolder.getOrAddFile(refsetFileName);
 			if (refsetFile.getField() == null) {
 				for (String fieldName : fieldNameList) {
@@ -135,20 +135,10 @@ public class ReleaseManifestService {
 		return format("sct2_%s_%s%s_%s_%s.txt", exportName, "Snapshot", langPostfix, formattedName, effectiveTime);
 	}
 
-	private String getRefsetFilename(String term, String exportName, String fieldTypes, String formattedName, String effectiveTime) {
+	private String getRefsetFilename(String exportName, String fieldTypes, String formattedName, String effectiveTime) {
 		String prefix = "der2";
 		if (exportName.equals("OWLExpression")) {
 			prefix = "sct2";
-		} else {
-			StringBuilder builder = new StringBuilder();
-			String[] split = term.split(" ");
-			for (String word : split) {
-				builder.append(word.substring(0, 1).toUpperCase());
-				if (word.length() > 1) {
-					builder.append(word.substring(1));
-				}
-			}
-			exportName = builder.toString();
 		}
 		return format("%s_%sRefset_%s%s_%s_%s.txt", prefix, fieldTypes, exportName, "Snapshot", formattedName, effectiveTime);
 	}
