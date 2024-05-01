@@ -31,8 +31,8 @@ public class ReleaseManifestService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public String generateManifestXml(CodeSystem codeSystem, String effectiveTime, SnowstormClient snowstormClient, boolean editionPackage) throws ServiceException {
-		String formattedName = codeSystem.getName().replace("Extension", "").replace("Edition", "").replace(" ", "");
+	public String generateManifestXml(CodeSystem codeSystem, String productName, String effectiveTime, boolean editionPackage, SnowstormClient snowstormClient) throws ServiceException {
+		String formattedName = productName.replace(" ", "");
 		String rootFolderName = String.format("SnomedCT_%sSimplexEdition_Production_%sT120000Z", formattedName, effectiveTime);
 		ReleaseManifestFolder rootFolder = new ReleaseManifestFolder(rootFolderName);
 		ReleaseManifest manifest = new ReleaseManifest(rootFolder);

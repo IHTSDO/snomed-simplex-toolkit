@@ -129,6 +129,7 @@ public class SnowstormClient {
 	private void addCodeSystemBranchInfo(CodeSystem codeSystem) throws ServiceException {
 		String branchPath = codeSystem.getBranchPath();
 		Branch branch = getBranchOrThrow(branchPath);
+		codeSystem.setBranchObject(branch);
 		String defaultModule = branch.getDefaultModule();
 		codeSystem.setContentHeadTimestamp(branch.getHeadTimestamp());
 		codeSystem.setDefaultModule(defaultModule);

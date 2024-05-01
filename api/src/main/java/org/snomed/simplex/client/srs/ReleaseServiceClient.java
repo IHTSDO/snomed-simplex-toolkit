@@ -13,9 +13,10 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.srs.manifest.ReleaseManifestService;
 import org.snomed.simplex.client.srs.manifest.domain.CreateBuildRequest;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseBuild;
-import org.snomed.simplex.client.srs.manifest.ReleaseManifestService;
+import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,10 +39,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.List;
-import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -56,6 +55,7 @@ public class ReleaseServiceClient {
     private final String releaseCenter;
     private final String releaseCenterBranch;
     private final String releaseSource;
+    private final String readmeHeaderTemplate;
     private final ReleaseManifestService releaseManifestService;
     private final SnowstormClientFactory snowstormClientFactory;
 
@@ -69,6 +69,7 @@ public class ReleaseServiceClient {
             @Value("${snomed-release-service.simplex-release-center}") String releaseCenter,
             @Value("${snomed-release-service.simplex-release-center-branch}") String releaseCenterBranch,
             @Value("${snomed-release-service.source-name}") String releaseSource,
+            @Value("${snomed-release-service.package.readme-header-template}") String readmeHeaderTemplate,
             @Autowired ReleaseManifestService releaseManifestService,
             @Autowired SnowstormClientFactory snowstormClientFactory) {
 
@@ -76,6 +77,7 @@ public class ReleaseServiceClient {
         this.releaseCenter = releaseCenter;
         this.releaseCenterBranch = releaseCenterBranch;
         this.releaseSource = releaseSource;
+        this.readmeHeaderTemplate = readmeHeaderTemplate;
         this.releaseManifestService = releaseManifestService;
         this.snowstormClientFactory = snowstormClientFactory;
     }
@@ -87,17 +89,21 @@ public class ReleaseServiceClient {
                     String.format("/centers/%s/products", releaseCenter),
                     new CreateProductRequest(getProductName(codeSystem.getShortName())),
                     Void.class);
-            int thisYear = new GregorianCalendar().get(Calendar.YEAR);
-            product = updateProductConfiguration(codeSystem, new ProductUpdateRequest("", String.valueOf(thisYear)));
+            product = updateProductConfiguration(codeSystem, new PackageConfiguration("", ""));
         }
         return product;
     }
 
+    private static String getThisYear() {
+		return new GregorianCalendar().get(Calendar.YEAR) + "";
+    }
+
     public Product updateProductConfiguration(
             CodeSystem codeSystem,
-            ProductUpdateRequest productUpdateRequest) throws ServiceException {
+            PackageConfiguration packageConfiguration) throws ServiceException {
 
-        ProductUpdateRequestInternal updateRequest = new ProductUpdateRequestInternal(productUpdateRequest);
+        String readmeHeader = createReadmeHeader(codeSystem.getName(), packageConfiguration);
+        ProductUpdateRequestInternal updateRequest = new ProductUpdateRequestInternal(new ProductUpdateRequest(readmeHeader, getThisYear()));
         updateRequest.setAssertionGroupNames("common-authoring,simplex-authoring");
         updateRequest.setEnableDrools(true);
         updateRequest.setDroolsRulesGroupNames("common-authoring");
@@ -126,10 +132,10 @@ public class ReleaseServiceClient {
         }
     }
 
-    public ReleaseBuild buildProduct(CodeSystem codeSystem, String effectiveTime) throws ServiceException {
+    public ReleaseBuild buildProduct(CodeSystem codeSystem, PackageConfiguration packageConfiguration, String effectiveTime) throws ServiceException {
         logger.info("Preparing build for {}", codeSystem.getShortName());
         SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-        ReleaseBuild build = prepareReleaseBuild(codeSystem, effectiveTime, snowstormClient);
+        ReleaseBuild build = prepareReleaseBuild(codeSystem, packageConfiguration, effectiveTime, snowstormClient);
         logger.info("Build {} preparation complete", build.getId());
 
 //		scheduleBuild(build, codeSystem);
@@ -137,16 +143,21 @@ public class ReleaseServiceClient {
         return build;
     }
 
-    private ReleaseBuild prepareReleaseBuild(CodeSystem codeSystem, String effectiveTime, SnowstormClient snowstormClient) throws ServiceException {
+    private ReleaseBuild prepareReleaseBuild(CodeSystem codeSystem, PackageConfiguration packageConfiguration, String effectiveTime, SnowstormClient snowstormClient) throws ServiceException {
         logger.info("Generating manifest");
 
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+        if (!effectiveTime.matches("[0-9]{8}")) {
+            throw new ServiceExceptionWithStatusCode(
+                    format("Invalid package effective time '%s'. Expected format yyyyyMMdd, for example: %s", effectiveTime, dateFormat.format(new Date())), HttpStatus.BAD_REQUEST);
+        }
+        String effectiveYear = effectiveTime.substring(0, 4);
+
         boolean editionPackage = true;
-        String manifestXml = releaseManifestService.generateManifestXml(codeSystem, effectiveTime, snowstormClient, editionPackage);
+        String productName = codeSystem.getName().replace("Extension", "").replace("Edition", "");
+        String manifestXml = releaseManifestService.generateManifestXml(codeSystem, productName, effectiveTime, editionPackage, snowstormClient);
         uploadManifest(codeSystem, manifestXml);
         logger.info("Uploaded manifest");
-
-        // TODO: Update product config with namespace, moduleId, previous package
-
 
         ReleaseBuild build = createBuild(codeSystem, effectiveTime);
         logger.info("Created build {}", build.getId());
@@ -180,6 +191,14 @@ public class ReleaseServiceClient {
         } catch (IOException e) {
             throw new ServiceException(format("Failed to export code system %s during build preparation.", codeSystem.getShortName()), e);
         }
+    }
+
+    private String createReadmeHeader(String name, PackageConfiguration packageConfiguration) {
+        return readmeHeaderTemplate
+                .replace("{simplexProduct}", name)
+                .replace("{simplexProductOrganisationName}", packageConfiguration.orgName())
+                .replace("{simplexProductContactDetails}", packageConfiguration.orgContactDetails())
+                .replace("{readmeEndDate}", getThisYear());
     }
 
     public void uploadManifest(CodeSystem codeSystem, String manifestXml) throws ServiceException {

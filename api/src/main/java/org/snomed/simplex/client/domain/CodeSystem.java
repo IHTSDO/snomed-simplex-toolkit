@@ -36,6 +36,8 @@ public class CodeSystem {
 	private List<ConceptMini> modules;
 	private CodeSystemVersion latestVersion;
 
+	private Branch branchObject;
+
 	public record CodeSystemVersion(int effectiveDate, String branchPath) {}
 
 	public CodeSystem() {
@@ -202,6 +204,15 @@ public class CodeSystem {
 
 	public boolean isPreparingRelease() {
 		return preparingRelease;
+	}
+
+	@JsonIgnore
+	public Branch getBranchObject() {
+		return branchObject;
+	}
+
+	public void setBranchObject(Branch branchObject) {
+		this.branchObject = branchObject;
 	}
 
 	@Override

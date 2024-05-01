@@ -8,6 +8,7 @@ import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.domain.JobStatus;
+import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
@@ -326,5 +327,19 @@ public class CodeSystemService {
 
 	public ExternalServiceJob getLatestValidationJob(CodeSystem codeSystem) {
         return (ExternalServiceJob) jobService.getLatestJobOfType(codeSystem.getShortName(), "Validate");
+	}
+
+	public PackageConfiguration getPackageConfiguration(Branch branch) {
+		String orgName = branch.getMetadataValue(Branch.ORGANISATION_NAME);
+		String orgContactDetails = branch.getMetadataValue(Branch.ORGANISATION_CONTACT_DETAILS);
+		return new PackageConfiguration(orgName, orgContactDetails);
+	}
+
+	public void updatePackageConfiguration(PackageConfiguration packageConfiguration, String branchPath) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		Map<String, String> metadataUpdate = Map.of(
+				Branch.ORGANISATION_NAME, packageConfiguration.orgName(),
+				Branch.ORGANISATION_CONTACT_DETAILS, packageConfiguration.orgContactDetails());
+		snowstormClient.upsertBranchMetadata(branchPath, metadataUpdate);
 	}
 }

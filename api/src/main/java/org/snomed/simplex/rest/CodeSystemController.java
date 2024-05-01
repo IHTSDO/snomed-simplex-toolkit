@@ -3,6 +3,7 @@ package org.snomed.simplex.rest;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.logging.log4j.util.Strings;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -12,6 +13,7 @@ import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseBuild;
+import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
@@ -163,16 +165,25 @@ public class CodeSystemController {
 		return releaseServiceClient.getCreateProduct(theCodeSystem);
 	}
 
-	@PutMapping(path = "{codeSystem}/product-packaging/configuration")
+	@GetMapping(path = "{codeSystem}/product-packaging/configuration")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public ReleaseServiceClient.Product updateReleaseProduct(
-			@PathVariable String codeSystem,
-			@RequestBody ReleaseServiceClient.ProductUpdateRequest configUpdate) throws ServiceException {
-
+	public PackageConfiguration getReleaseProductConfig(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		// TODO: Test this. Is the readme header removed when the build is created and config updated without it?
-		return releaseServiceClient.updateProductConfiguration(theCodeSystem, configUpdate);
+		return codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());
+	}
+
+	@PutMapping(path = "{codeSystem}/product-packaging/configuration")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void updateReleaseProductConfig(
+			@PathVariable String codeSystem,
+			@RequestBody PackageConfiguration packageConfiguration) throws ServiceException {
+
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		codeSystemService.updatePackageConfiguration(packageConfiguration, codeSystemObject.getBranchPath());
+
+		releaseServiceClient.updateProductConfiguration(codeSystemObject, packageConfiguration);
 	}
 
 	@PostMapping(path = "{codeSystem}/product-packaging/build")
@@ -186,7 +197,12 @@ public class CodeSystemController {
 			effectiveTime = new SimpleDateFormat("yyyyMMdd").format(new Date());
 		}
 
-		ReleaseBuild releaseBuild = releaseServiceClient.buildProduct(theCodeSystem, effectiveTime);
+		PackageConfiguration packageConfiguration = codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());
+		if (Strings.isBlank(packageConfiguration.orgName()) || Strings.isBlank(packageConfiguration.orgContactDetails())) {
+			throw new ServiceExceptionWithStatusCode("Organisation name and contact details must be set before creating a build.", HttpStatus.CONFLICT);
+		}
+
+		ReleaseBuild releaseBuild = releaseServiceClient.buildProduct(theCodeSystem, packageConfiguration, effectiveTime);
 		// TODO: Convert to Simplex scheduled job.
 	}
 
