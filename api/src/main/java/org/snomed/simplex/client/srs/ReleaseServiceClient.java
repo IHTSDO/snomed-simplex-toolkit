@@ -1,5 +1,6 @@
 package org.snomed.simplex.client.srs;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
@@ -58,6 +59,7 @@ public class ReleaseServiceClient {
     private final String licenceStatementTemplate;
     private final ReleaseManifestService releaseManifestService;
     private final SnowstormClientFactory snowstormClientFactory;
+    public static final boolean EDITION_PACKAGE = true;
 
     private static final Cache<String, RestTemplate> clientCache = CacheBuilder.newBuilder()
             .expireAfterAccess(5L, TimeUnit.MINUTES).build();
@@ -119,7 +121,7 @@ public class ReleaseServiceClient {
         updateRequest.setDefaultModuleId(codeSystem.getDefaultModule());
         updateRequest.setModuleIds(codeSystem.getDefaultModule());
         updateRequest.setExtensionDependencyRelease(codeSystem.getDependencyPackage());
-        updateRequest.setReleaseAsAnEdition(false);
+        updateRequest.setReleaseAsAnEdition(EDITION_PACKAGE);
         updateRequest.setFirstTimeRelease(codeSystem.getLatestVersion() == null);
 
         getClient().put(
@@ -139,18 +141,18 @@ public class ReleaseServiceClient {
         }
     }
 
-    public ReleaseBuild buildProduct(CodeSystem codeSystem, PackageConfiguration packageConfiguration, String effectiveTime) throws ServiceException {
+    public ReleaseBuild buildProduct(CodeSystem codeSystem, String effectiveTime) throws ServiceException {
         logger.info("Preparing build for {}", codeSystem.getShortName());
         SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-        ReleaseBuild build = prepareReleaseBuild(codeSystem, packageConfiguration, effectiveTime, snowstormClient);
+        ReleaseBuild build = prepareReleaseBuild(codeSystem, effectiveTime, snowstormClient);
         logger.info("Build {} preparation complete", build.getId());
 
-//		scheduleBuild(build, codeSystem);
-//        logger.info("Build {} scheduled to run. Url: {}", build.getId(), build.getUrl());
+		scheduleBuild(build, codeSystem);
+        logger.info("Build {} scheduled to run. Url: {}", build.getId(), build.getUrl());
         return build;
     }
 
-    private ReleaseBuild prepareReleaseBuild(CodeSystem codeSystem, PackageConfiguration packageConfiguration, String effectiveTime, SnowstormClient snowstormClient) throws ServiceException {
+    private ReleaseBuild prepareReleaseBuild(CodeSystem codeSystem, String effectiveTime, SnowstormClient snowstormClient) throws ServiceException {
         logger.info("Generating manifest");
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
@@ -158,11 +160,9 @@ public class ReleaseServiceClient {
             throw new ServiceExceptionWithStatusCode(
                     format("Invalid package effective time '%s'. Expected format yyyyyMMdd, for example: %s", effectiveTime, dateFormat.format(new Date())), HttpStatus.BAD_REQUEST);
         }
-        String effectiveYear = effectiveTime.substring(0, 4);
 
-        boolean editionPackage = true;
         String productName = codeSystem.getName().replace("Extension", "").replace("Edition", "");
-        String manifestXml = releaseManifestService.generateManifestXml(codeSystem, productName, effectiveTime, editionPackage, snowstormClient);
+        String manifestXml = releaseManifestService.generateManifestXml(codeSystem, productName, effectiveTime, EDITION_PACKAGE, snowstormClient);
         uploadManifest(codeSystem, manifestXml);
         logger.info("Uploaded manifest");
 
@@ -466,6 +466,7 @@ public class ReleaseServiceClient {
             this.releaseAsAnEdition = releaseAsAnEdition;
         }
 
+        @JsonGetter("releaseExtensionAsAnEdition")
         public boolean isReleaseAsAnEdition() {
             return releaseAsAnEdition;
         }

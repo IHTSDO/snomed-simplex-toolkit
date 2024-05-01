@@ -202,7 +202,7 @@ public class CodeSystemController {
 			throw new ServiceExceptionWithStatusCode("Organisation name and contact details must be set before creating a build.", HttpStatus.CONFLICT);
 		}
 
-		ReleaseBuild releaseBuild = releaseServiceClient.buildProduct(theCodeSystem, packageConfiguration, effectiveTime);
+		ReleaseBuild releaseBuild = releaseServiceClient.buildProduct(theCodeSystem, effectiveTime);
 		// TODO: Convert to Simplex scheduled job.
 	}
 
