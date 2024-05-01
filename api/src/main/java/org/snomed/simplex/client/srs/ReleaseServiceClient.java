@@ -1,6 +1,5 @@
 package org.snomed.simplex.client.srs;
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
@@ -56,6 +55,7 @@ public class ReleaseServiceClient {
     private final String releaseCenterBranch;
     private final String releaseSource;
     private final String readmeHeaderTemplate;
+    private final String licenceStatementTemplate;
     private final ReleaseManifestService releaseManifestService;
     private final SnowstormClientFactory snowstormClientFactory;
 
@@ -70,6 +70,7 @@ public class ReleaseServiceClient {
             @Value("${snomed-release-service.simplex-release-center-branch}") String releaseCenterBranch,
             @Value("${snomed-release-service.source-name}") String releaseSource,
             @Value("${snomed-release-service.package.readme-header-template}") String readmeHeaderTemplate,
+            @Value("${snomed-release-service.package.licence-statement-template}") String licenceStatementTemplate,
             @Autowired ReleaseManifestService releaseManifestService,
             @Autowired SnowstormClientFactory snowstormClientFactory) {
 
@@ -78,6 +79,7 @@ public class ReleaseServiceClient {
         this.releaseCenterBranch = releaseCenterBranch;
         this.releaseSource = releaseSource;
         this.readmeHeaderTemplate = readmeHeaderTemplate;
+        this.licenceStatementTemplate = licenceStatementTemplate;
         this.releaseManifestService = releaseManifestService;
         this.snowstormClientFactory = snowstormClientFactory;
     }
@@ -103,7 +105,12 @@ public class ReleaseServiceClient {
             PackageConfiguration packageConfiguration) throws ServiceException {
 
         String readmeHeader = createReadmeHeader(codeSystem.getName(), packageConfiguration);
-        ProductUpdateRequestInternal updateRequest = new ProductUpdateRequestInternal(new ProductUpdateRequest(readmeHeader, getThisYear()));
+        String licenceStatement = createLicenceStatement(codeSystem.getName(), packageConfiguration);
+
+        ProductUpdateRequestInternal updateRequest = new ProductUpdateRequestInternal();
+        updateRequest.setReadmeHeader(readmeHeader);
+        updateRequest.setReadmeEndDate(getThisYear());
+        updateRequest.setLicenseStatement(licenceStatement);
         updateRequest.setAssertionGroupNames("common-authoring,simplex-authoring");
         updateRequest.setEnableDrools(true);
         updateRequest.setDroolsRulesGroupNames("common-authoring");
@@ -195,6 +202,14 @@ public class ReleaseServiceClient {
 
     private String createReadmeHeader(String name, PackageConfiguration packageConfiguration) {
         return readmeHeaderTemplate
+                .replace("{simplexProduct}", name)
+                .replace("{simplexProductOrganisationName}", packageConfiguration.orgName())
+                .replace("{simplexProductContactDetails}", packageConfiguration.orgContactDetails())
+                .replace("{readmeEndDate}", getThisYear());
+    }
+
+    private String createLicenceStatement(String name, PackageConfiguration packageConfiguration) {
+        return licenceStatementTemplate
                 .replace("{simplexProduct}", name)
                 .replace("{simplexProductOrganisationName}", packageConfiguration.orgName())
                 .replace("{simplexProductContactDetails}", packageConfiguration.orgContactDetails())
@@ -338,16 +353,13 @@ public class ReleaseServiceClient {
             boolean releaseAsAnEdition) {
     }
 
-    public record ProductUpdateRequest(
-            String readmeHeader,
-            String readmeEndDate) {
-    }
-
     public static class ProductUpdateRequestInternal {
 
         // buildConfiguration
         private boolean firstTimeRelease;
-        private final ProductUpdateRequest userRequest;
+        private String readmeHeader;
+        private String readmeEndDate;
+        private String licenseStatement;
 
         // buildConfiguration.extensionConfig
         private String namespaceId;
@@ -362,13 +374,28 @@ public class ReleaseServiceClient {
         private String droolsRulesGroupNames;
         private boolean enableMRCMValidation;
 
-        public ProductUpdateRequestInternal(ProductUpdateRequest userRequest) {
-            this.userRequest = userRequest;
+        public String getReadmeHeader() {
+            return readmeHeader;
         }
 
-        @JsonUnwrapped
-        public ProductUpdateRequest getUserRequest() {
-            return userRequest;
+        public void setReadmeHeader(String readmeHeader) {
+            this.readmeHeader = readmeHeader;
+        }
+
+        public String getReadmeEndDate() {
+            return readmeEndDate;
+        }
+
+        public void setReadmeEndDate(String readmeEndDate) {
+            this.readmeEndDate = readmeEndDate;
+        }
+
+        public String getLicenseStatement() {
+            return licenseStatement;
+        }
+
+        public void setLicenseStatement(String licenseStatement) {
+            this.licenseStatement = licenseStatement;
         }
 
         public String getAssertionGroupNames() {
