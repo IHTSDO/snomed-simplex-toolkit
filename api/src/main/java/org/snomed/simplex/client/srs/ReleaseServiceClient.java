@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.srs.manifest.ReleaseManifestService;
 import org.snomed.simplex.client.srs.manifest.domain.CreateBuildRequest;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseBuild;
@@ -43,6 +44,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
@@ -60,6 +64,7 @@ public class ReleaseServiceClient {
     private final ReleaseManifestService releaseManifestService;
     private final SnowstormClientFactory snowstormClientFactory;
     public static final boolean EDITION_PACKAGE = true;
+    public static final String FIRST_SNOMEDCT_RELEASE_DATE = "2002-01-01";
 
     private static final Cache<String, RestTemplate> clientCache = CacheBuilder.newBuilder()
             .expireAfterAccess(5L, TimeUnit.MINUTES).build();
@@ -110,6 +115,19 @@ public class ReleaseServiceClient {
         String licenceStatement = createLicenceStatement(codeSystem.getName(), packageConfiguration);
 
         ProductUpdateRequestInternal updateRequest = new ProductUpdateRequestInternal();
+
+        boolean firstTimeRelease = codeSystem.getLatestVersion() == null;
+        updateRequest.setFirstTimeRelease(firstTimeRelease);
+
+        String dependencyPackage = codeSystem.getDependencyPackage();
+        updateRequest.setExtensionDependencyRelease(dependencyPackage);
+
+        String previousEditionDependencyEffectiveDate = firstTimeRelease ? FIRST_SNOMEDCT_RELEASE_DATE : extractFilenameEffectiveDate(dependencyPackage);
+        updateRequest.setPreviousEditionDependencyEffectiveDate(previousEditionDependencyEffectiveDate);
+
+        updateRequest.setReleaseAsAnEdition(EDITION_PACKAGE);
+        updateRequest.setClassifyOutputFiles(false);// Edition package is too big. Classification has already happened anyway.
+
         updateRequest.setReadmeHeader(readmeHeader);
         updateRequest.setReadmeEndDate(getThisYear());
         updateRequest.setLicenseStatement(licenceStatement);
@@ -119,15 +137,23 @@ public class ReleaseServiceClient {
         updateRequest.setEnableMRCMValidation(true);
         updateRequest.setNamespaceId(codeSystem.getNamespace());
         updateRequest.setDefaultModuleId(codeSystem.getDefaultModule());
-        updateRequest.setModuleIds(codeSystem.getDefaultModule());
-        updateRequest.setExtensionDependencyRelease(codeSystem.getDependencyPackage());
-        updateRequest.setReleaseAsAnEdition(EDITION_PACKAGE);
-        updateRequest.setFirstTimeRelease(codeSystem.getLatestVersion() == null);
+        updateRequest.setModuleIds(codeSystem.getModules().stream().map(ConceptMini::getConceptId).collect(Collectors.joining(",")));
 
         getClient().put(
                 String.format("/centers/%s/products/%s/configuration", releaseCenter, getProductName(codeSystem.getShortName())),
                 updateRequest);
         return getProduct(codeSystem);
+    }
+
+    private static String extractFilenameEffectiveDate(String dependencyPackage) throws ServiceExceptionWithStatusCode {
+        // Example SnomedCT_InternationalRF2_PRODUCTION_20240101T120000Z.zip
+        Pattern datePattern = Pattern.compile(".*_(\\d{8})[^_]*\\.zip");
+        Matcher dateMatcher = datePattern.matcher(dependencyPackage);
+        if (!dateMatcher.matches()) {
+            throw new ServiceExceptionWithStatusCode("Failed to extract effective time from the filename of the dependency package.", HttpStatus.CONFLICT);
+        }
+        String group = dateMatcher.group(1);
+		return group.substring(0, 4) + "-" + group.substring(4, 6) + "-" + group.substring(6, 8);
     }
 
     public Product getProduct(CodeSystem codeSystem) throws ServiceException {
@@ -366,7 +392,9 @@ public class ReleaseServiceClient {
         private String defaultModuleId;
         private String moduleIds;
         private String extensionDependencyRelease;
+        private String previousEditionDependencyEffectiveDate;
         private boolean releaseAsAnEdition;
+        private boolean classifyOutputFiles;
 
         // qaTestConfig
         private String assertionGroupNames;
@@ -462,6 +490,14 @@ public class ReleaseServiceClient {
             return extensionDependencyRelease;
         }
 
+        public String getPreviousEditionDependencyEffectiveDate() {
+            return previousEditionDependencyEffectiveDate;
+        }
+
+        public void setPreviousEditionDependencyEffectiveDate(String previousEditionDependencyEffectiveDate) {
+            this.previousEditionDependencyEffectiveDate = previousEditionDependencyEffectiveDate;
+        }
+
         public void setReleaseAsAnEdition(boolean releaseAsAnEdition) {
             this.releaseAsAnEdition = releaseAsAnEdition;
         }
@@ -477,6 +513,14 @@ public class ReleaseServiceClient {
 
         public boolean isFirstTimeRelease() {
             return firstTimeRelease;
+        }
+
+        public boolean isClassifyOutputFiles() {
+            return classifyOutputFiles;
+        }
+
+        public void setClassifyOutputFiles(boolean classifyOutputFiles) {
+            this.classifyOutputFiles = classifyOutputFiles;
         }
     }
     public record ProductBuildTestConfig(
