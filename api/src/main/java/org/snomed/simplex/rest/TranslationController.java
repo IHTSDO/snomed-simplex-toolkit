@@ -1,5 +1,6 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -54,6 +55,16 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		snowstormClient.createSimpleMetadataConcept(Concepts.LANG_REFSET, request.getPreferredTerm(), Concepts.FOUNDATION_METADATA_CONCEPT_TAG,
 				snowstormClient.getCodeSystemOrThrow(codeSystem));
+	}
+
+	@DeleteMapping("{codeSystem}/translations/{refsetId}")
+	@Operation(summary = "Delete all language refset members and refset concept.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void deleteRefset(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+		translationService.deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
 	}
 
 //	@GetMapping(path = "{codeSystem}/translations/{refsetId}/spreadsheet", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

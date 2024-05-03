@@ -15,6 +15,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -36,6 +37,12 @@ public class TranslationService {
 	private final List<LanguageCode> languageCodes = new ArrayList<>();
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	private final SimpleRefsetService refsetService;
+
+	public TranslationService(@Autowired SimpleRefsetService refsetService) {
+		this.refsetService = refsetService;
+	}
 
 	@PostConstruct
 	public void init() throws ServiceException {
@@ -265,6 +272,10 @@ public class TranslationService {
 			}
 		}
 		return anyChange;
+	}
+
+	public void deleteRefsetMembersAndConcept(String refsetId, CodeSystem theCodeSystem) throws ServiceException {
+		refsetService.deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
 	}
 
 	private CSVOutputChangeMonitor getCsvOutputChangeMonitor() throws ServiceException {
