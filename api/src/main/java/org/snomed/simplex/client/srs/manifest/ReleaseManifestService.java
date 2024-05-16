@@ -21,6 +21,10 @@ import java.util.*;
 import static java.lang.String.format;
 import static org.snomed.simplex.util.CollectionUtils.orEmpty;
 
+/**
+ * Service for generating manifests to be used in the snomed-release-service.
+ * Manifests are used to specify the layout of an RF2 release.
+ */
 @Service
 public class ReleaseManifestService {
 
@@ -68,6 +72,7 @@ public class ReleaseManifestService {
 			DescriptionMini pt = refset.getPt();
 			String exportDir = null;
 			String exportName = null;
+			String languageCode = null;
 			String fieldTypes = null;
 			List<String> fieldNameList = null;
 			Map<String, Object> extraFields = refset.getExtraFields();
@@ -78,6 +83,15 @@ public class ReleaseManifestService {
 					if (fileConfiguration != null) {
 						exportDir = (String) fileConfiguration.get("exportDir");
 						exportName = (String) fileConfiguration.get("name");
+						if (exportName.equals("Language")) {
+							languageCode = "-en";
+							if (!languageCodes.isEmpty() && !languageCodes.equals(List.of("en"))) {
+								// FIXME
+								throw new ServiceException("Generating a release manifest using languages other than 'en' is not supported yet.");
+							}
+						} else {
+							languageCode = "";
+						}
 						fieldTypes = (String) fileConfiguration.get("fieldTypes");
 						fieldNameList = (List<String>) fileConfiguration.get("fieldNameList");
 					}
@@ -94,7 +108,7 @@ public class ReleaseManifestService {
 					outputFolder = outputFolder.getOrAddFolder(folderName);
 				}
 			}
-			String refsetFileName = getRefsetFilename(exportName, fieldTypes, formattedName, effectiveTime);
+			String refsetFileName = getRefsetFilename(exportName, languageCode, fieldTypes, formattedName, effectiveTime);
 			ReleaseManifestFile refsetFile = outputFolder.getOrAddFile(refsetFileName);
 			if (refsetFile.getField() == null) {
 				for (String fieldName : fieldNameList) {
@@ -123,7 +137,7 @@ public class ReleaseManifestService {
 
 	private void cloneSnapshotToFull(ReleaseManifestFolder source, ReleaseManifestFolder target) {
 		for (ReleaseManifestFile file : orEmpty(source.getFile())) {
-			String name = file.getName().replace("_Snapshot", "_Full").replace("Snapshot_", "Full_");
+			String name = file.getName().replace("_Snapshot", "_Full").replace("Snapshot_", "Full_").replace("Snapshot-", "Full-");
 			target.addFile(file.copy(name));
 		}
 		for (ReleaseManifestFolder folder : orEmpty(source.getFolder())) {
@@ -135,12 +149,12 @@ public class ReleaseManifestService {
 		return format("sct2_%s_%s%s_%s_%s.txt", exportName, "Snapshot", langPostfix, formattedName, effectiveTime);
 	}
 
-	private String getRefsetFilename(String exportName, String fieldTypes, String formattedName, String effectiveTime) {
+	private String getRefsetFilename(String exportName, String languageCode, String fieldTypes, String formattedName, String effectiveTime) {
 		String prefix = "der2";
 		if (exportName.equals("OWLExpression")) {
 			prefix = "sct2";
 		}
-		return format("%s_%sRefset_%s%s_%s_%s.txt", prefix, fieldTypes, exportName, "Snapshot", formattedName, effectiveTime);
+		return format("%s_%sRefset_%s%s%s_%s_%s.txt", prefix, fieldTypes, exportName, "Snapshot", languageCode, formattedName, effectiveTime);
 	}
 
 }

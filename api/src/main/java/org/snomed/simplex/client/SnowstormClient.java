@@ -514,19 +514,6 @@ public class SnowstormClient {
 		if (conceptsToUpdate == null || conceptsToUpdate.isEmpty()) {
 			return;
 		}
-		// Start an async bulk update job
-
-
-		// DEBUG
-		try {
-			System.out.println(objectMapper.writeValueAsString(conceptsToUpdate));
-		} catch (JsonProcessingException e) {
-			throw new RuntimeException(e);
-		}
-
-
-
-
 
 		List<Concept> conceptsToDelete = new ArrayList<>();
 		List<Concept> conceptsForBulkUpdate = new ArrayList<>();
@@ -545,6 +532,7 @@ public class SnowstormClient {
 			restTemplate.delete(format("/%s/concepts/%s", branchPath, conceptId));
 		}
 
+		// Start an async bulk update job
 		if (!conceptsForBulkUpdate.isEmpty()) {
 			logger.info("Starting bulk create/update on {}", branchPath);
 			ResponseEntity<Void> response = restTemplate.exchange(format("/browser/%s/concepts/bulk", branchPath), HttpMethod.POST,
