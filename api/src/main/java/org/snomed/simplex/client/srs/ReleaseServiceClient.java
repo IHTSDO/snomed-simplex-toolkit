@@ -120,10 +120,16 @@ public class ReleaseServiceClient {
         updateRequest.setFirstTimeRelease(firstTimeRelease);
 
         String dependencyPackage = codeSystem.getDependencyPackage();
-        updateRequest.setExtensionDependencyRelease(dependencyPackage);
 
-        String previousEditionDependencyEffectiveDate = firstTimeRelease ? FIRST_SNOMEDCT_RELEASE_DATE : extractFilenameEffectiveDate(dependencyPackage);
-        updateRequest.setPreviousEditionDependencyEffectiveDate(previousEditionDependencyEffectiveDate);
+        if (firstTimeRelease) {
+            updateRequest.setPreviousEditionDependencyEffectiveDate(FIRST_SNOMEDCT_RELEASE_DATE);
+            updateRequest.setPreviousPublishedPackage(null);
+            updateRequest.setExtensionDependencyRelease(dependencyPackage);
+        } else {
+            updateRequest.setPreviousPublishedPackage(null);// FIXME
+            updateRequest.setPreviousEditionDependencyEffectiveDate(extractFilenameEffectiveDate(dependencyPackage));
+            updateRequest.setExtensionDependencyRelease(dependencyPackage);
+        }
 
         updateRequest.setReleaseAsAnEdition(EDITION_PACKAGE);
         updateRequest.setClassifyOutputFiles(false);// Edition package is too big. Classification has already happened anyway.
@@ -391,6 +397,7 @@ public class ReleaseServiceClient {
         private String namespaceId;
         private String defaultModuleId;
         private String moduleIds;
+        private String previousPublishedPackage;
         private String extensionDependencyRelease;
         private String previousEditionDependencyEffectiveDate;
         private boolean releaseAsAnEdition;
@@ -521,6 +528,14 @@ public class ReleaseServiceClient {
 
         public void setClassifyOutputFiles(boolean classifyOutputFiles) {
             this.classifyOutputFiles = classifyOutputFiles;
+        }
+
+        public void setPreviousPublishedPackage(String previousPublishedPackage) {
+            this.previousPublishedPackage = previousPublishedPackage;
+        }
+
+        public String getPreviousPublishedPackage() {
+            return previousPublishedPackage;
         }
     }
     public record ProductBuildTestConfig(
