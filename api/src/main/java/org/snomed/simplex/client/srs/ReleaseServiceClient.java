@@ -91,16 +91,15 @@ public class ReleaseServiceClient {
         this.snowstormClientFactory = snowstormClientFactory;
     }
 
-    public Product getCreateProduct(CodeSystem codeSystem) throws ServiceException {
+    public Product getCreateProduct(CodeSystem codeSystem, PackageConfiguration packageConfiguration) throws ServiceException {
         Product product = getProduct(codeSystem);
         if (product == null) {
             getClient().postForEntity(
                     String.format("/centers/%s/products", releaseCenter),
                     new CreateProductRequest(getProductName(codeSystem.getShortName())),
                     Void.class);
-            product = updateProductConfiguration(codeSystem, new PackageConfiguration("", ""));
         }
-        return product;
+		return updateProductConfiguration(codeSystem, packageConfiguration);
     }
 
     private static String getThisYear() {

@@ -162,7 +162,8 @@ public class CodeSystemController {
 	public ReleaseServiceClient.Product getReleaseProduct(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		return releaseServiceClient.getCreateProduct(theCodeSystem);
+		PackageConfiguration packageConfiguration = codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());
+		return releaseServiceClient.getCreateProduct(theCodeSystem, packageConfiguration);
 	}
 
 	@GetMapping(path = "{codeSystem}/product-packaging/configuration")
