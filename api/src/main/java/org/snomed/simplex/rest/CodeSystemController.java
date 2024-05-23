@@ -1,5 +1,6 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
@@ -159,6 +160,12 @@ public class CodeSystemController {
 
 	@GetMapping(path = "{codeSystem}/product-packaging")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	@Operation(summary = "Get generated Release Service product packaging for a code system. ",
+			description = """
+					Get the latest generated Release Service product packaging for a code system.
+
+
+					This endpoint also saves the generated configuration.""")
 	public ReleaseServiceClient.Product getReleaseProduct(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
@@ -168,6 +175,12 @@ public class CodeSystemController {
 
 	@GetMapping(path = "{codeSystem}/product-packaging/configuration")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	@Operation(summary = "View the user configurable product packaging items for a code system. ",
+			description = """
+					View the user configurable product packaging items for a code system.
+
+
+					The organisation name and contact details are required.""")
 	public PackageConfiguration getReleaseProductConfig(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
@@ -189,6 +202,11 @@ public class CodeSystemController {
 
 	@PostMapping(path = "{codeSystem}/product-packaging/build")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	@Operation(summary = "Start a Release Service build for a code system. ",
+			description = """
+					This operation regenerates the Release Service product manifest, uploads the latest delta files,
+					and creates and starts a Release Service build.
+					""")
 	public void buildReleaseProduct(@PathVariable String codeSystem, @RequestParam(required = false) String effectiveTime)
 			throws ServiceException {
 
