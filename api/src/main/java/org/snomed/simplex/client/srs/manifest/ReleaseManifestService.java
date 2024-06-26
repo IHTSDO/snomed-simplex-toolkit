@@ -57,6 +57,7 @@ public class ReleaseManifestService {
 					.addLanguageCode(languageCode);
 		}
 		terminologyFolder.getOrAddFile(getCoreComponentFilename("Identifier", "", formattedName, effectiveTime));
+		terminologyFolder.getOrAddFile(getCoreComponentFilename("StatedRelationship", "", formattedName, effectiveTime));
 		terminologyFolder.getOrAddFile(getCoreComponentFilename("Relationship", "", formattedName, effectiveTime));
 		terminologyFolder.getOrAddFile(getCoreComponentFilename("RelationshipConcreteValues", "", formattedName, effectiveTime));
 		// OWLExpression file is added by the refset logic
