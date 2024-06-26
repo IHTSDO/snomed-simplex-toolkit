@@ -95,6 +95,12 @@ public class ReleaseManifestService {
 						}
 						fieldTypes = (String) fileConfiguration.get("fieldTypes");
 						fieldNameList = (List<String>) fileConfiguration.get("fieldNameList");
+
+						// Workaround for International maps being outdated
+						if (editionPackage && (exportName.equals("SimpleMapFromSCT") || exportName.equals("SimpleMapToSCT"))) {
+							exportName = "SimpleMap";
+							fieldNameList = List.of("mapTarget");
+						}
 					}
 				}
 			}
