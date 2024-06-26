@@ -1,6 +1,11 @@
 package org.snomed.simplex.service;
 
 import com.google.common.collect.Lists;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.ConceptIntent;
@@ -12,26 +17,21 @@ import org.snomed.simplex.service.job.DummyChangeMonitor;
 import org.snomed.simplex.service.spreadsheet.HeaderConfiguration;
 import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
-import jakarta.servlet.ServletOutputStream;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.snomed.simplex.client.domain.Concepts.IS_A;
 import static java.lang.String.format;
 import static java.util.function.Predicate.not;
+import static org.snomed.simplex.client.domain.Concepts.IS_A;
 
 @Service
 public class CustomConceptService {
@@ -49,7 +49,7 @@ public class CustomConceptService {
 		return snowstormClient.findConceptsByModule(codeSystem, defaultModule, offset, limit);
 	}
 
-	public void downloadSpreadsheet(CodeSystem codeSystem, SnowstormClient snowstormClient, ServletOutputStream outputStream) throws ServiceException {
+	public void downloadSpreadsheet(CodeSystem codeSystem, SnowstormClient snowstormClient, OutputStream outputStream) throws ServiceException {
 		logger.info("Creating custom concept spreadsheet for {}", codeSystem.getShortName());
 		List<ConceptMini> langRefsets = translationService.listTranslations(codeSystem, snowstormClient);
 		String defaultModule = codeSystem.getDefaultModule();
