@@ -1,6 +1,5 @@
 package org.snomed.simplex.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
