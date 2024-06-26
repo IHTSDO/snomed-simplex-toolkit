@@ -69,7 +69,7 @@ public class ValidationService {
                 }
             }
             if (!fixFound) {
-                logger.debug("No validation fix found for assertion {}", assertionUuid);
+                logger.info("No validation fix found for assertion {}", assertionUuid);
             }
         }
     }

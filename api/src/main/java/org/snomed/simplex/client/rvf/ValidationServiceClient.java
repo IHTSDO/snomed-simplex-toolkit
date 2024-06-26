@@ -16,6 +16,9 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -45,7 +48,10 @@ public class ValidationServiceClient {
 
 	public ValidationServiceClient(@Value("${rvf.url}") String rvfUrl, @Value("${jms.queue.prefix}") String queuePrefix,
 								   @Autowired SpreadsheetService spreadsheetService) {
-		this.restTemplate = new RestTemplateBuilder().rootUri(rvfUrl).build();
+		this.restTemplate = new RestTemplateBuilder()
+				.rootUri(rvfUrl)
+				.messageConverters(new MappingJackson2HttpMessageConverter(), new FormHttpMessageConverter(), new ByteArrayHttpMessageConverter())
+				.build();
 		this.queuePrefix = queuePrefix;
 		this.spreadsheetService = spreadsheetService;
 	}
@@ -124,7 +130,7 @@ public class ValidationServiceClient {
 		body.add("enableDrools", "true");
 		body.add("enableMRCMValidation", "true");
 		body.add("branchPath", branchPath);
-		body.add("contentHeadTimestamp", headTimestamp);
+		body.add("contentHeadTimestamp", Long.toString(headTimestamp));
 		body.add("responseQueue", queuePrefix + "." + VALIDATION_RESPONSE_QUEUE);
 		body.add("droolsRulesGroups", "common-authoring");
 		body.add("includedModules", codeSystem.getDefaultModuleOrThrow());
