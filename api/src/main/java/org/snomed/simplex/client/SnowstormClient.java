@@ -15,6 +15,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
@@ -59,6 +60,8 @@ public class SnowstormClient {
 		restTemplate = new RestTemplateBuilder()
 				.rootUri(snowstormUrl)
 				.defaultHeader("Cookie", authenticationToken)
+				// Set the request content type to JSON
+				.messageConverters(new MappingJackson2HttpMessageConverter())
 				.build();
 	}
 
