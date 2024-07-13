@@ -1,5 +1,7 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.http.HttpServletResponse;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -10,9 +12,6 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.CreateConceptRequest;
 import org.snomed.simplex.service.RefsetUpdateService;
 import org.snomed.simplex.service.job.ChangeSummary;
-import io.swagger.v3.oas.annotations.Operation;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,8 +21,11 @@ import java.util.List;
 
 public abstract class AbstractRefsetController {
 
-	@Autowired
 	protected SnowstormClientFactory clientFactory;
+
+	public AbstractRefsetController(SnowstormClientFactory clientFactory) {
+		this.clientFactory = clientFactory;
+	}
 
 	protected abstract String getRefsetType();
 

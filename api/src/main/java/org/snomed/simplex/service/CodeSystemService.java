@@ -13,7 +13,6 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.snomed.simplex.service.validation.ValidationService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -31,25 +30,26 @@ public class CodeSystemService {
 	public static final String OWL_EXPRESSION = "owlExpression";
 	public static final String OWL_ONTOLOGY_HEADER = "734147008";
 
-	@Autowired
-	private SnowstormClientFactory snowstormClientFactory;
-
-	@Autowired
-	private JobService jobService;
-
-	@Autowired
-	private SupportRegister supportRegister;
-
-	@Autowired
-	private ValidationServiceClient validationServiceClient;
-
-	@Autowired
-	private ValidationService validationService;
+	private final SnowstormClientFactory snowstormClientFactory;
+	private final JobService jobService;
+	private final SupportRegister supportRegister;
+	private final ValidationServiceClient validationServiceClient;
+	private final ValidationService validationService;
 
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> validationJobsToMonitor = new HashMap<>();
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	public CodeSystemService(SnowstormClientFactory snowstormClientFactory, JobService jobService, SupportRegister supportRegister,
+			ValidationServiceClient validationServiceClient, ValidationService validationService) {
+
+		this.snowstormClientFactory = snowstormClientFactory;
+		this.jobService = jobService;
+		this.supportRegister = supportRegister;
+		this.validationServiceClient = validationServiceClient;
+		this.validationService = validationService;
+	}
 
 	public CodeSystem createCodeSystem(String name, String shortName, String namespace, boolean createModule, String moduleName, String existingModuleId) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();

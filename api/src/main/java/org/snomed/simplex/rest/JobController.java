@@ -1,10 +1,9 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.JobType;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,8 +14,11 @@ import java.util.List;
 @RequestMapping("api/{codeSystem}/jobs")
 public class JobController {
 
-	@Autowired
-	private JobService service;
+	private final JobService service;
+
+	public JobController(JobService service) {
+		this.service = service;
+	}
 
 	@GetMapping
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")

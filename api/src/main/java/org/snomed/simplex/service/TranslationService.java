@@ -2,6 +2,11 @@ package org.snomed.simplex.service;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.collect.Lists;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.Page;
@@ -10,11 +15,6 @@ import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.util.TimerUtil;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import jakarta.annotation.PostConstruct;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,11 +23,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import static java.lang.Long.parseLong;
+import static java.lang.String.format;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
 import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
-import static java.lang.Long.parseLong;
-import static java.lang.String.format;
 
 @Service
 public class TranslationService {

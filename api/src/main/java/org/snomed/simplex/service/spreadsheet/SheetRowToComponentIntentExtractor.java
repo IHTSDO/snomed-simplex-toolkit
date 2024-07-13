@@ -1,8 +1,8 @@
 package org.snomed.simplex.service.spreadsheet;
 
+import org.apache.poi.ss.usermodel.Row;
 import org.snomed.simplex.domain.ComponentIntent;
 import org.snomed.simplex.exceptions.ServiceException;
-import org.apache.poi.ss.usermodel.Row;
 
 @FunctionalInterface
 public interface SheetRowToComponentIntentExtractor<T extends ComponentIntent> {

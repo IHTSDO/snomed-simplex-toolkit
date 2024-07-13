@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.snomed.simplex.util.CollectionUtils.orEmpty;
-
 @RestController
 @Tag(name = "User Authorisation", description = "-")
 @RequestMapping("api/auth")

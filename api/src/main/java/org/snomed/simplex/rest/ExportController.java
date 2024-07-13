@@ -1,12 +1,11 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,8 +21,11 @@ import java.util.Date;
 @RequestMapping("api/{codeSystem}/rf2-export")
 public class ExportController {
 
-	@Autowired
-	private SnowstormClientFactory snowstormClientFactory;
+	private final SnowstormClientFactory snowstormClientFactory;
+
+	public ExportController(SnowstormClientFactory snowstormClientFactory) {
+		this.snowstormClientFactory = snowstormClientFactory;
+	}
 
 	@GetMapping(value = "delta", produces="application/zip")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")

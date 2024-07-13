@@ -17,7 +17,6 @@ import org.snomed.simplex.service.job.DummyChangeMonitor;
 import org.snomed.simplex.service.spreadsheet.HeaderConfiguration;
 import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -36,13 +35,15 @@ import static org.snomed.simplex.client.domain.Concepts.IS_A;
 @Service
 public class CustomConceptService {
 
-	@Autowired
-	private TranslationService translationService;
-
-	@Autowired
-	private SpreadsheetService spreadsheetService;
+	private final TranslationService translationService;
+	private final SpreadsheetService spreadsheetService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	public CustomConceptService(TranslationService translationService, SpreadsheetService spreadsheetService) {
+		this.translationService = translationService;
+		this.spreadsheetService = spreadsheetService;
+	}
 
 	public Page<ConceptMini> findCustomConcepts(CodeSystem codeSystem, SnowstormClient snowstormClient, int offset, int limit) throws ServiceException {
 		String defaultModule = codeSystem.getDefaultModuleOrThrow();

@@ -1,7 +1,6 @@
 package org.snomed.simplex.config.security;
 
 import org.snomed.simplex.service.SecurityService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.PermissionEvaluator;
@@ -16,8 +15,11 @@ import java.io.Serializable;
 @EnableMethodSecurity
 public class MethodSecurityConfig {
 
-	@Autowired
-	private SecurityService securityService;
+	private final SecurityService securityService;
+
+	public MethodSecurityConfig(SecurityService securityService) {
+		this.securityService = securityService;
+	}
 
 	@Bean
 	static MethodSecurityExpressionHandler methodSecurityExpressionHandler(PermissionEvaluator permissionEvaluator) {

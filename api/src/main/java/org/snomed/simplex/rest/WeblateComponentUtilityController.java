@@ -1,13 +1,15 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.exceptions.ServiceException;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -20,8 +22,11 @@ import java.util.function.Supplier;
 @RequestMapping("api/weblate-util")
 public class WeblateComponentUtilityController {
 
-	@Autowired
-	private SnowstormClientFactory snowstormClientFactory;
+	private final SnowstormClientFactory snowstormClientFactory;
+
+	public WeblateComponentUtilityController(SnowstormClientFactory snowstormClientFactory) {
+		this.snowstormClientFactory = snowstormClientFactory;
+	}
 
 	@GetMapping(value = "/component-csv", produces = "text/csv")
 	public void createCollection(@RequestParam String branch, @RequestParam String valueSetEcl,

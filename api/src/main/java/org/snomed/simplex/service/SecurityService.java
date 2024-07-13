@@ -4,7 +4,6 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -25,13 +24,13 @@ public class SecurityService {
 	@Value("${permission.admin.group}")
 	private String adminGroup;
 
-	@Autowired
-	private SnowstormClientFactory snowstormClientFactory;
+	private final SnowstormClientFactory snowstormClientFactory;
 
 	private final Map<String, Map<String, Set<String>>> userCodesystemRoleCache;
 
-	public SecurityService() {
+	public SecurityService(SnowstormClientFactory snowstormClientFactory) {
 		userCodesystemRoleCache = new HashMap<>();
+		this.snowstormClientFactory = snowstormClientFactory;
 	}
 
 	public synchronized void updateUserRolePermissionCache(List<CodeSystem> codeSystems) {

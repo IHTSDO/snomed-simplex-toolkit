@@ -12,7 +12,6 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.AsyncJob;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -21,20 +20,20 @@ import java.util.*;
 @Service
 public class ValidationService {
 
-	@Autowired
-	private ValidationServiceClient validationServiceClient;
-
-	@Autowired
-	private SnowstormClientFactory snowstormClientFactory;
-
-	@Autowired
-	private SupportRegister supportRegister;
+	private final ValidationServiceClient validationServiceClient;
+	private final SnowstormClientFactory snowstormClientFactory;
+	private final SupportRegister supportRegister;
 
 	private final Map<String, Set<String>> validationFixMethodToAssertionIdMap;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public ValidationService(@Autowired ValidationTriageConfig validationTriageConfig) {
+	public ValidationService(ValidationTriageConfig validationTriageConfig, ValidationServiceClient validationServiceClient,
+			SnowstormClientFactory snowstormClientFactory, SupportRegister supportRegister) {
+
 		validationFixMethodToAssertionIdMap = validationTriageConfig.getValidationFixMethodToAssertionIdMap();
+		this.validationServiceClient = validationServiceClient;
+		this.snowstormClientFactory = snowstormClientFactory;
+		this.supportRegister = supportRegister;
 	}
 
 	public ValidationFixList getValidationFixList(ValidationReport validationReport) {

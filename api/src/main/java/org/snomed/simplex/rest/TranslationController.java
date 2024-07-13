@@ -1,6 +1,8 @@
 package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -12,9 +14,6 @@ import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.TranslationService;
 import org.snomed.simplex.service.job.AsyncJob;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
@@ -33,14 +32,15 @@ import java.util.List;
 @RequestMapping("api")
 public class TranslationController {
 
-	@Autowired
-	private SnowstormClientFactory snowstormClientFactory;
+	private final SnowstormClientFactory snowstormClientFactory;
+	private final TranslationService translationService;
+	private final JobService jobService;
 
-	@Autowired
-	private TranslationService translationService;
-
-	@Autowired
-	private JobService jobService;
+	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, JobService jobService) {
+		this.snowstormClientFactory = snowstormClientFactory;
+		this.translationService = translationService;
+		this.jobService = jobService;
+	}
 
 	@GetMapping("{codeSystem}/translations")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")

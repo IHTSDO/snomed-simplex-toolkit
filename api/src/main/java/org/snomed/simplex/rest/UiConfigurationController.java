@@ -1,12 +1,10 @@
 package org.snomed.simplex.rest;
 
-import org.snomed.simplex.config.UiConfiguration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
+import org.snomed.simplex.config.UiConfiguration;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,8 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api")
 public class UiConfigurationController {
 
-	@Autowired
-	private UiConfiguration uiConfiguration;
+	private final UiConfiguration uiConfiguration;
+
+	public UiConfigurationController(UiConfiguration uiConfiguration) {
+		this.uiConfiguration = uiConfiguration;
+	}
 
 	@Operation(summary="Retrieve configuration for the UI.")
 	@ApiResponses({@ApiResponse(responseCode = "200", description = "OK")})

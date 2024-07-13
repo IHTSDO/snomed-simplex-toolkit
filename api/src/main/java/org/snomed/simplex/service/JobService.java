@@ -1,12 +1,11 @@
 package org.snomed.simplex.service;
 
-import org.snomed.simplex.client.domain.CodeSystem;
-import org.snomed.simplex.service.job.*;
-import org.snomed.simplex.domain.JobStatus;
-import org.snomed.simplex.exceptions.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.domain.JobStatus;
+import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.service.job.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContext;
@@ -28,15 +27,14 @@ public class JobService {
 
 	private final Map<String, Map<String, AsyncJob>> codeSystemJobs;
 	private final ExecutorService jobExecutorService;
-
-	@Autowired
-	private SupportRegister supportRegister;
+	private final SupportRegister supportRegister;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public JobService(@Value("${job.concurrent.threads}") int nThreads) {
+	public JobService(@Value("${job.concurrent.threads}") int nThreads, SupportRegister supportRegister) {
 		codeSystemJobs = new HashMap<>();
 		jobExecutorService = Executors.newFixedThreadPool(nThreads);
+		this.supportRegister = supportRegister;
 	}
 
 	public AsyncJob startExternalServiceJob(CodeSystem codeSystem, String display, Consumer<ExternalServiceJob> function) {

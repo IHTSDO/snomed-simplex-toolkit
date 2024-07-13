@@ -1,21 +1,19 @@
 package org.snomed.simplex.service;
 
+import org.apache.poi.ss.usermodel.Workbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.RefsetMember;
-import org.snomed.simplex.domain.ComponentIntent;
 import org.snomed.simplex.domain.RefsetMemberIntent;
-import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,13 +25,15 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static java.util.function.Predicate.not;
 
-public abstract class RefsetUpdateService {
+public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 
-	@Autowired
-	private SpreadsheetService spreadsheetService;
+	private final SpreadsheetService spreadsheetService;
+	private final SnowstormClientFactory snowstormClientFactory;
 
-	@Autowired
-	private SnowstormClientFactory snowstormClientFactory;
+	public RefsetUpdateService(SpreadsheetService spreadsheetService, SnowstormClientFactory snowstormClientFactory) {
+		this.spreadsheetService = spreadsheetService;
+		this.snowstormClientFactory = snowstormClientFactory;
+	}
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -52,7 +52,7 @@ public abstract class RefsetUpdateService {
 	public ChangeSummary updateRefsetViaSpreadsheet(String refsetId, InputStream inputStream, CodeSystem codeSystem) throws ServiceException {
 		// Check refset exists
 		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId, codeSystem);
-		List<RefsetMemberIntent> sheetMembers = spreadsheetService.readComponentSpreadsheet(inputStream, getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
+		List<T> sheetMembers = spreadsheetService.readComponentSpreadsheet(inputStream, getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
 		return update(refset, sheetMembers, codeSystem, new ContentJob(codeSystem.getShortName(), format("Update refset %s", refset.getPt()), refsetId));
 	}
 
@@ -62,7 +62,7 @@ public abstract class RefsetUpdateService {
 		return update(refset, refsetMembers, codeSystem, progressMonitor);
 	}
 
-	private ChangeSummary update(ConceptMini refset, List<RefsetMemberIntent> inputMembers, CodeSystem codeSystem, ProgressMonitor progressMonitor) throws ServiceException {
+	private ChangeSummary update(ConceptMini refset, List<? extends RefsetMemberIntent> inputMembers, CodeSystem codeSystem, ProgressMonitor progressMonitor) throws ServiceException {
 		String refsetId = refset.getConceptId();
 		String refsetTerm = refset.getPtOrFsnOrConceptId();
 		progressMonitor.setRecordsTotal(inputMembers.size());
@@ -125,9 +125,9 @@ public abstract class RefsetUpdateService {
 			List<RefsetMember> membersToRemove = allStoredMembers.stream()
 					.filter(not(membersToKeep::contains))
 					.filter(not(membersToUpdate::contains))
-					.collect(Collectors.toList());
+					.toList();
 
-			List<RefsetMember> membersToInactivate = membersToRemove.stream().filter(RefsetMember::isReleased).collect(Collectors.toList());
+			List<RefsetMember> membersToInactivate = membersToRemove.stream().filter(RefsetMember::isReleased).toList();
 			List<RefsetMember> membersToDelete = membersToRemove.stream().filter(not(RefsetMember::isReleased)).collect(Collectors.toList());
 
 			logger.info("Member changes required: {} create, {} update, {} delete, {} inactivate.",
@@ -177,7 +177,7 @@ public abstract class RefsetUpdateService {
 	 */
 	protected abstract List<SheetHeader> getInputSheetExpectedHeaders();
 
-	protected abstract <T extends ComponentIntent> SheetRowToComponentIntentExtractor<T> getInputSheetMemberExtractor();
+	protected abstract SheetRowToComponentIntentExtractor<T> getInputSheetMemberExtractor();
 
 	/**
 	 * Convert SheetRefsetMember to RefsetMember

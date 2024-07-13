@@ -14,8 +14,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SwaggerConfig {
 
-	@Autowired(required = false)
-	private BuildProperties buildProperties;
+	private final BuildProperties buildProperties;
+
+	public SwaggerConfig(@Autowired(required = false) BuildProperties buildProperties) {
+		this.buildProperties = buildProperties;
+	}
 
 	@Bean
 	public GroupedOpenApi apiDocs() {

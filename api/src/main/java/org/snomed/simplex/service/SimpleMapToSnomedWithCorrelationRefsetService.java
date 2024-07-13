@@ -1,11 +1,12 @@
 package org.snomed.simplex.service;
 
+import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.RefsetMember;
 import org.snomed.simplex.domain.MapCorrelation;
-import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.domain.RefsetMemberIntent;
 import org.snomed.simplex.domain.RefsetMemberIntentSimpleMapToSnomedWithCorrelation;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
 import org.springframework.stereotype.Service;
 
@@ -13,7 +14,7 @@ import java.util.*;
 import java.util.function.Function;
 
 @Service
-public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateService {
+public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateService<RefsetMemberIntentSimpleMapToSnomedWithCorrelation> {
 
 	public static final String SOURCE_CODE = "Source code";
 	public static final String SOURCE_DISPLAY = "Source display";
@@ -27,6 +28,10 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	public static final String CORRELATION_ID = "correlationId";
 	public static final String NO_SCT_MAP_TARGET_CONCEPT = "1193545001";// 1193545001 |No SNOMED CT map target (foundation metadata concept)|
 
+	public SimpleMapToSnomedWithCorrelationRefsetService(SpreadsheetService spreadsheetService, SnowstormClientFactory snowstormClientFactory) {
+		super(spreadsheetService, snowstormClientFactory);
+	}
+
 	@Override
 	protected List<SheetHeader> getInputSheetExpectedHeaders() {
 		return List.of(
@@ -38,7 +43,7 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	}
 
 	@Override
-	protected SheetRowToComponentIntentExtractor getInputSheetMemberExtractor() {
+	protected SheetRowToComponentIntentExtractor<RefsetMemberIntentSimpleMapToSnomedWithCorrelation> getInputSheetMemberExtractor() {
 		return (cells, rowNumber, headerConfiguration) -> {
 
 			String sourceCode = SpreadsheetService.readGenericCode(cells, headerConfiguration.getColumn(SOURCE_CODE), rowNumber);

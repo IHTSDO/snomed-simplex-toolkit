@@ -1,8 +1,9 @@
 package org.snomed.simplex.service;
 
+import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.RefsetMember;
-import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.domain.RefsetMemberIntent;
+import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
 import org.springframework.stereotype.Service;
 
@@ -12,10 +13,14 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
-public class SimpleRefsetService extends RefsetUpdateService {
+public class SimpleRefsetService extends RefsetUpdateService<RefsetMemberIntent> {
 
 	public static final String CONCEPT_CODE = "Concept code";
 	public static final String CONCEPT_DISPLAY = "Concept display";
+
+	public SimpleRefsetService(SpreadsheetService spreadsheetService, SnowstormClientFactory snowstormClientFactory) {
+		super(spreadsheetService, snowstormClientFactory);
+	}
 
 	@Override
 	protected Map<String, Function<RefsetMember, String>> getRefsetToSpreadsheetConversionMap() {
@@ -31,7 +36,7 @@ public class SimpleRefsetService extends RefsetUpdateService {
 	}
 
 	@Override
-	protected SheetRowToComponentIntentExtractor getInputSheetMemberExtractor() {
+	protected SheetRowToComponentIntentExtractor<RefsetMemberIntent> getInputSheetMemberExtractor() {
 		return (cells, rowNumber, headerConfiguration) -> {
 			Integer conceptCodeColumn = headerConfiguration.getColumn(CONCEPT_CODE);
 			String cellValue = SpreadsheetService.readSnomedConcept(cells, conceptCodeColumn, rowNumber);

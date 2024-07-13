@@ -1,16 +1,15 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.client.SnowstormClient;
+import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.RefsetToolSubsetReader;
-import org.snomed.simplex.service.RefsetUpdateService;
 import org.snomed.simplex.service.SimpleRefsetService;
 import org.snomed.simplex.service.job.AsyncJob;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,11 +22,16 @@ import java.io.IOException;
 @Tag(name = "Simple Refsets", description = "-")
 public class SimpleRefsetController extends AbstractRefsetController {
 
-	@Autowired
-	private SimpleRefsetService simpleRefsetService;
+	private final SimpleRefsetService simpleRefsetService;
+	private final JobService jobService;
 
-	@Autowired
-	private JobService jobService;
+	public SimpleRefsetController(SnowstormClientFactory snowstormClientFactory,
+			SimpleRefsetService simpleRefsetService, JobService jobService) {
+
+		super(snowstormClientFactory);
+		this.simpleRefsetService = simpleRefsetService;
+		this.jobService = jobService;
+	}
 
 	@Override
 	protected String getRefsetType() {
@@ -40,7 +44,7 @@ public class SimpleRefsetController extends AbstractRefsetController {
 	}
 
 	@Override
-	protected RefsetUpdateService getRefsetService() {
+	protected SimpleRefsetService getRefsetService() {
 		return simpleRefsetService;
 	}
 

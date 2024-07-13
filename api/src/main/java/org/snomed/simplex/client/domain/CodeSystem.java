@@ -1,8 +1,8 @@
 package org.snomed.simplex.client.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.snomed.simplex.exceptions.ServiceException;
 import org.apache.logging.log4j.util.Strings;
+import org.snomed.simplex.exceptions.ServiceException;
 
 import java.util.List;
 import java.util.Map;

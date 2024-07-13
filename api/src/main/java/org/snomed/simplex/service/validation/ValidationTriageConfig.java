@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 
 public class ValidationTriageConfig {
 
-    private Map<String, String> fix = new HashMap<>();
+    private final Map<String, String> fix = new HashMap<>();
     private Map<String, Set<String>> parsedMap = null;
 
     public Map<String, String> getFix() {

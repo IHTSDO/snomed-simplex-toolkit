@@ -3,7 +3,10 @@ package org.snomed.simplex.service;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.ChangeMonitor;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 
 public class CSVOutputChangeMonitor implements ChangeMonitor, AutoCloseable {
 

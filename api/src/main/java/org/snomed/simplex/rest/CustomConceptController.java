@@ -1,5 +1,8 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.Branch;
@@ -10,10 +13,6 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.CustomConceptService;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.job.AsyncJob;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,14 +25,15 @@ import java.util.Map;
 @RequestMapping("api/{codeSystem}/concepts")
 public class CustomConceptController {
 
-	@Autowired
-	private CustomConceptService customConceptService;
+	private final CustomConceptService customConceptService;
+	private final SnowstormClientFactory snowstormClientFactory;
+	private final JobService jobService;
 
-	@Autowired
-	private SnowstormClientFactory snowstormClientFactory;
-
-	@Autowired
-	private JobService jobService;
+	public CustomConceptController(CustomConceptService customConceptService, SnowstormClientFactory snowstormClientFactory, JobService jobService) {
+		this.customConceptService = customConceptService;
+		this.snowstormClientFactory = snowstormClientFactory;
+		this.jobService = jobService;
+	}
 
 	@GetMapping
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
