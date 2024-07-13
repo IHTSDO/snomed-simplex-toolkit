@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("api/{codeSystem}/refsets/simple-map-to-snomed-with-correlation")
 @Tag(name = "Simple Map to SNOMED with Correlation Refsets", description = "-")
-public class SimpleMapToSnomedWithCorrelationRefsetController extends AbstractRefsetController {
+public class SimpleMapToSnomedWithCorrelationRefsetController extends AbstractRefsetController<RefsetMemberIntentSimpleMapToSnomedWithCorrelation> {
 
 	private final SimpleMapToSnomedWithCorrelationRefsetService refsetService;
 
@@ -35,7 +35,7 @@ public class SimpleMapToSnomedWithCorrelationRefsetController extends AbstractRe
 	}
 
 	@Override
-	protected RefsetUpdateService<RefsetMemberIntentSimpleMapToSnomedWithCorrelation> getRefsetService() {
+	protected SimpleMapToSnomedWithCorrelationRefsetService getRefsetService() {
 		return refsetService;
 	}
 }

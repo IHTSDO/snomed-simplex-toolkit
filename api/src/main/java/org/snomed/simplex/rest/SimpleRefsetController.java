@@ -5,6 +5,7 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concepts;
+import org.snomed.simplex.domain.RefsetMemberIntent;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.RefsetToolSubsetReader;
@@ -20,7 +21,7 @@ import java.io.IOException;
 @RestController
 @RequestMapping("api/{codeSystem}/refsets/simple")
 @Tag(name = "Simple Refsets", description = "-")
-public class SimpleRefsetController extends AbstractRefsetController {
+public class SimpleRefsetController extends AbstractRefsetController<RefsetMemberIntent> {
 
 	private final SimpleRefsetService simpleRefsetService;
 	private final JobService jobService;

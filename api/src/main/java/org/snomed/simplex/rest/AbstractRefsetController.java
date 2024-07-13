@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 
-public abstract class AbstractRefsetController {
+public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 
 	protected SnowstormClientFactory clientFactory;
 
@@ -32,7 +32,7 @@ public abstract class AbstractRefsetController {
 
 	protected abstract String getFilenamePrefix();
 
-	protected abstract RefsetUpdateService<? extends RefsetMemberIntent> getRefsetService();
+	protected abstract RefsetUpdateService<T> getRefsetService();
 
 	@GetMapping
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
