@@ -8,6 +8,7 @@ import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concept;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.Concepts;
+import org.snomed.simplex.domain.RefsetMemberIntent;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.CreateConceptRequest;
 import org.snomed.simplex.service.RefsetUpdateService;
@@ -23,7 +24,7 @@ public abstract class AbstractRefsetController {
 
 	protected SnowstormClientFactory clientFactory;
 
-	public AbstractRefsetController(SnowstormClientFactory clientFactory) {
+	protected AbstractRefsetController(SnowstormClientFactory clientFactory) {
 		this.clientFactory = clientFactory;
 	}
 
@@ -31,7 +32,7 @@ public abstract class AbstractRefsetController {
 
 	protected abstract String getFilenamePrefix();
 
-	protected abstract RefsetUpdateService getRefsetService();
+	protected abstract RefsetUpdateService<? extends RefsetMemberIntent> getRefsetService();
 
 	@GetMapping
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")

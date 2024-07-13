@@ -30,7 +30,7 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 	private final SpreadsheetService spreadsheetService;
 	private final SnowstormClientFactory snowstormClientFactory;
 
-	public RefsetUpdateService(SpreadsheetService spreadsheetService, SnowstormClientFactory snowstormClientFactory) {
+	protected RefsetUpdateService(SpreadsheetService spreadsheetService, SnowstormClientFactory snowstormClientFactory) {
 		this.spreadsheetService = spreadsheetService;
 		this.snowstormClientFactory = snowstormClientFactory;
 	}

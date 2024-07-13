@@ -3,6 +3,7 @@ package org.snomed.simplex.rest;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.Concepts;
+import org.snomed.simplex.domain.RefsetMemberIntentSimpleMapToSnomedWithCorrelation;
 import org.snomed.simplex.service.RefsetUpdateService;
 import org.snomed.simplex.service.SimpleMapToSnomedWithCorrelationRefsetService;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,7 +35,7 @@ public class SimpleMapToSnomedWithCorrelationRefsetController extends AbstractRe
 	}
 
 	@Override
-	protected RefsetUpdateService getRefsetService() {
+	protected RefsetUpdateService<RefsetMemberIntentSimpleMapToSnomedWithCorrelation> getRefsetService() {
 		return refsetService;
 	}
 }
