@@ -1,5 +1,7 @@
 package org.snomed.simplex.service.validation;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -17,6 +19,11 @@ public class ValidationFix {
         type = split[0];
         subtype = split[1];
         components = new ArrayList<>();
+    }
+
+    @JsonIgnore
+    public boolean isAutomatic() {
+        return "automatic-fix".equals(type);
     }
 
     public void addComponent(FixComponent fixComponent) {

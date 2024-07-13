@@ -82,6 +82,11 @@ public class Concept extends Component {
 		return conceptId;
 	}
 
+	@JsonIgnore
+	public Long getConceptIdAsLong() {
+		return Long.parseLong(conceptId);
+	}
+
 	public Concept setConceptId(String conceptId) {
 		this.conceptId = conceptId;
 		return this;

@@ -20,7 +20,10 @@ public class SupportRegister {
 		supportLog.info("Support Issue|Content|CodeSystem:{}, Job:{}|{}, Message:{}", job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage);
 	}
 
-	public void handleSystemError(AsyncJob job, String errorMessage) {
+	public void handleSystemError(AsyncJob job, String errorMessage) throws ServiceException {
+		if (job == null) {
+			throw new ServiceException(errorMessage);
+		}
 		handleSystemError(job, errorMessage, null);
 	}
 

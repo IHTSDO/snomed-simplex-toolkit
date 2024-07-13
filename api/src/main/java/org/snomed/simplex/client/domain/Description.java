@@ -74,7 +74,9 @@ public class Description extends Component {
 			return null;
 		}
 
-
+		public String getConceptId() {
+			return conceptId;
+		}
 	}
 	public Description() {
 	}

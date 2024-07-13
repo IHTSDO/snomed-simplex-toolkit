@@ -12,6 +12,7 @@ import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.snomed.simplex.service.validation.ValidationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,6 +42,9 @@ public class CodeSystemService {
 
 	@Autowired
 	private ValidationServiceClient validationServiceClient;
+
+	@Autowired
+	private ValidationService validationService;
 
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> validationJobsToMonitor = new HashMap<>();
@@ -220,6 +224,7 @@ public class CodeSystemService {
 				if (status != null) {
 					if (status == ValidationReport.State.COMPLETE) {
 						logger.info("Validation completed. Branch:{}, RVF Job:{}, Status:{}", job.getBranch(), validationUrl, status);
+						validationService.processAutomaticFixes(job, validationReport, job.getCodeSystem());
 						setValidationJobStatusAndMessage(job, validationReport);
 						validationComplete = true;
 					} else if (status == ValidationReport.State.FAILED) {

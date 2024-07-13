@@ -117,13 +117,21 @@ public class CodeSystemController {
 		return jobService.startExternalServiceJob(theCodeSystem, "Validate", codeSystemService::validate);
 	}
 
+	@PostMapping("{codeSystem}/validate/rerun-automatic-fixes")
+	@PreAuthorize("hasPermission('ADMIN', #codeSystem)")
+	public void rerunAutomaticFixes(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		validationService.reprocessAutomaticFixes(theCodeSystem);
+	}
+
 	@GetMapping("{codeSystem}/validate/issues")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public ValidationFixList getValidationFixList(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		ValidationReport validationReport = getCompletedValidationReportOrThrow(theCodeSystem);
-		return validationService.getValidationFixList(codeSystem, validationReport);
+		return validationService.getValidationFixList(validationReport);
 	}
 
 	@GetMapping(path = "{codeSystem}/validate/spreadsheet", produces="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

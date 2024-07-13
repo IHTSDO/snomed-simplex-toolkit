@@ -1,6 +1,7 @@
 package org.snomed.simplex.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -544,6 +545,32 @@ public class SnowstormClient {
 				throw new ServiceException("Bulk update did not return location header.");
 			}
 			waitForAsyncJob(location, "COMPLETED", "FAILED");
+			logger.info("Completed bulk create/update on {}", branchPath);
+		}
+	}
+
+	public void bulkSetDescriptionCaseSensitivity(Map<Long, Set<String>> conceptDescriptionIdMap, Description.CaseSignificance caseSensitivityWanted,
+			CodeSystem codeSystem) throws ServiceException {
+
+		List<Long> conceptIds = new ArrayList<>(conceptDescriptionIdMap.keySet());
+		for (List<Long> conceptIdBatch : Lists.partition(conceptIds, 200)) {
+			List<Concept> concepts = loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
+			Map<Long, Concept> conceptsToSave = new HashMap<>();
+			for (Concept concept : concepts) {
+				for (Description description : concept.getDescriptions()) {
+					Set<String> conceptDescriptionIds = conceptDescriptionIdMap.get(concept.getConceptIdAsLong());
+					if (conceptDescriptionIds.contains(description.getDescriptionId())) {
+						if (description.getCaseSignificance() != caseSensitivityWanted) {
+							description.setCaseSignificance(caseSensitivityWanted);
+							conceptsToSave.put(concept.getConceptIdAsLong(), concept);
+						}
+					}
+				}
+			}
+			if (!conceptsToSave.isEmpty()) {
+				logger.info("Fixing case sensitivity of descriptions on {} concepts.", conceptsToSave.size());
+				createUpdateBrowserFormatConcepts(new ArrayList<>(conceptsToSave.values()), codeSystem);
+			}
 		}
 	}
 
