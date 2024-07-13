@@ -559,11 +559,10 @@ public class SnowstormClient {
 			for (Concept concept : concepts) {
 				for (Description description : concept.getDescriptions()) {
 					Set<String> conceptDescriptionIds = conceptDescriptionIdMap.get(concept.getConceptIdAsLong());
-					if (conceptDescriptionIds.contains(description.getDescriptionId())) {
-						if (description.getCaseSignificance() != caseSensitivityWanted) {
-							description.setCaseSignificance(caseSensitivityWanted);
-							conceptsToSave.put(concept.getConceptIdAsLong(), concept);
-						}
+					if (conceptDescriptionIds.contains(description.getDescriptionId())
+							&& description.getCaseSignificance() != caseSensitivityWanted) {
+						description.setCaseSignificance(caseSensitivityWanted);
+						conceptsToSave.put(concept.getConceptIdAsLong(), concept);
 					}
 				}
 			}
