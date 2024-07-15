@@ -62,7 +62,11 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 							continue;
 						}
 						long conceptId = parseLong(split[4]);
-						Description description = new Description(Description.Type.fromConceptId(split[6]), split[5], split[7],
+						String languageCode = split[5];
+						// Strip any dialect, just keep language code
+						languageCode = languageCode.substring(0, 2);
+
+						Description description = new Description(Description.Type.fromConceptId(split[6]), languageCode, split[7],
 								Description.CaseSignificance.fromConceptId(split[8]));
 
 						description.setDescriptionId(split[0]);
