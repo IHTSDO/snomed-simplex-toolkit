@@ -539,7 +539,7 @@ public class SnowstormClient {
 		if (!conceptsForBulkUpdate.isEmpty()) {
 			logger.info("Starting bulk create/update on {}", branchPath);
 			ResponseEntity<Void> response = restTemplate.exchange(format("/browser/%s/concepts/bulk", branchPath), HttpMethod.POST,
-					new HttpEntity<>(conceptsToUpdate), Void.class);
+					new HttpEntity<>(conceptsForBulkUpdate), Void.class);
 			URI location = response.getHeaders().getLocation();
 			if (location == null) {
 				throw new ServiceException("Bulk update did not return location header.");
