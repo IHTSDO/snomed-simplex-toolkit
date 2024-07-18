@@ -17,6 +17,8 @@ public class WebConfig implements WebMvcConfigurer {
 		configurer.defaultContentTypeStrategy(webRequest ->
 			List.of(
 					MediaType.APPLICATION_JSON,
+					MediaType.parseMediaType("text/csv"),
+					MediaType.parseMediaType("application/zip"),
 					MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
 		);
 	}
