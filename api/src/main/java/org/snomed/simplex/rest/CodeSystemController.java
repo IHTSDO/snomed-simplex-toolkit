@@ -20,6 +20,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.rest.pojos.SetBranchRequest;
+import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.service.CodeSystemService;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.SecurityService;
@@ -92,6 +93,14 @@ public class CodeSystemController {
 	public CodeSystem createCodeSystem(@RequestBody CreateCodeSystemRequest request) throws ServiceException {
 		return codeSystemService.createCodeSystem(request.getName(), request.getShortName(), request.getNamespace(), request.isCreateModule(), request.getModuleName(),
 				request.getModuleId());
+	}
+
+	@PostMapping("{codeSystem}/upgrade")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob startUpgrade(@PathVariable String codeSystem, CodeSystemUpgradeRequest upgradeRequest) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return jobService.startExternalServiceJob(theCodeSystem, "Upgrade", job -> codeSystemService.upgradeCodeSystem(job, upgradeRequest));
 	}
 
 	@PostMapping("{codeSystem}/classify")

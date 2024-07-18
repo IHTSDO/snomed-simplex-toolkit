@@ -10,6 +10,7 @@ import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.snomed.simplex.service.validation.ValidationService;
@@ -38,6 +39,7 @@ public class CodeSystemService {
 
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> validationJobsToMonitor = new HashMap<>();
+	private final Map<String, ExternalServiceJob> upgradeJobsToMonitor = new HashMap<>();
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -114,6 +116,24 @@ public class CodeSystemService {
 			existingOntologyExpressionMember.setActive(false);
 			RefsetMember newOntologyExpressionMember = new RefsetMember(OWL_ONTOLOGY_REFSET, moduleId, OWL_ONTOLOGY_HEADER).setAdditionalField(OWL_EXPRESSION, moduleOntologyExpression);
 			snowstormClient.createUpdateRefsetMembers(List.of(existingOntologyExpressionMember, newOntologyExpressionMember), codeSystem);
+		}
+	}
+
+	public void upgradeCodeSystem(ExternalServiceJob asyncJob, CodeSystemUpgradeRequest upgradeRequest) {
+		try {
+			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+
+			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(asyncJob.getCodeSystem());
+			setPreparingReleaseFlag(codeSystem, true);
+			// Disable daily-build to prevent content rollback during upgrade
+			codeSystem.setDailyBuildAvailable(false);
+			snowstormClient.updateCodeSystem(codeSystem);
+			URI upgradeJobLocation = snowstormClient.createUpgradeJob(codeSystem, upgradeRequest);
+			logger.info("Created upgrade job. Codesystem:{}, Snowstorm Job:{}", codeSystem.getShortName(), upgradeJobLocation);
+			asyncJob.setLink(upgradeJobLocation.toString());
+			upgradeJobsToMonitor.put(upgradeJobLocation.toString(), asyncJob);
+		} catch (ServiceException e) {
+			supportRegister.handleSystemError(asyncJob, "Failed to create upgrade job.", e);
 		}
 	}
 
@@ -242,6 +262,44 @@ public class CodeSystemService {
 		}
 		for (String completedValidation : completedValidations) {
 			validationJobsToMonitor.remove(completedValidation);
+		}
+	}
+
+	@Scheduled(initialDelay = 15, fixedDelay = 5, timeUnit = TimeUnit.SECONDS)
+	public void monitorUpgradeJobs() {
+		Set<String> completedUpgrades = new HashSet<>();
+		for (Map.Entry<String, ExternalServiceJob> entry : upgradeJobsToMonitor.entrySet()) {
+			String upgradeLocation = entry.getKey();
+			ExternalServiceJob job = entry.getValue();
+			SecurityContextHolder.setContext(job.getSecurityContext());
+			boolean upgradeComplete = false;
+			try {
+				// Get client using the security context of the user who created the job
+				SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+				SnowstormUpgradeJob upgradeJob = snowstormClient.getUpgradeJob(upgradeLocation);
+				SnowstormUpgradeJob.Status status = upgradeJob.getStatus();
+				if (status == SnowstormUpgradeJob.Status.COMPLETED) {
+					CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(job.getCodeSystem());
+					setPreparingReleaseFlag(codeSystem, false);
+					codeSystem.setDailyBuildAvailable(true);
+					snowstormClient.updateCodeSystem(codeSystem);
+					logger.info("Upgrade complete. Codesystem:{}", codeSystem.getShortName());
+					job.setStatus(JobStatus.COMPLETE);
+					upgradeComplete = true;
+				} else if (status == SnowstormUpgradeJob.Status.FAILED) {
+					supportRegister.handleSystemError(job, "Upgrade failed to run in Terminology Server.");
+					upgradeComplete = true;
+				}
+			} catch (ServiceException e) {
+				supportRegister.handleSystemError(job, "Terminology Server API issue.", e);
+				upgradeComplete = true;
+			}
+			if (upgradeComplete) {
+				completedUpgrades.add(upgradeLocation);
+			}
+		}
+		for (String completedJobs : completedUpgrades) {
+			upgradeJobsToMonitor.remove(completedJobs);
 		}
 	}
 

@@ -9,6 +9,7 @@ import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.HTTPClientException;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.service.StreamUtils;
 import org.snomed.simplex.util.CollectionUtils;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -39,7 +40,6 @@ import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
 public class SnowstormClient {
 
 	public static final int MAX_PAGE_SIZE = 10_000;
-	private final ParameterizedTypeReference<Map<String, Object>> responseTypeMap = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<ConceptMini>> responseTypeConceptMiniPage = new ParameterizedTypeReference<>(){};
@@ -64,18 +64,6 @@ public class SnowstormClient {
 				// Set the request content type to JSON
 				.messageConverters(new MappingJackson2HttpMessageConverter())
 				.build();
-	}
-
-	public void ping() throws ServiceException {
-		try {
-			ResponseEntity<Map<String, Object>> response = restTemplate.exchange("/version", HttpMethod.GET, null, responseTypeMap);
-			if (response.getStatusCode().is2xxSuccessful()) {
-				Map<String, Object> body = response.getBody();
-				System.out.printf("Pinged Snowstorm successfully, version %s%n", body != null ? body.get("version") : "body is null");
-			}
-		} catch (HttpStatusCodeException e) {
-			throw new IllegalStateException("Could not connect to Snowstorm");
-		}
 	}
 
 	public List<CodeSystem> getCodeSystems(boolean includeDetails) throws ServiceException {
@@ -193,6 +181,10 @@ public class SnowstormClient {
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "create code system");
 		}
+	}
+
+	public void updateCodeSystem(CodeSystem codeSystem) {
+		restTemplate.exchange(format("/codesystems/%s", codeSystem.getShortName()), HttpMethod.PUT, new HttpEntity<>(codeSystem), CodeSystem.class);
 	}
 
 	public void deleteCodeSystem(String shortName) {
@@ -602,6 +594,22 @@ public class SnowstormClient {
 			restTemplate.exchange(format("/%s/classifications/%s", branch, classificationId), HttpMethod.PUT, new HttpEntity<>(statusChangeRequest), Void.class);
 		} catch (RestClientException e) {
 			throw new ServiceException("Failed to start classification save.", e);
+		}
+	}
+
+	public URI createUpgradeJob(CodeSystem codeSystem, CodeSystemUpgradeRequest upgradeRequest) throws ServiceException {
+		try {
+			return restTemplate.postForLocation(format("/codesystems/%s/upgrade", codeSystem.getShortName()), new HttpEntity<>(upgradeRequest));
+		} catch (RestClientException e) {
+			throw new ServiceException("Failed to upgrade codesystem. Rest client error.", e);
+		}
+	}
+
+	public SnowstormUpgradeJob getUpgradeJob(String jobLocation) throws ServiceException {
+		try {
+			return restTemplate.getForEntity(jobLocation, SnowstormUpgradeJob.class).getBody();
+		} catch (RestClientException e) {
+			throw new ServiceException("Failed to fetch upgrade status.");
 		}
 	}
 
