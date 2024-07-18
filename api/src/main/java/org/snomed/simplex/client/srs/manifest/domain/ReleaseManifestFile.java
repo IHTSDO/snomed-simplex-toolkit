@@ -3,7 +3,9 @@ package org.snomed.simplex.client.srs.manifest.domain;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class ReleaseManifestFile {
@@ -18,7 +20,7 @@ public class ReleaseManifestFile {
 	private Set<ReleaseRefset> refset;
 
 	@JacksonXmlElementWrapper(localName = "contains-additional-fields")
-	private Set<ReleaseField> field;
+	private List<ReleaseField> field;
 
 	@JacksonXmlElementWrapper(localName = "contains-language-codes")
 	private Set<String> code;
@@ -47,7 +49,7 @@ public class ReleaseManifestFile {
 
 	public void addField(String name) {
 		if (field == null) {
-			field = new HashSet<>();
+			field = new ArrayList<>();
 		}
 		field.add(new ReleaseField(name));
 	}
@@ -75,7 +77,7 @@ public class ReleaseManifestFile {
 		return refset;
 	}
 
-	public Set<ReleaseField> getField() {
+	public List<ReleaseField> getField() {
 		return field;
 	}
 
