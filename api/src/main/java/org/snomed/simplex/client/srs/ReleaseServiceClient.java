@@ -55,6 +55,9 @@ import static org.ihtsdo.sso.integration.SecurityUtil.getAuthenticationToken;
 @Service
 public class ReleaseServiceClient {
 
+    public static final String ASSERTION_GROUP_NAMES = "common-authoring,simplex-authoring";
+    public static final String DROOLS_RULES_GROUP_NAMES = "common-authoring";
+
     private final String releaseServiceURL;
     private final String releaseCenter;
     private final String releaseCenterBranch;
@@ -136,9 +139,9 @@ public class ReleaseServiceClient {
         updateRequest.setReadmeHeader(readmeHeader);
         updateRequest.setReadmeEndDate(getThisYear());
         updateRequest.setLicenseStatement(licenceStatement);
-        updateRequest.setAssertionGroupNames("common-authoring,simplex-authoring");
+        updateRequest.setAssertionGroupNames(ASSERTION_GROUP_NAMES);
         updateRequest.setEnableDrools(true);
-        updateRequest.setDroolsRulesGroupNames("common-authoring");
+        updateRequest.setDroolsRulesGroupNames(DROOLS_RULES_GROUP_NAMES);
         updateRequest.setEnableMRCMValidation(true);
         updateRequest.setNamespaceId(codeSystem.getNamespace());
         updateRequest.setDefaultModuleId(codeSystem.getDefaultModule());

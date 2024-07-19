@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.SpreadsheetService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -126,13 +127,13 @@ public class ValidationServiceClient {
 			body.add("dependencyRelease", codeSystem.getDependencyPackage());
 		}
 
-		body.add("groups", "common-authoring");
+		body.add("groups", ReleaseServiceClient.ASSERTION_GROUP_NAMES);
 		body.add("enableDrools", "true");
 		body.add("enableMRCMValidation", "true");
 		body.add("branchPath", branchPath);
 		body.add("contentHeadTimestamp", Long.toString(headTimestamp));
 		body.add("responseQueue", queuePrefix + "." + VALIDATION_RESPONSE_QUEUE);
-		body.add("droolsRulesGroups", "common-authoring");
+		body.add("droolsRulesGroups", ReleaseServiceClient.DROOLS_RULES_GROUP_NAMES);
 		body.add("includedModules", codeSystem.getDefaultModuleOrThrow());
 		body.add("failureExportMax", "100");
 		String storageLocation = RVF_TS + "/Simplex_" + codeSystem.getShortName() + "/" + runId;
