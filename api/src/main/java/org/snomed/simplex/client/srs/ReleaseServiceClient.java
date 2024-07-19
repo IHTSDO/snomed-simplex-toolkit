@@ -201,7 +201,7 @@ public class ReleaseServiceClient {
         logger.info("Created build {}", build.getId());
         try {
             File tempFile = Files.createTempFile(codeSystem.getShortName() + UUID.randomUUID(), ".zip").toFile();
-            snowstormClient.exportRF2(new FileOutputStream(tempFile), "DELTA", codeSystem, null);
+            snowstormClient.exportRF2(new FileOutputStream(tempFile), "DELTA", codeSystem, effectiveTime);
             logger.info("Exported RF2 delta");
 
             File deltaReleaseDirectory;
