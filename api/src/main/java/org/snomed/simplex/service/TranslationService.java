@@ -271,7 +271,26 @@ public class TranslationService {
 				logger.info("Removed redundant lang refset on concept {}, description {}.", conceptId, snowstormDescription.getDescriptionId());
 			}
 		}
+
+		// If an English lang refset has selected acceptable terms but no PT, use the US PT.
+		if ("en".equals(languageCode) && getPt(existingDescriptions, languageRefsetId) == null) {
+			Description usPT = getPt(existingDescriptions, Concepts.US_LANG_REFSET);
+			if (usPT != null) {
+				usPT.getAcceptabilityMap().put(languageRefsetId, Description.Acceptability.PREFERRED);
+				anyChange = true;
+				changeSummary.incrementAdded();
+			}
+		}
+
 		return anyChange;
+	}
+
+	private Description getPt(List<Description> descriptions, String languageRefsetId) {
+		return descriptions.stream()
+				.filter(Component::isActive)
+				.filter(description -> description.getType() == SYNONYM)
+				.filter(description -> description.getAcceptabilityMap().get(languageRefsetId) == Description.Acceptability.PREFERRED)
+				.findFirst().orElse(null);
 	}
 
 	public void deleteRefsetMembersAndConcept(String refsetId, CodeSystem theCodeSystem) throws ServiceException {
