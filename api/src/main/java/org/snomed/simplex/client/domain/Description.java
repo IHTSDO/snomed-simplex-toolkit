@@ -3,6 +3,7 @@ package org.snomed.simplex.client.domain;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public class Description extends Component {
 
@@ -14,6 +15,7 @@ public class Description extends Component {
 	private CaseSignificance caseSignificance;
 	private Map<String, Acceptability> acceptabilityMap;
 	private String inactivationIndicator;
+	private Map<String, Set<String>> associationTargets;
 
 	public enum Type {
 
@@ -157,6 +159,10 @@ public class Description extends Component {
 
 	public String getInactivationIndicator() {
 		return inactivationIndicator;
+	}
+
+	public Map<String, Set<String>> getAssociationTargets() {
+		return associationTargets;
 	}
 
 	@Override
