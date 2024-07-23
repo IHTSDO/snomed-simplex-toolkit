@@ -43,12 +43,17 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 			ZipEntry zipEntry;
 			// Loop through zip entries until we have read the description and lang refset files. We don't know what order they will be in within the zip.
 			while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-				if (zipEntry.getName().contains("sct2_Description_Snapshot")) {
+				String zipEntryName = zipEntry.getName();
+				if (zipEntryName.contains("__MACOSX") || zipEntryName.contains("/.") || zipEntryName.startsWith(".")) {
+					logger.debug("Skipping hidden / system zip entry {}", zipEntryName);
+					continue;
+				}
+				if (zipEntryName.contains("sct2_Description_Snapshot")) {
 					// Read description file
 					BufferedReader descriptionReader = new BufferedReader(new InputStreamReader(zipInputStream));
 					String header = descriptionReader.readLine();
 					if (!header.equals("id\teffectiveTime\tactive\tmoduleId\tconceptId\tlanguageCode\ttypeId\tterm\tcaseSignificanceId")) {
-						throw new ServiceException(format("Unrecognised header in Description file '%s' within zip file.", zipEntry.getName()));
+						throw new ServiceException(format("Unrecognised header in Description file '%s' within zip file.", zipEntryName));
 					}
 					String line;
 					int lineNum = 1;
@@ -72,12 +77,12 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 						description.setDescriptionId(split[0]);
 						conceptMap.computeIfAbsent(conceptId, key -> new ArrayList<>()).add(description);
 					}
-				} else if (zipEntry.getName().contains("der2_cRefset_LanguageSnapshot")) {
+				} else if (zipEntryName.contains("der2_cRefset_LanguageSnapshot")) {
 					// Read lang refset file
 					BufferedReader langRefsetReader = new BufferedReader(new InputStreamReader(zipInputStream));
 					String header = langRefsetReader.readLine();
 					if (!header.equals("id\teffectiveTime\tactive\tmoduleId\trefsetId\treferencedComponentId\tacceptabilityId")) {
-						throw new ServiceException(format("Unrecognised header in Language Refset file '%s' within zip file.", zipEntry.getName()));
+						throw new ServiceException(format("Unrecognised header in Language Refset file '%s' within zip file.", zipEntryName));
 					}
 					String line;
 					int lineNum = 1;
