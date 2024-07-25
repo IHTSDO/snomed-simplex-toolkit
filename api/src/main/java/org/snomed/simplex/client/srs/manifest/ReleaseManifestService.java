@@ -108,21 +108,17 @@ public class ReleaseManifestService {
 				refsetsWithMissingExportConfiguration.add(refset.getConceptId());
 				continue;
 			}
-			ReleaseManifestFolder outputFolder = exportDir.startsWith("/") ? snapshotFolder : refsetFolder;
-			String[] split = exportDir.split("/");
-			for (String folderName : split) {
-				if (!folderName.isEmpty()) {
-					outputFolder = outputFolder.getOrAddFolder(folderName);
-				}
-			}
-			String refsetFileName = getRefsetFilename(exportName, languageCode, fieldTypes, formattedName, effectiveTime);
-			ReleaseManifestFile refsetFile = outputFolder.getOrAddFile(refsetFileName);
-			if (refsetFile.getField() == null) {
-				for (String fieldName : fieldNameList) {
-					refsetFile.addField(fieldName);
-				}
-			}
-			refsetFile.addRefset(refset.getConceptId(), pt.getTerm());
+			addRefsetFile(snapshotFolder, refsetFolder, refset.getConceptId(), pt.getTerm(), exportDir, exportName, formattedName, fieldTypes,
+					fieldNameList, languageCode, effectiveTime);
+		}
+
+		// If missing, force inclusion of empty MemberAnnotationStringValue refset
+		String memberAnnotationStringRefset = "1292995002";
+		if (!refsets.containsKey(memberAnnotationStringRefset)) {
+			addRefsetFile(snapshotFolder, refsetFolder, memberAnnotationStringRefset, "Member annotation with string value reference set",
+					"Metadata", "MemberAnnotationStringValue", formattedName, "sscs",
+					List.of("referencedMemberId", "languageDialectCode", "typeId", "value"), "", effectiveTime);
+
 		}
 		if (!refsetsWithMissingExportConfiguration.isEmpty()) {
 			throw new ServiceException(format("Unable to generate build manifest file because the following refsets do not have an export configuration: %s",
@@ -140,6 +136,24 @@ public class ReleaseManifestService {
 		} catch (JsonProcessingException e) {
 			throw new ServiceException(format("Failed to write release manifest as XML for code system %s.", codeSystem.getShortName()), e);
 		}
+	}
+
+	private void addRefsetFile(ReleaseManifestFolder snapshotFolder, ReleaseManifestFolder refsetFolder, String conceptId, String term, String exportDir, String exportName, String formattedName, String fieldTypes, List<String> fieldNameList, String languageCode, String effectiveTime) {
+		ReleaseManifestFolder outputFolder = exportDir.startsWith("/") ? snapshotFolder : refsetFolder;
+		String[] split = exportDir.split("/");
+		for (String folderName : split) {
+			if (!folderName.isEmpty()) {
+				outputFolder = outputFolder.getOrAddFolder(folderName);
+			}
+		}
+		String refsetFileName = getRefsetFilename(exportName, languageCode, fieldTypes, formattedName, effectiveTime);
+		ReleaseManifestFile refsetFile = outputFolder.getOrAddFile(refsetFileName);
+		if (refsetFile.getField() == null) {
+			for (String fieldName : fieldNameList) {
+				refsetFile.addField(fieldName);
+			}
+		}
+		refsetFile.addRefset(conceptId, term);
 	}
 
 	private void cloneSnapshotToFull(ReleaseManifestFolder source, ReleaseManifestFolder target) {
