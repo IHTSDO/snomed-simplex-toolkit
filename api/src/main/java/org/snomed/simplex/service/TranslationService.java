@@ -175,6 +175,14 @@ public class TranslationService {
 		boolean anyChange = false;
 		existingDescriptions.sort(Comparator.comparing(Description::isActive).reversed());
 
+		// If an English lang refset has selected acceptable terms but no PT, use the US PT.
+		if ("en".equals(languageCode) && getPt(uploadedDescriptions, languageRefsetId) == null) {
+			Description usPT = getPt(existingDescriptions, Concepts.US_LANG_REFSET);
+			if (usPT != null) {
+				uploadedDescriptions.add(usPT);
+			}
+		}
+
 		// Remove any active descriptions in snowstorm with a matching concept, language and lang refset if the term is not in the latest CSV
 		List<Description> toRemove = new ArrayList<>();
 		for (Description snowstormDescription : existingDescriptions) {
@@ -269,16 +277,6 @@ public class TranslationService {
 				changeSummary.incrementRemoved();// Removed from the language refset
 				changeMonitor.removed(conceptId, snowstormDescription.toString());
 				logger.info("Removed redundant lang refset on concept {}, description {}.", conceptId, snowstormDescription.getDescriptionId());
-			}
-		}
-
-		// If an English lang refset has selected acceptable terms but no PT, use the US PT.
-		if ("en".equals(languageCode) && getPt(existingDescriptions, languageRefsetId) == null) {
-			Description usPT = getPt(existingDescriptions, Concepts.US_LANG_REFSET);
-			if (usPT != null) {
-				usPT.getAcceptabilityMap().put(languageRefsetId, Description.Acceptability.PREFERRED);
-				anyChange = true;
-				changeSummary.incrementAdded();
 			}
 		}
 
