@@ -114,6 +114,7 @@ public class CodeSystemService {
 		String moduleOntologyExpression = format("Ontology(<http://snomed.info/sct/%s>)", moduleId);
 		if (!existingOntologyExpressionMember.getAdditionalFields().get(OWL_EXPRESSION).equals(moduleOntologyExpression)) {
 			existingOntologyExpressionMember.setActive(false);
+			existingOntologyExpressionMember.setModuleId(moduleId);
 			RefsetMember newOntologyExpressionMember = new RefsetMember(OWL_ONTOLOGY_REFSET, moduleId, OWL_ONTOLOGY_HEADER).setAdditionalField(OWL_EXPRESSION, moduleOntologyExpression);
 			snowstormClient.createUpdateRefsetMembers(List.of(existingOntologyExpressionMember, newOntologyExpressionMember), codeSystem);
 		}

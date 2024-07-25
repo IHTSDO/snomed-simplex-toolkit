@@ -63,6 +63,10 @@ public class RefsetMember {
 		return moduleId;
 	}
 
+	public void setModuleId(String moduleId) {
+		this.moduleId = moduleId;
+	}
+
 	public String getRefsetId() {
 		return refsetId;
 	}
