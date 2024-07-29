@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
-import org.snomed.simplex.client.domain.DescriptionMini;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifest;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFile;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFolder;
@@ -35,7 +34,9 @@ public class ReleaseManifestService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public String generateManifestXml(CodeSystem codeSystem, String productName, String effectiveTime, boolean editionPackage, SnowstormClient snowstormClient) throws ServiceException {
+	public String generateManifestXml(CodeSystem codeSystem, String productName, String effectiveTime, boolean editionPackage,
+			SnowstormClient snowstormClient) throws ServiceException {
+
 		String formattedName = productName.replace(" ", "");
 		String rootFolderName = String.format("SnomedCT_%sSimplexEdition_Production_%sT120000Z", formattedName, effectiveTime);
 		ReleaseManifestFolder rootFolder = new ReleaseManifestFolder(rootFolderName);
@@ -70,7 +71,6 @@ public class ReleaseManifestService {
 			if (refset.getConceptId().equals("554481000005106")) {// Ignore badly set up DK refset
 				continue;
 			}
-			DescriptionMini pt = refset.getPt();
 			String exportDir = null;
 			String exportName = null;
 			String languageCode = null;
@@ -108,16 +108,18 @@ public class ReleaseManifestService {
 				refsetsWithMissingExportConfiguration.add(refset.getConceptId());
 				continue;
 			}
-			addRefsetFile(snapshotFolder, refsetFolder, refset.getConceptId(), pt.getTerm(), exportDir, exportName, formattedName, fieldTypes,
-					fieldNameList, languageCode, effectiveTime);
+			ReleaseManifestFolder outputFolder = getRefsetOutputFolder(exportDir, snapshotFolder, refsetFolder);
+			ReleaseManifestFile refsetFile = getRefsetFile(effectiveTime, exportName, languageCode, fieldTypes, formattedName, outputFolder);
+			addRefsetAndFields(refset, refsetFile, fieldNameList);
 		}
 
 		// If missing, force inclusion of empty MemberAnnotationStringValue refset
 		String memberAnnotationStringRefset = "1292995002";
 		if (!refsets.containsKey(memberAnnotationStringRefset)) {
-			addRefsetFile(snapshotFolder, refsetFolder, memberAnnotationStringRefset, "Member annotation with string value reference set",
-					"Metadata", "MemberAnnotationStringValue", formattedName, "sscs",
-					List.of("referencedMemberId", "languageDialectCode", "typeId", "value"), "", effectiveTime);
+			ConceptMini annotationRefset = snowstormClient.getRefset(memberAnnotationStringRefset, codeSystem);
+			ReleaseManifestFolder outputFolder = getRefsetOutputFolder("Metadata", snapshotFolder, refsetFolder);
+			ReleaseManifestFile refsetFile = getRefsetFile(effectiveTime, "MemberAnnotationStringValue", "", "sscs", formattedName, outputFolder);
+			addRefsetAndFields(annotationRefset, refsetFile, List.of("referencedMemberId", "languageDialectCode", "typeId", "value"));
 
 		}
 		if (!refsetsWithMissingExportConfiguration.isEmpty()) {
@@ -138,7 +140,22 @@ public class ReleaseManifestService {
 		}
 	}
 
-	private void addRefsetFile(ReleaseManifestFolder snapshotFolder, ReleaseManifestFolder refsetFolder, String conceptId, String term, String exportDir, String exportName, String formattedName, String fieldTypes, List<String> fieldNameList, String languageCode, String effectiveTime) {
+	private static void addRefsetAndFields(ConceptMini refset, ReleaseManifestFile refsetFile, List<String> fieldNameList) {
+		if (refsetFile.getField() == null) {
+			for (String fieldName : fieldNameList) {
+				refsetFile.addField(fieldName);
+			}
+		}
+		refsetFile.addRefset(refset.getConceptId(), refset.getPt().getTerm());
+	}
+
+	private ReleaseManifestFile getRefsetFile(String effectiveTime, String exportName, String languageCode, String fieldTypes, String formattedName, ReleaseManifestFolder outputFolder) {
+		String refsetFileName = getRefsetFilename(exportName, languageCode, fieldTypes, formattedName, effectiveTime);
+		ReleaseManifestFile refsetFile = outputFolder.getOrAddFile(refsetFileName);
+		return refsetFile;
+	}
+
+	private static ReleaseManifestFolder getRefsetOutputFolder(String exportDir, ReleaseManifestFolder snapshotFolder, ReleaseManifestFolder refsetFolder) {
 		ReleaseManifestFolder outputFolder = exportDir.startsWith("/") ? snapshotFolder : refsetFolder;
 		String[] split = exportDir.split("/");
 		for (String folderName : split) {
@@ -146,14 +163,7 @@ public class ReleaseManifestService {
 				outputFolder = outputFolder.getOrAddFolder(folderName);
 			}
 		}
-		String refsetFileName = getRefsetFilename(exportName, languageCode, fieldTypes, formattedName, effectiveTime);
-		ReleaseManifestFile refsetFile = outputFolder.getOrAddFile(refsetFileName);
-		if (refsetFile.getField() == null) {
-			for (String fieldName : fieldNameList) {
-				refsetFile.addField(fieldName);
-			}
-		}
-		refsetFile.addRefset(conceptId, term);
+		return outputFolder;
 	}
 
 	private void cloneSnapshotToFull(ReleaseManifestFolder source, ReleaseManifestFolder target) {
