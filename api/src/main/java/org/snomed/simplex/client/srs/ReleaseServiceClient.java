@@ -196,7 +196,7 @@ public class ReleaseServiceClient {
         }
 
         String productName = codeSystem.getName().replace("Extension", "").replace("Edition", "");
-        String manifestXml = releaseManifestService.generateManifestXml(codeSystem, productName, effectiveTime, EDITION_PACKAGE, snowstormClient);
+        String manifestXml = releaseManifestService.generateManifestXml(codeSystem, productName, effectiveTime, snowstormClient);
         uploadManifest(codeSystem, manifestXml);
         logger.info("Uploaded manifest");
 

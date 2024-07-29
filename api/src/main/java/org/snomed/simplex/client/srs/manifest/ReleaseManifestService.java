@@ -13,6 +13,7 @@ import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifest;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFile;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFolder;
 import org.snomed.simplex.domain.Page;
+import org.snomed.simplex.exceptions.HTTPClientException;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
@@ -30,6 +31,7 @@ import static org.snomed.simplex.util.CollectionUtils.orEmpty;
 @Service
 public class ReleaseManifestService {
 
+	public static final String SNAPSHOT = "Snapshot";
 	private final MappingJackson2XmlHttpMessageConverter xmlConverter;
 
 	public ReleaseManifestService(@Autowired MappingJackson2XmlHttpMessageConverter xmlConverter) {
@@ -37,7 +39,7 @@ public class ReleaseManifestService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public String generateManifestXml(CodeSystem codeSystem, String productName, String effectiveTime, boolean editionPackage,
+	public String generateManifestXml(CodeSystem codeSystem, String productName, String effectiveTime,
 			SnowstormClient snowstormClient) throws ServiceException {
 
 		String formattedName = productName.replace(" ", "");
@@ -46,80 +48,20 @@ public class ReleaseManifestService {
 		ReleaseManifest manifest = new ReleaseManifest(rootFolder);
 		rootFolder.getOrAddFile(format("Readme_en_%s.txt", effectiveTime)).clearSource();
 
-		ReleaseManifestFolder snapshotFolder = rootFolder.getOrAddFolder("Snapshot");
+		ReleaseManifestFolder snapshotFolder = rootFolder.getOrAddFolder(SNAPSHOT);
 
 		ReleaseManifestFolder terminologyFolder = snapshotFolder.getOrAddFolder("Terminology");
 		terminologyFolder.getOrAddFile(getCoreComponentFilename("Concept", "", formattedName, effectiveTime));
 
-		List<String> languageCodes = new ArrayList<>(codeSystem.getLanguages().keySet());
-		for (String languageCode : languageCodes) {
-			terminologyFolder.getOrAddFile(getCoreComponentFilename("Description", format("-%s", languageCode), formattedName, effectiveTime))
-					.addLanguageCode(languageCode);
-		}
-		for (String languageCode : languageCodes) {
-			terminologyFolder.getOrAddFile(getCoreComponentFilename("TextDefinition", format("-%s", languageCode), formattedName, effectiveTime))
-					.addLanguageCode(languageCode);
-		}
-		terminologyFolder.getOrAddFile(getCoreComponentFilename("Identifier", "", formattedName, effectiveTime));
-		terminologyFolder.getOrAddFile(getCoreComponentFilename("StatedRelationship", "", formattedName, effectiveTime));
-		terminologyFolder.getOrAddFile(getCoreComponentFilename("Relationship", "", formattedName, effectiveTime));
-		terminologyFolder.getOrAddFile(getCoreComponentFilename("RelationshipConcreteValues", "", formattedName, effectiveTime));
-		// OWLExpression file is added by the refset logic
+		addCoreComponents(codeSystem, effectiveTime, terminologyFolder, formattedName);
 
-		boolean filterByModule = !editionPackage;
-		Map<String, ConceptMini> refsets = snowstormClient.getCodeSystemRefsetsWithTypeInformation(codeSystem, filterByModule);
-		ReleaseManifestFolder refsetFolder = snapshotFolder.getOrAddFolder("Refset");
+
+		Map<String, ConceptMini> refsets = new HashMap<>(snowstormClient.getCodeSystemRefsetsWithTypeInformation(codeSystem, false));
+		refsets.remove("554481000005106"); // Ignore badly set up DK refset
+
 		Set<String> refsetsWithMissingExportConfiguration = new HashSet<>();
-		for (ConceptMini refset : refsets.values()) {
-			if (refset.getConceptId().equals("554481000005106")) {// Ignore badly set up DK refset
-				continue;
-			}
-			String exportDir = null;
-			String exportName = null;
-			String languageCode = null;
-			String fieldTypes = null;
-			List<String> fieldNameList = null;
-			Map<String, Object> extraFields = refset.getExtraFields();
-			if (extraFields != null) {
-				Map<String, Object> referenceSetType = (Map<String, Object>) extraFields.get("referenceSetType");
-				if (referenceSetType != null && referenceSetType.get("fileConfiguration") != null) {
-					Map<String, Object> fileConfiguration = (Map<String, Object>) referenceSetType.get("fileConfiguration");
-					if (fileConfiguration != null) {
-						exportDir = (String) fileConfiguration.get("exportDir");
-						exportName = (String) fileConfiguration.get("name");
-						if (exportName.equals("Language")) {
-							languageCode = "-en";
-
-							Page<RefsetMember> refsetMembers = snowstormClient.getRefsetMembers(refset.getConceptId(), codeSystem, true, 0, 5);
-							if (refsetMembers.getTotal() > 0) {
-								RefsetMember firstLanguageRefsetMember = refsetMembers.getItems().get(0);
-								ReferencedComponent referencedComponent = firstLanguageRefsetMember.getReferencedComponent();
-								if (referencedComponent != null) {
-									languageCode = String.format("-%s", referencedComponent.getLang());
-								}
-							}
-						} else {
-							languageCode = "";
-						}
-						fieldTypes = (String) fileConfiguration.get("fieldTypes");
-						fieldNameList = (List<String>) fileConfiguration.get("fieldNameList");
-
-						// Workaround for International maps being outdated
-						if (editionPackage && (exportName.equals("SimpleMapFromSCT") || exportName.equals("SimpleMapToSCT"))) {
-							exportName = "SimpleMap";
-							fieldNameList = List.of("mapTarget");
-						}
-					}
-				}
-			}
-			if (exportDir == null || fieldTypes == null) {
-				refsetsWithMissingExportConfiguration.add(refset.getConceptId());
-				continue;
-			}
-			ReleaseManifestFolder outputFolder = getRefsetOutputFolder(exportDir, snapshotFolder, refsetFolder);
-			ReleaseManifestFile refsetFile = getRefsetFile(effectiveTime, exportName, languageCode, fieldTypes, formattedName, outputFolder);
-			addRefsetAndFields(refset, refsetFile, fieldNameList);
-		}
+		ReleaseManifestFolder refsetFolder = addRefsets(codeSystem, snapshotFolder, refsets, effectiveTime, formattedName, snowstormClient,
+				refsetsWithMissingExportConfiguration);
 
 		// If missing, force inclusion of empty MemberAnnotationStringValue refset
 		String memberAnnotationStringRefset = "1292995002";
@@ -146,6 +88,92 @@ public class ReleaseManifestService {
 		} catch (JsonProcessingException e) {
 			throw new ServiceException(format("Failed to write release manifest as XML for code system %s.", codeSystem.getShortName()), e);
 		}
+	}
+
+	private void addCoreComponents(CodeSystem codeSystem, String effectiveTime, ReleaseManifestFolder terminologyFolder, String formattedName) {
+		List<String> languageCodes = new ArrayList<>(codeSystem.getLanguages().keySet());
+		for (String languageCode : languageCodes) {
+			terminologyFolder.getOrAddFile(getCoreComponentFilename("Description", format("-%s", languageCode), formattedName, effectiveTime))
+					.addLanguageCode(languageCode);
+		}
+		for (String languageCode : languageCodes) {
+			terminologyFolder.getOrAddFile(getCoreComponentFilename("TextDefinition", format("-%s", languageCode), formattedName, effectiveTime))
+					.addLanguageCode(languageCode);
+		}
+		terminologyFolder.getOrAddFile(getCoreComponentFilename("Identifier", "", formattedName, effectiveTime));
+		terminologyFolder.getOrAddFile(getCoreComponentFilename("StatedRelationship", "", formattedName, effectiveTime));
+		terminologyFolder.getOrAddFile(getCoreComponentFilename("Relationship", "", formattedName, effectiveTime));
+		terminologyFolder.getOrAddFile(getCoreComponentFilename("RelationshipConcreteValues", "", formattedName, effectiveTime));
+		// OWLExpression file is added by the refset logic
+	}
+
+	private ReleaseManifestFolder addRefsets(CodeSystem codeSystem, ReleaseManifestFolder snapshotFolder, Map<String, ConceptMini> refsets, String effectiveTime, String formattedName, SnowstormClient snowstormClient,
+			Set<String> refsetsWithMissingExportConfiguration) throws HTTPClientException {
+
+		ReleaseManifestFolder refsetFolder = snapshotFolder.getOrAddFolder("Refset");
+		for (ConceptMini refset : refsets.values()) {
+			addRefset(codeSystem, snapshotFolder, effectiveTime, formattedName, snowstormClient, refsetsWithMissingExportConfiguration, refset, refsetFolder);
+		}
+		return refsetFolder;
+	}
+
+	private void addRefset(CodeSystem codeSystem, ReleaseManifestFolder snapshotFolder, String effectiveTime, String formattedName, SnowstormClient snowstormClient, Set<String> refsetsWithMissingExportConfiguration, ConceptMini refset, ReleaseManifestFolder refsetFolder) throws HTTPClientException {
+		String exportDir = null;
+		String exportName = null;
+		String languageCode = null;
+		String fieldTypes = null;
+		List<String> fieldNameList = null;
+
+		Map<String, Object> fileConfiguration = getRefsetFileConfiguration(refset);
+		if (!fileConfiguration.isEmpty()) {
+			exportDir = (String) fileConfiguration.get("exportDir");
+			exportName = (String) fileConfiguration.get("name");
+			fieldTypes = (String) fileConfiguration.get("fieldTypes");
+			fieldNameList = (List<String>) fileConfiguration.get("fieldNameList");
+
+			if (exportName.equals("Language")) {
+				languageCode = getLangRefsetLanguageCode(codeSystem, snowstormClient, refset);
+			} else {
+				languageCode = "";
+			}
+
+			// Workaround for International maps being outdated
+			if (exportName.equals("SimpleMapFromSCT") || exportName.equals("SimpleMapToSCT")) {
+				exportName = "SimpleMap";
+				fieldNameList = List.of("mapTarget");
+			}
+		}
+		if (exportDir == null || fieldTypes == null) {
+			refsetsWithMissingExportConfiguration.add(refset.getConceptId());
+			return;
+		}
+		ReleaseManifestFolder outputFolder = getRefsetOutputFolder(exportDir, snapshotFolder, refsetFolder);
+		ReleaseManifestFile refsetFile = getRefsetFile(effectiveTime, exportName, languageCode, fieldTypes, formattedName, outputFolder);
+		addRefsetAndFields(refset, refsetFile, fieldNameList);
+	}
+
+	private Map<String, Object> getRefsetFileConfiguration(ConceptMini refset) {
+		Map<String, Object> extraFields = refset.getExtraFields();
+		if (extraFields != null) {
+			Map<String, Object> referenceSetType = (Map<String, Object>) extraFields.get("referenceSetType");
+			if (referenceSetType != null && referenceSetType.get("fileConfiguration") != null) {
+				return (Map<String, Object>) referenceSetType.get("fileConfiguration");
+			}
+		}
+		return Collections.emptyMap();
+	}
+
+	private static String getLangRefsetLanguageCode(CodeSystem codeSystem, SnowstormClient snowstormClient, ConceptMini refset) throws HTTPClientException {
+		String languageCode = "-en";
+		Page<RefsetMember> refsetMembers = snowstormClient.getRefsetMembers(refset.getConceptId(), codeSystem, true, 0, 5);
+		if (refsetMembers.getTotal() > 0) {
+			RefsetMember firstLanguageRefsetMember = refsetMembers.getItems().get(0);
+			ReferencedComponent referencedComponent = firstLanguageRefsetMember.getReferencedComponent();
+			if (referencedComponent != null) {
+				languageCode = String.format("-%s", referencedComponent.getLang());
+			}
+		}
+		return languageCode;
 	}
 
 	private static void addRefsetAndFields(ConceptMini refset, ReleaseManifestFile refsetFile, List<String> fieldNameList) {
@@ -184,7 +212,7 @@ public class ReleaseManifestService {
 	}
 
 	private String getCoreComponentFilename(String exportName, String langPostfix, String formattedName, String effectiveTime) {
-		return format("sct2_%s_%s%s_%s_%s.txt", exportName, "Snapshot", langPostfix, formattedName, effectiveTime);
+		return format("sct2_%s_%s%s_%s_%s.txt", exportName, SNAPSHOT, langPostfix, formattedName, effectiveTime);
 	}
 
 	private String getRefsetFilename(String exportName, String languageCode, String fieldTypes, String formattedName, String effectiveTime) {
@@ -192,7 +220,7 @@ public class ReleaseManifestService {
 		if (exportName.equals("OWLExpression")) {
 			prefix = "sct2";
 		}
-		return format("%s_%sRefset_%s%s%s_%s_%s.txt", prefix, fieldTypes, exportName, "Snapshot", languageCode, formattedName, effectiveTime);
+		return format("%s_%sRefset_%s%s%s_%s_%s.txt", prefix, fieldTypes, exportName, SNAPSHOT, languageCode, formattedName, effectiveTime);
 	}
 
 }
