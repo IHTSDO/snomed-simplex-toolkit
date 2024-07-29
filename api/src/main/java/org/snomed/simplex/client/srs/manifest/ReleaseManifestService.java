@@ -60,8 +60,8 @@ public class ReleaseManifestService {
 		refsets.remove("554481000005106"); // Ignore badly set up DK refset
 
 		Set<String> refsetsWithMissingExportConfiguration = new HashSet<>();
-		ReleaseManifestFolder refsetFolder = addRefsets(codeSystem, snapshotFolder, refsets, effectiveTime, formattedName, snowstormClient,
-				refsetsWithMissingExportConfiguration);
+		ReleaseContext releaseContext = new ReleaseContext(codeSystem, effectiveTime, snowstormClient);
+		ReleaseManifestFolder refsetFolder = addRefsets(releaseContext, snapshotFolder, refsets, formattedName,	refsetsWithMissingExportConfiguration);
 
 		// If missing, force inclusion of empty MemberAnnotationStringValue refset
 		String memberAnnotationStringRefset = "1292995002";
@@ -107,9 +107,12 @@ public class ReleaseManifestService {
 		// OWLExpression file is added by the refset logic
 	}
 
-	private ReleaseManifestFolder addRefsets(CodeSystem codeSystem, ReleaseManifestFolder snapshotFolder, Map<String, ConceptMini> refsets, String effectiveTime, String formattedName, SnowstormClient snowstormClient,
-			Set<String> refsetsWithMissingExportConfiguration) throws HTTPClientException {
+	private ReleaseManifestFolder addRefsets(ReleaseContext releaseContext, ReleaseManifestFolder snapshotFolder, Map<String, ConceptMini> refsets,
+			String formattedName, Set<String> refsetsWithMissingExportConfiguration) throws HTTPClientException {
 
+		SnowstormClient snowstormClient = releaseContext.snowstormClient();
+		CodeSystem codeSystem = releaseContext.codeSystem();
+		String effectiveTime = releaseContext.effectiveTime();
 		ReleaseManifestFolder refsetFolder = snapshotFolder.getOrAddFolder("Refset");
 		for (ConceptMini refset : refsets.values()) {
 			addRefset(codeSystem, snapshotFolder, effectiveTime, formattedName, snowstormClient, refsetsWithMissingExportConfiguration, refset, refsetFolder);
