@@ -7,9 +7,12 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
+import org.snomed.simplex.client.domain.ReferencedComponent;
+import org.snomed.simplex.client.domain.RefsetMember;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifest;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFile;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFolder;
+import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
@@ -86,9 +89,14 @@ public class ReleaseManifestService {
 						exportName = (String) fileConfiguration.get("name");
 						if (exportName.equals("Language")) {
 							languageCode = "-en";
-							if (!languageCodes.isEmpty() && !languageCodes.equals(List.of("en"))) {
-								// FIXME
-								throw new ServiceException("Generating a release manifest using languages other than 'en' is not supported yet.");
+
+							Page<RefsetMember> refsetMembers = snowstormClient.getRefsetMembers(refset.getConceptId(), codeSystem, true, 0, 5);
+							if (refsetMembers.getTotal() > 0) {
+								RefsetMember firstLanguageRefsetMember = refsetMembers.getItems().get(0);
+								ReferencedComponent referencedComponent = firstLanguageRefsetMember.getReferencedComponent();
+								if (referencedComponent != null) {
+									languageCode = String.format("-%s", referencedComponent.getLang());
+								}
 							}
 						} else {
 							languageCode = "";
@@ -151,8 +159,7 @@ public class ReleaseManifestService {
 
 	private ReleaseManifestFile getRefsetFile(String effectiveTime, String exportName, String languageCode, String fieldTypes, String formattedName, ReleaseManifestFolder outputFolder) {
 		String refsetFileName = getRefsetFilename(exportName, languageCode, fieldTypes, formattedName, effectiveTime);
-		ReleaseManifestFile refsetFile = outputFolder.getOrAddFile(refsetFileName);
-		return refsetFile;
+		return outputFolder.getOrAddFile(refsetFileName);
 	}
 
 	private static ReleaseManifestFolder getRefsetOutputFolder(String exportDir, ReleaseManifestFolder snapshotFolder, ReleaseManifestFolder refsetFolder) {
