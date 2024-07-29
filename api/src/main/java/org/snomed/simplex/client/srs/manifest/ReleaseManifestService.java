@@ -110,17 +110,20 @@ public class ReleaseManifestService {
 	private ReleaseManifestFolder addRefsets(ReleaseContext releaseContext, ReleaseManifestFolder snapshotFolder, Map<String, ConceptMini> refsets,
 			String formattedName, Set<String> refsetsWithMissingExportConfiguration) throws HTTPClientException {
 
-		SnowstormClient snowstormClient = releaseContext.snowstormClient();
-		CodeSystem codeSystem = releaseContext.codeSystem();
-		String effectiveTime = releaseContext.effectiveTime();
 		ReleaseManifestFolder refsetFolder = snapshotFolder.getOrAddFolder("Refset");
 		for (ConceptMini refset : refsets.values()) {
-			addRefset(codeSystem, snapshotFolder, effectiveTime, formattedName, snowstormClient, refsetsWithMissingExportConfiguration, refset, refsetFolder);
+			addRefset(releaseContext, snapshotFolder, formattedName, refsetsWithMissingExportConfiguration, refset, refsetFolder);
 		}
 		return refsetFolder;
 	}
 
-	private void addRefset(CodeSystem codeSystem, ReleaseManifestFolder snapshotFolder, String effectiveTime, String formattedName, SnowstormClient snowstormClient, Set<String> refsetsWithMissingExportConfiguration, ConceptMini refset, ReleaseManifestFolder refsetFolder) throws HTTPClientException {
+	private void addRefset(ReleaseContext releaseContext, ReleaseManifestFolder snapshotFolder, String formattedName,
+			Set<String> refsetsWithMissingExportConfiguration, ConceptMini refset, ReleaseManifestFolder refsetFolder) throws HTTPClientException {
+
+		SnowstormClient snowstormClient = releaseContext.snowstormClient();
+		CodeSystem codeSystem = releaseContext.codeSystem();
+		String effectiveTime = releaseContext.effectiveTime();
+
 		String exportDir = null;
 		String exportName = null;
 		String languageCode = null;
