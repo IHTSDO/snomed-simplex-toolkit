@@ -78,7 +78,7 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 
 			// Ignore sheet members where concept does not exist
 			Set<String> inputMemberConceptIds = inputMembers.stream().map(RefsetMemberIntent::getReferenceComponentId).collect(Collectors.toSet());
-			List<String> conceptsExist = snowstormClient.getConceptIds(inputMemberConceptIds, codeSystem).stream().map(Object::toString).collect(Collectors.toList());
+			List<String> conceptsExist = snowstormClient.getConceptIds(inputMemberConceptIds, codeSystem).stream().map(Object::toString).toList();
 			List<String> conceptsDoNotExist = new ArrayList<>(inputMemberConceptIds);
 			conceptsDoNotExist.removeAll(conceptsExist);
 			if (!conceptsDoNotExist.isEmpty()) {
@@ -127,8 +127,13 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 					.filter(not(membersToUpdate::contains))
 					.toList();
 
-			List<RefsetMember> membersToInactivate = membersToRemove.stream().filter(RefsetMember::isReleased).toList();
-			List<RefsetMember> membersToDelete = membersToRemove.stream().filter(not(RefsetMember::isReleased)).collect(Collectors.toList());
+			List<RefsetMember> membersToInactivate = membersToRemove.stream()
+					.filter(RefsetMember::isReleased)
+					.filter(RefsetMember::isActive)
+					.toList();
+			List<RefsetMember> membersToDelete = membersToRemove.stream()
+					.filter(not(RefsetMember::isReleased))
+					.collect(Collectors.toList());
 
 			logger.info("Member changes required: {} create, {} update, {} delete, {} inactivate.",
 					membersToCreate.size(), membersToUpdate.size(), membersToDelete.size(), membersToInactivate.size());
