@@ -1,6 +1,7 @@
 package org.snomed.simplex.client.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.logging.log4j.util.Strings;
 import org.snomed.simplex.exceptions.ServiceException;
 
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+@JsonPropertyOrder({"name", "shortName", "branchPath", "workingBranchPath"})
 public class CodeSystem {
 
 	private String name;
