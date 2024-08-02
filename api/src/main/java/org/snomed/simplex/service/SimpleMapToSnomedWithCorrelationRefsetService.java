@@ -24,6 +24,8 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 	public static final String NO_MAP_FLAG = "No map flag";
 	public static final String STATUS = "Status";
 	public static final String MAPPED = "MAPPED";
+	public static final String ACCEPTED = "ACCEPTED";
+	public static final Set<String> IMPORT_STATUSES = Set.of(MAPPED, ACCEPTED);
 	public static final String MAP_SOURCE = "mapSource";
 	public static final String CORRELATION_ID = "correlationId";
 	public static final String NO_SCT_MAP_TARGET_CONCEPT = "1193545001";// 1193545001 |No SNOMED CT map target (foundation metadata concept)|
@@ -54,7 +56,7 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 			String relationshipType = SpreadsheetService.readGenericCode(cells, headerConfiguration.getColumn(RELATIONSHIP_TYPE_CODE), rowNumber);
 			String noMapFlag = SpreadsheetService.readGenericCode(cells, headerConfiguration.getColumn(NO_MAP_FLAG), rowNumber);
 			String status = SpreadsheetService.readGenericCode(cells, headerConfiguration.getColumn(STATUS), rowNumber);
-			if (status == null || !status.equals(MAPPED)) {
+			if (status == null || !IMPORT_STATUSES.contains(status)) {
 				return null;
 			}
 
