@@ -10,6 +10,7 @@ public class Relationship extends Component {
 	private String modifier;
 	private int groupId;
 	private String characteristicType;
+	private ConceptMini type;
 	private ConceptMini target;
 
 	public static Relationship stated(String typeId, String destinationId, int group) {
@@ -86,4 +87,9 @@ public class Relationship extends Component {
 	public void setTarget(ConceptMini target) {
 		this.target = target;
 	}
+
+	public ConceptMini getType() {
+		return type;
+	}
+
 }

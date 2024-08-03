@@ -118,4 +118,10 @@ public class TranslationController {
 		HttpServletRequest request = ((ServletRequestAttributes) attrs).getRequest();
 		return ServletUriComponentsBuilder.fromHttpUrl(request.getRequestURL().toString()).path("/{id}").buildAndExpand(id).toUri().toString();
 	}
+
+	@GetMapping(path = "translation-markdown", produces = "text/plain")
+	public String getWeblateMarkdown(@RequestParam Long conceptId) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		return translationService.getWeblateMarkdown(conceptId, snowstormClient);
+	}
 }

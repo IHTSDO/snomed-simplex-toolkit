@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import jakarta.annotation.PostConstruct;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -27,6 +28,7 @@ import static java.lang.Long.parseLong;
 import static java.lang.String.format;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
+import static org.snomed.simplex.client.domain.Description.Type.FSN;
 import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
 
 @Service
@@ -384,5 +386,69 @@ public class TranslationService {
 
 	private static String getFirstWord(String term) {
 		return term.split(" ", 2)[0];
+	}
+
+	public String getWeblateMarkdown(Long conceptId, SnowstormClient snowstormClient) {
+		CodeSystem internationalCodeSystem = new CodeSystem("SNOMEDCT", "SNOMEDCT", "MAIN");
+		List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(List.of(conceptId), internationalCodeSystem);
+		if (concepts.isEmpty()) {
+			return "Concept not found";
+		}
+		Concept concept = concepts.get(0);
+		List<Pair<String, ConceptMini>> attributes = new ArrayList<>();
+		for (Relationship relationship : concept.getRelationships().stream().filter(Relationship::isActive).toList()) {
+			if (relationship.getTypeId().equals(Concepts.IS_A)) {
+				attributes.add(Pair.of("Parent", relationship.getTarget()));
+			} else {
+				attributes.add(Pair.of(relationship.getType().getPt().getTerm(), relationship.getTarget()));
+			}
+		}
+
+		List<Description> activeDescriptions = concept.getDescriptions().stream().filter(Component::isActive).toList();
+		Description fsn = activeDescriptions.stream()
+				.filter(d -> d.getType() == FSN)
+				.filter(d -> d.getAcceptabilityMap().get(Concepts.US_LANG_REFSET) == Description.Acceptability.PREFERRED)
+				.findFirst().orElse(new Description());
+		Description pt = activeDescriptions.stream()
+				.filter(d -> d.getType() == SYNONYM)
+				.filter(d -> d.getAcceptabilityMap().get(Concepts.US_LANG_REFSET) == Description.Acceptability.PREFERRED)
+				.findFirst().orElse(new Description());
+		List<Description> synonyms = activeDescriptions.stream()
+				.filter(d -> d.getType() == SYNONYM)
+				.filter(d -> d.getAcceptabilityMap().get(Concepts.US_LANG_REFSET) == Description.Acceptability.ACCEPTABLE)
+				.toList();
+
+		StringBuilder builder = new StringBuilder(
+				"""
+						#### Concept Details
+						| Descriptions |  | Attributes |  |
+						| :------------- | --- | ------------: | :--- |
+						""");
+		int row = 0;
+		appendRow(builder, "_FSN_: ", fsn.getTerm(), attributes, row++);
+		appendRow(builder, "_PT_: ", pt.getTerm(), attributes, row++);
+		for (Description synonym : synonyms) {
+			appendRow(builder, "", synonym.getTerm(), attributes, row++);
+		}
+		while (row < attributes.size()) {
+			appendRow(builder, "", "", attributes, row++);
+		}
+		return builder.toString();
+	}
+
+	private static void appendRow(StringBuilder builder, String type, String term, List<Pair<String, ConceptMini>> attributes, int row) {
+		builder.append("| ");
+		if (!term.isEmpty()) {
+			builder.append(type).append(term);
+		}
+		builder.append(" |  | ");
+		if (attributes.size() > row) {
+			Pair<String, ConceptMini> attribute = attributes.get(row);
+			builder.append("_").append(attribute.getLeft()).append("_ →");
+			builder.append(" |  ");
+			ConceptMini target = attribute.getRight();
+			builder.append(target.getFsn().getTerm()).append(" [open](http://snomed.info/id/").append(target.getConceptId()).append(")");
+		}
+		builder.append(" |\n");
 	}
 }
