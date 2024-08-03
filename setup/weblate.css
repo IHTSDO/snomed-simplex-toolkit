@@ -1,0 +1,41 @@
+.help-block label {
+    display: none;
+}
+.help-block .list-group-item {
+    padding: 0 0 10px 0;
+    border: none;
+}
+
+.markdown table {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+    overflow: auto;
+    border: none;
+}
+.markdown table tr {
+    background-color: white;
+}
+
+.markdown table th, .markdown table td {
+    padding: 6px 13px;
+    border: 1px solid #d0d7deb3;
+}
+.markdown table td:nth-child(3n), .markdown table th:nth-child(3n) {
+    padding-right: 0px;
+    border-right: none;
+}
+.markdown table td:nth-child(4n), .markdown table th:nth-child(4n) {
+    padding-left: 4px;
+    border-left: none;
+}
+.markdown table th {
+    font-weight: 600;
+}
+.markdown tr:nth-child(2n) {
+    background-color: #f6f8fa;
+}
+.markdown table tr th:nth-child(2), .markdown table tr td:nth-child(2) {
+    background-color: white;
+    border: none;
+}
