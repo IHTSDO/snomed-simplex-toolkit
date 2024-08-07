@@ -133,7 +133,7 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 					.toList();
 			List<RefsetMember> membersToDelete = membersToRemove.stream()
 					.filter(not(RefsetMember::isReleased))
-					.collect(Collectors.toList());
+					.toList();
 
 			logger.info("Member changes required: {} create, {} update, {} delete, {} inactivate.",
 					membersToCreate.size(), membersToUpdate.size(), membersToDelete.size(), membersToInactivate.size());
