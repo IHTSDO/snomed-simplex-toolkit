@@ -80,10 +80,6 @@ public class SpreadsheetService {
 		Workbook workbook = new XSSFWorkbook();
 		Sheet sheet = workbook.createSheet();
 
-		// Format all value cells as text.
-		// To prevent them being automatically formatted as number because that can lead to formatting / rounding issues.
-		CellStyle cellStyle = getCellStyle(workbook);
-
 		int rowOffset = 0;
 		Row headerRow = sheet.createRow(rowOffset++);
 		headerRow.setHeight((short) (headerRow.getHeight() * 4));
@@ -93,17 +89,21 @@ public class SpreadsheetService {
 			XSSFRichTextString textString = new XSSFRichTextString();
 			textString.append(header.getName(), BOLD_FONT);
 			if (header.getSubtitle() != null) {
-				textString.append("\r\n");
+				textString.append("\n");
 				textString.append(header.getSubtitle());
 			}
 			cell.setCellValue(textString);
-			CellStyle cellStyle1 = cell.getCellStyle();
-			cellStyle1.setWrapText(true);
-			cellStyle1.setVerticalAlignment(VerticalAlignment.CENTER);
-			cell.setCellStyle(cellStyle1);
+			CellStyle headerCellStyle = sheet.getWorkbook().createCellStyle();
+			headerCellStyle.setWrapText(true);
+			headerCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+			cell.setCellStyle(headerCellStyle);
 			columnOffset++;
 		}
 		List<Row> dataRows = new ArrayList<>();
+		// Format all value cells as text.
+		// To prevent them being automatically formatted as number because that can lead to formatting / rounding issues.
+		CellStyle cellStyle = getCellStyle(workbook);
+
 		for (Concept concept : concepts) {
 			columnOffset = 0;
 			Row row = sheet.createRow(rowOffset++);
