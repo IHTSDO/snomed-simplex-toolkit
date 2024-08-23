@@ -157,7 +157,6 @@ public class SpreadsheetService {
 					cell = row.createCell(termColumnOffset++);
 					cell.setCellStyle(cellStyle);
 					cell.setCellValue(term);
-					termColumnOffset++;
 				}
 			}
 
