@@ -88,6 +88,8 @@ public class CodeSystemService {
 
 		createModuleOntologyExpression(moduleId, newCodeSystem, snowstormClient);
 
+		snowstormClient.setAuthorPermissions(newCodeSystem);
+
 		// TODO Update code system with module as uriModuleId - Only SnowstormX so far.
 		return newCodeSystem;
 	}

@@ -197,6 +197,15 @@ public class SnowstormClient {
 		restTemplate.delete(format("/codesystems/%s", shortName));
 	}
 
+	public void setAuthorPermissions(CodeSystem newCodeSystem) {
+		String url = format("/admin/permissions/%s/role/AUTHOR", newCodeSystem.getBranchPath());
+		String shortNameLower = newCodeSystem.getShortName().replace("SNOMEDCT-", "").toLowerCase();
+		String groupName = format("simplex-%s-author", shortNameLower);
+		Map<String, List<String>> params = new HashMap<>();
+		params.put("userGroups", List.of(groupName));
+		restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(params), Void.class);
+	}
+
 	public void upsertBranchMetadata(String branchPath, Map<String, String> newBranchMetadata) {
 		restTemplate.exchange(format("/branches/%s/metadata-upsert", branchPath), HttpMethod.PUT, new HttpEntity<>(newBranchMetadata), Map.class);
 	}
