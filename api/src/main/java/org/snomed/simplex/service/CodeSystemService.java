@@ -53,11 +53,18 @@ public class CodeSystemService {
 		this.validationService = validationService;
 	}
 
-	public CodeSystem createCodeSystem(String name, String shortName, String namespace, boolean createModule, String moduleName, String existingModuleId) throws ServiceException {
+	public CodeSystem createCodeSystem(String name, String shortName, String namespace, boolean createModule, String moduleName,
+			String existingModuleId, String dependantCodeSystemShortname, Integer dependantCodeSystemVersion) throws ServiceException {
+
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 
+		if (dependantCodeSystemShortname == null) {
+			dependantCodeSystemShortname = "SNOMEDCT";
+		}
+		CodeSystem dependantCodeSystem = snowstormClient.getCodeSystemOrThrow(dependantCodeSystemShortname);
+
 		// Create code system
-		CodeSystem newCodeSystem = snowstormClient.createCodeSystem(name, shortName, namespace);
+		CodeSystem newCodeSystem = snowstormClient.createCodeSystem(name, shortName, namespace, dependantCodeSystem, dependantCodeSystemVersion);
 
 		String moduleId = existingModuleId;
 		if (createModule) {

@@ -8,6 +8,8 @@ public class CreateCodeSystemRequest {
 	private boolean createModule;
 	private String moduleName;
 	private String moduleId;
+	private String dependantCodeSystem;
+	private Integer dependantCodeSystemVersion;
 
 	public String getName() {
 		return name;
@@ -47,5 +49,21 @@ public class CreateCodeSystemRequest {
 
 	public String getModuleId() {
 		return moduleId;
+	}
+
+	public String getDependantCodeSystem() {
+		return dependantCodeSystem;
+	}
+
+	public void setDependantCodeSystem(String dependantCodeSystem) {
+		this.dependantCodeSystem = dependantCodeSystem;
+	}
+
+	public Integer getDependantCodeSystemVersion() {
+		return dependantCodeSystemVersion;
+	}
+
+	public void setDependantCodeSystemVersion(Integer dependantCodeSystemVersion) {
+		this.dependantCodeSystemVersion = dependantCodeSystemVersion;
 	}
 }

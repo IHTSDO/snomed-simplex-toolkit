@@ -88,11 +88,16 @@ public class CodeSystemController {
 		return codeSystemForDisplay;
 	}
 
+	@Operation(description = """
+			`dependantCodeSystem` is optional, by default the International Edition is used.
+			
+			`dependantCodeSystemVersion` is optional, by default the latest version is used.
+			""")
 	@PostMapping
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public CodeSystem createCodeSystem(@RequestBody CreateCodeSystemRequest request) throws ServiceException {
-		return codeSystemService.createCodeSystem(request.getName(), request.getShortName(), request.getNamespace(), request.isCreateModule(), request.getModuleName(),
-				request.getModuleId());
+		return codeSystemService.createCodeSystem(request.getName(), request.getShortName(), request.getNamespace(), request.isCreateModule(),
+				request.getModuleName(), request.getModuleId(), request.getDependantCodeSystem(), request.getDependantCodeSystemVersion());
 	}
 
 	@PostMapping("{codeSystem}/upgrade")

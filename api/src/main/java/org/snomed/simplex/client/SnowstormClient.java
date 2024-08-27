@@ -168,10 +168,16 @@ public class SnowstormClient {
 		return true;
 	}
 
-	public CodeSystem createCodeSystem(String name, String shortName, String namespace) throws HTTPClientException {
-		String branchPath = "MAIN/" + shortName;
+	public CodeSystem createCodeSystem(String name, String shortName, String namespace,
+			CodeSystem dependantCodeSystem, Integer dependantCodeSystemVersion) throws HTTPClientException {
+
+		String branchPath = String.format("%s/%s", dependantCodeSystem.getBranchPath(), shortName);
 		try {
-			restTemplate.exchange("/codesystems", HttpMethod.POST, new HttpEntity<>(new CodeSystem(name, shortName, branchPath).setDailyBuildAvailable(true)), CodeSystem.class);
+			CodeSystem codeSystemCreateRequest = new CodeSystem(name, shortName, branchPath);
+			if (dependantCodeSystemVersion != null) {
+				codeSystemCreateRequest.setDependantVersionEffectiveTime(dependantCodeSystemVersion);
+			}
+			restTemplate.exchange("/codesystems", HttpMethod.POST, new HttpEntity<>(codeSystemCreateRequest.setDailyBuildAvailable(true)), CodeSystem.class);
 			CodeSystem codeSystem = restTemplate.getForEntity(format("/codesystems/%s", shortName), CodeSystem.class).getBody();
 
 			// Set namespace

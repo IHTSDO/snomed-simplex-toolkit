@@ -79,6 +79,10 @@ public class CodeSystem {
 		return dependantVersionEffectiveTime;
 	}
 
+	public void setDependantVersionEffectiveTime(Integer dependantVersionEffectiveTime) {
+		this.dependantVersionEffectiveTime = dependantVersionEffectiveTime;
+	}
+
 	public List<ConceptMini> getModules() {
 		return modules;
 	}
