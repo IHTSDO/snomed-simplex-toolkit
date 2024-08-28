@@ -55,7 +55,7 @@ import static org.ihtsdo.sso.integration.SecurityUtil.getAuthenticationToken;
 @Service
 public class ReleaseServiceClient {
 
-    public static final String ASSERTION_GROUP_NAMES = "common-authoring,simplex-authoring";
+    public static final String ASSERTION_GROUP_NAMES = "common-authoring,simplex-release";
     public static final String DROOLS_RULES_GROUP_NAMES = "common-authoring";
 
     private final String releaseServiceURL;
