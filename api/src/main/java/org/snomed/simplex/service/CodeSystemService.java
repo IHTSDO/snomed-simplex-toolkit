@@ -11,6 +11,7 @@ import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
+import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.snomed.simplex.service.validation.ValidationService;
@@ -30,6 +31,7 @@ public class CodeSystemService {
 	public static final String OWL_ONTOLOGY_REFSET = "762103008";
 	public static final String OWL_EXPRESSION = "owlExpression";
 	public static final String OWL_ONTOLOGY_HEADER = "734147008";
+	public static final String CORE_METADATA_CONCEPT_TAG = "core metadata concept";
 
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final JobService jobService;
@@ -53,24 +55,27 @@ public class CodeSystemService {
 		this.validationService = validationService;
 	}
 
-	public CodeSystem createCodeSystem(String name, String shortName, String namespace, boolean createModule, String moduleName,
-			String existingModuleId, String dependantCodeSystemShortname, Integer dependantCodeSystemVersion) throws ServiceException {
+	public CodeSystem createCodeSystem(CreateCodeSystemRequest createCodeSystemRequest) throws ServiceException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 
+		String dependantCodeSystemShortname = createCodeSystemRequest.getDependantCodeSystem();
 		if (dependantCodeSystemShortname == null) {
 			dependantCodeSystemShortname = "SNOMEDCT";
 		}
 		CodeSystem dependantCodeSystem = snowstormClient.getCodeSystemOrThrow(dependantCodeSystemShortname);
 
 		// Create code system
-		CodeSystem newCodeSystem = snowstormClient.createCodeSystem(name, shortName, namespace, dependantCodeSystem, dependantCodeSystemVersion);
+		CodeSystem newCodeSystem = snowstormClient.createCodeSystem(
+				createCodeSystemRequest.getName(), createCodeSystemRequest.getShortName(), createCodeSystemRequest.getNamespace(),
+				dependantCodeSystem, createCodeSystemRequest.getDependantCodeSystemVersion());
 
+		String existingModuleId = createCodeSystemRequest.getModuleId();
 		String moduleId = existingModuleId;
-		if (createModule) {
+		if (createCodeSystemRequest.isCreateModule()) {
 			// Create module
-			String tag = "core metadata concept";
-			Concept tempModuleConcept = snowstormClient.createSimpleMetadataConcept(Concepts.MODULE, moduleName, tag, newCodeSystem);
+			String moduleName = createCodeSystemRequest.getModuleName();
+			Concept tempModuleConcept = snowstormClient.createSimpleMetadataConcept(Concepts.MODULE, moduleName, CORE_METADATA_CONCEPT_TAG, newCodeSystem);
 			moduleId = tempModuleConcept.getConceptId();
 			// Delete concept
 			snowstormClient.deleteConcept(tempModuleConcept.getConceptId(), newCodeSystem);
@@ -79,7 +84,7 @@ public class CodeSystemService {
 			setDefaultModule(moduleId, newCodeSystem, snowstormClient);
 
 			// Recreate
-			Concept moduleConcept = snowstormClient.newSimpleMetadataConceptWithoutSave(Concepts.MODULE, moduleName, tag);
+			Concept moduleConcept = snowstormClient.newSimpleMetadataConceptWithoutSave(Concepts.MODULE, moduleName, CORE_METADATA_CONCEPT_TAG);
 			moduleConcept.setConceptId(moduleId);
 			snowstormClient.createConcept(moduleConcept, newCodeSystem);
 		} else if (existingModuleId != null && !existingModuleId.isEmpty()) {

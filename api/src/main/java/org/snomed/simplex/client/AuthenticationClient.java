@@ -19,12 +19,9 @@ import java.util.Map;
 @Service
 public class AuthenticationClient {
 
-	private final String imsUrl;
 	private final RestTemplate restTemplate;
 
 	public AuthenticationClient(@Value("${ims-security.api-url}") String imsUrl) {
-		this.imsUrl = imsUrl;
-
 		MappingJackson2HttpMessageConverter jsonConverter = new MappingJackson2HttpMessageConverter();
 		jsonConverter.setObjectMapper(new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false));
 		restTemplate = new RestTemplateBuilder()

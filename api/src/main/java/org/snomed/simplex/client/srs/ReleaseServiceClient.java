@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
-import static org.ihtsdo.sso.integration.SecurityUtil.getAuthenticationToken;
 
 @Service
 public class ReleaseServiceClient {
@@ -165,7 +164,7 @@ public class ReleaseServiceClient {
     }
 
     private static String extractFilenameEffectiveDate(String dependencyPackage) throws ServiceExceptionWithStatusCode {
-        Pattern datePattern = Pattern.compile(".*_(\\d{8})[^_]*\\.zip");
+        Pattern datePattern;
         if (dependencyPackage.contains("RF2_DISTRIBUTION")) {
             // AU package, e.g. NCTS_SCT_RF2_DISTRIBUTION_32506021000036107-20240731-ALL.zip
             datePattern = Pattern.compile(".*-(\\d{8})[^_]*\\.zip");

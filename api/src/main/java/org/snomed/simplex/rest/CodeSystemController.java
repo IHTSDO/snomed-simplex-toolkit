@@ -96,8 +96,7 @@ public class CodeSystemController {
 	@PostMapping
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public CodeSystem createCodeSystem(@RequestBody CreateCodeSystemRequest request) throws ServiceException {
-		return codeSystemService.createCodeSystem(request.getName(), request.getShortName(), request.getNamespace(), request.isCreateModule(),
-				request.getModuleName(), request.getModuleId(), request.getDependantCodeSystem(), request.getDependantCodeSystemVersion());
+		return codeSystemService.createCodeSystem(request);
 	}
 
 	@PostMapping("{codeSystem}/upgrade")
