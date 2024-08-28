@@ -165,8 +165,14 @@ public class ReleaseServiceClient {
     }
 
     private static String extractFilenameEffectiveDate(String dependencyPackage) throws ServiceExceptionWithStatusCode {
-        // Example SnomedCT_InternationalRF2_PRODUCTION_20240101T120000Z.zip
         Pattern datePattern = Pattern.compile(".*_(\\d{8})[^_]*\\.zip");
+        if (dependencyPackage.contains("RF2_DISTRIBUTION")) {
+            // AU package, e.g. NCTS_SCT_RF2_DISTRIBUTION_32506021000036107-20240731-ALL.zip
+            datePattern = Pattern.compile(".*-(\\d{8})[^_]*\\.zip");
+        } else {
+            // Example SnomedCT_InternationalRF2_PRODUCTION_20240101T120000Z.zip
+            datePattern = Pattern.compile(".*_(\\d{8})[^_]*\\.zip");
+        }
         Matcher dateMatcher = datePattern.matcher(dependencyPackage);
         if (!dateMatcher.matches()) {
             throw new ServiceExceptionWithStatusCode("Failed to extract effective time from the filename of the dependency package.", HttpStatus.CONFLICT);
