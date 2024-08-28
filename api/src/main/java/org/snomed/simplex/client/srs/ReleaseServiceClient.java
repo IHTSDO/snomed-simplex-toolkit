@@ -7,9 +7,9 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.ihtsdo.otf.snomedboot.ReleaseImportException;
 import org.ihtsdo.otf.snomedboot.ReleaseImporter;
-import org.ihtsdo.sso.integration.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.AuthenticationClient;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -59,6 +59,9 @@ public class ReleaseServiceClient {
     public static final String DROOLS_RULES_GROUP_NAMES = "common-authoring";
 
     private final String releaseServiceURL;
+    private final String releaseServiceUsername;
+    private final String releaseServicePassword;
+
     private final String releaseCenter;
     private final String releaseCenterBranch;
     private final String releaseSource;
@@ -66,6 +69,7 @@ public class ReleaseServiceClient {
     private final String licenceStatementTemplate;
     private final ReleaseManifestService releaseManifestService;
     private final SnowstormClientFactory snowstormClientFactory;
+    private final AuthenticationClient authenticationClient;
     public static final boolean EDITION_PACKAGE = true;
     public static final String FIRST_SNOMEDCT_RELEASE_DATE = "2002-01-01";
 
@@ -76,15 +80,20 @@ public class ReleaseServiceClient {
 
     public ReleaseServiceClient(
             @Value("${snomed-release-service.url}") String releaseServiceURL,
+            @Value("${snomed-release-service.username}") String releaseServiceUsername,
+            @Value("${snomed-release-service.password}") String releaseServicePassword,
             @Value("${snomed-release-service.simplex-release-center}") String releaseCenter,
             @Value("${snomed-release-service.simplex-release-center-branch}") String releaseCenterBranch,
             @Value("${snomed-release-service.source-name}") String releaseSource,
             @Value("${snomed-release-service.package.readme-header-template}") String readmeHeaderTemplate,
             @Value("${snomed-release-service.package.licence-statement-template}") String licenceStatementTemplate,
             @Autowired ReleaseManifestService releaseManifestService,
-            @Autowired SnowstormClientFactory snowstormClientFactory) {
+            @Autowired SnowstormClientFactory snowstormClientFactory,
+            @Autowired AuthenticationClient authenticationClient) {
 
         this.releaseServiceURL = releaseServiceURL;
+        this.releaseServiceUsername = releaseServiceUsername;
+        this.releaseServicePassword = releaseServicePassword;
         this.releaseCenter = releaseCenter;
         this.releaseCenterBranch = releaseCenterBranch;
         this.releaseSource = releaseSource;
@@ -92,6 +101,7 @@ public class ReleaseServiceClient {
         this.licenceStatementTemplate = licenceStatementTemplate;
         this.releaseManifestService = releaseManifestService;
         this.snowstormClientFactory = snowstormClientFactory;
+        this.authenticationClient = authenticationClient;
     }
 
     public Product getCreateProduct(CodeSystem codeSystem, PackageConfiguration packageConfiguration) throws ServiceException {
@@ -320,18 +330,20 @@ public class ReleaseServiceClient {
     }
 
     private RestTemplate getClient() throws ServiceException {
-        String authenticationToken = getAuthenticationToken();
-        if (authenticationToken == null || authenticationToken.isEmpty()) {
-            throw new ServiceExceptionWithStatusCode("Authentication token is missing. Unable to process request.", 403);
-        }
-
         try {
-            return clientCache.get(authenticationToken, () -> {
+            // Cache SRS service account RestTemplate using username
+            return clientCache.get(releaseServiceUsername, () -> {
+                String authenticationToken = authenticationClient.fetchAuthenticationToken(releaseServiceUsername, releaseServicePassword);
+                if (authenticationToken == null || authenticationToken.isEmpty()) {
+                    throw new ServiceExceptionWithStatusCode("Failed to authenticate with Release Service system user. " +
+                            "Unable to process request.", 403);
+                }
+
                 MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
                 converter.setObjectMapper(new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false));
                 return new RestTemplateBuilder()
                         .rootUri(releaseServiceURL)
-                        .defaultHeader("Cookie", SecurityUtil.getAuthenticationToken())
+                        .defaultHeader("Cookie", authenticationToken)
                         .defaultHeader("Content-Type", "application/json")
                         .messageConverters(List.of(converter, new AllEncompassingFormHttpMessageConverter()))
                         .build();
@@ -339,7 +351,6 @@ public class ReleaseServiceClient {
         } catch (ExecutionException e) {
             throw new ServiceException("Failed to create SRS client", e);
         }
-
     }
 
     public static class Product {
