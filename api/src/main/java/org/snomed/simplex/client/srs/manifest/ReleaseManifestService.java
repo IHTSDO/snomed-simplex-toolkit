@@ -5,10 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.snomed.simplex.client.SnowstormClient;
-import org.snomed.simplex.client.domain.CodeSystem;
-import org.snomed.simplex.client.domain.ConceptMini;
-import org.snomed.simplex.client.domain.ReferencedComponent;
-import org.snomed.simplex.client.domain.RefsetMember;
+import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifest;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFile;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFolder;
@@ -66,11 +63,10 @@ public class ReleaseManifestService {
 		// If missing, force inclusion of empty MemberAnnotationStringValue refset
 		String memberAnnotationStringRefset = "1292995002";
 		if (!refsets.containsKey(memberAnnotationStringRefset)) {
-			ConceptMini annotationRefset = snowstormClient.getRefset(memberAnnotationStringRefset, codeSystem);
+			ConceptMini annotationRefset = snowstormClient.getConcepts(memberAnnotationStringRefset, codeSystem, null).getItems().get(0);
 			ReleaseManifestFolder outputFolder = getRefsetOutputFolder("Metadata", snapshotFolder, refsetFolder);
 			ReleaseManifestFile refsetFile = getRefsetFile(effectiveTime, "MemberAnnotationStringValue", "", "sscs", formattedName, outputFolder);
 			addRefsetAndFields(annotationRefset, refsetFile, List.of("referencedMemberId", "languageDialectCode", "typeId", "value"));
-
 		}
 		if (!refsetsWithMissingExportConfiguration.isEmpty()) {
 			throw new ServiceException(format("Unable to generate build manifest file because the following refsets do not have an export configuration: %s",

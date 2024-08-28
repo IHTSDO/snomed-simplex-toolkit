@@ -29,6 +29,8 @@ public class CodeSystem {
 
 	private Integer dependantVersionEffectiveTime;
 	private String dependencyPackage;
+	private String previousPackage;
+	private String previousDependencyPackage;
 	private String namespace;
 	private String defaultModule;
 	private String defaultModuleDisplay;
@@ -170,6 +172,22 @@ public class CodeSystem {
 
 	public void setDependencyPackage(String dependencyPackage) {
 		this.dependencyPackage = dependencyPackage;
+	}
+
+	public String getPreviousPackage() {
+		return previousPackage;
+	}
+
+	public void setPreviousPackage(String previousPackage) {
+		this.previousPackage = previousPackage;
+	}
+
+	public String getPreviousDependencyPackage() {
+		return previousDependencyPackage;
+	}
+
+	public void setPreviousDependencyPackage(String previousDependencyPackage) {
+		this.previousDependencyPackage = previousDependencyPackage;
 	}
 
 	public void setLatestValidationReport(String latestValidationReport) {

@@ -133,6 +133,8 @@ public class SnowstormClient {
         codeSystem.setClassified("true".equals(branch.getMetadataValue(Branch.CLASSIFIED_METADATA_KEY)));
 		codeSystem.setShowCustomConcepts("true".equals(branch.getMetadataValue(Branch.SHOW_CUSTOM_CONCEPTS)));
 		codeSystem.setDependencyPackage(branch.getMetadataValue(Branch.DEPENDENCY_PACKAGE_METADATA_KEY));
+		codeSystem.setPreviousPackage(branch.getMetadataValue(Branch.PREVIOUS_PACKAGE_METADATA_KEY));
+		codeSystem.setPreviousDependencyPackage(branch.getMetadataValue(Branch.PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY));
 		codeSystem.setLatestValidationReport(branch.getMetadataValue(Branch.LATEST_VALIDATION_REPORT_METADATA_KEY));
 		codeSystem.setPreparingRelease("true".equalsIgnoreCase(branch.getMetadataValue(Branch.PREPARING_RELEASE_METADATA_KEY)));
 	}

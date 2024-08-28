@@ -128,8 +128,9 @@ public class ReleaseServiceClient {
             updateRequest.setPreviousPublishedPackage(null);
             updateRequest.setExtensionDependencyRelease(dependencyPackage);
         } else {
-            updateRequest.setPreviousPublishedPackage(null);// FIXME
-            updateRequest.setPreviousEditionDependencyEffectiveDate(extractFilenameEffectiveDate(dependencyPackage));
+			updateRequest.setPreviousPublishedPackage(codeSystem.getPreviousPackage());
+            String previousDependencyPackage = codeSystem.getPreviousDependencyPackage();
+            updateRequest.setPreviousEditionDependencyEffectiveDate(extractFilenameEffectiveDate(previousDependencyPackage));
             updateRequest.setExtensionDependencyRelease(dependencyPackage);
         }
 

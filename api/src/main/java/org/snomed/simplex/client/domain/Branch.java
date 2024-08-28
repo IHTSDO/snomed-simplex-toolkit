@@ -9,6 +9,8 @@ public class Branch {
 	public static final String SIMPLEX_WORKING_BRANCH_METADATA_KEY = "simplex.workingBranch";
 	public static final String CLASSIFIED_METADATA_KEY = "internal.classified";
 	public static final String DEPENDENCY_PACKAGE_METADATA_KEY = "dependencyPackage";
+	public static final String PREVIOUS_PACKAGE_METADATA_KEY = "previousPackage";
+	public static final String PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY = "previousDependencyPackage";
 	public static final String LATEST_VALIDATION_REPORT_METADATA_KEY = "latestValidationReport";
 	public static final String SHOW_CUSTOM_CONCEPTS = "showCustomConcepts";
 	public static final String DEFAULT_MODULE_ID_METADATA_KEY = "defaultModuleId";

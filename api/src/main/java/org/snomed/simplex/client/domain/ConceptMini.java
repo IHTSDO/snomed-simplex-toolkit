@@ -17,6 +17,14 @@ public class ConceptMini {
 	private Long activeMemberCount;
 	private Map<String, Object> extraFields;
 
+	public ConceptMini() {
+	}
+
+	public ConceptMini(String conceptId, DescriptionMini pt) {
+		this.conceptId = conceptId;
+		this.pt = pt;
+	}
+
 	@JsonIgnore
 	public String getPtOrFsnOrConceptId() {
 		if (pt != null && pt.getTerm() != null) {
