@@ -338,6 +338,7 @@ public class ReleaseServiceClient {
         try {
             // Cache SRS service account RestTemplate using username
             return clientCache.get(releaseServiceUsername, () -> {
+                logger.info("Logging in with SRS service account \"{}\"", releaseServiceUsername);
                 String authenticationToken = authenticationClient.fetchAuthenticationToken(releaseServiceUsername, releaseServicePassword);
                 if (authenticationToken == null || authenticationToken.isEmpty()) {
                     throw new ServiceExceptionWithStatusCode("Failed to authenticate with Release Service system user. " +
