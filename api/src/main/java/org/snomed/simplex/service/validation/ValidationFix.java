@@ -2,23 +2,21 @@ package org.snomed.simplex.service.validation;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class ValidationFix {
 
     private final String id;
     private final String type;
     private final String subtype;
-    private final List<FixComponent> components;
+    private final Set<FixComponent> components;
 
     public ValidationFix(String id) {
         this.id = id;
         String[] split = id.split("\\.", 2);
         type = split[0];
         subtype = split[1];
-        components = new ArrayList<>();
+        components = new LinkedHashSet<>();
     }
 
     @JsonIgnore
@@ -38,7 +36,7 @@ public class ValidationFix {
         return subtype;
     }
 
-    public List<FixComponent> getComponents() {
+    public Set<FixComponent> getComponents() {
         return components;
     }
 
