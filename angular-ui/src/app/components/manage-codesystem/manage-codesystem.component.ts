@@ -101,8 +101,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
         this.refreshEdition();
       },
       error => {
-        console.error('Release preparation failed:', error);
-        this.alert('Release preparation failed');
+        console.error('Starting release preparation failed:', error);
+        this.alert('Starting release preparation failed');
       }
     );
   }
@@ -110,12 +110,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   stopReleasePreparation() {
     this.simplexService.stopReleasePreparation(this.edition.shortName).subscribe(
       (response: any) => {
-        this.alert('Release preparation started');
+        this.alert('Release preparation stopped');
         this.refreshEdition();
       },
       error => {
-        console.error('Release preparation failed:', error);
-        this.alert('Release preparation failed');
+        console.error('Stopping release preparation failed:', error);
+        this.alert('Stopping release preparation failed');
       }
     );
   }
