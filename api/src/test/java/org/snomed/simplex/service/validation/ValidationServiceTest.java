@@ -9,7 +9,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -19,11 +21,11 @@ class ValidationServiceTest {
 	@Autowired
 	private ValidationService validationService;
 
-	private ObjectMapper objectMapper = Jackson2ObjectMapperBuilder.json()
+	private final ObjectMapper objectMapper = Jackson2ObjectMapperBuilder.json()
 			.featuresToDisable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
 
 	@Test
-	public void test() throws IOException {
+	void test() throws IOException {
 		ValidationReport validationReport = objectMapper.readValue(getClass().getResourceAsStream("/rvf-report-for-fix-list.json"), ValidationReport.class);
 		ValidationFixList validationFixList = validationService.getValidationFixList(validationReport);
 		assertEquals(16, validationFixList.errorCount());
@@ -37,6 +39,11 @@ class ValidationServiceTest {
 
 		ValidationFix duplicateTermsFix = fixes.get(0);
 		assertEquals(5, duplicateTermsFix.getComponentCount());
+		Set<String> componentIds = new HashSet<>();
+		for (FixComponent component : duplicateTermsFix.getComponents()) {
+			System.out.println(component.assertionText());
+			assertTrue(componentIds.add(component.componentId()), () -> String.format("Component id %s is not unique", component.componentId()));
+		}
 	}
 
 }

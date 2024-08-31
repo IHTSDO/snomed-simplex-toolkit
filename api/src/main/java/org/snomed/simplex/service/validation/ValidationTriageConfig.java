@@ -1,7 +1,6 @@
 package org.snomed.simplex.service.validation;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ValidationTriageConfig {
 
