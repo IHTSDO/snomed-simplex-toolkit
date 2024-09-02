@@ -130,12 +130,12 @@ public class CodeSystemController {
 		return jobService.startExternalServiceJob(theCodeSystem, "Validate", codeSystemService::validate);
 	}
 
-	@PostMapping("{codeSystem}/validate/rerun-automatic-fixes")
-	@PreAuthorize("hasPermission('ADMIN', #codeSystem)")
-	public void rerunAutomaticFixes(@PathVariable String codeSystem) throws ServiceException {
+	@PostMapping("{codeSystem}/validate/run-automatic-fixes")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void runAutomaticFixes(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		validationService.reprocessAutomaticFixes(theCodeSystem);
+		validationService.runAutomaticFixes(theCodeSystem);
 	}
 
 	@GetMapping("{codeSystem}/validate/issues")

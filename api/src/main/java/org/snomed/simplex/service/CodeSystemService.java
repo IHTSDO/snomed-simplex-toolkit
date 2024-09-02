@@ -37,7 +37,6 @@ public class CodeSystemService {
 	private final JobService jobService;
 	private final SupportRegister supportRegister;
 	private final ValidationServiceClient validationServiceClient;
-	private final ValidationService validationService;
 
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> validationJobsToMonitor = new HashMap<>();
@@ -52,7 +51,6 @@ public class CodeSystemService {
 		this.jobService = jobService;
 		this.supportRegister = supportRegister;
 		this.validationServiceClient = validationServiceClient;
-		this.validationService = validationService;
 	}
 
 	public CodeSystem createCodeSystem(CreateCodeSystemRequest createCodeSystemRequest) throws ServiceException {
@@ -259,7 +257,6 @@ public class CodeSystemService {
 				if (status != null) {
 					if (status == ValidationReport.State.COMPLETE) {
 						logger.info("Validation completed. Branch:{}, RVF Job:{}, Status:{}", job.getBranch(), validationUrl, status);
-						validationService.processAutomaticFixes(job, validationReport, job.getCodeSystem());
 						setValidationJobStatusAndMessage(job, validationReport);
 						validationComplete = true;
 					} else if (status == ValidationReport.State.FAILED) {
