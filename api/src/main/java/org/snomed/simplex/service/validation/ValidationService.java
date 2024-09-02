@@ -63,7 +63,13 @@ public class ValidationService {
 
 		// Create fix list with the same order as the config map
 		List<ValidationFix> fixList = new ArrayList<>();
-		for (String fixId : validationFixMethodToAssertionIdMap.keySet()) {
+		List<String> fixKeys = new ArrayList<>(validationFixMethodToAssertionIdMap.keySet());
+		// Sort alphabetically
+		fixKeys.sort(null);
+		// Move unknown-fix to the end
+		fixKeys.remove("unknown-fix.unknown");
+		fixKeys.add("unknown-fix.unknown");
+		for (String fixId : fixKeys) {
 			ValidationFix validationFix = fixesRequired.get(fixId);
 			if (validationFix != null) {
 				fixList.add(validationFix);

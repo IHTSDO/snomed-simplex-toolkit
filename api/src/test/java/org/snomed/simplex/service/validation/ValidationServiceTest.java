@@ -28,17 +28,18 @@ class ValidationServiceTest {
 	void test() throws IOException {
 		ValidationReport validationReport = objectMapper.readValue(getClass().getResourceAsStream("/rvf-report-for-fix-list.json"), ValidationReport.class);
 		ValidationFixList validationFixList = validationService.getValidationFixList(validationReport);
-		assertEquals(16, validationFixList.errorCount());
-		assertEquals(4, validationFixList.warningCount());
+		assertEquals(23, validationFixList.errorCount());
+		assertEquals(13, validationFixList.warningCount());
 		List<ValidationFix> fixes = validationFixList.fixes();
-		assertEquals(3, fixes.size());
-		assertEquals("[user-fix - edit-or-remove-duplicate-term-different-concepts, " +
-				"user-fix - update-term, " +
-				"automatic-fix - set-description-case-sensitive]",
+		assertEquals(4, fixes.size());
+		assertEquals("[automatic-fix - set-description-case-sensitive, " +
+						"user-fix - edit-or-remove-duplicate-term-different-concepts, " +
+						"user-fix - update-term, " +
+						"unknown-fix - unknown]",
 				fixes.stream().map(fix -> String.format("%s - %s", fix.getType(), fix.getSubtype())).toList().toString());
 
 		ValidationFix duplicateTermsFix = fixes.get(0);
-		assertEquals(5, duplicateTermsFix.getComponentCount());
+		assertEquals(4, duplicateTermsFix.getComponentCount());
 		Set<String> componentIds = new HashSet<>();
 		for (FixComponent component : duplicateTermsFix.getComponents()) {
 			System.out.println(component.assertionText());
