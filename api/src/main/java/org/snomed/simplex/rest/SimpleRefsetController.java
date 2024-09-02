@@ -29,7 +29,7 @@ public class SimpleRefsetController extends AbstractRefsetController<RefsetMembe
 	public SimpleRefsetController(SnowstormClientFactory snowstormClientFactory,
 			SimpleRefsetService simpleRefsetService, JobService jobService) {
 
-		super(snowstormClientFactory);
+		super(snowstormClientFactory, jobService);
 		this.simpleRefsetService = simpleRefsetService;
 		this.jobService = jobService;
 	}
@@ -60,6 +60,11 @@ public class SimpleRefsetController extends AbstractRefsetController<RefsetMembe
 
 		return jobService.queueContentJob(codeSystem, "Subset upload (Refset Tool)", file.getInputStream(), refsetId,
 				asyncJob -> getRefsetService().updateRefsetViaCustomFile(refsetId, new RefsetToolSubsetReader(asyncJob.getInputStream()), theCodeSystem, asyncJob));
+	}
+
+	@Override
+	protected String getSpreadsheetUploadJobName() {
+		return "Subset upload (Spreadsheet)";
 	}
 
 }

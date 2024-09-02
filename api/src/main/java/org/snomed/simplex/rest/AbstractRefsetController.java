@@ -11,21 +11,26 @@ import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.domain.RefsetMemberIntent;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.CreateConceptRequest;
+import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.RefsetUpdateService;
-import org.snomed.simplex.service.job.ChangeSummary;
+import org.snomed.simplex.service.job.AsyncJob;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 
-	protected SnowstormClientFactory clientFactory;
+	private final SnowstormClientFactory clientFactory;
+	private final JobService jobService;
 
-	protected AbstractRefsetController(SnowstormClientFactory clientFactory) {
+
+	protected AbstractRefsetController(SnowstormClientFactory clientFactory, JobService jobService) {
 		this.clientFactory = clientFactory;
+		this.jobService = jobService;
 	}
 
 	protected abstract String getRefsetType();
@@ -63,15 +68,20 @@ public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 
 	@PutMapping(path = "{refsetId}/spreadsheet", consumes = "multipart/form-data")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public ChangeSummary uploadRefsetSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId, @RequestParam MultipartFile file) throws ServiceException {
+	public AsyncJob uploadRefsetSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId, @RequestParam MultipartFile file) throws ServiceException {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+
 		try {
-			return getRefsetService().updateRefsetViaSpreadsheet(refsetId, file.getInputStream(), theCodeSystem);
+			InputStream inputStream = file.getInputStream();
+			return jobService.queueContentJob(codeSystem, getSpreadsheetUploadJobName(), inputStream, refsetId,
+					asyncJob -> getRefsetService().updateRefsetViaSpreadsheet(refsetId, inputStream, theCodeSystem));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Failed to open uploaded file.");
 		}
 	}
+
+	protected abstract String getSpreadsheetUploadJobName();
 
 	@DeleteMapping("{refsetId}")
 	@Operation(summary = "Delete refset and all members.")

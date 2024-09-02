@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.domain.RefsetMemberIntentSimpleMapToSnomedWithCorrelation;
+import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.SimpleMapToSnomedWithCorrelationRefsetService;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,10 +18,16 @@ public class SimpleMapToSnomedWithCorrelationRefsetController extends AbstractRe
 
 	public SimpleMapToSnomedWithCorrelationRefsetController(
 			SnowstormClientFactory snowstormClientFactory,
+			JobService jobService,
 			SimpleMapToSnomedWithCorrelationRefsetService refsetService) {
 
-		super(snowstormClientFactory);
+		super(snowstormClientFactory, jobService);
 		this.refsetService = refsetService;
+	}
+
+	@Override
+	protected String getSpreadsheetUploadJobName() {
+		return "Map upload";
 	}
 
 	@Override
