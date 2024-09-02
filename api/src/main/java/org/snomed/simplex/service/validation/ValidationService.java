@@ -87,21 +87,26 @@ public class ValidationService {
 			for (Map.Entry<String, List<String>> fixToAssertionIds : validationFixMethodToAssertionIdMap.entrySet()) {
 				if (fixToAssertionIds.getValue().contains(assertionUuid)) {
 					String fixId = fixToAssertionIds.getKey();
-					Pair<String, String> titleAndInstructions =
-							validationFixMethodToTitleAndInstructionsMap.getOrDefault(fixId, Pair.of("Unknown fix type", "Unknown fix type"));
-					ValidationFix validationFix = fixesRequired.computeIfAbsent(fixId, i ->
-							new ValidationFix(fixId, titleAndInstructions.getLeft(), titleAndInstructions.getRight()));
-					for (ValidationReport.AssertionIssue issueInstance : assertion.firstNInstances()) {
-						// Components are only added if new componentId is new in the set
-						validationFix.addComponent(new FixComponent(issueInstance.conceptId(), issueInstance.componentId(), assertion.assertionText()));
-					}
+					createFix(fixesRequired, assertion, fixId);
 					fixFound = true;
 					break;
 				}
 			}
 			if (!fixFound) {
-				logger.info("No validation fix found for assertion {}", assertionUuid);
+				logger.error("No validation fix found for assertion {}", assertionUuid);
+				createFix(fixesRequired, assertion, "unknown-fix.unknown");
 			}
+		}
+	}
+
+	private void createFix(Map<String, ValidationFix> fixesRequired, ValidationReport.Assertion assertion, String fixId) {
+		Pair<String, String> titleAndInstructions =
+				validationFixMethodToTitleAndInstructionsMap.getOrDefault(fixId, Pair.of("Unknown fix type", "Unknown fix type"));
+		ValidationFix validationFix = fixesRequired.computeIfAbsent(fixId, i ->
+				new ValidationFix(fixId, titleAndInstructions.getLeft(), titleAndInstructions.getRight()));
+		for (ValidationReport.AssertionIssue issueInstance : assertion.firstNInstances()) {
+			// Components are only added if new componentId is new in the set
+			validationFix.addComponent(new FixComponent(issueInstance.conceptId(), issueInstance.componentId(), assertion.assertionText()));
 		}
 	}
 
