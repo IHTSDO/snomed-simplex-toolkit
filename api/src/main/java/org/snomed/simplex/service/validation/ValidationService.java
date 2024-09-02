@@ -57,9 +57,9 @@ public class ValidationService {
 	private ValidationFixList createFixList(ValidationReport validationReport) {
 		ValidationReport.TestResult testResult = validationReport.rvfValidationResult().TestResult();
 		Map<String, ValidationFix> fixesRequired = new HashMap<>();
-		buildValidationFixMap(testResult.assertionsFailed(), fixesRequired);
+		buildValidationFixMap(testResult.assertionsFailed(), fixesRequired, Severity.ERROR);
 		int errorCount = fixesRequired.values().stream().mapToInt(ValidationFix::getComponentCount).sum();
-		buildValidationFixMap(testResult.assertionsWarning(), fixesRequired);
+		buildValidationFixMap(testResult.assertionsWarning(), fixesRequired, Severity.WARNING);
 		int warningCount = fixesRequired.values().stream().mapToInt(ValidationFix::getComponentCount).sum();
 		warningCount = warningCount - errorCount;
 
@@ -81,7 +81,7 @@ public class ValidationService {
 		return new ValidationFixList(errorCount, warningCount, fixList);
 	}
 
-	private void buildValidationFixMap(List<ValidationReport.Assertion> assertions, Map<String, ValidationFix> fixesRequired) {
+	private void buildValidationFixMap(List<ValidationReport.Assertion> assertions, Map<String, ValidationFix> fixesRequired, Severity severity) {
 
 		// Sort assertions by order in validation fix map - this gives prioritisation when deduplicating component issues
 		assertions.sort(Comparator.comparingInt(assertion -> assertionSortOrderMap.getOrDefault(assertion.assertionUuid(), Integer.MAX_VALUE)));
@@ -95,23 +95,23 @@ public class ValidationService {
 			for (Map.Entry<String, List<String>> fixToAssertionIds : validationFixMethodToAssertionIdMap.entrySet()) {
 				if (fixToAssertionIds.getValue().contains(assertionUuid)) {
 					String fixId = fixToAssertionIds.getKey();
-					createFix(fixesRequired, assertion, fixId);
+					createFix(fixesRequired, assertion, fixId, severity);
 					fixFound = true;
 					break;
 				}
 			}
 			if (!fixFound) {
 				logger.error("No validation fix found for assertion {}", assertionUuid);
-				createFix(fixesRequired, assertion, UNKNOWN_FIX_KEY);
+				createFix(fixesRequired, assertion, UNKNOWN_FIX_KEY, severity);
 			}
 		}
 	}
 
-	private void createFix(Map<String, ValidationFix> fixesRequired, ValidationReport.Assertion assertion, String fixId) {
+	private void createFix(Map<String, ValidationFix> fixesRequired, ValidationReport.Assertion assertion, String fixId, Severity severity) {
 		Pair<String, String> titleAndInstructions =
 				validationFixMethodToTitleAndInstructionsMap.getOrDefault(fixId, Pair.of("Unknown fix type", "Unknown fix type"));
 		ValidationFix validationFix = fixesRequired.computeIfAbsent(fixId, i ->
-				new ValidationFix(fixId, titleAndInstructions.getLeft(), titleAndInstructions.getRight()));
+				new ValidationFix(fixId, titleAndInstructions.getLeft(), titleAndInstructions.getRight(), severity));
 		for (ValidationReport.AssertionIssue issueInstance : assertion.firstNInstances()) {
 			// Components are only added if new componentId is new in the set
 			validationFix.addComponent(new FixComponent(issueInstance.conceptId(), issueInstance.componentId(), assertion.assertionText()));

@@ -32,12 +32,12 @@ class ValidationServiceTest {
 		assertEquals(15, validationFixList.warningCount());
 		List<ValidationFix> fixes = validationFixList.fixes();
 		assertEquals(5, fixes.size());
-		assertEquals("[automatic-fix - set-description-case-sensitive, " +
-						"user-fix - edit-or-remove-duplicate-term-different-concepts, " +
-						"user-fix - term-incorrect-case, " +
-						"user-fix - update-term, " +
-						"unknown-fix - unknown]",
-				fixes.stream().map(fix -> String.format("%s - %s", fix.getType(), fix.getSubtype())).toList().toString());
+		assertEquals("[automatic-fix - set-description-case-sensitive - WARNING, " +
+						"user-fix - edit-or-remove-duplicate-term-different-concepts - ERROR, " +
+						"user-fix - term-incorrect-case - WARNING, " +
+						"user-fix - update-term - ERROR, " +
+						"unknown-fix - unknown - ERROR]",
+				fixes.stream().map(fix -> "%s - %s - %s".formatted(fix.getType(), fix.getSubtype(), fix.getSeverity())).toList().toString());
 
 		ValidationFix duplicateTermsFix = fixes.get(0);
 		assertEquals(4, duplicateTermsFix.getComponentCount());

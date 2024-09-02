@@ -11,15 +11,17 @@ public class ValidationFix {
     private final String subtype;
     private final String title;
     private final String instructions;
+    private final Severity severity;
     private final Set<FixComponent> components;
 
-    public ValidationFix(String id, String title, String instructions) {
+    public ValidationFix(String id, String title, String instructions, Severity severity) {
         this.id = id;
         String[] split = id.split("\\.", 2);
         type = split[0];
         subtype = split[1];
         this.title = title;
         this.instructions = instructions;
+        this.severity = severity;
         components = new LinkedHashSet<>();
     }
 
@@ -30,6 +32,10 @@ public class ValidationFix {
 
     public void addComponent(FixComponent fixComponent) {
         components.add(fixComponent);
+    }
+
+    public Severity getSeverity() {
+        return severity;
     }
 
     public String getType() {
