@@ -10,7 +10,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class Application implements CommandLineRunner {
 
 	@Override
-	public void run(String... args) throws Exception {
+	public void run(String... args) {
+		// Launch the Spring Boot app
 	}
 
 	public static void main(String[] args) {
