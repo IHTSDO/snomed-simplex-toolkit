@@ -1,5 +1,6 @@
 package org.snomed.simplex.service.validation;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -25,13 +26,15 @@ public class ValidationService {
 	private final SupportRegister supportRegister;
 
 	private final Map<String, List<String>> validationFixMethodToAssertionIdMap;
+	private final Map<String, Pair<String, String>> validationFixMethodToTitleAndInstructionsMap;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 	private final Map<String, Integer> assertionSortOrderMap;
 
 	public ValidationService(ValidationTriageConfig validationTriageConfig, ValidationServiceClient validationServiceClient,
-			SnowstormClientFactory snowstormClientFactory, SupportRegister supportRegister) {
+			SnowstormClientFactory snowstormClientFactory, SupportRegister supportRegister) throws ServiceException {
 
 		validationFixMethodToAssertionIdMap = validationTriageConfig.getValidationFixMethodToAssertionIdMap();
+		validationFixMethodToTitleAndInstructionsMap = validationTriageConfig.getValidationFixMethodToTitleAndInstructionsMap();
 		this.validationServiceClient = validationServiceClient;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.supportRegister = supportRegister;
@@ -84,12 +87,13 @@ public class ValidationService {
 			for (Map.Entry<String, List<String>> fixToAssertionIds : validationFixMethodToAssertionIdMap.entrySet()) {
 				if (fixToAssertionIds.getValue().contains(assertionUuid)) {
 					String fixId = fixToAssertionIds.getKey();
-					ValidationFix validationFix = fixesRequired.computeIfAbsent(fixId, i -> new ValidationFix(fixId));
+					Pair<String, String> titleAndInstructions =
+							validationFixMethodToTitleAndInstructionsMap.getOrDefault(fixId, Pair.of("Unknown fix type", "Unknown fix type"));
+					ValidationFix validationFix = fixesRequired.computeIfAbsent(fixId, i ->
+							new ValidationFix(fixId, titleAndInstructions.getLeft(), titleAndInstructions.getRight()));
 					for (ValidationReport.AssertionIssue issueInstance : assertion.firstNInstances()) {
 						// Components are only added if new componentId is new in the set
-						validationFix.addComponent(
-								new FixComponent(issueInstance.conceptId(), issueInstance.componentId(),
-										assertion.assertionText()));
+						validationFix.addComponent(new FixComponent(issueInstance.conceptId(), issueInstance.componentId(), assertion.assertionText()));
 					}
 					fixFound = true;
 					break;
@@ -101,8 +105,7 @@ public class ValidationService {
 		}
 	}
 
-	// Admin function
-	public void reprocessAutomaticFixes(CodeSystem codeSystem) throws ServiceException {
+	public void runAutomaticFixes(CodeSystem codeSystem) throws ServiceException {
 		String reportUrl = codeSystem.getLatestValidationReport();
 		if (reportUrl == null) {
 			throw new ServiceExceptionWithStatusCode("There is no validation report.", HttpStatus.CONFLICT);
