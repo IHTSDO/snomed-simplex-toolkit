@@ -14,7 +14,6 @@ import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
-import org.snomed.simplex.service.validation.ValidationService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -45,7 +44,7 @@ public class CodeSystemService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public CodeSystemService(SnowstormClientFactory snowstormClientFactory, JobService jobService, SupportRegister supportRegister,
-			ValidationServiceClient validationServiceClient, ValidationService validationService) {
+			ValidationServiceClient validationServiceClient) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.jobService = jobService;

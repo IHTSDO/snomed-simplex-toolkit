@@ -21,6 +21,8 @@ import java.util.*;
 @Service
 public class ValidationService {
 
+	public static final String UNKNOWN_FIX_KEY = "unknown-fix.unknown";
+
 	private final ValidationServiceClient validationServiceClient;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final SupportRegister supportRegister;
@@ -67,8 +69,8 @@ public class ValidationService {
 		// Sort alphabetically
 		fixKeys.sort(null);
 		// Move unknown-fix to the end
-		fixKeys.remove("unknown-fix.unknown");
-		fixKeys.add("unknown-fix.unknown");
+		fixKeys.remove(UNKNOWN_FIX_KEY);
+		fixKeys.add(UNKNOWN_FIX_KEY);
 		for (String fixId : fixKeys) {
 			ValidationFix validationFix = fixesRequired.get(fixId);
 			if (validationFix != null) {
@@ -100,7 +102,7 @@ public class ValidationService {
 			}
 			if (!fixFound) {
 				logger.error("No validation fix found for assertion {}", assertionUuid);
-				createFix(fixesRequired, assertion, "unknown-fix.unknown");
+				createFix(fixesRequired, assertion, UNKNOWN_FIX_KEY);
 			}
 		}
 	}
