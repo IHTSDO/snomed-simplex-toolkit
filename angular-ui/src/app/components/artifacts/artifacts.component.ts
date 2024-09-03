@@ -258,12 +258,16 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  browseToConcept(conceptId: string) {
+  browseToConcept(artifact: any) {
     lastValueFrom(this.simplexService.getEdition(this.edition)).then(
       (edition) => {
         const branch = edition.branchPath;
         let langs = Object.keys(edition.languages).join(',');
-        const tab = window.open(`/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}`, 'simplex-browser');
+        let browserUrl = `/browser/?perspective=full&conceptId1=${artifact.conceptId}&edition=${branch}&release=&languages=${langs}`;
+        if (artifact.type === 'subset' || artifact.type === 'map' || artifact.type === 'translation') {
+          browserUrl += '&cd1focus=members';
+        }
+        const tab = window.open(browserUrl, 'simplex-browser');
         tab.focus();
       }
     )
