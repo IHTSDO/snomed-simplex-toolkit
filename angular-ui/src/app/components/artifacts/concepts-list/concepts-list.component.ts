@@ -64,7 +64,7 @@ export class ConceptsListComponent implements OnChanges {
       (edition) => {
         const branch = edition.branchPath;
         let langs = Object.keys(edition.languages).join(',');
-        const url = `/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}`;
+        const url = `/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}`;
         const tab = window.open(url, 'simplex-browser');
         tab.focus();
       }

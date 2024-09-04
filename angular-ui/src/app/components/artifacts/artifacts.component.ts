@@ -263,7 +263,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
       (edition) => {
         const branch = edition.branchPath;
         let langs = Object.keys(edition.languages).join(',');
-        let browserUrl = `/browser/?perspective=full&conceptId1=${artifact.conceptId}&edition=${branch}&release=&languages=${langs}`;
+        let browserUrl = `/browser/?perspective=full&conceptId1=${artifact.conceptId}&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}`;
         if (artifact.type === 'subset' || artifact.type === 'map' || artifact.type === 'translation') {
           browserUrl += '&cd1focus=members';
         }

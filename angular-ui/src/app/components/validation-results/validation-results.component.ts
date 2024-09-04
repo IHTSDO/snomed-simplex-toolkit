@@ -50,7 +50,7 @@ export class ValidationResultsComponent implements OnInit, OnChanges {
       (edition) => {
         const branch = edition.branchPath;
         let langs = Object.keys(edition.languages).join(',');
-        const tab = window.open(`/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}`, 'simplex-browser');
+        const tab = window.open(`/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}`, 'simplex-browser');
         tab.focus();
       }
     )
