@@ -150,4 +150,19 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     this.loadingReleaseStatus = false;
   }
 
+  getValidationStatusInfo(status: string): string {
+    const statusMessages: { [key: string]: string } = {
+      TODO: "Not run yet",
+      IN_PROGRESS: "Validation is currently running",
+      CONTENT_ERROR: "There are content errors. Please review and fix them.",
+      CONTENT_WARNING: "There are content warnings. Consider reviewing them.",
+      SYSTEM_ERROR: "System error occurred. Please contact support.",
+      COMPLETE: "Validation completed successfully without any issues.",
+      STALE: "Validation is outdated. The content has changed since the last validation.",
+    };
+  
+    return statusMessages[status] || "Unknown validation status";
+  }
+  
+
 }

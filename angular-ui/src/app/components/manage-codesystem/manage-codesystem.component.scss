@@ -190,3 +190,13 @@ mat-list-item {
 .centered {
   align-items: center;
 }
+
+.aligned-p {
+  display: flex;
+  align-items: center;
+}
+
+.aligned-p mat-icon {
+  margin-left: 8px; /* Adds space to the left of the icon */
+  cursor: pointer;  /* Changes cursor to pointer for interactive feel */
+}

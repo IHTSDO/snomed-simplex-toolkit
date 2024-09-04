@@ -9,6 +9,14 @@
                                                  'current-stage' : (activeStage == 'Authoring') }">
                     <div class="component-col centered">
                         <span class="stage-title">Editing</span>
+                        <p class="aligned-p">
+                            Current validation status: {{ edition.validationStatus }}
+                            <mat-spinner *ngIf="!edition.validationStatus" [diameter]="12"></mat-spinner>
+                            <mat-icon [matTooltip]="getValidationStatusInfo(edition.validationStatus)" matTooltipPosition="right" aria-label="Info icon" *ngIf="edition.validationStatus">info</mat-icon>
+                        </p>
+                        <button mat-button *ngIf="activeStage == 'Authoring'" (click)="runValidation()">
+                            Run development validation process
+                        </button>
                         <button mat-button color="accent" *ngIf="activeStage == 'Authoring'" (click)="startReleasePreparation()">
                             CLOSE EDITING AND START RELEASE PREPARATION
                         </button>
@@ -83,6 +91,7 @@
             <mat-list id="components-list">
                 <mat-list-item *ngFor="let item of jobs">
                     <span class="release-name">{{ item.display }}</span>
+                    <!-- <mat-spinner *ngIf="item.status == 'IN_PROGRESS'" [diameter]="12"></mat-spinner> -->
                     <span class="pill pill-green">{{ item.status }}</span>
                     <span class="pill pill-blue">{{ item.jobType }}</span>
                     <span class="muted">Created on {{ item.created | timeAgo }}</span>
