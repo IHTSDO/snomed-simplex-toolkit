@@ -2,6 +2,9 @@ import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { Subscription, interval, lastValueFrom } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 @Component({
   selector: 'app-manage-codesystem',
@@ -28,7 +31,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     'Issues found in the following descriptions. Please update the descriptions to resolve the issues.',
   ];
   constructor(private simplexService: SimplexService,
-    private snackBar: MatSnackBar) {}
+    private snackBar: MatSnackBar, private http: HttpClient) {}
 
   ngOnInit(): void {
     this.refreshEdition();
@@ -162,6 +165,57 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     };
   
     return statusMessages[status] || "Unknown validation status";
+  }
+
+  generateValidationReport() {
+    const branch = this.edition.branchPath;
+    const reportSections: string[] = [
+      'new-concepts', 
+      'inactivated-concepts', 
+      'reactivated-concepts', 
+      'changed-fully-specified-names', 
+      'inactivated-synonyms', 
+      'new-synonyms-on-existing-concepts',
+      'reactivated-synonyms',
+      'new-refsets',
+      'refsets-with-changed-members'
+    ];
+
+    // Create a workbook to accumulate sheets
+    const workbook: XLSX.WorkBook = { Sheets: {}, SheetNames: [] };
+    let requests: any[] = [];
+
+    reportSections.forEach(section => {
+      const url = `/snowstorm/snomed-ct/${branch}/authoring-stats/${section}`;
+      
+      // Store the request promise
+      requests.push(this.http.get<any[]>(url).toPromise().then(data => {
+        const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(data);
+        workbook.Sheets[section] = worksheet;
+        workbook.SheetNames.push(section.substring(0, 31));
+      }).catch(error => {
+        console.error(`Error fetching data for section ${section}`, error);
+      }));
+    });
+
+    // Wait for all requests to complete and then generate the Excel file
+    Promise.all(requests).then(() => {
+      const excelBuffer: any = XLSX.write(workbook, {
+        bookType: 'xlsx',
+        type: 'array'
+      });
+
+      this.saveAsExcelFile(excelBuffer, 'ValidationReport');
+    }).catch(error => {
+      console.error('Error processing report sections', error);
+    });
+  }
+
+  private saveAsExcelFile(buffer: any, fileName: string): void {
+    const data: Blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
+    });
+    saveAs(data, `${fileName}.xlsx`);
   }
   
 

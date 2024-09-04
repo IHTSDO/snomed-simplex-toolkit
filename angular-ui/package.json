@@ -34,12 +34,14 @@
     "@popperjs/core": "^2.11.7",
     "@types/jquery": "^3.5.1",
     "bootstrap": "^5.2.3",
+    "file-saver": "^2.0.5",
     "guid-typescript": "^1.0.9",
     "jquery": "^3.5.1",
     "ngx-cookie-service": "^17.1.0",
     "ngx-toastr": "^17.0.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
+    "xlsx": "^0.18.5",
     "zone.js": "~0.14.4"
   },
   "devDependencies": {
