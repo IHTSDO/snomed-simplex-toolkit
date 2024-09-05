@@ -167,6 +167,18 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     return statusMessages[status] || "Unknown validation status";
   }
 
+  getClassificationStatusInfo(status: string): string {
+    const statusMessages: { [key: string]: string } = {
+      TODO: "Needs to be run",
+      IN_PROGRESS: "Classification is currently running",
+      EQUIVALENT_CONCEPTS: "There are equivalent concepts. Please contact support.",
+      SYSTEM_ERROR: "System error occurred. Please contact support.",
+      COMPLETE: "Classification completed successfully without any issues."
+    };
+  
+    return statusMessages[status] || "Unknown classification status";
+  }
+
   generateValidationReport() {
     const branch = this.edition.branchPath;
     const reportSections: string[] = [
@@ -217,6 +229,18 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     });
     saveAs(data, `${fileName}.xlsx`);
   }
+
+  browseToDailyBuild() {
+    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
+      (edition) => {
+        const branch = edition.branchPath;
+        let langs = Object.keys(edition.languages).join(',');
+        let browserUrl = `/browser/?perspective=full&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}&dailyBuildFocus=true`;
+        const tab = window.open(browserUrl, 'simplex-browser');
+        tab.focus();
+      }
+    )
+  } 
   
 
 }

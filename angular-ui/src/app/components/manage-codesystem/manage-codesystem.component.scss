@@ -140,7 +140,7 @@ mat-list-item {
   .current-stage {
     background-color: #E6E9EE;
     border: solid 2px #6DBBA1;
-    font-weight: bold;
+    // font-weight: bold;
   }
 
   .completed-icon {
@@ -191,6 +191,12 @@ mat-list-item {
   align-items: center;
 }
 
+.left {
+  text-align: left;
+  margin-left: 3rem;
+  margin-right: 3rem;
+}
+
 .aligned-p {
   display: flex;
   align-items: center;
@@ -199,4 +205,9 @@ mat-list-item {
 .aligned-p mat-icon {
   margin-left: 8px; /* Adds space to the left of the icon */
   cursor: pointer;  /* Changes cursor to pointer for interactive feel */
+}
+
+.requirements-not-met {
+  color: rgb(231, 103, 103);
+  font-style: italic;
 }
