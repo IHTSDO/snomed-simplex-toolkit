@@ -84,6 +84,7 @@ public class SnowstormClient {
 					items.add(codeSystem);
 				}
 			}
+			items.sort(Comparator.comparing(CodeSystem::getName));
 			return items;
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "list code systems");
