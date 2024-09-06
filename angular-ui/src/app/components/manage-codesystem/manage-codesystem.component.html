@@ -168,7 +168,7 @@
     <div class="component-col">
         <div class="right-container">
             <app-validation-results class="validation-container"
-                [edition]="edition.shortName" *ngIf="activeStage == 'Review validation results'">
+                [edition]="edition.shortName" *ngIf="(edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING')">
             </app-validation-results>
             <!-- <h4>Next steps:</h4>
             <h5>Current Status: Classification Completed</h5>

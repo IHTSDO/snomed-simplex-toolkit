@@ -231,15 +231,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   browseToDailyBuild() {
-    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
-      (edition) => {
-        const branch = edition.branchPath;
-        let langs = Object.keys(edition.languages).join(',');
-        let browserUrl = `/browser/?perspective=full&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}&dailyBuildFocus=true`;
-        const tab = window.open(browserUrl, 'simplex-browser');
-        tab.focus();
-      }
-    )
+    // console.log('Browsing to daily build for edition:', this.edition);
+    const branch = this.edition.branchPath;
+    let langs = Object.keys(this.edition.languages).join(',');
+    let browserUrl = `/browser/?perspective=full&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${this.edition.defaultModule}&dailyBuildFocus=true`;
+    const tab = window.open(browserUrl, 'simplex-browser');
+    tab.focus();
   } 
   
 

@@ -3,6 +3,22 @@
   width: 100%;
 }
 
+mat-expansion-panel {
+  z-index: auto !important;
+  box-shadow: none !important; /* Remove shadow */
+}
+
+mat-expansion-panel-header {
+  z-index: auto !important;
+}
+
+.mat-expansion-panel {
+  z-index: auto !important;
+  box-shadow: none !important; /* Remove shadow for Material Design elevation */
+}
+
+
+
 .aligned-p {
   display: flex;
   flex-direction: row;

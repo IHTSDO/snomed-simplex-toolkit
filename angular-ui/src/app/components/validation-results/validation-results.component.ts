@@ -15,6 +15,7 @@ export class ValidationResultsComponent implements OnInit, OnChanges {
   
   issues: any;
   loadingValidationResults: boolean = false;
+  editionDetails: any;
 
   constructor(private simplexService: SimplexService,
     private snackBar: MatSnackBar) {}
@@ -27,6 +28,15 @@ export class ValidationResultsComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.refreshIssues();
+    this.refreshEdition();
+  }
+
+  refreshEdition() {
+    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
+      (edition) => {
+        this.editionDetails = edition;
+      }
+    );
   }
 
   public refreshIssues() {

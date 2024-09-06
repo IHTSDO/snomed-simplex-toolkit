@@ -14,6 +14,7 @@ export class ConceptsListComponent implements OnChanges {
 
   @Input() edition: string;
 
+  editionDetails: any;
   displayedColumns: string[] = ['conceptId', 'term', 'action'];
   concepts: any[] = [];
   loading = false;
@@ -48,8 +49,17 @@ export class ConceptsListComponent implements OnChanges {
       });
   }
 
+  refreshEdition() {
+    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
+      (edition) => {
+        this.editionDetails = edition;
+      }
+    );
+  }
+
   ngOnChanges() {
     this.loadConcepts();
+    this.refreshEdition();
   }
 
   onPageChange(event: PageEvent) {
@@ -60,15 +70,27 @@ export class ConceptsListComponent implements OnChanges {
   }
 
   browseToConcept(conceptId: string) {
-    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
-      (edition) => {
-        const branch = edition.branchPath;
-        let langs = Object.keys(edition.languages).join(',');
-        const url = `/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}`;
-        const tab = window.open(url, 'simplex-browser');
-        tab.focus();
-      }
-    )
-  } 
+    // Check if edition already has the necessary fields
+    if (this.editionDetails?.branchPath && this.editionDetails?.languages && this.editionDetails?.defaultModule) {
+      this.constructAndOpenBrowserUrl(conceptId, this.editionDetails);
+    } else {
+      // Fetch the edition data if it doesn't exist
+      lastValueFrom(this.simplexService.getEdition(this.edition)).then(
+        (edition) => {
+          this.editionDetails = edition;
+          this.constructAndOpenBrowserUrl(conceptId, edition);
+        }
+      );
+    }
+  }
+  
+  // Helper function to construct and open the browser URL
+  private constructAndOpenBrowserUrl(conceptId: string, edition: any) {
+    const branch = edition.branchPath;
+    let langs = Object.keys(edition.languages).join(',');
+    let browserUrl = `/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}`;
+    const tab = window.open(browserUrl, 'simplex-browser');
+    tab.focus();
+  }
 
 }

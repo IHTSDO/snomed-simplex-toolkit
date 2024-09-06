@@ -29,6 +29,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   };
 
   selectedArtifact = null;
+  editionDetails: any;
   newArtifactMode = false;
   loadingSubsets = false;
   loadingTranslations = false;
@@ -101,6 +102,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   loadConceptsArtifact(conceptId: string) {
     lastValueFrom(this.simplexService.getEdition(this.edition)).then(
       (edition) => {
+        this.editionDetails = edition;
         this.showConceptsArtifact = edition?.showCustomConcepts;
         if (this.showConceptsArtifact) {
           lastValueFrom(this.simplexService.getConcepts(this.edition,0,1)).then(
@@ -259,18 +261,33 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   browseToConcept(artifact: any) {
-    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
-      (edition) => {
-        const branch = edition.branchPath;
-        let langs = Object.keys(edition.languages).join(',');
-        let browserUrl = `/browser/?perspective=full&conceptId1=${artifact.conceptId}&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}`;
-        if (artifact.type === 'subset' || artifact.type === 'map' || artifact.type === 'translation') {
-          browserUrl += '&cd1focus=members';
+    // Check if edition already has the necessary fields
+    if (this.editionDetails?.branchPath && this.editionDetails?.languages && this.editionDetails?.defaultModule) {
+      this.constructAndOpenBrowserUrl(artifact, this.editionDetails);
+    } else {
+      // Fetch the edition data if it doesn't exist
+      lastValueFrom(this.simplexService.getEdition(this.edition)).then(
+        (edition) => {
+          this.editionDetails = edition;
+          this.constructAndOpenBrowserUrl(artifact, edition);
         }
-        const tab = window.open(browserUrl, 'simplex-browser');
-        tab.focus();
-      }
-    )
-  }    
+      );
+    }
+  }
+  
+  // Helper function to construct and open the browser URL
+  private constructAndOpenBrowserUrl(artifact: any, edition: any) {
+    const branch = edition.branchPath;
+    let langs = Object.keys(edition.languages).join(',');
+    let browserUrl = `/browser/?perspective=full&conceptId1=${artifact.conceptId}&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}`;
+    
+    if (artifact.type === 'subset' || artifact.type === 'map' || artifact.type === 'translation') {
+      browserUrl += '&cd1focus=members';
+    }
+  
+    const tab = window.open(browserUrl, 'simplex-browser');
+    tab.focus();
+  }
+      
   
 }
