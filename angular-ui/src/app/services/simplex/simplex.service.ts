@@ -210,6 +210,21 @@ export class SimplexService {
     return this.http.post(`/api/codesystems/${edition}/stop-release-prep`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public getCodeSystemReleaseStatusDirect(codeSystem: any): string {
+    let status = '';
+    if (!codeSystem.preparingRelease) {
+      status = 'Authoring';
+    } else if (codeSystem.preparingRelease && (codeSystem.classificationStatus !== 'COMPLETE' || 
+                (codeSystem.validationStatus !== 'COMPLETE' && codeSystem.validationStatus !== 'CONTENT_WARNING'))) {
+      status = 'Preparing release';
+    } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' && 
+              (codeSystem.validationStatus === 'COMPLETE' || codeSystem.validationStatus === 'CONTENT_WARNING')) {
+      status = 'Release ready';
+    } else {
+      status = 'Unknown';
+    }
+    return status;
+  }
 
   public getCodeSystemReleaseStatus(edition: string): Observable<string> {
     return this.getEdition(edition).pipe(

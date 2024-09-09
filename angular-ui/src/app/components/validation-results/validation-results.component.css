@@ -33,3 +33,7 @@ mat-expansion-panel-header {
 .error {
   color: #ff0000;
 }
+
+div.validation-container {
+  transition: height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}

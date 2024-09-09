@@ -34,7 +34,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     private snackBar: MatSnackBar, private http: HttpClient) {}
 
   ngOnInit(): void {
-    this.refreshEdition();
     this.startRefresh();
   }
 
@@ -44,7 +43,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['edition']) {
-      this,this.activeStage = null;
+      this.activeStage = null;
       this.refreshEdition();
     }
   }
@@ -98,6 +97,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   startReleasePreparation() {
+    this.activeStage = null;
+    this.alert('Closing authoring cycle and starting release preparation');
     this.simplexService.startReleasePreparation(this.edition.shortName).subscribe(
       (response: any) => {
         this.alert('Release preparation started');
@@ -106,11 +107,14 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       error => {
         console.error('Starting release preparation failed:', error);
         this.alert('Starting release preparation failed');
+        this.refreshEdition();
       }
     );
   }
 
   stopReleasePreparation() {
+    this.activeStage = null;
+    this.alert('Stopping release preparation');
     this.simplexService.stopReleasePreparation(this.edition.shortName).subscribe(
       (response: any) => {
         this.alert('Release preparation stopped');
@@ -119,6 +123,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       error => {
         console.error('Stopping release preparation failed:', error);
         this.alert('Stopping release preparation failed');
+        this.refreshEdition();
       }
     );
   }
@@ -138,6 +143,11 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     this.edition = response;
     this.refreshJobs();
     this.activeStage = await lastValueFrom(this.simplexService.getCodeSystemReleaseStatus(this.edition.shortName));
+    this.updateByStage();
+    this.loadingReleaseStatus = false;
+  }
+
+  updateByStage() {
     let found = false;
     for (const stage of this.releaseStages) {
       if (!found && stage.name!= this.activeStage) {
@@ -150,8 +160,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
         stage.active = false;
       }
     }
-    this.loadingReleaseStatus = false;
   }
+
 
   getValidationStatusInfo(status: string): string {
     const statusMessages: { [key: string]: string } = {

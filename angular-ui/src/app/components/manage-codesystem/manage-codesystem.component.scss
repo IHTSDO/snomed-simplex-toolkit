@@ -1,14 +1,3 @@
-.component-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 2rem;
-    overflow: hidden;
-    padding: 1rem;
-}
-
 button  {
     width: 40rem;
 }
@@ -23,10 +12,19 @@ button  {
 }
     
 .component-col {
-  flex: 1;
+  flex: 1 1 50%; /* flex-grow, flex-shrink, and flex-basis set */
   display: flex;
   flex-direction: column;
-  justify-content: flex-start; /* Aligns children to the top */
+  justify-content: flex-start;
+  margin: 0 10px;
+  max-width: 50%; /* Prevents it from exceeding 50% */
+}
+
+.component-col-flexible {
+  flex: 1; /* flex-grow, flex-shrink, and flex-basis set */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   margin: 0 10px;
 }
 
@@ -126,7 +124,7 @@ mat-list-item {
     margin-right: 10px; /* Adjust space between name and description */
     border-radius: 25px;
     padding: 1rem;
-    width: 75%;
+    width: 90%;
     text-align: center;
     display: flex;
     align-items: center; /* This vertically aligns the icon with the text */
@@ -135,13 +133,18 @@ mat-list-item {
 
   .completed-stage {
     background-color: #E6E9EE;
+    color: grey;
   }
 
   .current-stage {
     background-color: #E6E9EE;
     border: solid 2px #6DBBA1;
-    // font-weight: bold;
   }
+
+  .inactive-stage {
+    color: grey;
+  }
+
 
   .completed-icon {
     color: #6DBBA1;
@@ -168,6 +171,17 @@ mat-list-item {
     width: 100%;
     padding: 2rem;
   }
+
+  .left-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    overflow: hidden;
+    padding: 1rem;
+}
   
   .right-container {
     display: flex;
