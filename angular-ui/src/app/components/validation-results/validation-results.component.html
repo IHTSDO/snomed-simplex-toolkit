@@ -1,5 +1,31 @@
 <div class="validation-container">
   <h4>Validation Results for {{edition}} Edition</h4>
+  <p><b>How to fix this issues?</b></p>
+  <p>
+    The SIMPLEX Toolkit compiles information from different content authoring tools, like Snap2Snomed, Refset Editors, Webllate, etc.
+    After incorporating this content into a SNOMED Release the Validation Process runs and provides a list of <b>issues</b> that need to be 
+    fixed in order to produce a valid the SNOMED CT Edition package.
+  </p>
+  <p>
+    The issues are categorized as <b>Warnings</b> and <b>Errors</b>. Warnings are issues that may not prevent the release of the content, but should be
+    fixed to improve the quality of the content. Errors are issues that prevent the release of the content and should be fixed before
+    the release preparation can be completed.
+  </p>
+  <p>
+    This issues need to be fixed in each of the tools that originated the content. For example, if the issue is related to a Refset,
+    the Refset Editor tool should be used to fix the issue. If the issue is related to a Map, Sanp2Snomed should be used to fix the issue, 
+    and so on.
+  </p>
+  <p>
+    The SIMPLEX Toolkit provides a list of issues and the components that are causing the issue. The components are identified by their 
+    Concept ID and the Assertion Text that is causing the issue. The Assertion Text is a human readable text that describes the issue.
+    The user can click on the IDs links to open the <b>SIMPLEX Browser</b> to see the component in context and then fix the issue in the 
+    original tool.
+  </p>
+  <p>
+    After content is fixed in the original tool, the Editing Stage need to be <b>reopen, cancelling the release preparation</b>, and the content 
+    should be <b>re-imported</b> into the SIMPLEX Toolkit and the validation process should be run again.
+  </p>
   <mat-spinner *ngIf="loadingValidationResults" [diameter]="20"></mat-spinner>
   <div *ngIf="issues">
       <p class="aligned-p">

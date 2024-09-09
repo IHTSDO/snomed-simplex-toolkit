@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
@@ -9,7 +9,7 @@ import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-con
   templateUrl: './select-edition.component.html',
   styleUrls: ['./select-edition.component.scss']
 })
-export class SelectEditionComponent {
+export class SelectEditionComponent implements OnChanges {
 
   editions = [];
   editionFields = ["name", "namespace", "defaultModule", "defaultModuleDisplay", "dependantVersionEffectiveTime", "shortName"];
@@ -25,10 +25,17 @@ export class SelectEditionComponent {
               private snackBar: MatSnackBar,
               private uiConfigurationService: UiConfigurationService) {}
 
-  ngOnInit() {
-  //  this.loadEditions();
-   this.getRoles();
-   this.refreshSelectedEdition();
+
+  ngOnChanges() {
+    // Refresh the selected edition when it changes
+    if (this.selectedEdition) {
+      this.refresh();
+    }
+  }
+
+  async refresh() {
+    this.getRoles();
+    this.refreshSelectedEdition();
   }
 
   async refreshSelectedEdition() {

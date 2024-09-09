@@ -34,34 +34,17 @@
                             </ul>
                             <li><b>Authoring cycle</b></li>
                             <ul>
-                                <li>Close editing and start release preparation 
-                                    <span *ngIf="activeStage == 'Authoring'">→ <a href="javascript:void(0)" (click)="startReleasePreparation()">Close</a></span>
+                                <li *ngIf="(!loadingReleaseStatus && activeStage != 'Authoring' && activeStage != 'Preparing release')">Editing closed</li>
+                                <li *ngIf="activeStage == 'Authoring'">Close editing and start release preparation 
+                                    <span>→ <a href="javascript:void(0)" (click)="startReleasePreparation()">Close</a></span>
                                 </li>
-                                <li>Reopen editing and cancel release preparation 
-                                    <span *ngIf="activeStage == 'Preparing release'">→ <a href="javascript:void(0)" (click)="stopReleasePreparation()">Reopen</a></span>
+                                <li *ngIf="activeStage == 'Preparing release'">Reopen editing and cancel release preparation 
+                                    <span>→ <a href="javascript:void(0)" (click)="stopReleasePreparation()">Reopen</a></span>
                                 </li>
                             </ul>
                         </ul>
 
                     </div>
-                    <!-- <div class="component-col centered">
-                        <span class="stage-title">Editing</span>
-                        <p class="aligned-p">
-                            Current validation status: {{ edition.validationStatus }}
-                            <mat-spinner *ngIf="!edition.validationStatus" [diameter]="12"></mat-spinner>
-                            <mat-icon [matTooltip]="getValidationStatusInfo(edition.validationStatus)" matTooltipPosition="right" 
-                            aria-label="Info icon" *ngIf="edition.validationStatus">info</mat-icon>
-                        </p>
-                        <button mat-button *ngIf="activeStage == 'Authoring'" (click)="runValidation()">
-                            Run development validation process
-                        </button>
-                        <button mat-button color="accent" *ngIf="activeStage == 'Authoring'" (click)="startReleasePreparation()">
-                            CLOSE EDITING AND START RELEASE PREPARATION
-                        </button>
-                        <button mat-button color="accent" *ngIf="activeStage != 'Authoring'" (click)="stopReleasePreparation()">
-                            CANCEL RELEASE PREPARATION AND GO BACK TO EDITING
-                        </button>
-                    </div> -->
                     <mat-icon class="completed-icon" 
                         *ngIf="(activeStage == 'Preparing release' || activeStage == 'Release ready')">
                         check_circle
@@ -118,36 +101,7 @@
                         </li>
                     </ul>
                 </ul>
-
             </div>
-                <!-- <div class="component-col centered">
-                    <span class="stage-title">
-                        Preparing release
-                    </span>
-                    <button mat-button color="accent" (click)="runValidation()" *ngIf="(edition.validationStatus == 'TODO' || edition.validationStatus == 'ERROR')"
-                        [disabled]="activeStage != 'Classification Completed' || loadingReleaseStatus">
-                        RUN CLASSIFICATION AND VALIDATION
-                    </button>
-                    <button mat-button color="accent" (click)="downloadValidationResults()" *ngIf="edition.validationStatus == 'CONTENT_ERROR'">
-                        VALIDATION RESULT: REVIEW ERRORS
-                    </button>
-                    <button mat-button color="accent" (click)="downloadValidationResults()" *ngIf="edition.validationStatus == 'CONTENT_WARNING'">
-                        VALIDATION RESULT: REVIEW WARNINGS
-                    </button>
-                    <button mat-button color="accent" *ngIf="edition.validationStatus == 'COMPLETE'" [disabled]="true">
-                        VALIDATION RESULT: NO ISSUES
-                    </button>
-                    <button mat-button color="accent" *ngIf="edition.validationStatus == 'IN_PROGRESS'">
-                        <span class="in-progress-button">VALIDATION IN PROGRESS <mat-spinner class="white-spinner" [diameter]="17"></mat-spinner></span>
-                    </button>
-                    <p class="error-message" *ngIf="edition.validationStatus == 'ERROR'">
-                        * The validation process did not complete as expected. Please try again. If this issue does not resolve itself please contact technical support.
-                    </p>
-                    <button mat-button color="accent"  [disabled]="true" *ngIf="!edition.validationStatus">
-                        <mat-spinner [diameter]="17"></mat-spinner>
-                    </button>
-                </div> -->
-                
                 <mat-icon class="completed-icon" 
                     *ngIf="activeStage == 'Release ready'">
                     check_circle
@@ -188,6 +142,3 @@
         </div>
     </div>
 </div>
-<button mat-button color="accent" (click)="generateValidationReport()">
-    DOWNLOAD VALIDATION REPORT
-</button>
