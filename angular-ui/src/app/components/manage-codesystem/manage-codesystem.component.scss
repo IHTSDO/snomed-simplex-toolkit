@@ -118,7 +118,7 @@ mat-list-item {
     border-top: 20px solid #585353;
   }
 
-  .stage-name {
+  .stage {
     background-color: #E6E9EE;
     color: #000000;
     margin-right: 10px; /* Adjust space between name and description */
@@ -129,6 +129,37 @@ mat-list-item {
     display: flex;
     align-items: center; /* This vertically aligns the icon with the text */
     justify-content: space-between;
+  }
+
+  .sub-stage {
+    margin-right: 10px; /* Adjust space between name and description */
+    border-radius: 10px;
+    padding: 1rem;
+    width: 100%;
+    text-align: start;
+    display: flex;
+    align-items: center; /* This vertically aligns the icon with the text */
+    justify-content: space-between;
+    border: solid 2px #b8c8ba;
+    margin-bottom: 0.4rem;
+    margin-top: 0.4rem;
+  }
+
+  .current-stage .sub-stage {
+    background-color: #dae6d1;
+  }
+
+  .sub-stage div:first-child {
+      flex: 0 0 33%; /* Fix the first div's width to 33% */
+  }
+
+  .sub-stage div:not(:first-child) {
+      flex: 1; /* Make the other divs take up the remaining space */
+  }
+
+
+  .sub-stage-text {
+    font-size: 1.2rem !important;
   }
 
   .completed-stage {
@@ -142,7 +173,7 @@ mat-list-item {
   }
 
   .inactive-stage {
-    color: grey;
+    color: grey !important;
   }
 
 
@@ -205,10 +236,17 @@ mat-list-item {
   align-items: center;
 }
 
+.buttons-panel {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
 .left {
   text-align: left;
-  margin-left: 3rem;
-  margin-right: 3rem;
+  // margin-left: 3rem;
+  // margin-right: 3rem;
 }
 
 .aligned-p {
