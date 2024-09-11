@@ -1,7 +1,7 @@
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { any } from 'cypress/types/bluebird';
+import { isEqual } from 'lodash';
 import { lastValueFrom } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
@@ -31,7 +31,8 @@ export class ValidationResultsComponent implements OnInit, OnChanges {
   @Input() edition: string;
   @Input() editionDetails: any;
   
-  issues: any;
+  @Input() issues: any;
+  localIssues: any;
   loadingValidationResults: boolean = false;
   
   adviceVisible: boolean = false;
@@ -40,14 +41,20 @@ export class ValidationResultsComponent implements OnInit, OnChanges {
     private snackBar: MatSnackBar) {}
   
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['edition'] && changes['edition'].currentValue) {
-      this.refreshIssues();
+    if (changes['edition'] && !changes['edition'].currentValue) {
+      this.refreshEdition();
+      if (!changes['issues'].currentValue) {
+        this.refreshIssues();
+      }
+    }
+    if (changes['issues'] && !isEqual(changes['issues'].currentValue, changes['issues'].previousValue)) {
+      this.localIssues = changes['issues'].currentValue;
     }
   }
 
   ngOnInit(): void {
-    this.refreshIssues();
-    this.refreshEdition();
+    // this.refreshIssues();
+    // this.refreshEdition();
   }
 
   refreshEdition() {
@@ -59,19 +66,22 @@ export class ValidationResultsComponent implements OnInit, OnChanges {
   }
 
   public refreshIssues() {
-    this.loadingValidationResults = true;
-    this.simplexService.getValidationResults(this.edition).subscribe(
-      (data) => {
-        this.issues = data;
-        this.loadingValidationResults = false;
-      },
-      (error) => {
-        this.snackBar.open('Error getting validation results', 'Dismiss', {
-          duration: 3000
-        });
-        this.loadingValidationResults = false;
-      }
-    );
+    if (this.editionDetails.validationStatus != 'TODO') {
+      this.loadingValidationResults = true;
+      this.simplexService.getValidationResults(this.edition).subscribe(
+        (data) => {
+          this.issues = data;
+          this.localIssues = data;
+          this.loadingValidationResults = false;
+        },
+        (error) => {
+          this.snackBar.open('Error getting validation results', 'Dismiss', {
+            duration: 3000
+          });
+          this.loadingValidationResults = false;
+        }
+      );
+    }
   }
 
   browseToConcept(conceptId: string) {

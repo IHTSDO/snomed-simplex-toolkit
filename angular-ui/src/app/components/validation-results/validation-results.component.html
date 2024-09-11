@@ -1,6 +1,6 @@
 <div class="validation-container">
   <h4>Validation Results for {{edition}} Edition</h4>
-  <p><b>How to fix this issues?</b>&nbsp;&nbsp;&nbsp;<button mat-button *ngIf="!adviceVisible" (click)="toggleAdvice()"><i>Click to open advice</i></button></p>
+  <p><b>How to fix these errors and warnings?</b>&nbsp;&nbsp;&nbsp;<button mat-button *ngIf="!adviceVisible" (click)="toggleAdvice()"><i>Click to open advice</i></button></p>
   <div [@adviceAnimation]="adviceVisible ? 'expanded' : 'collapsed'">
     <p>
       The SIMPLEX Toolkit compiles information from different content authoring tools, like Snap2Snomed, Refset Editors, Webllate, etc.
@@ -30,13 +30,13 @@
     <button mat-button (click)="toggleAdvice()"><i>Close</i></button>
   </div>
   <mat-spinner *ngIf="loadingValidationResults" [diameter]="20"></mat-spinner>
-  <div *ngIf="issues">
+  <div *ngIf="localIssues">
       <p class="aligned-p">
-        <mat-icon class="warning">warning</mat-icon> Warnings: {{issues.warningCount}} <mat-icon class="error">error</mat-icon> Errors: {{issues.errorCount}}
+        <mat-icon class="error">error</mat-icon> Errors: {{localIssues.errorCount}} <mat-icon class="warning">warning</mat-icon> Warnings: {{localIssues.warningCount}}
       </p>
       
-      <mat-accordion *ngIf="issues.fixes && issues.fixes.length > 0">
-        <mat-expansion-panel *ngFor="let fix of issues.fixes">
+      <mat-accordion *ngIf="localIssues.fixes && localIssues.fixes.length > 0">
+        <mat-expansion-panel *ngFor="let fix of localIssues.fixes">
           <mat-expansion-panel-header>
             <mat-panel-title>
               {{fix.type | titlecase}}, {{fix.subtype}} ({{fix.componentCount}})

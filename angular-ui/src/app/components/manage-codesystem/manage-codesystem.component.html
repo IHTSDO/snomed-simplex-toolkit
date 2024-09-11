@@ -26,16 +26,15 @@
                         <div><b>Validation</b></div>
                         <div class="sub-stage-text">
                             <div *ngIf="activeStage == 'Authoring'">
-                                <span *ngIf="activeStage == 'Authoring' && edition.validationStatus == 'TODO'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runValidation()">Run validation</a></span>
-                                <span *ngIf="activeStage == 'Authoring' && edition.validationStatus != 'TODO' && edition.validationStatus != 'STALE' && edition.validationStatus != 'IN_PROGRESS'">Validation has completed and is up to date</span>
-                                <span *ngIf="activeStage == 'Authoring' && edition.validationStatus == 'STALE'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runValidation()">Run validation again</a></span>
-                                <span *ngIf="activeStage == 'Authoring' && edition.validationStatus == 'IN_PROGRESS'">{{ getValidationStatusInfo(edition.validationStatus) }}</span>
+                                <span *ngIf="edition.validationStatus == 'TODO'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runValidation()">Run validation</a></span>
+                                <span *ngIf="edition.validationStatus != 'TODO' && edition.validationStatus != 'STALE' && edition.validationStatus != 'IN_PROGRESS'">Validation has completed and is up to date</span>
+                                <span *ngIf="edition.validationStatus == 'STALE'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runValidation()">Run validation again</a></span>
+                                <span *ngIf="edition.validationStatus == 'IN_PROGRESS'">{{ getValidationStatusInfo(edition.validationStatus) }}</span>
                             </div>
                             <div *ngIf="activeStage == 'Authoring'">
-                                <span *ngIf="activeStage == 'Authoring' && (edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING')"
-                                    [ngClass]=" { 'requirements-not-met' : (edition.validationStatus == 'CONTENT_ERROR'), 'warnings':  (edition.validationStatus == 'CONTENT_WARNING')}">
-                                    {{ getValidationStatusInfo(edition.validationStatus) }}
-                                </span>
+                                <div *ngIf="issuesReport && issuesReport.errorCount">Fix errors → <span class="requirements-not-met">{{ issuesReport.errorCount }} errors were detected in the last validation</span></div>
+                                <div *ngIf="issuesReport && issuesReport.warningCount">Review warnings → <span class="warnings">{{ issuesReport.warningCount }} warnings were detected in the last validation</span></div>
+                                <div *ngIf="issuesReport && (!issuesReport.errorCount && !issuesReport.warningCount)">No errors or warnings were deteted in the last validation</div>
                             </div>
                             <div *ngIf="activeStage && activeStage != 'Authoring'">Content editing is closed</div>
                             <div *ngIf="!activeStage">Loading...</div>
@@ -165,8 +164,8 @@
         </div>
     </div>
     <div class="component-col">
-        <app-validation-results class="validation-container"
-            [edition]="edition.shortName" *ngIf="(edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING')">
+        <app-validation-results class="validation-container" [edition]="edition.shortName" [editionDetails]="edition" [issues]="issuesReport" *ngIf="issuesReport && (issuesReport.errorCount || issuesReport.warningCount)">
+            <!-- [edition]="edition.shortName" *ngIf="(edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING')" -->
         </app-validation-results>
         <!-- <h4>Next steps:</h4>
         <h5>Current Status: Classification Completed</h5>

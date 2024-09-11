@@ -19,6 +19,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   releases: any[] = [];
   activeStage: string;
   loadingReleaseStatus = false;
+  issuesReport: any;
 
   releaseStages = [
     { name: 'Authoring', completed: false, active: false, actionsAvailable: ['Content cut-off'] },
@@ -44,6 +45,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['edition']) {
       this.activeStage = null;
+      this.issuesReport = null;
       this.refreshEdition();
     }
   }
@@ -142,9 +144,20 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     );
     this.edition = response;
     this.refreshJobs();
+    this.refreshIssues();
     this.activeStage = await lastValueFrom(this.simplexService.getCodeSystemReleaseStatus(this.edition.shortName));
     this.updateByStage();
     this.loadingReleaseStatus = false;
+  }
+
+  async refreshIssues() {
+    if (this.edition.validationStatus != 'TODO') {
+      this.loadingReleaseStatus = true;
+      const response = await lastValueFrom(
+        this.simplexService.getValidationResults(this.edition.shortName)
+      );
+      this.issuesReport = response;
+    }
   }
 
   updateByStage() {
