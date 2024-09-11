@@ -169,7 +169,7 @@ mat-list-item {
 
   .current-stage {
     background-color: #E6E9EE;
-    border: solid 2px #6DBBA1;
+    border: solid 2px #9cd6c3;
   }
 
   .inactive-stage {
@@ -261,5 +261,10 @@ mat-list-item {
 
 .requirements-not-met {
   color: rgb(231, 103, 103);
+  font-style: italic;
+}
+
+.warnings {
+  color: rgb(151, 105, 5);
   font-style: italic;
 }

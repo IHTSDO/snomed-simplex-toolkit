@@ -165,13 +165,13 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
 
   getValidationStatusInfo(status: string): string {
     const statusMessages: { [key: string]: string } = {
-      TODO: "Not run yet",
+      TODO: "Validation has not run yet",
       IN_PROGRESS: "Validation is currently running",
-      CONTENT_ERROR: "There are content errors. Please review and fix them.",
-      CONTENT_WARNING: "There are content warnings. Consider reviewing them.",
-      SYSTEM_ERROR: "System error occurred. Please contact support.",
-      COMPLETE: "Validation completed successfully without any issues.",
-      STALE: "Validation is outdated. The content has changed since the last validation.",
+      CONTENT_ERROR: "There are content errors, please review and fix",
+      CONTENT_WARNING: "There are content warnings, please review",
+      SYSTEM_ERROR: "System error has occurred, please contact support",
+      COMPLETE: "Validation has completed successfully without any issues",
+      STALE: "The content has changed and the results are outdated",
     };
   
     return statusMessages[status] || "Unknown validation status";
@@ -181,9 +181,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     const statusMessages: { [key: string]: string } = {
       TODO: "Needs to be run",
       IN_PROGRESS: "Classification is currently running",
-      EQUIVALENT_CONCEPTS: "There are equivalent concepts. Please contact support.",
-      SYSTEM_ERROR: "System error occurred. Please contact support.",
-      COMPLETE: "Classification completed successfully without any issues."
+      EQUIVALENT_CONCEPTS: "There are equivalent concepts. Please contact support",
+      SYSTEM_ERROR: "System error occurred. Please contact support",
+      COMPLETE: "Classification completed successfully without any issues"
     };
   
     return statusMessages[status] || "Unknown classification status";
