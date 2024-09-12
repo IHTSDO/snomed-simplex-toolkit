@@ -24,7 +24,6 @@ import org.snomed.simplex.rest.pojos.SetBranchRequest;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.CodeSystemService;
 import org.snomed.simplex.service.JobService;
-import org.snomed.simplex.service.SecurityService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.snomed.simplex.service.validation.ValidationFixList;
@@ -36,9 +35,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 
 import static org.snomed.simplex.domain.activity.ActivityType.*;
 import static org.snomed.simplex.domain.activity.ComponentType.CODE_SYSTEM;
@@ -54,8 +51,6 @@ public class CodeSystemController {
 
 	private final JobService jobService;
 
-	private final SecurityService securityService;
-
 	private final ValidationServiceClient validationServiceClient;
 
 	private final ValidationService validationService;
@@ -65,12 +60,11 @@ public class CodeSystemController {
 	private final ActivityService activityService;
 
 	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService, JobService jobService,
-			SecurityService securityService, ValidationServiceClient validationServiceClient, ValidationService validationService,
+			ValidationServiceClient validationServiceClient, ValidationService validationService,
 			ReleaseServiceClient releaseServiceClient, ActivityService activityService) {
 		this.clientFactory = clientFactory;
 		this.codeSystemService = codeSystemService;
 		this.jobService = jobService;
-		this.securityService = securityService;
 		this.validationServiceClient = validationServiceClient;
 		this.validationService = validationService;
 		this.releaseServiceClient = releaseServiceClient;
@@ -79,22 +73,13 @@ public class CodeSystemController {
 
 	@GetMapping
 	public Page<CodeSystem> getCodeSystems(@RequestParam(required = false, defaultValue = "false") boolean includeDetails) throws ServiceException {
-		List<CodeSystem> codeSystems = clientFactory.getClient().getCodeSystems(includeDetails);
-		securityService.updateUserRolePermissionCache(codeSystems);
-		// Filter out codesystems where the user has no role.
-		codeSystems = codeSystems.stream().filter(codeSystem -> !codeSystem.getUserRoles().isEmpty()).toList();
-		return new Page<>(codeSystems);
+		return new Page<>(codeSystemService.getCodeSystems(includeDetails));
 	}
 
 	@GetMapping("{codeSystem}")
 	@PostAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public CodeSystem getCodeSystemDetails(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
-		CodeSystem codeSystemForDisplay = snowstormClient.getCodeSystemForDisplay(codeSystem);
-		codeSystemService.addClassificationStatus(codeSystemForDisplay);
-		codeSystemService.addValidationStatus(codeSystemForDisplay);
-		securityService.updateUserRolePermissionCache(Collections.singletonList(codeSystemForDisplay));
-		return codeSystemForDisplay;
+		return codeSystemService.getCodeSystemDetails(codeSystem);
 	}
 
 	@Operation(description = """

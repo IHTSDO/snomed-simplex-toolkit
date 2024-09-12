@@ -7,10 +7,6 @@ import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.springframework.stereotype.Service;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.function.Consumer;
-
 @Service
 public class ActivityService {
 

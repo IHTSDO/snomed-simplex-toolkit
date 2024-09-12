@@ -36,6 +36,7 @@ public class CodeSystemService {
 	private final JobService jobService;
 	private final SupportRegister supportRegister;
 	private final ValidationServiceClient validationServiceClient;
+	private final SecurityService securityService;
 
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> validationJobsToMonitor = new HashMap<>();
@@ -44,12 +45,30 @@ public class CodeSystemService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public CodeSystemService(SnowstormClientFactory snowstormClientFactory, JobService jobService, SupportRegister supportRegister,
-			ValidationServiceClient validationServiceClient) {
+			ValidationServiceClient validationServiceClient, SecurityService securityService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.jobService = jobService;
 		this.supportRegister = supportRegister;
 		this.validationServiceClient = validationServiceClient;
+		this.securityService = securityService;
+	}
+
+	public List<CodeSystem> getCodeSystems(boolean includeDetails) throws ServiceException {
+		List<CodeSystem> codeSystems = snowstormClientFactory.getClient().getCodeSystems(includeDetails);
+		securityService.updateUserRolePermissionCache(codeSystems);
+		// Filter out codesystems where the user has no role.
+		codeSystems = codeSystems.stream().filter(codeSystem -> !codeSystem.getUserRoles().isEmpty()).toList();
+		return codeSystems;
+	}
+
+	public CodeSystem getCodeSystemDetails(String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem codeSystemForDisplay = snowstormClient.getCodeSystemForDisplay(codeSystem);
+		addClassificationStatus(codeSystemForDisplay);
+		addValidationStatus(codeSystemForDisplay);
+		securityService.updateUserRolePermissionCache(Collections.singletonList(codeSystemForDisplay));
+		return codeSystemForDisplay;
 	}
 
 	public CodeSystem createCodeSystem(CreateCodeSystemRequest createCodeSystemRequest) throws ServiceException {
@@ -416,4 +435,5 @@ public class CodeSystemService {
 				Branch.ORGANISATION_CONTACT_DETAILS, packageConfiguration.orgContactDetails());
 		snowstormClient.upsertBranchMetadata(branchPath, metadataUpdate);
 	}
+
 }
