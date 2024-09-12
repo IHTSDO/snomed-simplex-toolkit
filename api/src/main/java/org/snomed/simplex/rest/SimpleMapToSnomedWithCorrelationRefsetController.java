@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.domain.RefsetMemberIntentSimpleMapToSnomedWithCorrelation;
+import org.snomed.simplex.domain.activity.ComponentType;
+import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.SimpleMapToSnomedWithCorrelationRefsetService;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,9 +21,10 @@ public class SimpleMapToSnomedWithCorrelationRefsetController extends AbstractRe
 	public SimpleMapToSnomedWithCorrelationRefsetController(
 			SnowstormClientFactory snowstormClientFactory,
 			JobService jobService,
+			ActivityService activityService,
 			SimpleMapToSnomedWithCorrelationRefsetService refsetService) {
 
-		super(snowstormClientFactory, jobService);
+		super(snowstormClientFactory, jobService, activityService);
 		this.refsetService = refsetService;
 	}
 
@@ -38,6 +41,11 @@ public class SimpleMapToSnomedWithCorrelationRefsetController extends AbstractRe
 	@Override
 	protected String getFilenamePrefix() {
 		return "MapRefset";
+	}
+
+	@Override
+	protected ComponentType getComponentType() {
+		return ComponentType.MAP;
 	}
 
 	@Override

@@ -9,6 +9,9 @@ import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.domain.Page;
+import org.snomed.simplex.domain.activity.Activity;
+import org.snomed.simplex.domain.activity.ActivityType;
+import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.CustomConceptService;
 import org.snomed.simplex.service.JobService;
@@ -61,8 +64,9 @@ public class CustomConceptController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
+		Activity activity = new Activity(codeSystem, ComponentType.CUSTOM_CONCEPTS, ActivityType.UPDATE);
 		return jobService.queueContentJob(codeSystem, "Custom concept upload", file.getInputStream(), null,
-				asyncJob -> customConceptService.uploadSpreadsheet(theCodeSystem, asyncJob.getInputStream(), snowstormClient, asyncJob));
+				activity, asyncJob -> customConceptService.uploadSpreadsheet(theCodeSystem, asyncJob.getInputStream(), snowstormClient, asyncJob));
 	}
 
 	@PostMapping("/show")
