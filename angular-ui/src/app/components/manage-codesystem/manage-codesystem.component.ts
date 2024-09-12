@@ -202,7 +202,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     return statusMessages[status] || "Unknown classification status";
   }
 
-  generateValidationReport() {
+  generateChangeReport() {
     const branch = this.edition.branchPath;
     const reportSections: string[] = [
       'new-concepts', 
@@ -240,7 +240,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
         type: 'array'
       });
 
-      this.saveAsExcelFile(excelBuffer, 'ValidationReport');
+      this.saveAsExcelFile(excelBuffer, 'ChangeReport');
     }).catch(error => {
       console.error('Error processing report sections', error);
     });

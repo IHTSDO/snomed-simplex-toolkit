@@ -49,7 +49,7 @@
                             </div>
                             <div *ngIf="activeStage == 'Authoring'">
                                 Download changes report 
-                                    <span *ngIf="activeStage == 'Authoring'">→ <a href="javascript:void(0)" (click)="generateValidationReport()">Download XLS</a></span>
+                                    <span *ngIf="activeStage == 'Authoring'">→ <a href="javascript:void(0)" (click)="generateChangeReport()">Download XLS</a></span>
                             </div>
                             <div *ngIf="activeStage && activeStage != 'Authoring'">Content editing is closed</div>
                             <div *ngIf="!activeStage">Loading...</div>
@@ -114,7 +114,7 @@
                                 <span>→ <a href="javascript:void(0)" (click)="browseToDailyBuild()">Open browser</a></span>
                             </div>
                             <div>Download changes report 
-                                <span>→ <a href="javascript:void(0)" (click)="generateValidationReport()">Download XLS</a></span>
+                                <span>→ <a href="javascript:void(0)" (click)="generateChangeReport()">Download XLS</a></span>
                             </div>
                         </div>
                         <div *ngIf="activeStage && activeStage == 'Authoring'">Release preparation not started</div>
