@@ -106,6 +106,12 @@
 			<artifactId>spring-cloud-starter-vault-config</artifactId>
 		</dependency>
 
+		<!-- AWS auth -->
+		<dependency>
+			<groupId>io.github.acm19</groupId>
+			<artifactId>aws-request-signing-apache-interceptor</artifactId>
+		</dependency>
+
 		<!-- Test -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
