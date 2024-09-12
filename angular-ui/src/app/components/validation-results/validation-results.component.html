@@ -43,7 +43,7 @@
             </mat-panel-title>
           </mat-expansion-panel-header>
           <mat-list>
-            <mat-list-item *ngFor="let component of fix.components">
+            <mat-list-item *ngFor="let component of fix.components" class="wrapped-list-item">
               <a href="javascript:void(0);" (click)="browseToConcept(component.conceptId)">
                   {{component.conceptId}}
               </a> - {{component.assertionText}}
