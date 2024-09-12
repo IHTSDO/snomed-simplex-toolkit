@@ -8,9 +8,13 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.Concepts;
+import org.snomed.simplex.domain.activity.Activity;
+import org.snomed.simplex.domain.activity.ActivityType;
+import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.CreateConceptRequest;
 import org.snomed.simplex.rest.pojos.LanguageCode;
+import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.TranslationService;
 import org.snomed.simplex.service.job.AsyncJob;
@@ -35,11 +39,15 @@ public class TranslationController {
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final TranslationService translationService;
 	private final JobService jobService;
+	private final ActivityService activityService;
 
-	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, JobService jobService) {
+	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, JobService jobService,
+			ActivityService activityService) {
+
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
 		this.jobService = jobService;
+		this.activityService = activityService;
 	}
 
 	@GetMapping("{codeSystem}/translations")
@@ -53,8 +61,10 @@ public class TranslationController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void createTranslation(@PathVariable String codeSystem, @RequestBody CreateConceptRequest request) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		snowstormClient.createSimpleMetadataConcept(Concepts.LANG_REFSET, request.getPreferredTerm(), Concepts.FOUNDATION_METADATA_CONCEPT_TAG,
-				snowstormClient.getCodeSystemOrThrow(codeSystem));
+		activityService.recordActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.CREATE, () ->
+			snowstormClient.createSimpleMetadataConcept(Concepts.LANG_REFSET, request.getPreferredTerm(), Concepts.FOUNDATION_METADATA_CONCEPT_TAG,
+					snowstormClient.getCodeSystemOrThrow(codeSystem))
+		);
 	}
 
 	@DeleteMapping("{codeSystem}/translations/{refsetId}")
@@ -64,7 +74,10 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		translationService.deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
+		activityService.recordActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.DELETE, () -> {
+			translationService.deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
+			return null;
+		});
 	}
 
 //	@GetMapping(path = "{codeSystem}/translations/{refsetId}/spreadsheet", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -88,9 +101,9 @@ public class TranslationController {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		return jobService.queueContentJob(codeSystem, "Translation upload", file.getInputStream(), refsetId,
-				asyncJob -> translationService.uploadTranslationAsWeblateCSV(refsetId, languageCode, theCodeSystem, asyncJob.getInputStream(),
+				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(refsetId, languageCode, theCodeSystem, asyncJob.getInputStream(),
 				translationTermsUseTitleCase, snowstormClient, asyncJob));
 	}
 
@@ -102,9 +115,9 @@ public class TranslationController {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		return jobService.queueContentJob(codeSystem, "Translation upload", file.getInputStream(), refsetId,
-				asyncJob -> translationService.uploadTranslationAsRefsetToolArchive(refsetId, theCodeSystem, asyncJob.getInputStream(), snowstormClient, asyncJob));
+				activity, asyncJob -> translationService.uploadTranslationAsRefsetToolArchive(refsetId, theCodeSystem, asyncJob.getInputStream(), snowstormClient, asyncJob));
 	}
 
 	@GetMapping(path = "language-codes")

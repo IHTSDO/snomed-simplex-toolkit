@@ -6,7 +6,11 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.domain.RefsetMemberIntent;
+import org.snomed.simplex.domain.activity.Activity;
+import org.snomed.simplex.domain.activity.ActivityType;
+import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.RefsetToolSubsetReader;
 import org.snomed.simplex.service.SimpleRefsetService;
@@ -27,9 +31,9 @@ public class SimpleRefsetController extends AbstractRefsetController<RefsetMembe
 	private final JobService jobService;
 
 	public SimpleRefsetController(SnowstormClientFactory snowstormClientFactory,
-			SimpleRefsetService simpleRefsetService, JobService jobService) {
+			SimpleRefsetService simpleRefsetService, JobService jobService, ActivityService activityService) {
 
-		super(snowstormClientFactory, jobService);
+		super(snowstormClientFactory, jobService, activityService);
 		this.simpleRefsetService = simpleRefsetService;
 		this.jobService = jobService;
 	}
@@ -45,6 +49,11 @@ public class SimpleRefsetController extends AbstractRefsetController<RefsetMembe
 	}
 
 	@Override
+	protected ComponentType getComponentType() {
+		return ComponentType.SUBSET;
+	}
+
+	@Override
 	protected SimpleRefsetService getRefsetService() {
 		return simpleRefsetService;
 	}
@@ -57,9 +66,9 @@ public class SimpleRefsetController extends AbstractRefsetController<RefsetMembe
 
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-
+		Activity activity = new Activity(codeSystem, ComponentType.SUBSET, ActivityType.UPDATE);
 		return jobService.queueContentJob(codeSystem, "Subset upload (Refset Tool)", file.getInputStream(), refsetId,
-				asyncJob -> getRefsetService().updateRefsetViaCustomFile(refsetId, new RefsetToolSubsetReader(asyncJob.getInputStream()), theCodeSystem, asyncJob));
+				activity, asyncJob -> getRefsetService().updateRefsetViaCustomFile(refsetId, new RefsetToolSubsetReader(asyncJob.getInputStream()), theCodeSystem, asyncJob));
 	}
 
 	@Override

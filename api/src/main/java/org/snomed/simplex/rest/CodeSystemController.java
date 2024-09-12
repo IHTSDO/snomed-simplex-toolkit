@@ -13,17 +13,17 @@ import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
-import org.snomed.simplex.client.srs.manifest.domain.ReleaseBuild;
 import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.domain.Page;
+import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.rest.pojos.SetBranchRequest;
-import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
+import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.CodeSystemService;
 import org.snomed.simplex.service.JobService;
-import org.snomed.simplex.service.SecurityService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.snomed.simplex.service.validation.ValidationFixList;
@@ -35,9 +35,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
 import java.util.Date;
-import java.util.List;
+
+import static org.snomed.simplex.domain.activity.ActivityType.*;
+import static org.snomed.simplex.domain.activity.ComponentType.CODE_SYSTEM;
 
 @RestController
 @RequestMapping("api/codesystems")
@@ -50,42 +51,35 @@ public class CodeSystemController {
 
 	private final JobService jobService;
 
-	private final SecurityService securityService;
-
 	private final ValidationServiceClient validationServiceClient;
 
 	private final ValidationService validationService;
 
 	private final ReleaseServiceClient releaseServiceClient;
 
-	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService, JobService jobService, SecurityService securityService, ValidationServiceClient validationServiceClient, ValidationService validationService, ReleaseServiceClient releaseServiceClient) {
+	private final ActivityService activityService;
+
+	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService, JobService jobService,
+			ValidationServiceClient validationServiceClient, ValidationService validationService,
+			ReleaseServiceClient releaseServiceClient, ActivityService activityService) {
 		this.clientFactory = clientFactory;
 		this.codeSystemService = codeSystemService;
 		this.jobService = jobService;
-		this.securityService = securityService;
 		this.validationServiceClient = validationServiceClient;
 		this.validationService = validationService;
 		this.releaseServiceClient = releaseServiceClient;
+		this.activityService = activityService;
 	}
 
 	@GetMapping
 	public Page<CodeSystem> getCodeSystems(@RequestParam(required = false, defaultValue = "false") boolean includeDetails) throws ServiceException {
-		List<CodeSystem> codeSystems = clientFactory.getClient().getCodeSystems(includeDetails);
-		securityService.updateUserRolePermissionCache(codeSystems);
-		// Filter out codesystems where the user has no role.
-		codeSystems = codeSystems.stream().filter(codeSystem -> !codeSystem.getUserRoles().isEmpty()).toList();
-		return new Page<>(codeSystems);
+		return new Page<>(codeSystemService.getCodeSystems(includeDetails));
 	}
 
 	@GetMapping("{codeSystem}")
 	@PostAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public CodeSystem getCodeSystemDetails(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
-		CodeSystem codeSystemForDisplay = snowstormClient.getCodeSystemForDisplay(codeSystem);
-		codeSystemService.addClassificationStatus(codeSystemForDisplay);
-		codeSystemService.addValidationStatus(codeSystemForDisplay);
-		securityService.updateUserRolePermissionCache(Collections.singletonList(codeSystemForDisplay));
-		return codeSystemForDisplay;
+		return codeSystemService.getCodeSystemDetails(codeSystem);
 	}
 
 	@Operation(description = """
@@ -96,7 +90,9 @@ public class CodeSystemController {
 	@PostMapping
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public CodeSystem createCodeSystem(@RequestBody CreateCodeSystemRequest request) throws ServiceException {
-		return codeSystemService.createCodeSystem(request);
+		return activityService.recordActivity(request.getShortName(), CODE_SYSTEM, CREATE, () ->
+				codeSystemService.createCodeSystem(request)
+		);
 	}
 
 	@PostMapping("{codeSystem}/upgrade")
@@ -104,7 +100,7 @@ public class CodeSystemController {
 	public AsyncJob startUpgrade(@PathVariable String codeSystem, CodeSystemUpgradeRequest upgradeRequest) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		return jobService.startExternalServiceJob(theCodeSystem, "Upgrade", job -> codeSystemService.upgradeCodeSystem(job, upgradeRequest));
+		return jobService.startExternalServiceJob(theCodeSystem, ActivityType.UPGRADE, job -> codeSystemService.upgradeCodeSystem(job, upgradeRequest));
 	}
 
 	@PostMapping("{codeSystem}/classify")
@@ -119,7 +115,7 @@ public class CodeSystemController {
 			throw new ServiceException("Classification is already in progress.");
 		}
 
-		return jobService.startExternalServiceJob(theCodeSystem, "Classify", codeSystemService::classify);
+		return jobService.startExternalServiceJob(theCodeSystem, ActivityType.CLASSIFY, codeSystemService::classify);
 	}
 
 	@PostMapping("{codeSystem}/validate")
@@ -127,7 +123,7 @@ public class CodeSystemController {
 	public AsyncJob startValidation(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		return jobService.startExternalServiceJob(theCodeSystem, "Validate", codeSystemService::validate);
+		return jobService.startExternalServiceJob(theCodeSystem, ActivityType.VALIDATE, codeSystemService::validate);
 	}
 
 	@PostMapping("{codeSystem}/validate/run-automatic-fixes")
@@ -135,7 +131,10 @@ public class CodeSystemController {
 	public void runAutomaticFixes(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		validationService.runAutomaticFixes(theCodeSystem);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, AUTOMATIC_FIX, () -> {
+			validationService.runAutomaticFixes(theCodeSystem);
+			return null;
+		});
 	}
 
 	@GetMapping("{codeSystem}/validate/issues")
@@ -216,9 +215,11 @@ public class CodeSystemController {
 
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		codeSystemService.updatePackageConfiguration(packageConfiguration, codeSystemObject.getBranchPath());
-
-		releaseServiceClient.updateProductConfiguration(codeSystemObject, packageConfiguration);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
+			codeSystemService.updatePackageConfiguration(packageConfiguration, codeSystemObject.getBranchPath());
+			releaseServiceClient.updateProductConfiguration(codeSystemObject, packageConfiguration);
+			return null;
+		});
 	}
 
 	@PostMapping(path = "{codeSystem}/product-packaging/build")
@@ -242,14 +243,22 @@ public class CodeSystemController {
 			throw new ServiceExceptionWithStatusCode("Organisation name and contact details must be set before creating a build.", HttpStatus.CONFLICT);
 		}
 
-		ReleaseBuild releaseBuild = releaseServiceClient.buildProduct(theCodeSystem, effectiveTime);
-		// TODO: Convert to Simplex scheduled job.
+
+		String finalEffectiveTime = effectiveTime;
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, START_BUILD, () -> {
+			// TODO: Convert to Simplex scheduled job.
+			releaseServiceClient.buildProduct(theCodeSystem, finalEffectiveTime);
+			return null;
+		});
 	}
 
 	@DeleteMapping("{codeSystem}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void deleteCodeSystem(@PathVariable String codeSystem) throws ServiceException {
-		codeSystemService.deleteCodeSystem(codeSystem);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, DELETE, () -> {
+			codeSystemService.deleteCodeSystem(codeSystem);
+			return null;
+		});
 	}
 
 	@PostMapping("{codeSystem}/working-branch")
@@ -257,7 +266,10 @@ public class CodeSystemController {
 	public void setBranchOverride(@PathVariable String codeSystem, @RequestBody SetBranchRequest request) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		snowstormClient.setCodeSystemWorkingBranch(theCodeSystem, request.getBranchPath());
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
+			snowstormClient.setCodeSystemWorkingBranch(theCodeSystem, request.getBranchPath());
+			return null;
+		});
 	}
 
 	@PostMapping("{codeSystem}/start-release-prep")
@@ -265,7 +277,10 @@ public class CodeSystemController {
 	public void startReleasePrep(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		codeSystemService.setPreparingReleaseFlag(theCodeSystem, true);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, START_RELEASE_PREP, () -> {
+			codeSystemService.setPreparingReleaseFlag(theCodeSystem, true);
+			return null;
+		});
 	}
 
 	@PostMapping("{codeSystem}/stop-release-prep")
@@ -273,7 +288,10 @@ public class CodeSystemController {
 	public void stopReleasePrep(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		codeSystemService.setPreparingReleaseFlag(theCodeSystem, false);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, STOP_RELEASE_PREP, () -> {
+			codeSystemService.setPreparingReleaseFlag(theCodeSystem, false);
+			return null;
+		});
 	}
 
 }

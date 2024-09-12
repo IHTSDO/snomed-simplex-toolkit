@@ -4,6 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.JobStatus;
+import org.snomed.simplex.domain.activity.Activity;
+import org.snomed.simplex.domain.activity.ActivityType;
+import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,29 +31,36 @@ public class JobService {
 	private final Map<String, Map<String, AsyncJob>> codeSystemJobs;
 	private final ExecutorService jobExecutorService;
 	private final SupportRegister supportRegister;
+	private final ActivityService activityService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public JobService(@Value("${job.concurrent.threads}") int nThreads, SupportRegister supportRegister) {
+	public JobService(@Value("${job.concurrent.threads}") int nThreads, SupportRegister supportRegister, ActivityService activityService) {
 		codeSystemJobs = new HashMap<>();
 		jobExecutorService = Executors.newFixedThreadPool(nThreads);
 		this.supportRegister = supportRegister;
+		this.activityService = activityService;
 	}
 
-	public AsyncJob startExternalServiceJob(CodeSystem codeSystem, String display, Consumer<ExternalServiceJob> function) {
+	public AsyncJob startExternalServiceJob(CodeSystem codeSystem, ActivityType activityType, Consumer<ExternalServiceJob> function) throws ServiceException {
 		String shortName = codeSystem.getShortName();
-		ExternalServiceJob asyncJob = new ExternalServiceJob(shortName, display,
+		ExternalServiceJob asyncJob = new ExternalServiceJob(shortName, activityType.getDisplay(),
 				codeSystem.getWorkingBranchPath(), codeSystem.getContentHeadTimestamp());
 
 		asyncJob.setSecurityContext(SecurityContextHolder.getContext());
 		asyncJob.setStatus(JobStatus.IN_PROGRESS);
 
-		function.accept(asyncJob);
+		activityService.recordActivity(codeSystem.getShortName(), ComponentType.CODE_SYSTEM, activityType, () -> {
+			function.accept(asyncJob);
+			return null;
+		});
 		codeSystemJobs.computeIfAbsent(shortName, i -> new LinkedHashMap<>()).put(asyncJob.getId(), asyncJob);
 		return asyncJob;
 	}
 
-	public AsyncJob queueContentJob(String codeSystem, String display, InputStream jobInputStream, String refsetId, AsyncFunction<ContentJob> function) throws IOException {
+	public AsyncJob queueContentJob(String codeSystem, String display, InputStream jobInputStream, String refsetId, Activity activity,
+			AsyncFunction<ContentJob> function) throws IOException {
+
 		ContentJob asyncJob = new ContentJob(codeSystem, display, refsetId);
 		File tempFile = File.createTempFile(asyncJob.getId(), "txt");
 		try (FileOutputStream out = new FileOutputStream(tempFile)) {
@@ -58,14 +68,14 @@ public class JobService {
 		}
 		asyncJob.setTempFile(tempFile);
 
-		return doQueueJob(codeSystem, function, asyncJob, () -> {
+		return doQueueJob(codeSystem, function, asyncJob, activity, () -> {
 			if (!tempFile.delete()) {
 				logger.info("Failed to delete temp file {}", tempFile.getAbsoluteFile());
 			}
 		});
 	}
 
-	private <T extends AsyncJob> T doQueueJob(String codeSystem, AsyncFunction<T> function, T asyncJob, Runnable onCompleteRunnable) {
+	private <T extends AsyncJob> T doQueueJob(String codeSystem, AsyncFunction<T> function, T asyncJob, Activity activity, Runnable onCompleteRunnable) {
 		// Add job to thread limited executor service to be run when there is capacity
 		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
 		jobExecutorService.submit(() -> {
@@ -78,9 +88,13 @@ public class JobService {
 			} catch (ServiceException e) {
 				asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
 				asyncJob.setServiceException(e);
+				activity.exception(e);
 			} catch (Exception e) {
-				supportRegister.handleSystemError(asyncJob, "Unexpected error.", new ServiceException("Unexpected error.", e));
+				ServiceException serviceException = new ServiceException("Unexpected error.", e);
+				activity.exception(serviceException);
+				supportRegister.handleSystemError(asyncJob, "Unexpected error.", serviceException);
 			} finally {
+				activityService.manualSaveActivity(activity);
 				if (onCompleteRunnable != null) {
 					onCompleteRunnable.run();
 				}
