@@ -54,7 +54,8 @@ import static java.lang.String.format;
 @Service
 public class ReleaseServiceClient {
 
-    public static final String ASSERTION_GROUP_NAMES = "common-authoring,simplex-release";
+    public static final String RELEASE_ASSERTION_GROUP_NAMES = "common-authoring,simplex-release";
+    public static final String VALIDATION_ASSERTION_GROUP_NAMES = "common-authoring";
     public static final String DROOLS_RULES_GROUP_NAMES = "common-authoring";
 
     private final String releaseServiceURL;
@@ -149,7 +150,7 @@ public class ReleaseServiceClient {
         updateRequest.setReadmeHeader(readmeHeader);
         updateRequest.setReadmeEndDate(getThisYear());
         updateRequest.setLicenseStatement(licenceStatement);
-        updateRequest.setAssertionGroupNames(ASSERTION_GROUP_NAMES);
+        updateRequest.setAssertionGroupNames(RELEASE_ASSERTION_GROUP_NAMES);
         updateRequest.setEnableDrools(true);
         updateRequest.setDroolsRulesGroupNames(DROOLS_RULES_GROUP_NAMES);
         updateRequest.setEnableMRCMValidation(true);

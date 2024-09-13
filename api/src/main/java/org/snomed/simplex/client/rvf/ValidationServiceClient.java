@@ -127,7 +127,7 @@ public class ValidationServiceClient {
 			body.add("dependencyRelease", codeSystem.getDependencyPackage());
 		}
 
-		body.add("groups", ReleaseServiceClient.ASSERTION_GROUP_NAMES);
+		body.add("groups", ReleaseServiceClient.VALIDATION_ASSERTION_GROUP_NAMES);
 		body.add("enableDrools", "true");
 		body.add("enableMRCMValidation", "true");
 		body.add("branchPath", branchPath);
