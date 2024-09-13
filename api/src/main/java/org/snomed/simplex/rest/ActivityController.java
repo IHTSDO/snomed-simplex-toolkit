@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.service.ActivityService;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
