@@ -167,7 +167,7 @@ public class CodeSystemController {
 		switch (validationStatus) {
 			case TODO, IN_PROGRESS, SYSTEM_ERROR ->
 					throw new ServiceExceptionWithStatusCode("The latest validation report is not available.",
-							HttpStatus.BAD_REQUEST.value());
+							HttpStatus.CONFLICT.value());
 		}
 		String validationReportUrl;
 		if (validationJob != null) {
