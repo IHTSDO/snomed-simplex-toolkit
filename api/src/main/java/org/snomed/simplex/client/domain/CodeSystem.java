@@ -23,6 +23,7 @@ public class CodeSystem {
 	private boolean showCustomConcepts;
 	private boolean classified;
 	private boolean preparingRelease;
+	private boolean contentChangesApproved;
 	private String latestValidationReport;
 	private long contentHeadTimestamp;
 	private Set<String> userRoles;
@@ -228,6 +229,14 @@ public class CodeSystem {
 
 	public boolean isPreparingRelease() {
 		return preparingRelease;
+	}
+
+	public boolean isContentChangesApproved() {
+		return contentChangesApproved;
+	}
+
+	public void setContentChangesApproved(boolean contentChangesApproved) {
+		this.contentChangesApproved = contentChangesApproved;
 	}
 
 	@JsonIgnore

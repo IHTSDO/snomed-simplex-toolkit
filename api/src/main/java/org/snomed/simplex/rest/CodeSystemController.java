@@ -294,4 +294,26 @@ public class CodeSystemController {
 		});
 	}
 
+	@PostMapping("{codeSystem}/add-content-approval")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void approveContentChanges(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, ADD_CONTENT_APPROVAL, () -> {
+			codeSystemService.setContentApproval(theCodeSystem, true);
+			return null;
+		});
+	}
+
+	@PostMapping("{codeSystem}/remove-content-approval")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void removeContentApproval(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, REMOVE_CONTENT_APPROVAL, () -> {
+			codeSystemService.setContentApproval(theCodeSystem, false);
+			return null;
+		});
+	}
+
 }

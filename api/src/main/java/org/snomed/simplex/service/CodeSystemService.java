@@ -124,6 +124,11 @@ public class CodeSystemService {
 		setCodeSystemMetadata(Branch.PREPARING_RELEASE_METADATA_KEY, String.valueOf(flag), codeSystem, snowstormClient);
 	}
 
+	public void setContentApproval(CodeSystem codeSystem, boolean flag) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		setCodeSystemMetadata(Branch.CONTENT_CHANGES_APPROVED, String.valueOf(flag), codeSystem, snowstormClient);
+	}
+
 	private static void setCodeSystemMetadata(String key, String value, CodeSystem codeSystem, SnowstormClient snowstormClient) {
 		Map<String, String> newMetadata = new HashMap<>();
 		newMetadata.put(key, value);
