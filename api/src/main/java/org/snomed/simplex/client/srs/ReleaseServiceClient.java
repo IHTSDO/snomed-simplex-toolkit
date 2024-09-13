@@ -250,11 +250,19 @@ public class ReleaseServiceClient {
         }
     }
 
-    private String createReadmeHeader(String name, PackageConfiguration packageConfiguration) {
+    private String createReadmeHeader(String name, PackageConfiguration packageConfiguration) throws ServiceExceptionWithStatusCode {
+        String orgName = packageConfiguration.orgName();
+        if (orgName == null) {
+            throw new ServiceExceptionWithStatusCode("Organisation name must be set before package readme can be generated.", HttpStatus.CONFLICT);
+        }
+        String orgContactDetails = packageConfiguration.orgContactDetails();
+        if (orgContactDetails == null) {
+            throw new ServiceExceptionWithStatusCode("Organisation contact details must be set before package readme can be generated.", HttpStatus.CONFLICT);
+        }
         return readmeHeaderTemplate
                 .replace("{simplexProduct}", name)
-                .replace("{simplexProductOrganisationName}", packageConfiguration.orgName())
-                .replace("{simplexProductContactDetails}", packageConfiguration.orgContactDetails())
+                .replace("{simplexProductOrganisationName}", orgName)
+                .replace("{simplexProductContactDetails}", orgContactDetails)
                 .replace("{readmeEndDate}", getThisYear());
     }
 
