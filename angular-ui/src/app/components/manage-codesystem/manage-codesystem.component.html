@@ -26,9 +26,9 @@
                         <div><b>Validation</b></div>
                         <div class="sub-stage-text">
                             <div *ngIf="activeStage == 'Authoring'">
-                                <span *ngIf="edition.validationStatus == 'TODO'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runValidation()">Run validation</a></span>
+                                <span *ngIf="edition.validationStatus == 'TODO'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runClassificationAndValidation()">Run validation</a></span>
                                 <span *ngIf="edition.validationStatus != 'TODO' && edition.validationStatus != 'STALE' && edition.validationStatus != 'IN_PROGRESS'">Validation has completed and is up to date</span>
-                                <span *ngIf="edition.validationStatus == 'STALE'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runValidation()">Run validation again</a></span>
+                                <span *ngIf="(edition.validationStatus == 'STALE' || edition.classificationStatus != 'COMPLETE') && edition.validationStatus != 'IN_PROGRESS'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runClassificationAndValidation()">Run validation again</a></span>
                                 <span *ngIf="edition.validationStatus == 'IN_PROGRESS'">{{ getValidationStatusInfo(edition.validationStatus) }}</span>
                             </div>
                             <div *ngIf="activeStage == 'Authoring'">
@@ -97,11 +97,12 @@
                     <div class="left">
                         <b>Activities in this stage</b>
                     </div>
-                    <div class="sub-stage sub-stage-text" *ngIf="edition.validationStatus != 'COMPLETE'">
+                    <div class="sub-stage sub-stage-text">
                         <div><b>Validation</b></div>
                         <div *ngIf="activeStage == 'Preparing release'">
-                            <div *ngIf="edition.validationStatus != 'CONTENT_WARNING'">Status error ({{ edition.validationStatus }}), reopen editing and run validation again</div>
+                            <div *ngIf="edition.validationStatus != 'CONTENT_WARNING' && edition.validationStatus != 'COMPLETE'">Status error ({{ edition.validationStatus }}), reopen editing and run validation again</div>
                             <div *ngIf="edition.validationStatus == 'CONTENT_WARNING'" class="warnings">{{ getValidationStatusInfo(edition.validationStatus) }}</div>
+                            <div *ngIf="edition.validationStatus == 'COMPLETE'">Validation is up to date and there are no errors or warnings</div>
                         </div>
                         <div *ngIf="activeStage && activeStage == 'Authoring'">Release preparation not started</div>
                         <div *ngIf="activeStage && activeStage == 'Release ready'">Release preparation finished</div>
@@ -122,8 +123,12 @@
                         <div *ngIf="!activeStage">Loading...</div>
                     </div>
                     <div class="centered buttons-panel">
-                        <button mat-flat-button color="accent" *ngIf="(edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'; else noAction" 
-                                (click)="startReleasePreparation()">
+                        <!-- edition.validationStatus: {{ edition.validationStatus }}
+                        edition.classificationStatus: {{ edition.classificationStatus }} -->
+                    </div>
+                    <div class="centered buttons-panel">
+                        <button mat-flat-button color="accent" *ngIf="activeStage == 'Preparing release' && (edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'; else noAction" 
+                                (click)="addContentApproval()">
                             Approve content changes <mat-icon>check</mat-icon>
                         </button>
                         <ng-template #noAction>
@@ -137,8 +142,8 @@
                         <button mat-flat-button disabled *ngIf="activeStage && activeStage == 'Authoring'">
                             Approve content changes <mat-icon>check</mat-icon>
                         </button>
-                        <button mat-flat-button disabled *ngIf="activeStage && activeStage == 'Release ready'">
-                            Release preparation finished
+                        <button mat-flat-button color="warn" *ngIf="activeStage && activeStage == 'Release ready'" (click)="removeContentApproval()">
+                            Remove content approval <mat-icon>cancel</mat-icon>
                         </button>
                     </div>
                 
@@ -162,8 +167,11 @@
                     <div class="sub-stage sub-stage-text">
                         <div><b>Technical preview</b></div>
                         <div  *ngIf="activeStage == 'Release ready'">
-                            <div>Review changes in Daily Build 
-                                <span>→ <a href="javascript:void(0)" (click)="browseToDailyBuild()">Download release</a></span>
+                            <div>Preview content in browser 
+                                <span>→ <a href="javascript:void(0)" (click)="browseToDailyBuild()">Open browser</a></span>
+                            </div>
+                            <div>Preview release package available 
+                                <span>→ <a href="javascript:void(0)" (click)="browseToDailyBuild()">Download</a></span>
                             </div>
                         </div>
                         <div *ngIf="activeStage && activeStage != 'Release ready'">Publication not ready</div>
@@ -181,17 +189,16 @@
             <!-- [edition]="edition.shortName" *ngIf="(edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING')" -->
         </app-validation-results>
         <div class="validation-container">
-            <h4 *ngIf="jobs.length">Jobs</h4>
+            <app-jobs [edition]="edition.shortName" [refsetId]="'external'"></app-jobs>
+            <!-- <h4 *ngIf="jobs.length">Jobs</h4>
             <mat-list id="components-list">
                 <mat-list-item *ngFor="let item of jobs">
                     <span class="release-name">{{ item.display }}</span>
-                    <!-- <mat-spinner *ngIf="item.status == 'IN_PROGRESS'" [diameter]="12"></mat-spinner> -->
                     <span class="pill pill-green">{{ item.status }}</span>
                     <span class="pill pill-blue">{{ item.jobType }}</span>
                     <span class="muted">Created on {{ item.created | timeAgo }}</span>
-                    <!-- <button mat-button color="accent" class="download">Download</button> -->
                 </mat-list-item>
-            </mat-list>
+            </mat-list> -->
         </div>
     </div>
 </div>

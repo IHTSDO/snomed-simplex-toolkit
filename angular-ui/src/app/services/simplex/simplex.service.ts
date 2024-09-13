@@ -173,13 +173,15 @@ export class SimplexService {
     return this.http.post(`/api/codesystems/${edition}/classify`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public getJobs(edition: string, refsetId?: string): Observable<any> {
-    if (!refsetId) {
+  public getJobs(edition: string, filter?: string): Observable<any> {
+    if (!filter) {
       return this.http.get(`/api/${edition}/jobs`).pipe(catchError(this.handleError.bind(this)));
-    } else if (refsetId === 'concepts') {
+    } else if (filter === 'external') {
+      return this.http.get(`/api/${edition}/jobs?jobType=EXTERNAL_SERVICE`).pipe(catchError(this.handleError.bind(this)));
+    } else if (filter === 'concepts') {
       return this.http.get(`/api/${edition}/jobs?jobType=CONCEPT_CHANGE`).pipe(catchError(this.handleError.bind(this)));
     } else {
-      return this.http.get(`/api/${edition}/jobs?refsetId=${refsetId}`).pipe(catchError(this.handleError.bind(this)));
+      return this.http.get(`/api/${edition}/jobs?refsetId=${filter}`).pipe(catchError(this.handleError.bind(this)));
     }
   }
 
@@ -210,6 +212,14 @@ export class SimplexService {
     return this.http.post(`/api/codesystems/${edition}/stop-release-prep`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public addContentApproval(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/add-content-approval`, null).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public removeContentApproval(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/remove-content-approval`, null).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getCodeSystemReleaseStatusDirect(codeSystem: any): string {
     let status = '';
     if (!codeSystem.preparingRelease) {
@@ -232,11 +242,9 @@ export class SimplexService {
         let status = '';
         if (!codeSystem.preparingRelease) {
           status = 'Authoring';
-        } else if (codeSystem.preparingRelease && (codeSystem.classificationStatus !== 'COMPLETE' || 
-                   (codeSystem.validationStatus !== 'COMPLETE' && codeSystem.validationStatus !== 'CONTENT_WARNING'))) {
+        } else if (codeSystem.preparingRelease && !codeSystem.contentChangesApproved) {
           status = 'Preparing release';
-        } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' && 
-                  (codeSystem.validationStatus === 'COMPLETE' || codeSystem.validationStatus === 'CONTENT_WARNING')) {
+        } else if (codeSystem.preparingRelease && codeSystem.contentChangesApproved) {
           status = 'Release ready';
         } else {
           status = 'Unknown';

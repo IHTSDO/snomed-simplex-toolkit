@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, viewChild } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import { Subscription, catchError, lastValueFrom } from 'rxjs';
@@ -68,7 +68,7 @@ export class JobsComponent implements OnChanges, OnInit {
     this.filterFileTypes();
   }
 
-  loadJobs(clear: boolean) {
+  public loadJobs(clear: boolean) {
     if (clear) { 
       this.jobs = [];
       this.selectedFile = null;
@@ -244,9 +244,11 @@ export class JobsComponent implements OnChanges, OnInit {
   }
 
   filterFileTypes() {
-    this.filteredFileTypes = this.fileTypes.filter(type => type.artifactTypes.includes(this.artifact.type));
-    if (this.filteredFileTypes.length === 1) {
-      this.selectedFileType = this.filteredFileTypes[0].value;
+    if (this.artifact && this.artifact.type) {
+      this.filteredFileTypes = this.fileTypes.filter(type => type.artifactTypes.includes(this.artifact.type));
+      if (this.filteredFileTypes.length === 1) {
+        this.selectedFileType = this.filteredFileTypes[0].value;
+      }
     }
   }
 

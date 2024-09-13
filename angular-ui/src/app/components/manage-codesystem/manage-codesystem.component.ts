@@ -1,10 +1,11 @@
-import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
+import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { Subscription, interval, lastValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { JobsComponent } from '../jobs/jobs.component';
 
 @Component({
   selector: 'app-manage-codesystem',
@@ -13,6 +14,9 @@ import { saveAs } from 'file-saver';
 })
 export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   @Input() edition: any;
+
+  @ViewChild(JobsComponent) jobComponent: JobsComponent;
+
   private refreshSubscription: Subscription;
 
   jobs: any[] = [];
@@ -57,6 +61,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     );
     this.alert('Classification requested');
     this.refreshEdition();
+    this.jobComponent.loadJobs(true);
   }
 
   async runValidation() {
@@ -66,6 +71,21 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     );
     this.alert('Validation requested');
     this.refreshEdition();
+    this.jobComponent.loadJobs(true);
+  }
+
+  async runClassificationAndValidation() {
+    this.edition.classificationStatus = 'IN_PROGRESS';
+    this.edition.validationStatus = 'IN_PROGRESS';
+    const classificationResponse = await lastValueFrom(
+      this.simplexService.startClassification(this.edition.shortName)
+    );
+    const validationResponse = await lastValueFrom(
+      this.simplexService.startValidation(this.edition.shortName)
+    );
+    this.alert('Classification and validation requested');
+    this.refreshEdition();
+    this.jobComponent.loadJobs(true);
   }
 
   downloadValidationResults() {
@@ -125,6 +145,38 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       error => {
         console.error('Stopping release preparation failed:', error);
         this.alert('Stopping release preparation failed');
+        this.refreshEdition();
+      }
+    );
+  }
+
+  addContentApproval() {
+    this.activeStage = null;
+    this.alert('Approving edition content');
+    this.simplexService.addContentApproval(this.edition.shortName).subscribe(
+      (response: any) => {
+        this.alert('Content approved');
+        this.refreshEdition();
+      },
+      error => {
+        console.error('Approving edition content failed:', error);
+        this.alert('Approving edition content failed');
+        this.refreshEdition();
+      }
+    );
+  }
+
+  removeContentApproval() {
+    this.activeStage = null;
+    this.alert('Removing content approval');
+    this.simplexService.removeContentApproval(this.edition.shortName).subscribe(
+      (response: any) => {
+        this.alert('Content approval removed');
+        this.refreshEdition();
+      },
+      error => {
+        console.error('Removing content approval failed:', error);
+        this.alert('Removing content approval failed');
         this.refreshEdition();
       }
     );
