@@ -292,6 +292,7 @@ public class CodeSystemController {
 			codeSystemService.setPreparingReleaseFlag(theCodeSystem, false);
 			return null;
 		});
+		removeContentApproval(codeSystem);
 	}
 
 	@PostMapping("{codeSystem}/add-content-approval")
