@@ -340,15 +340,19 @@ public class CodeSystemService {
 
 	private static void setValidationJobStatusAndMessage(ExternalServiceJob job, ValidationReport validationReport) {
 		ValidationReport.ValidationResult validationResult = validationReport.rvfValidationResult();
-		ValidationReport.TestResult testResult = validationResult.TestResult();
-		if (testResult.totalFailures() > 0) {
-			job.setErrorMessage("Validation errors were found in the content.");
-			job.setStatus(JobStatus.USER_CONTENT_ERROR);
-		} else if (testResult.totalWarnings() > 0) {
-			job.setErrorMessage("Validation warnings were found in the content.");
-			job.setStatus(JobStatus.USER_CONTENT_WARNING);
+		if (validationResult == null) {
+			job.setStatus(JobStatus.IN_PROGRESS);
 		} else {
-			job.setStatus(JobStatus.COMPLETE);
+			ValidationReport.TestResult testResult = validationResult.TestResult();
+			if (testResult.totalFailures() > 0) {
+				job.setErrorMessage("Validation errors were found in the content.");
+				job.setStatus(JobStatus.USER_CONTENT_ERROR);
+			} else if (testResult.totalWarnings() > 0) {
+				job.setErrorMessage("Validation warnings were found in the content.");
+				job.setStatus(JobStatus.USER_CONTENT_WARNING);
+			} else {
+				job.setStatus(JobStatus.COMPLETE);
+			}
 		}
 	}
 
@@ -414,9 +418,12 @@ public class CodeSystemService {
 					case USER_CONTENT_WARNING -> status = CodeSystemValidationStatus.CONTENT_WARNING;
 					case COMPLETE -> status = CodeSystemValidationStatus.COMPLETE;
 				}
-				long validationHead = validationReport.rvfValidationResult().validationConfig().contentHeadTimestamp();
-				if (status.isCanTurnStale() && validationHead != codeSystem.getContentHeadTimestamp()) {
-					status = CodeSystemValidationStatus.STALE;
+				ValidationReport.ValidationResult validationResult = validationReport.rvfValidationResult();
+				if (validationResult != null) {
+					long validationHead = validationResult.validationConfig().contentHeadTimestamp();
+					if (status.isCanTurnStale() && validationHead != codeSystem.getContentHeadTimestamp()) {
+						status = CodeSystemValidationStatus.STALE;
+					}
 				}
 			}
 		}
