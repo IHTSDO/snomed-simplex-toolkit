@@ -41,7 +41,8 @@ public class CustomConceptController {
 	@GetMapping
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public Page<ConceptMini> findAll(@PathVariable String codeSystem,
-			@RequestParam(required = false, defaultValue = "0") int offset, @RequestParam(required = false, defaultValue = "100") int limit) throws ServiceException {
+			@RequestParam(required = false, defaultValue = "0") int offset,
+			@RequestParam(required = false, defaultValue = "100") int limit) throws ServiceException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);

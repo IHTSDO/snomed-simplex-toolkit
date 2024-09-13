@@ -5,28 +5,34 @@ import java.util.List;
 public class Page<T> {
 
 	private List<T> items;
-	private Integer total;
-	private Integer offset;
+	private Long total;
+	private Long offset;
 	private String searchAfter;
 
 	public Page() {
 	}
 
 	public Page(List<T> allItems) {
-		offset = 0;
-		total = allItems.size();
+		offset = 0L;
+		total = (long) allItems.size();
 		this.items = allItems;
+	}
+
+	public Page(org.springframework.data.domain.Page<T> springPage) {
+		items = springPage.getContent();
+		total = springPage.getTotalElements();
+		offset = springPage.getNumber() * (long) springPage.getSize();
 	}
 
 	public List<T> getItems() {
 		return items;
 	}
 
-	public Integer getTotal() {
+	public Long getTotal() {
 		return total;
 	}
 
-	public Integer getOffset() {
+	public Long getOffset() {
 		return offset;
 	}
 

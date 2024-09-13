@@ -2,6 +2,8 @@ package org.snomed.simplex.service.test;
 
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.service.ActivityRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,4 +26,8 @@ public class TestActivityRepository extends NoopRepository<Activity> implements 
 		return activities;
 	}
 
+	@Override
+	public Page<Activity> findActivitiesByCodesystemIsOrderByStartDateDesc(String codesystem, PageRequest pageRequest) {
+		return null;
+	}
 }

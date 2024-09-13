@@ -1,10 +1,12 @@
 package org.snomed.simplex.service;
 
 import org.ihtsdo.sso.integration.SecurityUtil;
+import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,6 +35,11 @@ public class ActivityService {
 	public void manualSaveActivity(Activity activity) {
 		activity.end();
 		repository.save(activity);
+	}
+
+	public org.snomed.simplex.domain.Page<Activity> findActivities(String codesystem, PageRequest pageRequest) {
+		org.springframework.data.domain.Page<Activity> springPage = repository.findActivitiesByCodesystemIsOrderByStartDateDesc(codesystem, pageRequest);
+		return new Page<>(springPage);
 	}
 
 }
