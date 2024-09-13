@@ -4,6 +4,8 @@ import org.ihtsdo.sso.integration.SecurityUtil;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
+import org.springframework.data.elasticsearch.annotations.Field;
+import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -15,17 +17,42 @@ public class Activity {
 
 	@Id
 	private String id;
-	private final String user;
-	private final String codesystem;
-	private final ComponentType componentType;
-	private final ActivityType activityType;
-	private final Date startDate;
+
+	@Field(type = FieldType.Keyword)
+	private String user;
+
+	@Field(type = FieldType.Keyword)
+	private String codesystem;
+
+	@Field(type = FieldType.Keyword)
+	private ComponentType componentType;
+
+	@Field(type = FieldType.Keyword)
+	private ActivityType activityType;
+
+	@Field(type = FieldType.Long)
+	private Date startDate;
+
+	@Field(type = FieldType.Keyword)
 	private String componentId;
+
+	@Field(type = FieldType.Keyword)
 	private String fileUpload;
+
+	@Field(type = FieldType.Long)
 	private Date endDate;
+
+	@Field(type = FieldType.Boolean)
 	private boolean error;
+
+	@Field(type = FieldType.Text)
 	private String message;
+
+	@Field(type = FieldType.Text)
 	private String stackTrace;
+
+	public Activity() {
+	}
 
 	public Activity(String codesystem, ComponentType componentType, ActivityType activityType) {
 		this(SecurityUtil.getUsername(), codesystem, componentType, activityType);
