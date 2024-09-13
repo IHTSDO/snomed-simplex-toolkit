@@ -10,10 +10,12 @@ import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -126,6 +128,19 @@ public class CodeSystemService {
 
 	public void setContentApproval(CodeSystem codeSystem, boolean flag) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		if (flag) {
+			if (!codeSystem.isClassified()) {
+				throw new ServiceExceptionWithStatusCode("Content is not classified.", HttpStatus.CONFLICT);
+			}
+			CodeSystemValidationStatus validationStatus = codeSystem.getValidationStatus();
+			if (validationStatus == CodeSystemValidationStatus.STALE) {
+				throw new ServiceExceptionWithStatusCode("Validation is stale.", HttpStatus.CONFLICT);
+			}
+			if (!Set.of(CodeSystemValidationStatus.COMPLETE, CodeSystemValidationStatus.CONTENT_WARNING).contains(validationStatus)) {
+				throw new ServiceExceptionWithStatusCode("Validation is not clean.", HttpStatus.CONFLICT);
+			}
+		}
+
 		setCodeSystemMetadata(Branch.CONTENT_CHANGES_APPROVED, String.valueOf(flag), codeSystem, snowstormClient);
 	}
 
