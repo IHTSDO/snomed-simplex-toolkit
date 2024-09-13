@@ -154,11 +154,24 @@
 
             <div class="stage" [ngClass]="{ 'current-stage' : (activeStage == 'Release ready'),
                                                  'inactive-stage' : (activeStage != 'Release ready') }">
-                <div class="component-col-flexible centered">
+                <div class="component-col-flexible left">
                     <span class="stage-title">Release ready for publication</span>
-                    <br>
-                    <button mat-flat-button color="accent" [disabled]="activeStage != 'Release ready'">Publish and complete release cycle</button>
-                    <br>
+                    <div class="left">
+                        <b>Activities in this stage</b>
+                    </div>
+                    <div class="sub-stage sub-stage-text">
+                        <div><b>Technical preview</b></div>
+                        <div  *ngIf="activeStage == 'Release ready'">
+                            <div>Review changes in Daily Build 
+                                <span>→ <a href="javascript:void(0)" (click)="browseToDailyBuild()">Download release</a></span>
+                            </div>
+                        </div>
+                        <div *ngIf="activeStage && activeStage != 'Release ready'">Publication not ready</div>
+                        <div *ngIf="!activeStage">Loading...</div>
+                    </div>
+                    <div class="centered buttons-panel">
+                        <button mat-flat-button color="accent" [disabled]="activeStage != 'Release ready'">Publish and complete release cycle</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -167,20 +180,18 @@
         <app-validation-results class="validation-container" [edition]="edition.shortName" [editionDetails]="edition" [issues]="issuesReport" *ngIf="issuesReport && (issuesReport.errorCount || issuesReport.warningCount)">
             <!-- [edition]="edition.shortName" *ngIf="(edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING')" -->
         </app-validation-results>
-        <!-- <h4>Next steps:</h4>
-        <h5>Current Status: Classification Completed</h5>
-        <p>The edition was classified correctly. <br>
-            To progress to the next phase run the validation process and fix any remainig errors.</p> -->
-        <h4 *ngIf="jobs.length">Jobs</h4>
-        <mat-list id="components-list">
-            <mat-list-item *ngFor="let item of jobs">
-                <span class="release-name">{{ item.display }}</span>
-                <!-- <mat-spinner *ngIf="item.status == 'IN_PROGRESS'" [diameter]="12"></mat-spinner> -->
-                <span class="pill pill-green">{{ item.status }}</span>
-                <span class="pill pill-blue">{{ item.jobType }}</span>
-                <span class="muted">Created on {{ item.created | timeAgo }}</span>
-                <!-- <button mat-button color="accent" class="download">Download</button> -->
-            </mat-list-item>
-        </mat-list>
+        <div class="validation-container">
+            <h4 *ngIf="jobs.length">Jobs</h4>
+            <mat-list id="components-list">
+                <mat-list-item *ngFor="let item of jobs">
+                    <span class="release-name">{{ item.display }}</span>
+                    <!-- <mat-spinner *ngIf="item.status == 'IN_PROGRESS'" [diameter]="12"></mat-spinner> -->
+                    <span class="pill pill-green">{{ item.status }}</span>
+                    <span class="pill pill-blue">{{ item.jobType }}</span>
+                    <span class="muted">Created on {{ item.created | timeAgo }}</span>
+                    <!-- <button mat-button color="accent" class="download">Download</button> -->
+                </mat-list-item>
+            </mat-list>
+        </div>
     </div>
 </div>

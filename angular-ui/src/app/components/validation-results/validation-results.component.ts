@@ -66,10 +66,14 @@ export class ValidationResultsComponent implements OnInit, OnChanges {
   }
 
   public refreshIssues() {
-    if (this.editionDetails.validationStatus != 'TODO') {
+    if (this.editionDetails.validationStatus != 'TODO' && this.editionDetails.validationStatus != 'IN_PROGRESS') {
       this.loadingValidationResults = true;
       this.simplexService.getValidationResults(this.edition).subscribe(
         (data) => {
+          data.fixes.sort((a, b) => {
+            const severityOrder = { 'ERROR': 1, 'WARNING': 2 };
+            return severityOrder[a.severity] - severityOrder[b.severity];
+          });
           this.issues = data;
           this.localIssues = data;
           this.loadingValidationResults = false;

@@ -39,7 +39,9 @@
         <mat-expansion-panel *ngFor="let fix of localIssues.fixes">
           <mat-expansion-panel-header>
             <mat-panel-title>
-              {{fix.type | titlecase}}, {{fix.subtype}} ({{fix.componentCount}})
+              <mat-icon class="error" *ngIf="fix.severity == 'ERROR'">error</mat-icon>
+              <mat-icon class="warning" *ngIf="fix.severity == 'WARNING'">warning</mat-icon>
+              &nbsp;{{fix.type | titlecase}}, {{fix.subtype}} ({{fix.componentCount}})
             </mat-panel-title>
           </mat-expansion-panel-header>
           <mat-list>

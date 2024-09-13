@@ -151,11 +151,15 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   async refreshIssues() {
-    if (this.edition.validationStatus != 'TODO') {
+    if (this.edition.validationStatus != 'TODO' && this.edition.validationStatus != 'IN_PROGRESS') {
       this.loadingReleaseStatus = true;
       const response = await lastValueFrom(
         this.simplexService.getValidationResults(this.edition.shortName)
       );
+      response?.fixes.sort((a, b) => {
+        const severityOrder = { 'ERROR': 1, 'WARNING': 2 };
+        return severityOrder[a.severity] - severityOrder[b.severity];
+      });
       this.issuesReport = response;
     }
   }
