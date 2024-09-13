@@ -60,3 +60,8 @@ mat-list-item:not(:last-child) {
   margin-top: 10px;
   gap: 10px;
 }
+
+.align-right {
+  text-align: right;
+  align-items: end;
+}

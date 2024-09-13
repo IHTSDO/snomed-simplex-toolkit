@@ -1,0 +1,18 @@
+<h3 class="title">Edit Product Packaging</h3>
+<br>
+<form [formGroup]="packagingForm">
+  <mat-form-field *ngFor="let controlName of formKeys">
+    <mat-label>{{controlName}}</mat-label>
+    <input matInput formControlName="{{controlName}}">
+    <mat-spinner [diameter]="20" *ngIf="loading"></mat-spinner>
+    <button *ngIf="packagingForm.controls[controlName].value" matSuffix mat-icon-button aria-label="Clear" (click)="packagingForm.controls[controlName].setValue('')">
+        <mat-icon>close</mat-icon>
+    </button>
+    <mat-error *ngIf="packagingForm.controls[controlName].hasError('required')">{{controlName}} is required</mat-error>
+  </mat-form-field>
+</form>
+<div class="button-box">
+  <button mat-flat-button (click)="closePanelEvent()" *ngIf="!saving">Cancel</button>
+  <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving">Save</button>
+  <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Saving...</p>
+</div>

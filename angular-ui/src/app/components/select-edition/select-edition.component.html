@@ -18,6 +18,7 @@
                 <button mat-flat-button color="primary" (click)="newEditionMode = true" *ngIf="!loading && isAdmin()">New Edition</button>
                 <p *ngIf="deleting" class="deleting"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Deleting Edition...</p>
             </div>
+            <app-product-packaging [edition]="selectedEdition" class="align-right"></app-product-packaging>
         </div>
         <div *ngIf="newEditionMode">
             <app-new-edition (closePanel)="newEditionMode = false" (editionSaved)="loadEditions()"></app-new-edition>

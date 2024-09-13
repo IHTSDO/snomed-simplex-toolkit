@@ -259,5 +259,12 @@ export class SimplexService {
     );
   }
 
+  getProductPackagingConfiguration(edition: string): Observable<any> {
+    return this.http.get(`/api/codesystems/${edition}/product-packaging/configuration`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  updateProductPackagingConfiguration(edition: string, configuration: any): Observable<any> {
+    return this.http.put(`/api/codesystems/${edition}/product-packaging/configuration`, configuration).pipe(catchError(this.handleError.bind(this)));
+  }
 
 }

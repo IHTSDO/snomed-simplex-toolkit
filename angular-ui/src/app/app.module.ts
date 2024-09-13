@@ -67,6 +67,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 import { TimelineComponent } from './components/timeline/timeline.component';
 import { ValidationResultsComponent } from './components/validation-results/validation-results.component';
 import {MatCardModule} from '@angular/material/card';
+import { ProductPackagingComponent } from './components/product-packaging/product-packaging.component';
 
 // SERVICE IMPORTS
 
@@ -104,7 +105,8 @@ import {MatCardModule} from '@angular/material/card';
         ConceptsListComponent,
         LegalAgreementComponent,
         TimelineComponent,
-        ValidationResultsComponent
+        ValidationResultsComponent,
+        ProductPackagingComponent
         ],
     imports: [
         BrowserModule,
