@@ -5,7 +5,7 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 @Component({
   selector: 'app-product-packaging',
   templateUrl: './product-packaging.component.html',
-  styleUrls: ['./product-packaging.component.css']
+  styleUrls: ['./product-packaging.component.scss']
 })
 export class ProductPackagingComponent implements OnInit, OnChanges {
 
@@ -38,7 +38,7 @@ export class ProductPackagingComponent implements OnInit, OnChanges {
   initializeForm(): void {
     this.packagingForm = this.fb.group({
       orgName: ['', Validators.required],
-      orgContactDetails: ['', Validators.required]
+      orgContactDetails: ['', [Validators.required, Validators.email]]
     });
   }
 

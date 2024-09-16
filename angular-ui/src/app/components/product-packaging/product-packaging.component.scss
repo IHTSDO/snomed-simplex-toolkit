@@ -1,0 +1,78 @@
+.hoverable-item:hover {
+  background-color: rgba(0, 0, 0, 0.1); /* Light gray background on hover */
+  cursor: pointer;
+}
+
+.component-row {
+margin-top: 2rem;
+display: flex;
+flex-direction: row;
+justify-content: space-between;
+align-items: flex-start;
+}
+
+.component-col {
+flex: 1;
+margin: 0 10px;
+}
+
+.selected {
+background-color: rgba(147, 197, 231, 0.993);
+}
+
+#editions-list {
+max-height: calc(100vh - 270px);
+overflow-y: auto;
+margin-bottom: 10px;
+}
+
+#details {
+max-height: calc(100vh - 240px);
+overflow-y: auto;
+}
+
+.align-right {
+text-align: right;
+}
+
+.details-field-name {
+font-size: 1.5rem;
+}
+
+.details-field-value{
+font-size: 1.5rem;
+font-style: italic;
+}
+
+.deleting {
+display: flex;
+align-items: center;
+margin-top: 10px;
+}
+
+mat-list-item:not(:last-child) {
+border-bottom: 1px solid rgba(0, 0, 0, 0.1); // Change the rgba values for different shades
+}
+
+.button-box {
+display: flex;
+justify-content: flex-end;
+margin-top: 10px;
+gap: 10px;
+}
+
+.align-right {
+text-align: right;
+align-items: end;
+}
+
+.title {
+  text-align: left;
+}
+
+mat-form-field {
+  width: 60%;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
