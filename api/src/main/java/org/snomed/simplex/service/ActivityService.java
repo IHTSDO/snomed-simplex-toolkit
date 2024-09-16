@@ -77,7 +77,7 @@ public class ActivityService {
 		}
 
 		Logger logger = LoggerFactory.getLogger(getClass());
-		logger.info("Recording user activity {}", activity.toString());
+		logger.info("Recording user activity {}", activity);
 		repository.save(activity);
 	}
 
