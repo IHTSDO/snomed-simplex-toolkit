@@ -213,13 +213,13 @@ public class SnowstormClient {
 		restTemplate.delete(format(CODESYSTEM_ENDPOINT, shortName));
 	}
 
-	public void setAuthorPermissions(CodeSystem newCodeSystem) {
-		String url = format("/admin/permissions/%s/role/AUTHOR", newCodeSystem.getBranchPath());
-		String shortNameLower = newCodeSystem.getShortName().replace("SNOMEDCT-", "").toLowerCase();
-		String groupName = format("simplex-%s-author", shortNameLower);
+	public void setAuthorPermissions(CodeSystem newCodeSystem, String groupName) {
 		Map<String, List<String>> params = new HashMap<>();
 		params.put("userGroups", List.of(groupName));
-		restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(params), Void.class);
+		for (String role : Set.of("AUTHOR", "ADMIN")) {
+			restTemplate.exchange(format("/admin/permissions/%s/role/%s", newCodeSystem.getBranchPath(), role), HttpMethod.PUT,
+					new HttpEntity<>(params), Void.class);
+		}
 	}
 
 	public void upsertBranchMetadata(String branchPath, Map<String, String> newBranchMetadata) {

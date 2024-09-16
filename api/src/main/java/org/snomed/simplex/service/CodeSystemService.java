@@ -119,10 +119,17 @@ public class CodeSystemService {
 
 		createModuleOntologyExpression(moduleId, newCodeSystem, snowstormClient);
 
-		snowstormClient.setAuthorPermissions(newCodeSystem);
+		String userGroupName = getUserGroupName(createCodeSystemRequest.getShortName());
+		snowstormClient.setAuthorPermissions(newCodeSystem, userGroupName);
 
 		// TODO Update code system with module as uriModuleId - Only SnowstormX so far.
 		return newCodeSystem;
+	}
+
+	protected String getUserGroupName(String shortName) {
+		String userGroupName = shortName.substring("SNOMEDCT-".length()).toLowerCase();
+		userGroupName = "simplex-%s-author".formatted(userGroupName);
+		return userGroupName;
 	}
 
 	protected void validateCreateRequest(CreateCodeSystemRequest createCodeSystemRequest) throws ServiceExceptionWithStatusCode {

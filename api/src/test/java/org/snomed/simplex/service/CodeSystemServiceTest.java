@@ -58,4 +58,11 @@ class CodeSystemServiceTest {
 			assertEquals("CodeSystem short name max length exceeded. Maximum length is 70 characters.", e.getMessage());
 		}
 	}
+
+	@Test
+	void testGetUserGroupName() {
+		assertEquals("simplex-cz-author", codeSystemService.getUserGroupName("SNOMEDCT-CZ"));
+		assertEquals("simplex-aa-defence-author", codeSystemService.getUserGroupName("SNOMEDCT-AA-DEFENCE"));
+		assertEquals("simplex-north-west_vendor-author", codeSystemService.getUserGroupName("SNOMEDCT-NORTH-WEST_VENDOR"));
+	}
 }
