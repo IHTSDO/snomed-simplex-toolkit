@@ -23,8 +23,9 @@ public class CreateCodeSystemRequest {
 		return shortName;
 	}
 
-	public void setShortName(String shortName) {
+	public CreateCodeSystemRequest setShortName(String shortName) {
 		this.shortName = shortName;
+		return this;
 	}
 
 	public String getNamespace() {

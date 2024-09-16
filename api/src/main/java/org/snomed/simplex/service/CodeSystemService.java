@@ -15,6 +15,7 @@ import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 
@@ -33,6 +35,7 @@ public class CodeSystemService {
 	public static final String OWL_EXPRESSION = "owlExpression";
 	public static final String OWL_ONTOLOGY_HEADER = "734147008";
 	public static final String CORE_METADATA_CONCEPT_TAG = "core metadata concept";
+	public static final Pattern SHORT_NAME_PATTERN = Pattern.compile("^SNOMEDCT-[A-Z0-9_-]+$");
 
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final JobService jobService;
@@ -43,6 +46,9 @@ public class CodeSystemService {
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> validationJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> upgradeJobsToMonitor = new HashMap<>();
+
+	@Value("${simplex.short-name.max-length:70}")
+	private int maxShortNameLength;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -76,6 +82,8 @@ public class CodeSystemService {
 	public CodeSystem createCodeSystem(CreateCodeSystemRequest createCodeSystemRequest) throws ServiceException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+
+		validateCreateRequest(createCodeSystemRequest);
 
 		String dependantCodeSystemShortname = createCodeSystemRequest.getDependantCodeSystem();
 		if (dependantCodeSystemShortname == null) {
@@ -115,6 +123,24 @@ public class CodeSystemService {
 
 		// TODO Update code system with module as uriModuleId - Only SnowstormX so far.
 		return newCodeSystem;
+	}
+
+	protected void validateCreateRequest(CreateCodeSystemRequest createCodeSystemRequest) throws ServiceExceptionWithStatusCode {
+		String shortName = createCodeSystemRequest.getShortName();
+		if (shortName == null || !shortName.startsWith("SNOMEDCT-")) {
+			throw new ServiceExceptionWithStatusCode("CodeSystem short name must start with 'SNOMEDCT-'", HttpStatus.BAD_REQUEST);
+		}
+		if (shortName.equals("SNOMEDCT-")) {
+			throw new ServiceExceptionWithStatusCode("CodeSystem short name must start with 'SNOMEDCT-' and contain other characters.", HttpStatus.BAD_REQUEST);
+		}
+		if (shortName.length() > maxShortNameLength) {
+			throw new ServiceExceptionWithStatusCode(String.format("CodeSystem short name max length exceeded. " +
+					"Maximum length is %s characters.", maxShortNameLength), HttpStatus.BAD_REQUEST);
+		}
+		boolean matches = SHORT_NAME_PATTERN.matcher(shortName).matches();
+		if (!matches) {
+			throw new ServiceExceptionWithStatusCode("CodeSystem short name can only contain characters A-Z, 0-9, hyphen and underscore.", HttpStatus.BAD_REQUEST);
+		}
 	}
 
 	private static void setDefaultModule(String moduleId, CodeSystem newCodeSystem, SnowstormClient snowstormClient) {
