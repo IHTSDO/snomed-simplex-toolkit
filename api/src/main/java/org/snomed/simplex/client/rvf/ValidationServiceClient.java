@@ -33,6 +33,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -61,7 +64,7 @@ public class ValidationServiceClient {
 		File tempFile = null;
 		try {
 			String branchPath;
-			String effectiveTime = "20231118";
+			String effectiveTime = new SimpleDateFormat("yyyyMMdd").format(new Date());
 			Long headTimestamp;
 			try {
 				// Export RF2 delta
