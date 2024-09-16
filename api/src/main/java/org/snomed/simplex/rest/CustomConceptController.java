@@ -66,7 +66,7 @@ public class CustomConceptController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
 		Activity activity = new Activity(codeSystem, ComponentType.CUSTOM_CONCEPTS, ActivityType.UPDATE);
-		return jobService.queueContentJob(codeSystem, "Custom concept upload", file.getInputStream(), null,
+		return jobService.queueContentJob(codeSystem, "Custom concept upload", file.getInputStream(), file.getOriginalFilename(), null,
 				activity, asyncJob -> customConceptService.uploadSpreadsheet(theCodeSystem, asyncJob.getInputStream(), snowstormClient, asyncJob));
 	}
 

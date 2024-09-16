@@ -79,6 +79,10 @@ public class Activity {
 		return sw.toString();
 	}
 
+	public void setStartDate(Date startDate) {
+		this.startDate = startDate;
+	}
+
 	public void end() {
 		endDate = new Date();
 	}
@@ -145,5 +149,16 @@ public class Activity {
 
 	public void setStackTrace(String stackTrace) {
 		this.stackTrace = stackTrace;
+	}
+
+	@Override
+	public String toString() {
+		return "Activity{" +
+				"codesystem='" + codesystem + '\'' +
+				", componentType=" + componentType +
+				", activityType=" + activityType +
+				", componentId='" + componentId + '\'' +
+				", user='" + user + '\'' +
+				'}';
 	}
 }

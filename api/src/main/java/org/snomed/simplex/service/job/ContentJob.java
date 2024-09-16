@@ -13,8 +13,9 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 
 	private int recordsTotal;
 	private int recordsProcessed;
-	private File tempFile;
 	private String refsetId;
+	private File inputFileCopy;
+	private String inputFileOriginalName;
 
 	public ContentJob(String codeSystem, String display, String refsetId) {
 		super(codeSystem, display);
@@ -54,19 +55,19 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 		recordsProcessed = Math.round((recordsTotal * progressPercentage) / 100f);
 	}
 
-	public void setTempFile(File tempFile) {
-		this.tempFile = tempFile;
+	public void setInputFileCopy(File tempFile) {
+		this.inputFileCopy = tempFile;
 	}
 
 	@JsonIgnore
-	public File getTempFile() {
-		return tempFile;
+	public File getInputFileCopy() {
+		return inputFileCopy;
 	}
 
 	@JsonIgnore
 	public InputStream getInputStream() throws ServiceException {
 		try {
-			return new FileInputStream(tempFile);
+			return new FileInputStream(inputFileCopy);
 		} catch (FileNotFoundException e) {
 			throw new ServiceException("Job input stream not found.", e);
 		}
@@ -78,5 +79,13 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 
 	public String getRefsetId() {
 		return refsetId;
+	}
+
+	public void setInputFileOriginalName(String inputFileOriginalName) {
+		this.inputFileOriginalName = inputFileOriginalName;
+	}
+
+	public String getInputFileOriginalName() {
+		return inputFileOriginalName;
 	}
 }

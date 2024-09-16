@@ -58,15 +58,16 @@ public class JobService {
 		return asyncJob;
 	}
 
-	public AsyncJob queueContentJob(String codeSystem, String display, InputStream jobInputStream, String refsetId, Activity activity,
-			AsyncFunction<ContentJob> function) throws IOException {
+	public AsyncJob queueContentJob(String codeSystem, String display, InputStream jobInputStream, String originalFilename, String refsetId,
+			Activity activity, AsyncFunction<ContentJob> function) throws IOException {
 
 		ContentJob asyncJob = new ContentJob(codeSystem, display, refsetId);
 		File tempFile = File.createTempFile(asyncJob.getId(), "txt");
 		try (FileOutputStream out = new FileOutputStream(tempFile)) {
 			StreamUtils.copy(jobInputStream, out);
 		}
-		asyncJob.setTempFile(tempFile);
+		asyncJob.setInputFileCopy(tempFile);
+		asyncJob.setInputFileOriginalName(originalFilename);
 
 		return doQueueJob(codeSystem, function, asyncJob, activity, () -> {
 			if (!tempFile.delete()) {
@@ -78,6 +79,15 @@ public class JobService {
 	private <T extends AsyncJob> T doQueueJob(String codeSystem, AsyncFunction<T> function, T asyncJob, Activity activity, Runnable onCompleteRunnable) {
 		// Add job to thread limited executor service to be run when there is capacity
 		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
+
+		asyncJob.setStatus(JobStatus.QUEUED);
+
+		try {
+			activityService.recordQueuedActivity(activity, asyncJob);
+		} catch (ServiceException e) {
+			supportRegister.handleSystemError(asyncJob, "Failed to record activity.", e);
+		}
+
 		jobExecutorService.submit(() -> {
 			SecurityContextHolder.setContext(userSecurityContext);
 			try {
@@ -94,14 +104,13 @@ public class JobService {
 				activity.exception(serviceException);
 				supportRegister.handleSystemError(asyncJob, "Unexpected error.", serviceException);
 			} finally {
-				activityService.manualSaveActivity(activity);
+				activityService.recordCompletedActivity(activity);
 				if (onCompleteRunnable != null) {
 					onCompleteRunnable.run();
 				}
 			}
 		});
 
-		asyncJob.setStatus(JobStatus.QUEUED);
 		codeSystemJobs.computeIfAbsent(codeSystem, i -> new LinkedHashMap<>()).put(asyncJob.getId(), asyncJob);
 		return asyncJob;
 	}

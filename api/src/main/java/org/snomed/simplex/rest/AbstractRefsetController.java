@@ -84,7 +84,7 @@ public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 		try {
 			InputStream inputStream = file.getInputStream();
 			Activity activity = new Activity(SecurityUtil.getUsername(), codeSystem, getComponentType(), ActivityType.UPDATE);
-			return jobService.queueContentJob(codeSystem, getSpreadsheetUploadJobName(), inputStream, refsetId, activity,
+			return jobService.queueContentJob(codeSystem, getSpreadsheetUploadJobName(), inputStream, file.getOriginalFilename(), refsetId, activity,
 					asyncJob -> getRefsetService().updateRefsetViaSpreadsheet(refsetId, inputStream, theCodeSystem));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Failed to open uploaded file.");

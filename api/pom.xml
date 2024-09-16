@@ -56,6 +56,33 @@
 			<version>5.0.0</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.ihtsdo.otf.common</groupId>
+			<artifactId>resource-manager</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.ihtsdo.otf.common</groupId>
+					<artifactId>common-domain</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.api-client</groupId>
+					<artifactId>google-api-client</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.oauth-client</groupId>
+					<artifactId>google-oauth-client-jetty</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.apis</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.gdata</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+
 		<!-- Excel file handling -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
