@@ -36,6 +36,7 @@ public class CodeSystemService {
 	public static final String OWL_ONTOLOGY_HEADER = "734147008";
 	public static final String CORE_METADATA_CONCEPT_TAG = "core metadata concept";
 	public static final Pattern SHORT_NAME_PATTERN = Pattern.compile("^SNOMEDCT-[A-Z0-9_-]+$");
+	public static final String SHORT_NAME_PREFIX = "SNOMEDCT-";
 
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final JobService jobService;
@@ -127,17 +128,17 @@ public class CodeSystemService {
 	}
 
 	protected String getUserGroupName(String shortName) {
-		String userGroupName = shortName.substring("SNOMEDCT-".length()).toLowerCase();
+		String userGroupName = shortName.substring(SHORT_NAME_PREFIX.length()).toLowerCase();
 		userGroupName = "simplex-%s-author".formatted(userGroupName);
 		return userGroupName;
 	}
 
 	protected void validateCreateRequest(CreateCodeSystemRequest createCodeSystemRequest) throws ServiceExceptionWithStatusCode {
 		String shortName = createCodeSystemRequest.getShortName();
-		if (shortName == null || !shortName.startsWith("SNOMEDCT-")) {
+		if (shortName == null || !shortName.startsWith(SHORT_NAME_PREFIX)) {
 			throw new ServiceExceptionWithStatusCode("CodeSystem short name must start with 'SNOMEDCT-'", HttpStatus.BAD_REQUEST);
 		}
-		if (shortName.equals("SNOMEDCT-")) {
+		if (shortName.equals(SHORT_NAME_PREFIX)) {
 			throw new ServiceExceptionWithStatusCode("CodeSystem short name must start with 'SNOMEDCT-' and contain other characters.", HttpStatus.BAD_REQUEST);
 		}
 		if (shortName.length() > maxShortNameLength) {
