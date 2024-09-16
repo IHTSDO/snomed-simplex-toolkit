@@ -255,8 +255,8 @@ public class SnowstormClient {
 	public List<ConceptMini> getRefsets(String refsetEcl, CodeSystem codeSystem) throws ServiceException {
 		// Get refset concepts from code system branch and module
 		Map<String, ConceptMini> refsetConceptMap = getConcepts(refsetEcl, codeSystem, codeSystem.getDefaultModuleOrThrow()).getItems().stream()
-				.peek(conceptMini -> conceptMini.setActiveMemberCount(0L))
 				.collect(Collectors.toMap(ConceptMini::getConceptId, Function.identity()));
+		refsetConceptMap.values().forEach(conceptMini -> conceptMini.setActiveMemberCount(0L));
 
 		// Join active refset counts
 		String url = format("/browser/%s/members?active=true&referenceSet=%s", codeSystem.getWorkingBranchPath(), refsetEcl);
