@@ -15,8 +15,6 @@
 	<properties>
 		<java.version>17</java.version>
 		<packageName>snomed-simplex-toolkit</packageName>
-		<logback.version>1.4.14</logback.version>
-		<tomcat-embed.version>10.1.16</tomcat-embed.version>
 	</properties>
 
 	<dependencies>
@@ -41,12 +39,10 @@
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-core</artifactId>
-			<version>${logback.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
-			<version>${logback.version}</version>
 		</dependency>
 
 		<!-- SNOMED International Single SignOn -->

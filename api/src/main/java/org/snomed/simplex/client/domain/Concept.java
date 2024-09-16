@@ -69,7 +69,7 @@ public class Concept extends Component {
 		return term.substring(term.lastIndexOf("("));
 	}
 
-	public Optional<Description> getEnFSN() {
+	private Optional<Description> getEnFSN() {
         return descriptions.stream().filter(description -> description.isActive() && description.getType() == FSN &&
                 description.getLang().equals("en")).findFirst();
 	}
