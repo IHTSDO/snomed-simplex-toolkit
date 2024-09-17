@@ -65,3 +65,17 @@ mat-list-item:not(:last-child) {
   text-align: right;
   align-items: end;
 }
+
+.upgrade-select {
+  margin-top: 1rem;
+}
+
+.message {
+  margin-left: 1rem;
+  color: grey;
+  font-style: italic;
+}
+
+.action-button {
+  margin-left: 1rem;
+}

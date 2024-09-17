@@ -55,6 +55,14 @@ export class SimplexService {
     return this.http.get(`/api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public getCodeSystemForBranch(branch: string): Observable<any> {
+    return this.http.get(`/snowstorm/snomed-ct/codesystems?forBranch=${branch}`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getCodeSystemVersions(codeSystem: string): Observable<any> {
+    return this.http.get(`/snowstorm/snomed-ct/codesystems/${codeSystem}/versions`).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getSimpleRefsets(edition: string): Observable<any> {
     return this.http.get(`/api/${edition}/refsets/simple`).pipe(catchError(this.handleError.bind(this)));
   }
@@ -265,6 +273,14 @@ export class SimplexService {
 
   updateProductPackagingConfiguration(edition: string, configuration: any): Observable<any> {
     return this.http.put(`/api/codesystems/${edition}/product-packaging/configuration`, configuration).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  upgradeEdition(edition: string, newDependantVersion: number): Observable<any> {
+    const data = {
+      "newDependantVersion": newDependantVersion,
+      "contentAutomations": true
+    }
+    return this.http.post(`/api/codesystems/${edition}/upgrade`, data).pipe(catchError(this.handleError.bind(this)));
   }
 
 }

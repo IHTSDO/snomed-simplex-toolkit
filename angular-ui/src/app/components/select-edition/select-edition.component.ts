@@ -12,12 +12,17 @@ import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-con
 export class SelectEditionComponent implements OnChanges {
 
   editions = [];
-  editionFields = ["name", "namespace", "defaultModule", "defaultModuleDisplay", "dependantVersionEffectiveTime", "shortName"];
+  editionFields = ["name", "namespace", "defaultModule", "defaultModuleDisplay", "shortName"];
   @Input() selectedEdition: any;
   newEditionMode= false;
   loading = false;
   deleting = false;
   roles: any[] = [];
+  availableUpgrades: any[] = [];
+  activeStage: string;
+  loadingUpgrades = false;
+  parentEdition: any;
+  selectedUpgradeEdition: any;
 
   @Output() editionSelected = new EventEmitter<any>();
 
@@ -34,6 +39,9 @@ export class SelectEditionComponent implements OnChanges {
   }
 
   async refresh() {
+    this.availableUpgrades = [];
+    this.parentEdition = null;
+    this.selectedUpgradeEdition = null;
     this.getRoles();
     this.refreshSelectedEdition();
   }
@@ -43,6 +51,7 @@ export class SelectEditionComponent implements OnChanges {
     lastValueFrom(this.simplexService.getEdition(this.selectedEdition.shortName)).then(
       (edition) => {
         this.selectedEdition = edition;
+        this.refreshAvailableUpgrades(edition);
         this.loading = false;
       },
       (error) => {
@@ -52,6 +61,39 @@ export class SelectEditionComponent implements OnChanges {
           duration: 5000
         });
         this.loading = false;
+      }
+    );
+  }
+
+  async refreshAvailableUpgrades(edition: any) {
+    this.loadingUpgrades = true;
+    this.activeStage = await lastValueFrom(this.simplexService.getCodeSystemReleaseStatus(edition.shortName));
+    let workingBranchPath = edition.workingBranchPath;
+    // get parent branch from working branch path, using the part previous to the last /
+    let parentBranch = workingBranchPath.substring(0, workingBranchPath.lastIndexOf('/'));
+    lastValueFrom(this.simplexService.getCodeSystemForBranch(parentBranch)).then(
+      (codeSystems) => {
+        this.parentEdition = codeSystems.items[0];
+        let parentCodeSystemShortName = this.parentEdition.shortName;
+        lastValueFrom(this.simplexService.getCodeSystemVersions(parentCodeSystemShortName)).then(
+          (versions) => {
+            this.availableUpgrades = versions.items.filter((version) => version.effectiveDate > edition.dependantVersionEffectiveTime);
+            this.loadingUpgrades = false;
+          },
+          (error) => {
+            console.error(error);
+            this.snackBar.open('Failed to load available upgrades', 'Dismiss', {
+              duration: 5000
+            });
+            this.loadingUpgrades = false;
+          });
+      },
+      (error) => {
+        console.error(error);
+        this.snackBar.open('Failed to load available upgrades', 'Dismiss', {
+          duration: 5000
+        });
+        this.loadingUpgrades = false;
       }
     );
   }
@@ -122,6 +164,26 @@ export class SelectEditionComponent implements OnChanges {
         console.error(error);
         this.deleting = false;
         this.snackBar.open('Failed to delete editions', 'Dismiss', {
+          duration: 5000
+        });
+      }
+    );
+  }
+
+  upgradeEdition() {
+    this.loading = true;
+    lastValueFrom(this.simplexService.upgradeEdition(this.selectedEdition.shortName, this.selectedUpgradeEdition.effectiveDate)).then(
+      (result) => {
+        this.loading = false;
+        this.refresh();
+        this.snackBar.open('Edition upgraded!', 'Dismiss', {
+          duration: 5000
+        });
+      },
+      (error) => {
+        console.error(error);
+        this.loading = false;
+        this.snackBar.open('Failed to upgrade edition', 'Dismiss', {
           duration: 5000
         });
       }
