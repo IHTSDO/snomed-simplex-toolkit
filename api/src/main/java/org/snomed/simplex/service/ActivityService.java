@@ -89,7 +89,7 @@ public class ActivityService {
 	protected String getFilePath(Activity activity, String fileExtension) {
 		Date startDate = activity.getStartDate();
 		String yearMonthDay = new SimpleDateFormat("yyyy_MM_dd").format(startDate);
-		String dayMonthYearHourMinuteSecondMilli = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS").format(startDate);
+		String dayMonthYearHourMinuteSecondMilli = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS").format(startDate);
 		return "%s/%s/%s.%s".formatted(activity.getCodesystem(), yearMonthDay, dayMonthYearHourMinuteSecondMilli, fileExtension);
 	}
 
