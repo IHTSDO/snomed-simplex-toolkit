@@ -9,6 +9,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 // A user or system activity log entry
@@ -32,6 +33,9 @@ public class Activity {
 
 	@Field(type = FieldType.Long)
 	private Date startDate;
+
+	@Field(type = FieldType.Keyword)
+	private String startDateHuman;
 
 	@Field(type = FieldType.Keyword)
 	private String componentId;
@@ -63,7 +67,7 @@ public class Activity {
 		this.codesystem = codesystem;
 		this.componentType = componentType;
 		this.activityType = activityType;
-		startDate = new Date();
+		setStartDate(new Date());
 	}
 
 	public void exception(ServiceException e) {
@@ -81,6 +85,7 @@ public class Activity {
 
 	public void setStartDate(Date startDate) {
 		this.startDate = startDate;
+		this.startDateHuman = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(startDate);
 	}
 
 	public void end() {
@@ -109,6 +114,10 @@ public class Activity {
 
 	public Date getStartDate() {
 		return startDate;
+	}
+
+	public String getStartDateHuman() {
+		return startDateHuman;
 	}
 
 	public String getFileUpload() {
@@ -153,12 +162,16 @@ public class Activity {
 
 	@Override
 	public String toString() {
-		return "Activity{" +
-				"codesystem='" + codesystem + '\'' +
-				", componentType=" + componentType +
-				", activityType=" + activityType +
-				", componentId='" + componentId + '\'' +
-				", user='" + user + '\'' +
-				'}';
+		StringBuilder builder = new StringBuilder("Activity{");
+		builder.append("codesystem='").append(codesystem).append('\'');
+		builder.append(", componentType=").append(componentType);
+		builder.append(", activityType=").append(activityType);
+		if (componentId != null) {
+			builder.append(", componentId='").append(componentId).append('\'');
+		}
+		builder.append(", user='").append(user).append('\'');
+		builder.append(", startDateHuman='").append(startDateHuman).append('\'');
+		builder.append('}');
+		return builder.toString();
 	}
 }
