@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class TestActivityRepository extends NoopRepository<Activity> implements ActivityRepository {
 
@@ -29,5 +30,10 @@ public class TestActivityRepository extends NoopRepository<Activity> implements 
 	@Override
 	public Page<Activity> findActivitiesByCodesystemIsOrderByStartDateDesc(String codesystem, PageRequest pageRequest) {
 		return null;
+	}
+
+	@Override
+	public Optional<Activity> findActivityByCodesystemAndStartDate(String codeSystem, Long startDate) {
+		return Optional.empty();
 	}
 }

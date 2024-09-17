@@ -4,21 +4,27 @@ import org.ihtsdo.otf.resourcemanager.ResourceManager;
 import org.ihtsdo.sso.integration.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.config.ActivityResourceManagerConfiguration;
+import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ContentJob;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Optional;
 
 @Service
 public class ActivityService {
@@ -36,6 +42,19 @@ public class ActivityService {
 	public org.snomed.simplex.domain.Page<Activity> findActivities(String codesystem, PageRequest pageRequest) {
 		org.springframework.data.domain.Page<Activity> springPage = repository.findActivitiesByCodesystemIsOrderByStartDateDesc(codesystem, pageRequest);
 		return new Page<>(springPage);
+	}
+
+	public Activity findActivityOrThrow(String codeSystem, Long startDate) throws ServiceExceptionWithStatusCode {
+		Optional<Activity> activity = repository.findActivityByCodesystemAndStartDate(codeSystem, startDate);
+		return activity.orElseThrow(() -> new ServiceExceptionWithStatusCode("Activity not found.", HttpStatus.NOT_FOUND));
+	}
+
+	public InputStream getActivityInputFile(Activity activity) throws IOException {
+		String fileUpload = activity.getFileUpload();
+		if (fileUpload == null) {
+			return null;
+		}
+		return resourceManager.readResourceStreamOrNullIfNotExists(fileUpload);
 	}
 
 	public <T> T recordActivity(String codeSystem, ComponentType componentType, ActivityType activityType,
@@ -92,5 +111,4 @@ public class ActivityService {
 		String dayMonthYearHourMinuteSecondMilli = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS").format(startDate);
 		return "%s/%s/%s.%s".formatted(activity.getCodesystem(), yearMonthDay, dayMonthYearHourMinuteSecondMilli, fileExtension);
 	}
-
 }
