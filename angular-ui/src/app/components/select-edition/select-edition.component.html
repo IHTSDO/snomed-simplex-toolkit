@@ -37,14 +37,16 @@
                     <div *ngIf="availableUpgrades.length > 0">
                         <mat-form-field class="upgrade-select">
                             <mat-label>Available Upgrades</mat-label>
-                            <mat-select [(ngModel)]="selectedUpgradeEdition">
-                              @for (upgrade of availableUpgrades; track upgrade) {
-                                <mat-option [value]="upgrade" [disabled]="activeStage != 'Authoring'">{{upgrade.effectiveDate}}</mat-option>
-                              }
+                            <mat-select [value]="selectedUpgradeEdition" (selectionChange)="onSelectionChange($event)">
+                              <mat-option *ngFor="let upgrade of availableUpgrades" [value]="upgrade" [disabled]="activeStage != 'Authoring'">
+                                {{upgrade.effectiveDate}}
+                              </mat-option>
                             </mat-select>
                         </mat-form-field>
                         <span *ngIf="activeStage && activeStage != 'Authoring'" class="message">Upgrade is only possible in the Editing Stage</span>
-                        <button class="action-button" mat-flat-button color="primary" (click)="upgradeEdition()" *ngIf="selectedUpgradeEdition">Upgrade</button>
+                        <button class="action-button" mat-flat-button color="primary" (click)="upgradeEdition()" *ngIf="selectedUpgradeEdition">
+                            Upgrade to {{selectedUpgradeEdition.effectiveDate}}
+                        </button>
                     </div>
                 </div>
             </div>
