@@ -97,7 +97,7 @@ public class CodeSystemController {
 
 	@PostMapping("{codeSystem}/upgrade")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob startUpgrade(@PathVariable String codeSystem, CodeSystemUpgradeRequest upgradeRequest) throws ServiceException {
+	public AsyncJob startUpgrade(@PathVariable String codeSystem, @RequestBody CodeSystemUpgradeRequest upgradeRequest) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		return jobService.startExternalServiceJob(theCodeSystem, ActivityType.UPGRADE, job -> codeSystemService.upgradeCodeSystem(job, upgradeRequest));
