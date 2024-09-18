@@ -1,6 +1,6 @@
 import {Injectable} from '@angular/core';
 import {Observable, Subject, Subscription} from 'rxjs';
-import {HttpClient} from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import {BranchingService} from '../branching/branching.service';
 import {AuthoringService} from '../authoring/authoring.service';
 

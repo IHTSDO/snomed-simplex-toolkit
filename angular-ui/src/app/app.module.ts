@@ -2,7 +2,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { AppComponent } from './app.component';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { HeaderInterceptor } from './interceptors/header.interceptor';
@@ -72,8 +72,7 @@ import { ProductPackagingComponent } from './components/product-packaging/produc
 // SERVICE IMPORTS
 
 
-@NgModule({
-    declarations: [
+@NgModule({ declarations: [
         AppComponent,
         SnomedNavbarComponent,
         SnomedFooterComponent,
@@ -107,11 +106,9 @@ import { ProductPackagingComponent } from './components/product-packaging/produc
         TimelineComponent,
         ValidationResultsComponent,
         ProductPackagingComponent
-        ],
-    imports: [
-        BrowserModule,
+    ],
+    bootstrap: [AppComponent], imports: [BrowserModule,
         FormsModule,
-        HttpClientModule,
         BrowserAnimationsModule,
         // NgbTypeaheadModule,
         AppRoutingModule,
@@ -134,9 +131,7 @@ import { ProductPackagingComponent } from './components/product-packaging/produc
         MatMenuModule,
         MatExpansionModule,
         MatTooltipModule,
-        MatCardModule
-    ],
-    providers: [
+        MatCardModule], providers: [
         AuthenticationService,
         AuthoringService,
         StatusPageService,
@@ -145,13 +140,7 @@ import { ProductPackagingComponent } from './components/product-packaging/produc
         ConceptService,
         CookieService,
         EnvServiceProvider,
-        // {
-        //     provide: HTTP_INTERCEPTORS,
-        //     useClass: HeaderInterceptor,
-        //     multi: true
-        // }
-    ],
-    bootstrap: [AppComponent]
-})
+        provideHttpClient(withInterceptorsFromDi()),
+    ] })
 export class AppModule {
 }
