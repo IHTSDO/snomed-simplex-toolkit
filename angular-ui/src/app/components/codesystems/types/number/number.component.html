@@ -1,6 +1,13 @@
 <div class="input-group w-auto m-3">
     <div class="input-group-prepend">
-        <span class="input-group-text" id="{{item.key}}">{{item.key}}</span>
+      <span class="input-group-text" [id]="item.key">{{ item.key }}</span>
     </div>
-    <input type="text" class="form-control" placeholder="Enter Number..." [(ngModel)]="item.value">
-</div>
+    <input
+      type="number"
+      class="form-control"
+      placeholder="Enter Number..."
+      [value]="item.value"
+      (input)="onInputChange($event)"
+    />
+  </div>
+  

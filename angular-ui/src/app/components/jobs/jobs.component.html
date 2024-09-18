@@ -2,10 +2,12 @@
 <br>
 <p>Select source:</p>
 <div class="row">
-        <mat-radio-group [(ngModel)]="selectedFileType">
-            <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">{{ type.viewValue }}</mat-radio-button>
-        </mat-radio-group>
-</div>
+    <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
+      <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
+        {{ type.viewValue }}
+      </mat-radio-button>
+    </mat-radio-group>
+  </div>
 
 
 <div *ngIf="selectedFileType == 'conceptsSpreadsheet'">
@@ -199,8 +201,13 @@
 
 <div class="row">
     <mat-form-field *ngIf="selectedFileType == 'weblateTranslation'">
-        <mat-label>Language Code</mat-label>
-        <input matInput placeholder="es, da, nl, etc." value="" [(ngModel)]="selectedLanguageCode">
+      <mat-label>Language Code</mat-label>
+      <input
+        matInput
+        placeholder="es, da, nl, etc."
+        [value]="selectedLanguageCode"
+        (input)="onSelectedLanguageCodeChange($event)"
+      />
     </mat-form-field>
 </div>
 
