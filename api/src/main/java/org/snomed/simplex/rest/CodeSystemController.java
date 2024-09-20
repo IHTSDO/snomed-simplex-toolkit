@@ -217,7 +217,6 @@ public class CodeSystemController {
 		CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
 			codeSystemService.updatePackageConfiguration(packageConfiguration, codeSystemObject.getBranchPath());
-			releaseServiceClient.updateProductConfiguration(codeSystemObject, packageConfiguration);
 			return null;
 		});
 	}
