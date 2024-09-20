@@ -4,7 +4,7 @@ public enum ActivityType {
 
 	CREATE("Create"), UPDATE("Update"), DELETE("Delete"),
 	START_RELEASE_PREP("Start release prep"),
-	STOP_RELEASE_PREP("Stop release prep"),
+	START_AUTHORING("Start release prep"),
 	ADD_CONTENT_APPROVAL("Add content approval"),
 	REMOVE_CONTENT_APPROVAL("Remove content approval"),
 	UPGRADE("Upgrade"), CLASSIFY("Classify"), VALIDATE("Validate"), AUTOMATIC_FIX("Automatic Fix"),

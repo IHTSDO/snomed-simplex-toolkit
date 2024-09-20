@@ -17,13 +17,12 @@ public class CodeSystem {
 	private String shortName;
 	private String branchPath;
 	private String simplexWorkingBranch;
+	private EditionStatus editionStatus;
 
 	private CodeSystemClassificationStatus classificationStatus;
 	private CodeSystemValidationStatus validationStatus;
 	private boolean showCustomConcepts;
 	private boolean classified;
-	private boolean preparingRelease;
-	private boolean contentChangesApproved;
 	private String latestValidationReport;
 	private long contentHeadTimestamp;
 	private Set<String> userRoles;
@@ -223,20 +222,12 @@ public class CodeSystem {
 		return latestVersion;
 	}
 
-	public void setPreparingRelease(boolean preparingRelease) {
-		this.preparingRelease = preparingRelease;
+	public EditionStatus getEditionStatus() {
+		return editionStatus;
 	}
 
-	public boolean isPreparingRelease() {
-		return preparingRelease;
-	}
-
-	public boolean isContentChangesApproved() {
-		return contentChangesApproved;
-	}
-
-	public void setContentChangesApproved(boolean contentChangesApproved) {
-		this.contentChangesApproved = contentChangesApproved;
+	public void setEditionStatus(EditionStatus editionStatus) {
+		this.editionStatus = editionStatus;
 	}
 
 	@JsonIgnore

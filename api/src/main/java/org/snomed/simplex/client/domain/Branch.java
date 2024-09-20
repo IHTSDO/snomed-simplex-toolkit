@@ -14,8 +14,7 @@ public class Branch {
 	public static final String LATEST_VALIDATION_REPORT_METADATA_KEY = "latestValidationReport";
 	public static final String SHOW_CUSTOM_CONCEPTS = "showCustomConcepts";
 	public static final String DEFAULT_MODULE_ID_METADATA_KEY = "defaultModuleId";
-	public static final String PREPARING_RELEASE_METADATA_KEY = "preparingRelease";
-	public static final String CONTENT_CHANGES_APPROVED = "contentChangesApproved";
+	public static final String EDITION_STATUS_METADATA_KEY = "editionStatus";
 
 	public static final String ORGANISATION_NAME = "package.orgName";
 	public static final String ORGANISATION_CONTACT_DETAILS = "package.orgContactDetails";

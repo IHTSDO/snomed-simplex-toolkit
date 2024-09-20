@@ -275,44 +275,39 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/start-release-prep")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void startReleasePrep(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, START_RELEASE_PREP, () -> {
-			codeSystemService.setPreparingReleaseFlag(theCodeSystem, true);
+			codeSystemService.startReleasePrep(theCodeSystem);
 			return null;
 		});
 	}
 
-	@PostMapping("{codeSystem}/stop-release-prep")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public void stopReleasePrep(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		activityService.recordActivity(codeSystem, CODE_SYSTEM, STOP_RELEASE_PREP, () -> {
-			codeSystemService.setPreparingReleaseFlag(theCodeSystem, false);
-			return null;
-		});
-		removeContentApproval(codeSystem);
-	}
-
-	@PostMapping("{codeSystem}/add-content-approval")
+	@PostMapping("{codeSystem}/approve-content-for-release")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void approveContentChanges(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, ADD_CONTENT_APPROVAL, () -> {
-			codeSystemService.setContentApproval(theCodeSystem, true);
+			codeSystemService.approveContentForRelease(theCodeSystem);
 			return null;
 		});
 	}
 
-	@PostMapping("{codeSystem}/remove-content-approval")
+	@PostMapping("{codeSystem}/start-authoring")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public void removeContentApproval(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+	public void startAuthoring(@PathVariable String codeSystem) throws ServiceException {
+		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, REMOVE_CONTENT_APPROVAL, () -> {
-			codeSystemService.setContentApproval(theCodeSystem, false);
+			codeSystemService.startAuthoring(theCodeSystem);
+			return null;
+		});
+	}
+
+	@PostMapping("{codeSystem}/start-maintenance")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void startMaintenance(@PathVariable String codeSystem) throws ServiceException {
+		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, REMOVE_CONTENT_APPROVAL, () -> {
+			codeSystemService.startMaintenance(theCodeSystem);
 			return null;
 		});
 	}

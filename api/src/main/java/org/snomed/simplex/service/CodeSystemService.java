@@ -155,27 +155,36 @@ public class CodeSystemService {
 		setCodeSystemMetadata(Branch.DEFAULT_MODULE_ID_METADATA_KEY, moduleId, newCodeSystem, snowstormClient);
 	}
 
-	public void setPreparingReleaseFlag(CodeSystem codeSystem, boolean flag) throws ServiceException {
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		setCodeSystemMetadata(Branch.PREPARING_RELEASE_METADATA_KEY, String.valueOf(flag), codeSystem, snowstormClient);
+	public void startReleasePrep(CodeSystem codeSystem) throws ServiceException {
+		setEditionStatus(codeSystem, EditionStatus.PREPARING_RELEASE, snowstormClientFactory.getClient());
 	}
 
-	public void setContentApproval(CodeSystem codeSystem, boolean flag) throws ServiceException {
+	public void approveContentForRelease(CodeSystem codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		if (flag) {
-			if (!codeSystem.isClassified()) {
-				throw new ServiceExceptionWithStatusCode("Content is not classified.", HttpStatus.CONFLICT);
-			}
-			CodeSystemValidationStatus validationStatus = codeSystem.getValidationStatus();
-			if (validationStatus == CodeSystemValidationStatus.STALE) {
-				throw new ServiceExceptionWithStatusCode("Validation is stale.", HttpStatus.CONFLICT);
-			}
-			if (!Set.of(CodeSystemValidationStatus.COMPLETE, CodeSystemValidationStatus.CONTENT_WARNING).contains(validationStatus)) {
-				throw new ServiceExceptionWithStatusCode("Validation is not clean.", HttpStatus.CONFLICT);
-			}
+		if (!codeSystem.isClassified()) {
+			throw new ServiceExceptionWithStatusCode("Content is not classified.", HttpStatus.CONFLICT);
 		}
+		CodeSystemValidationStatus validationStatus = codeSystem.getValidationStatus();
+		if (validationStatus == CodeSystemValidationStatus.STALE) {
+			throw new ServiceExceptionWithStatusCode("Validation is stale.", HttpStatus.CONFLICT);
+		}
+		if (!Set.of(CodeSystemValidationStatus.COMPLETE, CodeSystemValidationStatus.CONTENT_WARNING).contains(validationStatus)) {
+			throw new ServiceExceptionWithStatusCode("Validation is not clean.", HttpStatus.CONFLICT);
+		}
+		setEditionStatus(codeSystem, EditionStatus.RELEASE, snowstormClient);
+	}
 
-		setCodeSystemMetadata(Branch.CONTENT_CHANGES_APPROVED, String.valueOf(flag), codeSystem, snowstormClient);
+	public void startAuthoring(CodeSystem codeSystem) throws ServiceException {
+		setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClientFactory.getClient());
+	}
+
+	public void startMaintenance(CodeSystem codeSystem) throws ServiceException {
+		setEditionStatus(codeSystem, EditionStatus.MAINTENANCE, snowstormClientFactory.getClient());
+	}
+
+	private void setEditionStatus(CodeSystem codeSystem, EditionStatus editionStatus, SnowstormClient snowstormClient) {
+		codeSystem.setEditionStatus(editionStatus);
+		setCodeSystemMetadata(Branch.EDITION_STATUS_METADATA_KEY, codeSystem.getEditionStatus().name(), codeSystem, snowstormClient);
 	}
 
 	private static void setCodeSystemMetadata(String key, String value, CodeSystem codeSystem, SnowstormClient snowstormClient) {
@@ -209,7 +218,7 @@ public class CodeSystemService {
 			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 
 			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(asyncJob.getCodeSystem());
-			setPreparingReleaseFlag(codeSystem, true);
+			setEditionStatus(codeSystem, EditionStatus.MAINTENANCE, snowstormClient);
 			// Disable daily-build to prevent content rollback during upgrade
 			codeSystem.setDailyBuildAvailable(false);
 			snowstormClient.updateCodeSystem(codeSystem);
@@ -364,7 +373,6 @@ public class CodeSystemService {
 				SnowstormUpgradeJob.Status status = upgradeJob.getStatus();
 				if (status == SnowstormUpgradeJob.Status.COMPLETED) {
 					CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(job.getCodeSystem());
-					setPreparingReleaseFlag(codeSystem, false);
 					codeSystem.setDailyBuildAvailable(true);
 					snowstormClient.updateCodeSystem(codeSystem);
 					logger.info("Upgrade complete. Codesystem:{}", codeSystem.getShortName());

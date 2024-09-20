@@ -149,8 +149,14 @@ public class SnowstormClient {
 		codeSystem.setPreviousPackage(branch.getMetadataValue(Branch.PREVIOUS_PACKAGE_METADATA_KEY));
 		codeSystem.setPreviousDependencyPackage(branch.getMetadataValue(Branch.PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY));
 		codeSystem.setLatestValidationReport(branch.getMetadataValue(Branch.LATEST_VALIDATION_REPORT_METADATA_KEY));
-		codeSystem.setPreparingRelease("true".equalsIgnoreCase(branch.getMetadataValue(Branch.PREPARING_RELEASE_METADATA_KEY)));
-		codeSystem.setContentChangesApproved("true".equalsIgnoreCase(branch.getMetadataValue(Branch.CONTENT_CHANGES_APPROVED)));
+		codeSystem.setEditionStatus(getEditionStatus(branch.getMetadataValue(Branch.EDITION_STATUS_METADATA_KEY)));
+	}
+
+	private static EditionStatus getEditionStatus(String editionStatus) {
+		if (Strings.isBlank(editionStatus) || !EditionStatus.getNames().contains(editionStatus)) {
+			editionStatus = EditionStatus.AUTHORING.name();
+		}
+		return EditionStatus.valueOf(editionStatus);
 	}
 
 	public Branch getBranchOrThrow(String branchPath) throws ServiceException {
