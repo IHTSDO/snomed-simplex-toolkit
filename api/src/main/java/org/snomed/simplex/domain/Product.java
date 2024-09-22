@@ -47,4 +47,10 @@ public class Product {
 				", refsetId='" + refsetId + '\'' +
 				'}';
 	}
+
+	public record ProductBuildTestConfig(
+			String assertionGroupNames,
+			boolean enableDrools,
+			String droolsRulesGroupNames,
+			boolean enableMRCMValidation) {}
 }

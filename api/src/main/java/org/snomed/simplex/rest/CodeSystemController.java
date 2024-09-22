@@ -12,6 +12,7 @@ import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
+import org.snomed.simplex.client.srs.domain.SRSProduct;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.domain.Page;
@@ -186,7 +187,7 @@ public class CodeSystemController {
 
 
 					This endpoint also saves the generated configuration.""")
-	public ReleaseServiceClient.Product getReleaseProduct(@PathVariable String codeSystem) throws ServiceException {
+	public SRSProduct getReleaseProduct(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = clientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		PackageConfiguration packageConfiguration = codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());

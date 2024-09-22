@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.*;
+import org.snomed.simplex.client.srs.domain.ReleaseContext;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifest;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFile;
 import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFolder;
@@ -35,7 +36,6 @@ public class ReleaseManifestService {
 		this.xmlConverter = xmlConverter;
 	}
 
-	@SuppressWarnings("unchecked")
 	public String generateManifestXml(CodeSystem codeSystem, String productName, String effectiveTime,
 			SnowstormClient snowstormClient) throws ServiceException {
 
@@ -113,6 +113,7 @@ public class ReleaseManifestService {
 		return refsetFolder;
 	}
 
+	@SuppressWarnings("unchecked")
 	private void addRefset(ReleaseContext releaseContext, ReleaseManifestFolder snapshotFolder, String formattedName,
 			Set<String> refsetsWithMissingExportConfiguration, ConceptMini refset, ReleaseManifestFolder refsetFolder) throws HTTPClientException {
 
@@ -154,6 +155,7 @@ public class ReleaseManifestService {
 		addRefsetAndFields(refset, refsetFile, fieldNameList);
 	}
 
+	@SuppressWarnings("unchecked")
 	private Map<String, Object> getRefsetFileConfiguration(ConceptMini refset) {
 		Map<String, Object> extraFields = refset.getExtraFields();
 		if (extraFields != null) {

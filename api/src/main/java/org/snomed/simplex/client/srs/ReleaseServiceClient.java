@@ -1,6 +1,5 @@
 package org.snomed.simplex.client.srs;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
@@ -14,9 +13,11 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
+import org.snomed.simplex.client.srs.domain.ProductUpdateRequestInternal;
+import org.snomed.simplex.client.srs.domain.SRSBuild;
+import org.snomed.simplex.client.srs.domain.SRSProduct;
 import org.snomed.simplex.client.srs.manifest.ReleaseManifestService;
 import org.snomed.simplex.client.srs.manifest.domain.CreateBuildRequest;
-import org.snomed.simplex.client.srs.manifest.domain.ReleaseBuild;
 import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
@@ -70,6 +71,7 @@ public class ReleaseServiceClient {
     private final ReleaseManifestService releaseManifestService;
     private final SnowstormClientFactory snowstormClientFactory;
     private final AuthenticationClient authenticationClient;
+
     public static final boolean EDITION_PACKAGE = true;
     public static final String FIRST_SNOMEDCT_RELEASE_DATE = "2002-01-01";
 
@@ -104,8 +106,8 @@ public class ReleaseServiceClient {
         this.authenticationClient = authenticationClient;
     }
 
-    public Product getCreateProduct(CodeSystem codeSystem, PackageConfiguration packageConfiguration) throws ServiceException {
-        Product product = getProduct(codeSystem);
+    public SRSProduct getCreateProduct(CodeSystem codeSystem, PackageConfiguration packageConfiguration) throws ServiceException {
+        SRSProduct product = getProduct(codeSystem);
         if (product == null) {
             getClient().postForEntity(
                     String.format("/centers/%s/products", releaseCenter),
@@ -119,7 +121,7 @@ public class ReleaseServiceClient {
 		return new GregorianCalendar().get(Calendar.YEAR) + "";
     }
 
-    public Product updateProductConfiguration(
+    public SRSProduct updateProductConfiguration(
             CodeSystem codeSystem,
             PackageConfiguration packageConfiguration) throws ServiceException {
 
@@ -181,29 +183,29 @@ public class ReleaseServiceClient {
 		return group.substring(0, 4) + "-" + group.substring(4, 6) + "-" + group.substring(6, 8);
     }
 
-    public Product getProduct(CodeSystem codeSystem) throws ServiceException {
+    public SRSProduct getProduct(CodeSystem codeSystem) throws ServiceException {
         try {
-            ResponseEntity<Product> forEntity = getClient().getForEntity(
+            ResponseEntity<SRSProduct> forEntity = getClient().getForEntity(
                     String.format("/centers/%s/products/%s", releaseCenter, getProductName(codeSystem.getShortName())),
-                    Product.class);
+                    SRSProduct.class);
             return forEntity.getBody();
         } catch (HttpClientErrorException.NotFound e) {
             return null;
         }
     }
 
-    public ReleaseBuild buildProduct(CodeSystem codeSystem, String effectiveTime) throws ServiceException {
+    public SRSBuild buildProduct(CodeSystem codeSystem, String effectiveTime) throws ServiceException {
         logger.info("Preparing build for {}", codeSystem.getShortName());
         SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-        ReleaseBuild build = prepareReleaseBuild(codeSystem, effectiveTime, snowstormClient);
-        logger.info("Build {} preparation complete", build.getId());
+        SRSBuild build = prepareReleaseBuild(codeSystem, effectiveTime, snowstormClient);
+        logger.info("Build {} preparation complete", build.id());
 
-		scheduleBuild(build, codeSystem);
-        logger.info("Build {} scheduled to run. Url: {}", build.getId(), build.getUrl());
+        scheduleBuild(build, codeSystem);
+        logger.info("Build {} scheduled to run. Url: {}", build.id(), build.url());
         return build;
     }
 
-    private ReleaseBuild prepareReleaseBuild(CodeSystem codeSystem, String effectiveTime, SnowstormClient snowstormClient) throws ServiceException {
+    private SRSBuild prepareReleaseBuild(CodeSystem codeSystem, String effectiveTime, SnowstormClient snowstormClient) throws ServiceException {
         logger.info("Generating manifest");
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
@@ -217,8 +219,8 @@ public class ReleaseServiceClient {
         uploadManifest(codeSystem, manifestXml);
         logger.info("Uploaded manifest");
 
-        ReleaseBuild build = createBuild(codeSystem, effectiveTime);
-        logger.info("Created build {}", build.getId());
+        SRSBuild build = createBuild(codeSystem, effectiveTime);
+        logger.info("Created build {}", build.id());
         try {
             File tempFile = Files.createTempFile(codeSystem.getShortName() + UUID.randomUUID(), ".zip").toFile();
             snowstormClient.exportRF2(new FileOutputStream(tempFile), "DELTA", codeSystem, effectiveTime);
@@ -292,26 +294,30 @@ public class ReleaseServiceClient {
             throw new ServiceException("Failed to serialise generated manifest for upload.", e);
         } finally {
             if (manifestFile != null) {
-                manifestFile.delete();
+                if (!manifestFile.delete()) {
+                    logger.info("Failed to delete temp manifest file {}", manifestFile.getAbsolutePath());
+                }
             }
             if (tempDirectory != null) {
-                tempDirectory.delete();
+                if (!tempDirectory.delete()) {
+                    logger.info("Failed to delete temp directory {}", tempDirectory.getAbsoluteFile());
+                }
             }
         }
     }
 
-    public void uploadDeltaFile(Path file, ReleaseBuild releaseBuild, CodeSystem codeSystem) throws ServiceException {
+    public void uploadDeltaFile(Path file, SRSBuild releaseBuild, CodeSystem codeSystem) throws ServiceException {
         String url = format("/centers/%s/products/%s/builds/%s/sourcefiles/%s",
-                releaseCenter, getProductName(codeSystem), releaseBuild.getId(), releaseSource);
+                releaseCenter, getProductName(codeSystem), releaseBuild.id(), releaseSource);
         HttpHeaders headers = getUploadHeaders();
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new FileSystemResource(file));
         getClient().exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), Void.class);
     }
 
-    public void prepareInputFiles(ReleaseBuild releaseBuild, CodeSystem codeSystem) throws ServiceException {
+    public void prepareInputFiles(SRSBuild releaseBuild, CodeSystem codeSystem) throws ServiceException {
         String url = format("/centers/%s/products/%s/builds/%s/inputfiles/prepare",
-                releaseCenter, getProductName(codeSystem), releaseBuild.getId());
+                releaseCenter, getProductName(codeSystem), releaseBuild.id());
         getClient().exchange(url, HttpMethod.POST, null, Void.class);
     }
 
@@ -321,17 +327,21 @@ public class ReleaseServiceClient {
         return headers;
     }
 
-    public void scheduleBuild(ReleaseBuild build, CodeSystem codeSystem) throws ServiceException {
+    private void scheduleBuild(SRSBuild build, CodeSystem codeSystem) throws ServiceException {
         String url = format("/centers/%s/products/%s/builds/%s/schedule",
-                releaseCenter, getProductName(codeSystem), build.getId());
+                releaseCenter, getProductName(codeSystem), build.id());
         getClient().postForEntity(url, null, Void.class);
     }
 
-    public ReleaseBuild createBuild(CodeSystem codeSystem, String effectiveTime) throws ServiceException {
+    public SRSBuild getBuild(String buildUrl) throws ServiceException {
+        return getClient().getForEntity(buildUrl, SRSBuild.class).getBody();
+    }
+
+    public SRSBuild createBuild(CodeSystem codeSystem, String effectiveTime) throws ServiceException {
         String productName = getProductName(codeSystem);
         String url = format("/centers/%s/products/%s/builds", releaseCenter, productName);
         CreateBuildRequest createBuildRequest = new CreateBuildRequest(effectiveTime, releaseCenterBranch);
-        ResponseEntity<ReleaseBuild> response = getClient().exchange(url, HttpMethod.POST, new HttpEntity<>(createBuildRequest), ReleaseBuild.class);
+        ResponseEntity<SRSBuild> response = getClient().exchange(url, HttpMethod.POST, new HttpEntity<>(createBuildRequest), SRSBuild.class);
         return response.getBody();
     }
 
@@ -367,211 +377,6 @@ public class ReleaseServiceClient {
             throw new ServiceException("Failed to create SRS client", e);
         }
     }
-
-    public static class Product {
-
-        private String id;
-        private String latestBuildStatus;
-        private ProductBuildConfiguration buildConfiguration;
-        private ProductBuildTestConfig qaTestConfig;
-
-        public String getId() {
-            return id;
-        }
-
-        public String getLatestBuildStatus() {
-            return latestBuildStatus;
-        }
-
-        public ProductBuildConfiguration getBuildConfiguration() {
-            return buildConfiguration;
-        }
-
-        public void setBuildConfiguration(ProductBuildConfiguration buildConfiguration) {
-            this.buildConfiguration = buildConfiguration;
-        }
-
-        public ProductBuildTestConfig getQaTestConfig() {
-            return qaTestConfig;
-        }
-
-        public void setQaTestConfig(ProductBuildTestConfig qaTestConfig) {
-            this.qaTestConfig = qaTestConfig;
-        }
-    }
-
-    public record ProductBuildConfiguration(
-            String readmeHeader,
-            String readmeEndDate,
-            ProductExtensionConfiguration extensionConfig) {
-    }
-
-    public record ProductExtensionConfiguration(
-            String namespaceId,
-            String defaultModuleId,
-            String moduleIds,
-            String dependencyRelease,
-            boolean releaseAsAnEdition) {
-    }
-
-    public static class ProductUpdateRequestInternal {
-
-        // buildConfiguration
-        private boolean firstTimeRelease;
-        private String readmeHeader;
-        private String readmeEndDate;
-        private String licenseStatement;
-
-        // buildConfiguration.extensionConfig
-        private String namespaceId;
-        private String defaultModuleId;
-        private String moduleIds;
-        private String previousPublishedPackage;
-        private String extensionDependencyRelease;
-        private String previousEditionDependencyEffectiveDate;
-        private boolean releaseAsAnEdition;
-        private boolean classifyOutputFiles;
-
-        // qaTestConfig
-        private String assertionGroupNames;
-        private boolean enableDrools;
-        private String droolsRulesGroupNames;
-        private boolean enableMRCMValidation;
-
-        public String getReadmeHeader() {
-            return readmeHeader;
-        }
-
-        public void setReadmeHeader(String readmeHeader) {
-            this.readmeHeader = readmeHeader;
-        }
-
-        public String getReadmeEndDate() {
-            return readmeEndDate;
-        }
-
-        public void setReadmeEndDate(String readmeEndDate) {
-            this.readmeEndDate = readmeEndDate;
-        }
-
-        public String getLicenseStatement() {
-            return licenseStatement;
-        }
-
-        public void setLicenseStatement(String licenseStatement) {
-            this.licenseStatement = licenseStatement;
-        }
-
-        public String getAssertionGroupNames() {
-            return assertionGroupNames;
-        }
-
-        public void setAssertionGroupNames(String assertionGroupNames) {
-            this.assertionGroupNames = assertionGroupNames;
-        }
-
-        public void setEnableDrools(boolean enableDrools) {
-            this.enableDrools = enableDrools;
-        }
-
-        public boolean isEnableDrools() {
-            return enableDrools;
-        }
-
-        public void setDroolsRulesGroupNames(String droolsRulesGroupNames) {
-            this.droolsRulesGroupNames = droolsRulesGroupNames;
-        }
-
-        public String getDroolsRulesGroupNames() {
-            return droolsRulesGroupNames;
-        }
-
-        public void setEnableMRCMValidation(boolean enableMRCMValidation) {
-            this.enableMRCMValidation = enableMRCMValidation;
-        }
-
-        public boolean isEnableMRCMValidation() {
-            return enableMRCMValidation;
-        }
-
-        public void setNamespaceId(String namespaceId) {
-            this.namespaceId = namespaceId;
-        }
-
-        public String getNamespaceId() {
-            return namespaceId;
-        }
-
-        public void setDefaultModuleId(String defaultModuleId) {
-            this.defaultModuleId = defaultModuleId;
-        }
-
-        public String getDefaultModuleId() {
-            return defaultModuleId;
-        }
-
-        public void setModuleIds(String moduleIds) {
-            this.moduleIds = moduleIds;
-        }
-
-        public String getModuleIds() {
-            return moduleIds;
-        }
-
-        public void setExtensionDependencyRelease(String extensionDependencyRelease) {
-            this.extensionDependencyRelease = extensionDependencyRelease;
-        }
-
-        public String getExtensionDependencyRelease() {
-            return extensionDependencyRelease;
-        }
-
-        public String getPreviousEditionDependencyEffectiveDate() {
-            return previousEditionDependencyEffectiveDate;
-        }
-
-        public void setPreviousEditionDependencyEffectiveDate(String previousEditionDependencyEffectiveDate) {
-            this.previousEditionDependencyEffectiveDate = previousEditionDependencyEffectiveDate;
-        }
-
-        public void setReleaseAsAnEdition(boolean releaseAsAnEdition) {
-            this.releaseAsAnEdition = releaseAsAnEdition;
-        }
-
-        @JsonGetter("releaseExtensionAsAnEdition")
-        public boolean isReleaseAsAnEdition() {
-            return releaseAsAnEdition;
-        }
-
-        public void setFirstTimeRelease(boolean firstTimeRelease) {
-            this.firstTimeRelease = firstTimeRelease;
-        }
-
-        public boolean isFirstTimeRelease() {
-            return firstTimeRelease;
-        }
-
-        public boolean isClassifyOutputFiles() {
-            return classifyOutputFiles;
-        }
-
-        public void setClassifyOutputFiles(boolean classifyOutputFiles) {
-            this.classifyOutputFiles = classifyOutputFiles;
-        }
-
-        public void setPreviousPublishedPackage(String previousPublishedPackage) {
-            this.previousPublishedPackage = previousPublishedPackage;
-        }
-
-        public String getPreviousPublishedPackage() {
-            return previousPublishedPackage;
-        }
-    }
-    public record ProductBuildTestConfig(
-            String assertionGroupNames,
-            boolean enableDrools,
-            String droolsRulesGroupNames,
-            boolean enableMRCMValidation) {}
 
     private record CreateProductRequest(String name) {}
 
