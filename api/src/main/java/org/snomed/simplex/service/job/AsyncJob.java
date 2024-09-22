@@ -23,7 +23,7 @@ public abstract class AsyncJob {
 	private String errorMessage;
 	private SecurityContext securityContext;
 
-	public AsyncJob(CodeSystem codeSystem, String display) {
+	protected AsyncJob(CodeSystem codeSystem, String display) {
 		this.codeSystem = codeSystem;
 		this.id = UUID.randomUUID().toString();
 		this.created = new Date();

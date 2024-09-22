@@ -294,14 +294,18 @@ public class ReleaseServiceClient {
             throw new ServiceException("Failed to serialise generated manifest for upload.", e);
         } finally {
             if (manifestFile != null) {
-                if (!manifestFile.delete()) {
+                try {
+                    Files.delete(manifestFile.toPath());
+                } catch (IOException e) {
                     logger.info("Failed to delete temp manifest file {}", manifestFile.getAbsolutePath());
-                }
+				}
             }
             if (tempDirectory != null) {
-                if (!tempDirectory.delete()) {
+                try {
+                    Files.delete(tempDirectory.toPath());
+                } catch (IOException e) {
                     logger.info("Failed to delete temp directory {}", tempDirectory.getAbsoluteFile());
-                }
+				}
             }
         }
     }
