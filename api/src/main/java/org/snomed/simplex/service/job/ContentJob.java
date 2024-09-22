@@ -1,6 +1,7 @@
 package org.snomed.simplex.service.job;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.ProgressMonitor;
 
@@ -17,7 +18,7 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 	private File inputFileCopy;
 	private String inputFileOriginalName;
 
-	public ContentJob(String codeSystem, String display, String refsetId) {
+	public ContentJob(CodeSystem codeSystem, String display, String refsetId) {
 		super(codeSystem, display);
 		this.refsetId = refsetId;
 	}

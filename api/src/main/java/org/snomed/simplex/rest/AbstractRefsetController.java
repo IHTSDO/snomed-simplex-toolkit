@@ -81,11 +81,10 @@ public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
-		try {
-			InputStream inputStream = file.getInputStream();
+		try (InputStream inputStream = file.getInputStream()){
 			Activity activity = new Activity(SecurityUtil.getUsername(), codeSystem, getComponentType(), ActivityType.UPDATE);
-			return jobService.queueContentJob(codeSystem, getSpreadsheetUploadJobName(), inputStream, file.getOriginalFilename(), refsetId, activity,
-					asyncJob -> getRefsetService().updateRefsetViaSpreadsheet(refsetId, inputStream, theCodeSystem));
+			return jobService.queueContentJob(theCodeSystem, getSpreadsheetUploadJobName(), inputStream, file.getOriginalFilename(), refsetId, activity,
+					asyncJob -> getRefsetService().updateRefsetViaSpreadsheet(asyncJob));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Failed to open uploaded file.");
 		}

@@ -9,14 +9,15 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
+import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
+import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.util.TimerUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -41,9 +42,11 @@ public class TranslationService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	private final SimpleRefsetService refsetService;
+	private final SnowstormClientFactory snowstormClientFactory;
 
-	public TranslationService(@Autowired SimpleRefsetService refsetService) {
+	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory) {
 		this.refsetService = refsetService;
+		this.snowstormClientFactory = snowstormClientFactory;
 	}
 
 	@PostConstruct
@@ -94,6 +97,12 @@ public class TranslationService {
 		return translationRefsets;
 	}
 
+	public ChangeSummary uploadTranslationAsWeblateCSV(String languageCode, boolean translationTermsUseTitleCase, ContentJob asyncJob) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), languageCode, asyncJob.getCodeSystemObject(), asyncJob.getInputStream(),
+				translationTermsUseTitleCase, snowstormClient, asyncJob);
+	}
+
 	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, String languageCode, CodeSystem codeSystem, InputStream inputStream,
 			boolean translationTermsUseTitleCase, SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
 
@@ -103,9 +112,14 @@ public class TranslationService {
 		}
 	}
 
-	public ChangeSummary uploadTranslationAsRefsetToolArchive(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
-			SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
+	public ChangeSummary uploadTranslationAsRefsetToolArchive(ContentJob contentJob) throws ServiceException {
+		return uploadTranslationAsRefsetToolArchive(contentJob.getRefsetId(), contentJob.getCodeSystemObject(), contentJob.getInputStream(), contentJob);
+	}
 
+	public ChangeSummary uploadTranslationAsRefsetToolArchive(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
+			ProgressMonitor progressMonitor) throws ServiceException {
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
 			return doUploadTranslation(() -> new RefsetToolTranslationZipReader(inputStream, languageRefsetId).readUpload(),
 					languageRefsetId, true, codeSystem, snowstormClient, progressMonitor, changeMonitor);

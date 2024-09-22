@@ -344,21 +344,22 @@ public class SpreadsheetService {
 		int rowNumber = 0;
 		try {
 			List<T> components = new ArrayList<>();
-			Workbook workbook = new XSSFWorkbook(spreadsheetStream);
-			Sheet sheet = workbook.getSheetAt(0);
-			HeaderConfiguration headerConfiguration = null;
-			for (Row cells : sheet) {
-				rowNumber++;
-				if (headerConfiguration == null) {
-					headerConfiguration = getHeaderConfiguration(cells, expectedHeader);
-				} else {
-					T componentIntent = componentIntentExtractor.extract(cells, rowNumber, headerConfiguration);
-					if (componentIntent != null) {
-						components.add(componentIntent);
+			try (Workbook workbook = new XSSFWorkbook(spreadsheetStream)) {
+				Sheet sheet = workbook.getSheetAt(0);
+				HeaderConfiguration headerConfiguration = null;
+				for (Row cells : sheet) {
+					rowNumber++;
+					if (headerConfiguration == null) {
+						headerConfiguration = getHeaderConfiguration(cells, expectedHeader);
+					} else {
+						T componentIntent = componentIntentExtractor.extract(cells, rowNumber, headerConfiguration);
+						if (componentIntent != null) {
+							components.add(componentIntent);
+						}
 					}
 				}
+				return components;
 			}
-			return components;
 		} catch (IOException e) {
 			throw new ServiceException(String.format("Failed to read row %s of input file, %s", rowNumber, e.getMessage()));
 		}

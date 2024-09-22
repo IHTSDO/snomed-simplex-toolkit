@@ -217,7 +217,7 @@ public class CodeSystemService {
 		try {
 			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 
-			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(asyncJob.getCodeSystem());
+			CodeSystem codeSystem = asyncJob.getCodeSystemObject();
 			setEditionStatus(codeSystem, EditionStatus.MAINTENANCE, snowstormClient);
 			// Disable daily-build to prevent content rollback during upgrade
 			codeSystem.setDailyBuildAvailable(false);
@@ -234,7 +234,7 @@ public class CodeSystemService {
 	public void validate(ExternalServiceJob asyncJob) {
 		try {
 			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(asyncJob.getCodeSystem());
+			CodeSystem codeSystem = asyncJob.getCodeSystemObject();
 			URI validationUri = validationServiceClient.startValidation(codeSystem, snowstormClient);
 			logger.info("Created validation. Branch:{}, RVF Job:{}", codeSystem.getWorkingBranchPath(), validationUri);
 			asyncJob.setLink(validationUri.toString());

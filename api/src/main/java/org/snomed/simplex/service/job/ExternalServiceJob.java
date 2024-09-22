@@ -8,14 +8,14 @@ public class ExternalServiceJob extends AsyncJob {
 	private final long contentHeadTimestamp;
 	private String link;
 
-	public ExternalServiceJob(String codeSystem, String display, String branch, long contentHeadTimestamp) {
+	public ExternalServiceJob(CodeSystem codeSystem, String display, String branch, long contentHeadTimestamp) {
 		super(codeSystem, display);
 		this.branch = branch;
 		this.contentHeadTimestamp = contentHeadTimestamp;
 	}
 
 	public ExternalServiceJob(CodeSystem codeSystem, String display) {
-		super(codeSystem.getShortName(), display);
+		super(codeSystem, display);
 		branch = codeSystem.getWorkingBranchPath();
 		contentHeadTimestamp = codeSystem.getContentHeadTimestamp();
 	}

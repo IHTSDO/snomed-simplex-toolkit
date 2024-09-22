@@ -7,6 +7,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
+import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.ConceptIntent;
 import org.snomed.simplex.domain.Page;
@@ -37,12 +38,15 @@ public class CustomConceptService {
 
 	private final TranslationService translationService;
 	private final SpreadsheetService spreadsheetService;
+	private final SnowstormClientFactory snowstormClientFactory;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public CustomConceptService(TranslationService translationService, SpreadsheetService spreadsheetService) {
+	public CustomConceptService(TranslationService translationService, SpreadsheetService spreadsheetService,
+			SnowstormClientFactory snowstormClientFactory) {
 		this.translationService = translationService;
 		this.spreadsheetService = spreadsheetService;
+		this.snowstormClientFactory = snowstormClientFactory;
 	}
 
 	public Page<ConceptMini> findCustomConcepts(CodeSystem codeSystem, SnowstormClient snowstormClient, int offset, int limit) throws ServiceException {
@@ -61,6 +65,11 @@ public class CustomConceptService {
 		} catch (IOException e) {
 			throw new ServiceException("Failed to write concept spreadsheet to API response stream.", e);
 		}
+	}
+
+	public ChangeSummary uploadSpreadsheet(ContentJob asyncJob) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		return uploadSpreadsheet(asyncJob.getCodeSystemObject(), asyncJob.getInputStream(), snowstormClient, asyncJob);
 	}
 
 	public ChangeSummary uploadSpreadsheet(CodeSystem codeSystem, InputStream inputStream, SnowstormClient snowstormClient, ContentJob asyncJob) throws ServiceException {

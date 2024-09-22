@@ -44,7 +44,7 @@ public class JobService {
 
 	public AsyncJob startExternalServiceJob(CodeSystem codeSystem, ActivityType activityType, Consumer<ExternalServiceJob> function) throws ServiceException {
 		String shortName = codeSystem.getShortName();
-		ExternalServiceJob asyncJob = new ExternalServiceJob(shortName, activityType.getDisplay(),
+		ExternalServiceJob asyncJob = new ExternalServiceJob(codeSystem, activityType.getDisplay(),
 				codeSystem.getWorkingBranchPath(), codeSystem.getContentHeadTimestamp());
 
 		asyncJob.setSecurityContext(SecurityContextHolder.getContext());
@@ -58,7 +58,7 @@ public class JobService {
 		return asyncJob;
 	}
 
-	public AsyncJob queueContentJob(String codeSystem, String display, InputStream jobInputStream, String originalFilename, String refsetId,
+	public AsyncJob queueContentJob(CodeSystem codeSystem, String display, InputStream jobInputStream, String originalFilename, String refsetId,
 			Activity activity, AsyncFunction<ContentJob> function) throws IOException {
 
 		ContentJob asyncJob = new ContentJob(codeSystem, display, refsetId);
@@ -76,7 +76,7 @@ public class JobService {
 		});
 	}
 
-	private <T extends AsyncJob> T doQueueJob(String codeSystem, AsyncFunction<T> function, T asyncJob, Activity activity, Runnable onCompleteRunnable) {
+	private <T extends AsyncJob> T doQueueJob(CodeSystem codeSystem, AsyncFunction<T> function, T asyncJob, Activity activity, Runnable onCompleteRunnable) {
 		// Add job to thread limited executor service to be run when there is capacity
 		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
 
@@ -111,7 +111,7 @@ public class JobService {
 			}
 		});
 
-		codeSystemJobs.computeIfAbsent(codeSystem, i -> new LinkedHashMap<>()).put(asyncJob.getId(), asyncJob);
+		codeSystemJobs.computeIfAbsent(codeSystem.getShortName(), i -> new LinkedHashMap<>()).put(asyncJob.getId(), asyncJob);
 		return asyncJob;
 	}
 

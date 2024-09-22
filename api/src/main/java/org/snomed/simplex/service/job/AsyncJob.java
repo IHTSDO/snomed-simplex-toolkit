@@ -1,6 +1,7 @@
 package org.snomed.simplex.service.job;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.springframework.security.core.context.SecurityContext;
@@ -12,7 +13,7 @@ import static java.lang.String.format;
 
 public abstract class AsyncJob {
 
-	private final String codeSystem;
+	private final CodeSystem codeSystem;
 	private final String id;
 	private final Date created;
 	private final String display;
@@ -22,7 +23,7 @@ public abstract class AsyncJob {
 	private String errorMessage;
 	private SecurityContext securityContext;
 
-	public AsyncJob(String codeSystem, String display) {
+	public AsyncJob(CodeSystem codeSystem, String display) {
 		this.codeSystem = codeSystem;
 		this.id = UUID.randomUUID().toString();
 		this.created = new Date();
@@ -38,6 +39,11 @@ public abstract class AsyncJob {
 	}
 
 	public String getCodeSystem() {
+		return codeSystem.getShortName();
+	}
+
+	@JsonIgnore
+	public CodeSystem getCodeSystemObject() {
 		return codeSystem;
 	}
 

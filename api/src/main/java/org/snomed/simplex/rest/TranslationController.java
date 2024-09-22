@@ -102,9 +102,8 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
-		return jobService.queueContentJob(codeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
-				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(refsetId, languageCode, theCodeSystem, asyncJob.getInputStream(),
-				translationTermsUseTitleCase, snowstormClient, asyncJob));
+		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
+				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(languageCode, translationTermsUseTitleCase, asyncJob));
 	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")
@@ -116,8 +115,8 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
-		return jobService.queueContentJob(codeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
-				activity, asyncJob -> translationService.uploadTranslationAsRefsetToolArchive(refsetId, theCodeSystem, asyncJob.getInputStream(), snowstormClient, asyncJob));
+		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
+				activity, translationService::uploadTranslationAsRefsetToolArchive);
 	}
 
 	@GetMapping(path = "language-codes")
