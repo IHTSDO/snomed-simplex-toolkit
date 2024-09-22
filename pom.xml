@@ -17,6 +17,10 @@
 	<version>2.3.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
+	<properties>
+		<spring.version>6.1.13</spring.version>
+	</properties>
+
 	<modules>
 		<module>angular-ui</module>
 		<module>api</module>
