@@ -36,9 +36,6 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   loadingMaps = false;
   saving = false;
 
-  loadingReleaseStatus = false;
-  releaseStatus = '';
-
   artifactTypes = ["subset", "map", "translation"];
   form: FormGroup = this.fb.group({
     type: ['', Validators.required],
@@ -82,14 +79,6 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
     this.loadSubsets(edition);
     this.loadTranslations(edition);
     this.loadMaps(edition);
-    this.releaseStatus = '';
-    this.loadingReleaseStatus = true;
-    this.simplexService.getCodeSystemReleaseStatus(edition)
-        .pipe(takeUntil(this.cancelOngoingRequests$))
-        .subscribe((status) => {
-            this.releaseStatus = status;
-            this.loadingReleaseStatus = false;
-    });
     if (this.conceptsList) {
       this.conceptsList.loadConcepts();
     }

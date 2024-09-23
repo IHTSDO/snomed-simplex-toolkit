@@ -2,9 +2,7 @@
     <div class="component-col-left">
         <div class="header-container">
             <h4>Edition artifacts</h4>
-            <mat-spinner *ngIf="loadingReleaseStatus" [diameter]="17"></mat-spinner>
-            <!-- <span class="pill pill-blue" *ngIf="!loadingReleaseStatus && edition">{{releaseStatus}}</span> -->
-            <span class="status-message" *ngIf="!loadingReleaseStatus && edition">(Release cycle status: {{releaseStatus}})</span>
+            <span class="status-message" *ngIf="editionDetails">(Release cycle status: {{editionDetails.editionStatus}})</span>
         </div>
         <div *ngIf="!edition">
             <div class="waiting">
@@ -58,10 +56,10 @@
                 </ng-container>
             </mat-list>
             <button mat-flat-button color="primary" (click)="newArtifactMode = true"
-                [disabled]="loadingTranslations || loadingSubsets || loadingMaps || saving || loadingReleaseStatus || releaseStatus != 'Authoring'">
+                [disabled]="loadingTranslations || loadingSubsets || loadingMaps || saving || editionDetails.editionStatus != 'AUTHORING'">
                 New Artifact
             </button>
-            <p class="edit-blocked-message" *ngIf="!loadingReleaseStatus && releaseStatus != 'Authoring'">Creation of artifacts is disabled during release preparation</p>
+            <p class="edit-blocked-message" *ngIf="editionDetails && editionDetails.editionStatus != 'AUTHORING'">Creation of artifacts is disabled during release preparation</p>
         </div>
     </div>
     <div class="component-col-right">
@@ -116,9 +114,9 @@
 
             <app-concepts-list #conceptsList *ngIf="selectedArtifact.type === 'concepts'" [edition]="edition"></app-concepts-list>
             <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition" (jobCompleted)="refreshArtifacts()"
-            *ngIf="!loadingReleaseStatus && releaseStatus == 'Authoring'">
+            *ngIf="editionDetails.editionStatus == 'AUTHORING'">
             </app-jobs>
-            <p class="edit-blocked-message" *ngIf="!loadingReleaseStatus && releaseStatus != 'Authoring'">Content editing is frozen for release preparation.</p>
+            <p class="edit-blocked-message" *ngIf="editionDetails.editionStatus != 'AUTHORING'">Content editing is frozen for release preparation.</p>
 
         </div>
         <div *ngIf="newArtifactMode">

@@ -35,7 +35,7 @@
     </p>
     <button mat-button (click)="toggleAdvice()"><i>Close</i></button>
   </div>
-  <mat-spinner *ngIf="loadingValidationResults()" [diameter]="20"></mat-spinner>
+  <mat-spinner *ngIf="!localIssues() && loadingValidationResults()" [diameter]="20"></mat-spinner>
   <div *ngIf="localIssues()">
     <p class="aligned-p">
       <mat-icon class="error">error</mat-icon>

@@ -21,17 +21,17 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
  
   jobs: any[] = [];
   releases: any[] = [];
-  activeStage: string;
   loadingReleaseStatus = false;
   loadingIssues = false;
   issuesReport: any;
 
-  releaseStages = [
-    { name: 'Authoring', completed: false, active: false, actionsAvailable: ['Content cut-off'] },
-    { name: 'Classification', completed: false, active: false, actionsAvailable: ['Classify'] },
-    { name: 'Validation', completed: false, active: false, actionsAvailable: ['Validate', 'Review in browser', 'Download alpha release', 'Upload content fixes', 'Mark release as done'] },
-    { name: 'Release ready', completed: false, active: false, actionsAvailable: ['Download release', 'Prepare for new authoring cycle']}
-  ];
+  // releaseStages = [
+  //   { name: 'AUTHORING', completed: false, active: false },
+  //   { name: 'PREPARING_RELEASE', completed: false, active: false },
+  //   { name: 'RELEASE', completed: false, active: false },
+  //   { name: 'MAINTENANCE', completed: false, active: false }
+  // ];
+
 
   humanReadableIssueAdvice: string[] = [
     'Issues found in the following descriptions. Please update the descriptions to resolve the issues.',
@@ -41,8 +41,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     private changeDetectorRef: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    this.activeStage = this.simplexService.getCodeSystemReleaseStatusDirect(this.edition);
-    this.updateByStage();
+    // this.updateByStage();
     this.startRefresh();
   }
 
@@ -52,11 +51,25 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['edition']) {
-      this.activeStage = null;
       this.issuesReport = null;
       this.refreshEdition();
     }
   }
+
+  // updateByStage() {
+  //   let found = false;
+  //   for (const stage of this.releaseStages) {
+  //     if (!found && stage.name!= this.edition.editionStatus) {
+  //       stage.completed = true;
+  //     }
+  //     if (stage.name === this.edition.editionStatus) {
+  //       stage.active = true;
+  //       found = true;
+  //     } else {
+  //       stage.active = false;
+  //     }
+  //   }
+  // }
 
   async runClassification() {
     this.edition.classificationStatus = 'IN_PROGRESS';
@@ -123,7 +136,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   startReleasePreparation() {
-    this.activeStage = null;
+    this.edition.editionStatus = 'MAINTENANCE';
     this.alert('Closing authoring cycle and starting release preparation');
     this.simplexService.startReleasePreparation(this.edition.shortName).subscribe(
       (response: any) => {
@@ -138,26 +151,26 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     );
   }
 
-  stopReleasePreparation() {
-    this.activeStage = null;
-    this.alert('Stopping release preparation');
-    this.simplexService.stopReleasePreparation(this.edition.shortName).subscribe(
+  startAuthoring() {
+    this.edition.editionStatus = 'MAINTENANCE';
+    this.alert('Activating editing mode');
+    this.simplexService.startAuthoring(this.edition.shortName).subscribe(
       (response: any) => {
-        this.alert('Release preparation stopped');
+        this.alert('Editing mode active');
         this.refreshEdition();
       },
       error => {
-        console.error('Stopping release preparation failed:', error);
-        this.alert('Stopping release preparation failed');
+        console.error('Activating editing mode failed:', error);
+        this.alert('Activating editing mode failed');
         this.refreshEdition();
       }
     );
   }
 
-  addContentApproval() {
-    this.activeStage = null;
+  approveContentForRelease() {
+    this.edition.editionStatus = 'MAINTENANCE';
     this.alert('Approving edition content');
-    this.simplexService.addContentApproval(this.edition.shortName).subscribe(
+    this.simplexService.approveContentForRelease(this.edition.shortName).subscribe(
       (response: any) => {
         this.alert('Content approved');
         this.refreshEdition();
@@ -170,21 +183,22 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     );
   }
 
-  removeContentApproval() {
-    this.activeStage = null;
-    this.alert('Removing content approval');
-    this.simplexService.removeContentApproval(this.edition.shortName).subscribe(
+  startMaintenance() {
+    this.edition.editionStatus = 'MAINTENANCE';
+    this.alert('Starting maintenance mode');
+    this.simplexService.startMaintenance(this.edition.shortName).subscribe(
       (response: any) => {
-        this.alert('Content approval removed');
+        this.alert('Content approved');
         this.refreshEdition();
       },
       error => {
-        console.error('Removing content approval failed:', error);
-        this.alert('Removing content approval failed');
+        console.error('Starting maintenance mode failed:', error);
+        this.alert('Starting maintenance mode failed');
         this.refreshEdition();
       }
     );
   }
+
 
   async refreshJobs() {
     const response = await lastValueFrom(
@@ -199,10 +213,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       this.simplexService.getEdition(this.edition.shortName)
     );
     this.edition = response;
+    // this.updateByStage();
     this.refreshJobs();
     this.refreshIssues();
-    this.activeStage = this.simplexService.getCodeSystemReleaseStatusDirect(this.edition);
-    this.updateByStage();
     this.loadingReleaseStatus = false;
     this.changeDetectorRef.detectChanges();
   }
@@ -219,21 +232,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       });
       this.issuesReport = response;
       this.loadingIssues = false;
-    }
-  }
-
-  updateByStage() {
-    let found = false;
-    for (const stage of this.releaseStages) {
-      if (!found && stage.name!= this.activeStage) {
-        stage.completed = true;
-      }
-      if (stage.name === this.activeStage) {
-        stage.active = true;
-        found = true;
-      } else {
-        stage.active = false;
-      }
     }
   }
 

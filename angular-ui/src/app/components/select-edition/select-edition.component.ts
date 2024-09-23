@@ -19,7 +19,6 @@ export class SelectEditionComponent implements OnChanges {
   deleting = false;
   roles: any[] = [];
   availableUpgrades: any[] = [];
-  activeStage: string;
   loadingUpgrades = false;
   parentEdition: any;
   selectedUpgradeEdition: any;
@@ -70,9 +69,6 @@ export class SelectEditionComponent implements OnChanges {
   async refreshAvailableUpgrades(edition: any) {
     this.loadingUpgrades = true;
     try {
-      this.activeStage = await lastValueFrom(
-        this.simplexService.getCodeSystemReleaseStatus(edition.shortName)
-      );
       let workingBranchPath = edition.workingBranchPath;
       let parentBranch = workingBranchPath.substring(
         0,

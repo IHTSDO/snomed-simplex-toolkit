@@ -212,60 +212,26 @@ export class SimplexService {
     return this.http.get(`/api/codesystems/${edition}/validate/issues`).pipe(catchError(this.handleError.bind(this)));
   }
 
+
+  // Release workflow mangement //
+
+  public startAuthoring(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/start-authoring`, null).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public startReleasePreparation(edition: string): Observable<any> {
     return this.http.post(`/api/codesystems/${edition}/start-release-prep`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public stopReleasePreparation(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/stop-release-prep`, null).pipe(catchError(this.handleError.bind(this)));
+  public approveContentForRelease(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/approve-content-for-release`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public addContentApproval(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/add-content-approval`, null).pipe(catchError(this.handleError.bind(this)));
+  public startMaintenance(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/start-maintenance`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public removeContentApproval(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/remove-content-approval`, null).pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public getCodeSystemReleaseStatusDirect(codeSystem: any): string {
-    let status = '';
-    if (!codeSystem.preparingRelease) {
-      status = 'Authoring';
-    } else if (codeSystem.preparingRelease && (codeSystem.classificationStatus !== 'COMPLETE' || 
-                (codeSystem.validationStatus !== 'COMPLETE' && codeSystem.validationStatus !== 'CONTENT_WARNING'))) {
-      status = 'Preparing release';
-    } else if (codeSystem.preparingRelease && codeSystem.classificationStatus === 'COMPLETE' && 
-              (codeSystem.validationStatus === 'COMPLETE' || codeSystem.validationStatus === 'CONTENT_WARNING')) {
-      status = 'Release ready';
-    } else {
-      status = 'Unknown';
-    }
-    return status;
-  }
-
-  public getCodeSystemReleaseStatus(edition: string): Observable<string> {
-    return this.getEdition(edition).pipe(
-      switchMap(codeSystem => {
-        let status = '';
-        if (!codeSystem.preparingRelease) {
-          status = 'Authoring';
-        } else if (codeSystem.preparingRelease && !codeSystem.contentChangesApproved) {
-          status = 'Preparing release';
-        } else if (codeSystem.preparingRelease && codeSystem.contentChangesApproved) {
-          status = 'Release ready';
-        } else {
-          status = 'Unknown';
-        }
-        return of(status);
-      }),
-      catchError(error => {
-        console.error('Error fetching edition status:', error);
-        // Return or throw an Observable error. This can be customized based on how you want to handle errors.
-        return of('Error'); // This could be replaced with a more sophisticated error handling strategy.
-      })
-    );
-  }
+  // ---------------------------- //
 
   getProductPackagingConfiguration(edition: string): Observable<any> {
     return this.http.get(`/api/codesystems/${edition}/product-packaging/configuration`).pipe(catchError(this.handleError.bind(this)));
