@@ -25,14 +25,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   loadingIssues = false;
   issuesReport: any;
 
-  // releaseStages = [
-  //   { name: 'AUTHORING', completed: false, active: false },
-  //   { name: 'PREPARING_RELEASE', completed: false, active: false },
-  //   { name: 'RELEASE', completed: false, active: false },
-  //   { name: 'MAINTENANCE', completed: false, active: false }
-  // ];
-
-
   humanReadableIssueAdvice: string[] = [
     'Issues found in the following descriptions. Please update the descriptions to resolve the issues.',
   ];
@@ -41,7 +33,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     private changeDetectorRef: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    // this.updateByStage();
     this.startRefresh();
   }
 
@@ -55,21 +46,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       this.refreshEdition();
     }
   }
-
-  // updateByStage() {
-  //   let found = false;
-  //   for (const stage of this.releaseStages) {
-  //     if (!found && stage.name!= this.edition.editionStatus) {
-  //       stage.completed = true;
-  //     }
-  //     if (stage.name === this.edition.editionStatus) {
-  //       stage.active = true;
-  //       found = true;
-  //     } else {
-  //       stage.active = false;
-  //     }
-  //   }
-  // }
 
   async runClassification() {
     this.edition.classificationStatus = 'IN_PROGRESS';
@@ -213,7 +189,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       this.simplexService.getEdition(this.edition.shortName)
     );
     this.edition = response;
-    // this.updateByStage();
     this.refreshJobs();
     this.refreshIssues();
     this.loadingReleaseStatus = false;
@@ -232,6 +207,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       });
       this.issuesReport = response;
       this.loadingIssues = false;
+      this.changeDetectorRef.detectChanges();
     }
   }
 

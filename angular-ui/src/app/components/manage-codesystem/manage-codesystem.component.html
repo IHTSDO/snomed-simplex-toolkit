@@ -198,20 +198,10 @@
         <div class="header-container" *ngIf="loadingIssues && !issuesReport">
             <i>Loading validation results...</i> <mat-spinner [diameter]="17"></mat-spinner>
         </div>
-        <app-validation-results class="validation-container" [edition]="edition.shortName" [editionDetails]="edition" [issues]="issuesReport" *ngIf="issuesReport && (issuesReport.errorCount || issuesReport.warningCount)">
-            <!-- [edition]="edition.shortName" *ngIf="(edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING')" -->
+        <app-validation-results class="validation-container" [editionDetails]="edition" [issues]="issuesReport" *ngIf="issuesReport && (issuesReport.errorCount || issuesReport.warningCount)">
         </app-validation-results>
         <div class="validation-container">
             <app-jobs [edition]="edition.shortName" [refsetId]="'external'"></app-jobs>
-            <!-- <h4 *ngIf="jobs.length">Jobs</h4>
-            <mat-list id="components-list">
-                <mat-list-item *ngFor="let item of jobs">
-                    <span class="release-name">{{ item.display }}</span>
-                    <span class="pill pill-green">{{ item.status }}</span>
-                    <span class="pill pill-blue">{{ item.jobType }}</span>
-                    <span class="muted">Created on {{ item.created | timeAgo }}</span>
-                </mat-list-item>
-            </mat-list> -->
         </div>
     </div>
 </div>

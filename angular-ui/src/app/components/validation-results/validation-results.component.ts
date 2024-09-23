@@ -43,7 +43,6 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
   ],
 })
 export class ValidationResultsComponent implements OnChanges {
-  @Input() edition: string;
   @Input() editionDetails: any;
   @Input() issues: any;
 
@@ -63,14 +62,8 @@ export class ValidationResultsComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['edition']) {
-      this.editionSignal.set(changes['edition'].currentValue);
-      this.refreshEdition();
-    }
-
     if (changes['editionDetails']) {
       this.editionDetailsSignal.set(changes['editionDetails'].currentValue);
-      this.refreshIssues();
     }
 
     if (changes['issues']) {
