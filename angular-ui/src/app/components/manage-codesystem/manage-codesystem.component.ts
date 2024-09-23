@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { Subscription, interval, lastValueFrom } from 'rxjs';
@@ -18,11 +18,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild(JobsComponent) jobComponent: JobsComponent;
 
   private refreshSubscription: Subscription;
-
+ 
   jobs: any[] = [];
   releases: any[] = [];
   activeStage: string;
   loadingReleaseStatus = false;
+  loadingIssues = false;
   issuesReport: any;
 
   releaseStages = [
@@ -36,9 +37,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     'Issues found in the following descriptions. Please update the descriptions to resolve the issues.',
   ];
   constructor(private simplexService: SimplexService,
-    private snackBar: MatSnackBar, private http: HttpClient) {}
+    private snackBar: MatSnackBar, private http: HttpClient,
+    private changeDetectorRef: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    this.activeStage = this.simplexService.getCodeSystemReleaseStatusDirect(this.edition);
+    this.updateByStage();
     this.startRefresh();
   }
 
@@ -197,14 +201,15 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     this.edition = response;
     this.refreshJobs();
     this.refreshIssues();
-    this.activeStage = await lastValueFrom(this.simplexService.getCodeSystemReleaseStatus(this.edition.shortName));
+    this.activeStage = this.simplexService.getCodeSystemReleaseStatusDirect(this.edition);
     this.updateByStage();
     this.loadingReleaseStatus = false;
+    this.changeDetectorRef.detectChanges();
   }
 
   async refreshIssues() {
     if (this.edition.validationStatus != 'TODO' && this.edition.validationStatus != 'IN_PROGRESS') {
-      this.loadingReleaseStatus = true;
+      this.loadingIssues = true;
       const response = await lastValueFrom(
         this.simplexService.getValidationResults(this.edition.shortName)
       );
@@ -213,6 +218,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
         return severityOrder[a.severity] - severityOrder[b.severity];
       });
       this.issuesReport = response;
+      this.loadingIssues = false;
     }
   }
 

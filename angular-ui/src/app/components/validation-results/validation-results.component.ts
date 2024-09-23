@@ -1,8 +1,20 @@
-import { trigger, state, style, transition, animate } from '@angular/animations';
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import {
+  trigger,
+  state,
+  style,
+  transition,
+  animate,
+} from '@angular/animations';
+import {
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  signal,
+  effect,
+} from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { isEqual } from 'lodash';
-import { lastValueFrom } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
 @Component({
@@ -11,92 +23,131 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
   styleUrls: ['./validation-results.component.css'],
   animations: [
     trigger('adviceAnimation', [
-      state('collapsed', style({
-        height: '0',
-        opacity: 0,
-        overflow: 'hidden'
-      })),
-      state('expanded', style({
-        height: '*',
-        opacity: 1
-      })),
-      transition('collapsed <=> expanded', [
-        animate('300ms ease-in-out')
-      ])
-    ])
-  ]
+      state(
+        'collapsed',
+        style({
+          height: '0',
+          opacity: 0,
+          overflow: 'hidden',
+        })
+      ),
+      state(
+        'expanded',
+        style({
+          height: '*',
+          opacity: 1,
+        })
+      ),
+      transition('collapsed <=> expanded', [animate('300ms ease-in-out')]),
+    ]),
+  ],
 })
-export class ValidationResultsComponent implements OnInit, OnChanges {
-
+export class ValidationResultsComponent implements OnChanges {
   @Input() edition: string;
   @Input() editionDetails: any;
-  
   @Input() issues: any;
-  localIssues: any;
-  loadingValidationResults: boolean = false;
-  
-  adviceVisible: boolean = false;
 
-  constructor(private simplexService: SimplexService,
-    private snackBar: MatSnackBar) {}
-  
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes['edition'] && !changes['edition'].currentValue) {
-      this.refreshEdition();
-      if (!changes['issues'].currentValue) {
-        this.refreshIssues();
-      }
-    }
-    if (changes['issues'] && !isEqual(changes['issues'].currentValue, changes['issues'].previousValue)) {
-      this.localIssues = changes['issues'].currentValue;
-    }
+  // Internal Signals
+  editionSignal = signal<string>(null);
+  editionDetailsSignal = signal<any>(null);
+  issuesSignal = signal<any>(null);
+
+  localIssues = signal<any>(null);
+  loadingValidationResults = signal<boolean>(false);
+  adviceVisible = signal<boolean>(false);
+
+  constructor(
+    private simplexService: SimplexService,
+    private snackBar: MatSnackBar
+  ) {
   }
 
-  ngOnInit(): void {
-    // this.refreshIssues();
-    // this.refreshEdition();
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['edition']) {
+      this.editionSignal.set(changes['edition'].currentValue);
+      this.refreshEdition();
+    }
+
+    if (changes['editionDetails']) {
+      this.editionDetailsSignal.set(changes['editionDetails'].currentValue);
+      this.refreshIssues();
+    }
+
+    if (changes['issues']) {
+      if (
+        !isEqual(
+          changes['issues'].currentValue,
+          changes['issues'].previousValue
+        )
+      ) {
+        this.issuesSignal.set(changes['issues'].currentValue);
+        this.localIssues.set(changes['issues'].currentValue);
+      }
+    }
   }
 
   refreshEdition() {
-    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
-      (edition) => {
-        this.editionDetails = edition;
-      }
-    );
+    const editionValue = this.editionSignal();
+    if (editionValue) {
+      this.simplexService.getEdition(editionValue).subscribe(
+        (editionDetails) => {
+          this.editionDetailsSignal.set(editionDetails);
+          this.refreshIssues();
+        },
+        (error) => {
+          this.snackBar.open('Error fetching edition details', 'Dismiss', {
+            duration: 3000,
+          });
+        }
+      );
+    }
   }
 
   public refreshIssues() {
-    if (this.editionDetails.validationStatus != 'TODO' && this.editionDetails.validationStatus != 'IN_PROGRESS') {
-      this.loadingValidationResults = true;
-      this.simplexService.getValidationResults(this.edition).subscribe(
+    const validationStatus = this.editionDetailsSignal()?.validationStatus;
+    if (
+      validationStatus !== 'TODO' &&
+      validationStatus !== 'IN_PROGRESS'
+    ) {
+      this.loadingValidationResults.set(true);
+      this.simplexService.getValidationResults(this.editionSignal()).subscribe(
         (data) => {
           data.fixes.sort((a, b) => {
-            const severityOrder = { 'ERROR': 1, 'WARNING': 2 };
+            const severityOrder = { ERROR: 1, WARNING: 2 };
             return severityOrder[a.severity] - severityOrder[b.severity];
           });
-          this.issues = data;
-          this.localIssues = data;
-          this.loadingValidationResults = false;
+          this.localIssues.set(data);
+          this.loadingValidationResults.set(false);
         },
         (error) => {
           this.snackBar.open('Error getting validation results', 'Dismiss', {
-            duration: 3000
+            duration: 3000,
           });
-          this.loadingValidationResults = false;
+          this.loadingValidationResults.set(false);
         }
       );
     }
   }
 
   browseToConcept(conceptId: string) {
-    if (this.editionDetails?.branchPath && this.editionDetails?.languages && this.editionDetails?.defaultModule) {
-      this.constructAndOpenBrowserUrl(conceptId, this.editionDetails);
+    const editionDetails = this.editionDetailsSignal();
+    if (
+      editionDetails?.branchPath &&
+      editionDetails?.languages &&
+      editionDetails?.defaultModule
+    ) {
+      this.constructAndOpenBrowserUrl(conceptId, editionDetails);
     } else {
       // Fetch the edition data if it doesn't exist
-      lastValueFrom(this.simplexService.getEdition(this.edition)).then(
+      this.simplexService.getEdition(this.editionSignal()).subscribe(
         (edition) => {
-          this.editionDetails = edition;
+          this.editionDetailsSignal.set(edition);
           this.constructAndOpenBrowserUrl(conceptId, edition);
+        },
+        (error) => {
+          this.snackBar.open('Error fetching edition details', 'Dismiss', {
+            duration: 3000,
+          });
         }
       );
     }
@@ -108,11 +159,10 @@ export class ValidationResultsComponent implements OnInit, OnChanges {
     let langs = Object.keys(edition.languages).join(',');
     let browserUrl = `/browser/?perspective=full&conceptId1=${conceptId}&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${edition.defaultModule}`;
     const tab = window.open(browserUrl, 'simplex-browser');
-    tab.focus();
+    tab?.focus();
   }
 
   toggleAdvice() {
-    this.adviceVisible = !this.adviceVisible;
+    this.adviceVisible.update((visible) => !visible);
   }
-
 }

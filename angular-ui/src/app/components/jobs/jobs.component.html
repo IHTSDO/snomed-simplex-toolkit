@@ -1,14 +1,18 @@
-<h4>How to edit this artifact?</h4>
-<br>
-<p>Select source:</p>
-<div class="row">
-    <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
-      <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
-        {{ type.viewValue }}
-      </mat-radio-button>
-    </mat-radio-group>
-  </div>
-
+<div *ngIf="refsetId != 'external'">
+    <h4>How to edit this artifact?</h4>
+    <br>
+    <p>Select source:</p>
+    <div class="row">
+        <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
+          <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
+            {{ type.viewValue }}
+          </mat-radio-button>
+        </mat-radio-group>
+      </div>
+</div>
+<div *ngIf="refsetId == 'external'">
+    <h4>Jobs</h4>
+</div>
 
 <div *ngIf="selectedFileType == 'conceptsSpreadsheet'">
     <div class="step-row">
@@ -277,4 +281,5 @@
     <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 </table>
 <mat-spinner [diameter]="20" *ngIf="loading" class="loading-spinner"></mat-spinner>
-<p *ngIf="!loading && jobs.length == 0" class="no-imports">No data imports were requested in this component yet</p>
+<p *ngIf="!loading && jobs.length == 0 && refsetId != 'external'" class="no-imports">No data imports were requested recently in this component</p>
+<p *ngIf="!loading && jobs.length == 0 && refsetId == 'external'" class="no-imports">No recent tasks in this edition</p>

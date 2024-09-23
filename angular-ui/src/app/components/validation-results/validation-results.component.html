@@ -1,7 +1,13 @@
 <div class="validation-container">
-  <h4>Validation Results for {{edition}} Edition</h4>
-  <p><b>How to fix these errors and warnings?</b>&nbsp;&nbsp;&nbsp;<button mat-button *ngIf="!adviceVisible" (click)="toggleAdvice()"><i>Click to open advice</i></button></p>
-  <div [@adviceAnimation]="adviceVisible ? 'expanded' : 'collapsed'">
+  <h4>Validation Results for {{ editionSignal() }} Edition</h4>
+  <br><br>
+  <p>
+    <b>How to fix these errors and warnings?</b>&nbsp;&nbsp;&nbsp;
+    <button mat-button *ngIf="!adviceVisible()" (click)="toggleAdvice()">
+      <i>Click to open advice</i>
+    </button>
+  </p>
+  <div [@adviceAnimation]="adviceVisible() ? 'expanded' : 'collapsed'">
     <p>
       The SIMPLEX Toolkit compiles information from different content authoring tools, like Snap2Snomed, Refset Editors, Webllate, etc.
       After incorporating this content into a SNOMED Release the Validation Process runs and provides a list of <b>issues</b> that need to be 
@@ -29,30 +35,33 @@
     </p>
     <button mat-button (click)="toggleAdvice()"><i>Close</i></button>
   </div>
-  <mat-spinner *ngIf="loadingValidationResults" [diameter]="20"></mat-spinner>
-  <div *ngIf="localIssues">
-      <p class="aligned-p">
-        <mat-icon class="error">error</mat-icon> Errors: {{localIssues.errorCount}} <mat-icon class="warning">warning</mat-icon> Warnings: {{localIssues.warningCount}}
-      </p>
-      
-      <mat-accordion *ngIf="localIssues.fixes && localIssues.fixes.length > 0">
-        <mat-expansion-panel *ngFor="let fix of localIssues.fixes">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <mat-icon class="error" *ngIf="fix.severity == 'ERROR'">error</mat-icon>
-              <mat-icon class="warning" *ngIf="fix.severity == 'WARNING'">warning</mat-icon>
-              &nbsp;{{fix.type | titlecase}}, {{fix.subtype}} ({{fix.componentCount}})
-            </mat-panel-title>
-          </mat-expansion-panel-header>
-          <mat-list>
-            <mat-list-item *ngFor="let component of fix.components" class="wrapped-list-item">
-              <a href="javascript:void(0);" (click)="browseToConcept(component.conceptId)">
-                  {{component.conceptId}}
-              </a> - {{component.assertionText}}
-            </mat-list-item>
-          </mat-list>
-        </mat-expansion-panel>
-      </mat-accordion>
+  <mat-spinner *ngIf="loadingValidationResults()" [diameter]="20"></mat-spinner>
+  <div *ngIf="localIssues()">
+    <p class="aligned-p">
+      <mat-icon class="error">error</mat-icon>
+      Errors: {{ localIssues().errorCount }}
+      <mat-icon class="warning">warning</mat-icon>
+      Warnings: {{ localIssues().warningCount }}
+    </p>
+
+    <mat-accordion *ngIf="localIssues().fixes && localIssues().fixes.length > 0">
+      <mat-expansion-panel *ngFor="let fix of localIssues().fixes">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon class="error" *ngIf="fix.severity == 'ERROR'">error</mat-icon>
+            <mat-icon class="warning" *ngIf="fix.severity == 'WARNING'">warning</mat-icon>
+            &nbsp;{{ fix.type | titlecase }}, {{ fix.subtype }} ({{ fix.componentCount }})
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <mat-list>
+          <mat-list-item *ngFor="let component of fix.components" class="wrapped-list-item">
+            <a href="javascript:void(0);" (click)="browseToConcept(component.conceptId)">
+              {{ component.conceptId }}
+            </a>
+            - {{ component.assertionText }}
+          </mat-list-item>
+        </mat-list>
+      </mat-expansion-panel>
+    </mat-accordion>
   </div>
 </div>
-  

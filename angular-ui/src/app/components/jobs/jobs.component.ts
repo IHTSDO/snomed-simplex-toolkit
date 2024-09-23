@@ -99,7 +99,11 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     private snackBar: MatSnackBar
   ) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    if (this.refsetId == 'external') {
+      this.displayedColumns = ['date', 'display', 'status', 'icon'];
+    }
+  }
 
   ngOnChanges() {
     this.loadJobs(true);
@@ -139,7 +143,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         const previousInProgressJobs = this.jobs.filter(
           (job) => job.status === 'IN_PROGRESS'
         );
-        this.jobs = data.slice(0, 3);
+        this.jobs = data.slice(0, 5);
         this.loading = false;
 
         // After updating jobs, check if any previously IN_PROGRESS jobs are now COMPLETED

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, NgZone, OnChanges, OnInit, Output } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
@@ -28,7 +28,9 @@ export class SelectEditionComponent implements OnChanges {
 
   constructor(private simplexService: SimplexService,
               private snackBar: MatSnackBar,
-              private uiConfigurationService: UiConfigurationService) {}
+              private uiConfigurationService: UiConfigurationService,
+              private changeDetectorRef: ChangeDetectorRef
+              ) {}
 
 
   ngOnChanges() {
@@ -67,35 +69,36 @@ export class SelectEditionComponent implements OnChanges {
 
   async refreshAvailableUpgrades(edition: any) {
     this.loadingUpgrades = true;
-    this.activeStage = await lastValueFrom(this.simplexService.getCodeSystemReleaseStatus(edition.shortName));
-    let workingBranchPath = edition.workingBranchPath;
-    // get parent branch from working branch path, using the part previous to the last /
-    let parentBranch = workingBranchPath.substring(0, workingBranchPath.lastIndexOf('/'));
-    lastValueFrom(this.simplexService.getCodeSystemForBranch(parentBranch)).then(
-      (codeSystems) => {
-        this.parentEdition = codeSystems.items[0];
-        let parentCodeSystemShortName = this.parentEdition.shortName;
-        lastValueFrom(this.simplexService.getCodeSystemVersions(parentCodeSystemShortName)).then(
-          (versions) => {
-            this.availableUpgrades = versions.items.filter((version) => version.effectiveDate > edition.dependantVersionEffectiveTime);
-            this.loadingUpgrades = false;
-          },
-          (error) => {
-            console.error(error);
-            this.snackBar.open('Failed to load available upgrades', 'Dismiss', {
-              duration: 5000
-            });
-            this.loadingUpgrades = false;
-          });
-      },
-      (error) => {
-        console.error(error);
-        this.snackBar.open('Failed to load available upgrades', 'Dismiss', {
-          duration: 5000
-        });
-        this.loadingUpgrades = false;
-      }
-    );
+    try {
+      this.activeStage = await lastValueFrom(
+        this.simplexService.getCodeSystemReleaseStatus(edition.shortName)
+      );
+      let workingBranchPath = edition.workingBranchPath;
+      let parentBranch = workingBranchPath.substring(
+        0,
+        workingBranchPath.lastIndexOf('/')
+      );
+      const codeSystems = await lastValueFrom(
+        this.simplexService.getCodeSystemForBranch(parentBranch)
+      );
+      this.parentEdition = codeSystems.items[0];
+      let parentCodeSystemShortName = this.parentEdition.shortName;
+      const versions = await lastValueFrom(
+        this.simplexService.getCodeSystemVersions(parentCodeSystemShortName)
+      );
+      this.availableUpgrades = versions.items.filter(
+        (version) => version.effectiveDate > edition.dependantVersionEffectiveTime
+      );
+    } catch (error) {
+      console.error(error);
+      this.snackBar.open('Failed to load available upgrades', 'Dismiss', {
+        duration: 5000,
+      });
+    } finally {
+      this.loadingUpgrades = false;
+      // Manually trigger change detection
+      this.changeDetectorRef.detectChanges();
+    }
   }
 
   getRoles() {
