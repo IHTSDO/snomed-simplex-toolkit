@@ -190,7 +190,6 @@ export class SelectEditionComponent implements OnChanges {
   }
 
   onSelectionChange(event: any) {
-    console.log(event.value);
     this.selectedUpgradeEdition = event.value;
   }
 }

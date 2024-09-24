@@ -376,6 +376,5 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   onSelectedLanguageCodeChange(event: Event): void {
     const inputElement = event.target as HTMLInputElement;
     this.selectedLanguageCode = inputElement.value;
-    console.log('selectedLanguageCode', this.selectedLanguageCode);
   }
 }
