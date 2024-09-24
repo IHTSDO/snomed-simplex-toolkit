@@ -206,6 +206,19 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
         return severityOrder[a.severity] - severityOrder[b.severity];
       });
       this.issuesReport = response;
+      // fix issue report counts
+      let errorCount = 0;
+      let warningCount = 0;
+      this.issuesReport.fixes.forEach(fix => {
+        if (fix.severity === 'ERROR') {
+          errorCount += fix.componentCount;
+        } else if (fix.severity === 'WARNING') {
+          warningCount += fix.componentCount;
+        }
+      });
+      this.issuesReport.errorCount = errorCount;
+      this.issuesReport.warningCount = warningCount;
+
       this.loadingIssues = false;
       this.changeDetectorRef.detectChanges();
     }

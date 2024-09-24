@@ -109,6 +109,18 @@ export class ValidationResultsComponent implements OnChanges {
             const severityOrder = { ERROR: 1, WARNING: 2 };
             return severityOrder[a.severity] - severityOrder[b.severity];
           });
+          // fix issue report counts
+          let errorCount = 0;
+          let warningCount = 0;
+          data.fixes.forEach(fix => {
+            if (fix.severity === 'ERROR') {
+              errorCount += fix.componentCount;
+            } else if (fix.severity === 'WARNING') {
+              warningCount += fix.componentCount;
+            }
+          });
+          data.errorCount = errorCount;
+          data.warningCount = warningCount;
           this.localIssues.set(data);
           this.loadingValidationResults.set(false);
         },
