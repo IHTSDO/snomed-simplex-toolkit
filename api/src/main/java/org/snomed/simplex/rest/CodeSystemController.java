@@ -285,7 +285,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/approve-content-for-release")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void approveContentChanges(@PathVariable String codeSystem) throws ServiceException {
-		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		CodeSystem theCodeSystem = getCodeSystemDetails(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, ADD_CONTENT_APPROVAL, () -> {
 			codeSystemService.approveContentForRelease(theCodeSystem);
 			return null;

@@ -161,6 +161,9 @@ public class CodeSystemService {
 
 	public void approveContentForRelease(CodeSystem codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		if (codeSystem.getEditionStatus() != EditionStatus.PREPARING_RELEASE) {
+			throw new ServiceExceptionWithStatusCode("CodeSystem must be in 'Preparing Release' status first before approving content for release.", HttpStatus.CONFLICT);
+		}
 		if (!codeSystem.isClassified()) {
 			throw new ServiceExceptionWithStatusCode("Content is not classified.", HttpStatus.CONFLICT);
 		}
