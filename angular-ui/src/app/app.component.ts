@@ -34,6 +34,8 @@ export class AppComponent implements OnInit {
     selectedEdition: any = null;
     showLegalModal: boolean = false;
 
+    showWelcome = true;
+
     constructor(private authoringService: AuthoringService,
                 private branchingService: BranchingService,
                 private envService: EnvService,

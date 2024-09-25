@@ -1,4 +1,8 @@
-<app-snomed-navbar [selectedEdition]="selectedEdition"></app-snomed-navbar>
-<app-main-view [selectedEdition]="selectedEdition"></app-main-view>
+<app-welcome *ngIf="showWelcome" (closePanel)="showWelcome = $event"></app-welcome>
+<div *ngIf="!showWelcome">
+    <app-snomed-navbar [selectedEdition]="selectedEdition"></app-snomed-navbar>
+    <app-main-view [selectedEdition]="selectedEdition"></app-main-view>
+    <app-snomed-footer></app-snomed-footer>
+</div>
 <app-legal-agreement *ngIf="showLegalModal" (userResponse)="handleUserResponse($event)"></app-legal-agreement>
-<app-snomed-footer></app-snomed-footer>
+

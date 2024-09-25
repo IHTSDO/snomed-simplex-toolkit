@@ -68,6 +68,7 @@ import { TimelineComponent } from './components/timeline/timeline.component';
 import { ValidationResultsComponent } from './components/validation-results/validation-results.component';
 import {MatCardModule} from '@angular/material/card';
 import { ProductPackagingComponent } from './components/product-packaging/product-packaging.component';
+import { WelcomeComponent } from './components/welcome/welcome.component';
 
 // SERVICE IMPORTS
 
@@ -105,7 +106,8 @@ import { ProductPackagingComponent } from './components/product-packaging/produc
         LegalAgreementComponent,
         TimelineComponent,
         ValidationResultsComponent,
-        ProductPackagingComponent
+        ProductPackagingComponent,
+        WelcomeComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         FormsModule,

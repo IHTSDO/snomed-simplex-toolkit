@@ -1,0 +1,57 @@
+html, body, app-root, .layout {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;  // Prevent scroll
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+}
+
+.left-column {
+  flex: 1;  // Takes up available space
+  background-color: white;
+}
+
+.right-column {
+  flex: 1;
+  background-color: #434a55;
+  align-items: center;
+  justify-content: center;
+}
+
+.row {
+  // flex: 1;  // Each row takes up half of the vertical space
+  padding: 10px;
+  display: flex;
+}
+
+.centered {
+  justify-content: center;
+  align-items: center;
+}
+
+.snomed-logo {
+  max-width: 200px;   // Ensure the image never exceeds the div width
+  // max-height: 50%;  // Ensure the image never exceeds the div height
+  object-fit: contain;  // Maintain aspect ratio of the image
+  margin-bottom: 10rem;
+}
+
+.simplex-logo {
+  max-width: 400px;   // Ensure the image never exceeds the div width
+  // object-fit: contain;  // Maintain aspect ratio of the image
+}
+
+.p-centered {
+  text-align: center;
+  font-weight: bold;
+}
