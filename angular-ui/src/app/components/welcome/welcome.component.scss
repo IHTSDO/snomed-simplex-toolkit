@@ -37,6 +37,8 @@ html, body, app-root, .layout {
 .centered {
   justify-content: center;
   align-items: center;
+  align-content: center;
+  flex-grow: 1
 }
 
 .snomed-logo {
@@ -54,4 +56,6 @@ html, body, app-root, .layout {
 .p-centered {
   text-align: center;
   font-weight: bold;
+  margin-top: 1rem;
+  margin-bottom: 200px;
 }
