@@ -213,7 +213,7 @@
 								<configuration>
 									<resources>
 										<resource>
-											<directory>../angular-ui/dist/simplex-ui</directory>
+											<directory>../angular-ui/dist/simplex-ui/browser</directory>
 										</resource>
 									</resources>
 									<outputDirectory>${basedir}/target/classes/static</outputDirectory>
