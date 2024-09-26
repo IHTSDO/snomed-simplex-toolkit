@@ -1,6 +1,16 @@
 <div class="validation-container">
   <h4>Validation Results for {{ editionSignal() }} Edition</h4>
-  <mat-spinner *ngIf="loadingValidationResults() || !localIssues()" [diameter]="20"></mat-spinner>
+  <!-- Skeleton Loader -->
+  <div *ngIf="loadingValidationResults() || !localIssues()" class="skeleton-loader">
+    <div class="skeleton-header">
+      <div class="skeleton-item"></div>
+      <div class="skeleton-item"></div>
+    </div>
+    <div class="skeleton-list">
+      <div class="skeleton-list-item" *ngFor="let item of [1, 2, 3, 4]"></div>
+    </div>
+  </div>
+  <!-- <mat-spinner *ngIf="loadingValidationResults() || !localIssues()" [diameter]="20"></mat-spinner> -->
   <p *ngIf="localIssues() && (localIssues().errorCount || localIssues().warningCount)" class="small">
     <b>How to fix these errors and warnings?</b>&nbsp;&nbsp;&nbsp;
     <button mat-button *ngIf="!adviceVisible()" (click)="toggleAdvice()">

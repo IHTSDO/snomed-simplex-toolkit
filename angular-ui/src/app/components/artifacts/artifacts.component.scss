@@ -209,3 +209,15 @@ mat-list-item:not(:last-child) {
   margin-top: 3rem;
   margin-bottom: 6rem;
 }
+
+.waiting-panel {
+  display: flex;
+  height: 70vh;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  flex-grow: 1;
+  opacity: 0.2;
+}
+

@@ -63,9 +63,12 @@
         </div>
     </div>
     <div class="component-col-right">
-        <h4 *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
+        <!-- <h4 *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
             Select an artifact to view details
-        </h4>
+        </h4> -->
+        <div *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="waiting-panel">
+            <img src="/assets/artifact.png">
+        </div>
         <div *ngIf="!newArtifactMode && selectedArtifact">
             <div class="title-container">
                 <div class="title-left-column">

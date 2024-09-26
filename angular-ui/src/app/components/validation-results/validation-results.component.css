@@ -52,3 +52,50 @@ div.validation-container {
   box-shadow: 0 0 2px 0 rgba(0, 0, 0, 0.1);
 }
 
+.skeleton-loader {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.skeleton-header {
+  display: flex;
+  gap: 16px;
+}
+
+.skeleton-item {
+  height: 20px;
+  width: 100px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-list-item {
+  height: 20px;
+  width: 100%;
+  background: #e0e0e0;
+  border-radius: 4px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    background-color: #e0e0e0;
+  }
+  50% {
+    background-color: #f0f0f0;
+  }
+  100% {
+    background-color: #e0e0e0;
+  }
+}
+
+
