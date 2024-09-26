@@ -201,10 +201,10 @@
         </div>
     </div>
     <div class="component-col">
-        <div class="header-container" *ngIf="loadingIssues && !issuesReport">
-            <i>Loading validation results...</i> <mat-spinner [diameter]="17"></mat-spinner>
-        </div>
-        <app-validation-results class="validation-container" [editionDetails]="edition" [issues]="issuesReport" *ngIf="issuesReport && (issuesReport.errorCount || issuesReport.warningCount)">
+        <!-- <div class="header-container" *ngIf="loadingIssues && !issuesReport">
+            <i>Loading validation results...</i> <mat-spinner [diameter]="17"></mat-spinner> *ngIf="issuesReport && (issuesReport.errorCount || issuesReport.warningCount)"
+        </div> -->
+        <app-validation-results class="validation-container" [editionDetails]="edition" [issues]="issuesReport" >
         </app-validation-results>
         <div class="validation-container">
             <app-jobs [edition]="edition.shortName" [refsetId]="'external'"></app-jobs>
