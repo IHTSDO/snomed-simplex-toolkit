@@ -33,7 +33,7 @@
                         <div class="sub-stage-text">
                             <div *ngIf="edition.editionStatus == 'AUTHORING' && edition.validationStatus">
                                 <span *ngIf="edition.validationStatus == 'TODO'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runClassificationAndValidation()">Run validation</a></span>
-                                <span *ngIf="edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING'">Validation has completed and is up to date</span>
+                                <span *ngIf="(edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'">Validation has completed and is up to date</span>
                                 <span *ngIf="(edition.validationStatus == 'STALE' || edition.classificationStatus != 'COMPLETE') && edition.validationStatus != 'IN_PROGRESS'">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runClassificationAndValidation()">Run validation again</a></span>
                                 <span *ngIf="edition.validationStatus == 'IN_PROGRESS'">{{ getValidationStatusInfo(edition.validationStatus) }}</span>
                             </div>
