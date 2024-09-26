@@ -14,40 +14,10 @@
             </div>
             <div class="component-row">
                 <div class="component-col align-right">
-                    <span class="details-field-name">Depends on</span>
-                </div>
-                <div class="component-col">
-                    <span class="details-field-value">
-                        <mat-spinner [diameter]="20" *ngIf="!parentEdition"></mat-spinner>
-                        <span *ngIf="parentEdition">{{ parentEdition?.name }}, {{ selectedEdition.dependantVersionEffectiveTime }}</span>
-                    </span>
-                </div>
-            </div>
-            <div class="component-row">
-                <div class="component-col align-right">
                     <span class="details-field-name">Upgrade to a newer dependant release</span>
                 </div>
                 <div class="component-col">
-                    <div *ngIf="(loading || loadingUpgrades)">
-                        <mat-spinner [diameter]="20"></mat-spinner>
-                    </div>
-                    <div *ngIf="!loading && !loadingUpgrades && availableUpgrades.length == 0">
-                        No newer versions available
-                    </div>
-                    <div *ngIf="availableUpgrades.length > 0">
-                        <mat-form-field class="upgrade-select">
-                            <mat-label>Available Upgrades</mat-label>
-                            <mat-select [value]="selectedUpgradeEdition" (selectionChange)="onSelectionChange($event)">
-                              <mat-option *ngFor="let upgrade of availableUpgrades" [value]="upgrade" [disabled]="selectedEdition.editionStatus != 'AUTHORING'">
-                                {{upgrade.effectiveDate}}
-                              </mat-option>
-                            </mat-select>
-                        </mat-form-field>
-                        <span *ngIf="selectedEdition.editionStatus != 'AUTHORING'" class="message">Upgrade is only possible in the Editing Stage</span>
-                        <button class="action-button" mat-flat-button color="primary" (click)="upgradeEdition()" *ngIf="selectedUpgradeEdition">
-                            Upgrade to {{selectedUpgradeEdition.effectiveDate}}
-                        </button>
-                    </div>
+                    <app-upgrade-edition [edition]="selectedEdition"></app-upgrade-edition>
                 </div>
             </div>
             <br>

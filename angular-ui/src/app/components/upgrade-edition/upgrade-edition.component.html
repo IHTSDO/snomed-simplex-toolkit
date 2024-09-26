@@ -1,0 +1,42 @@
+<div class="component-col">
+    <div *ngIf="edition && edition.editionStatus && edition.editionStatus != 'AUTHORING'">
+        Content editing is closed
+    </div>
+    <div *ngIf="!edition || !edition.editionStatus || loadingUpgrades">Loading...</div>
+    <div *ngIf="edition && edition.editionStatus == 'AUTHORING'">
+        <div *ngIf="edition && edition.editionStatus && !loadingUpgrades">
+            <div>
+                Parent edition → {{ parentEdition?.name }}, {{ edition.dependantVersionEffectiveTime }}
+            </div>
+            <div *ngIf="availableUpgrades.length == 0">
+              No newer versions available
+            </div>
+            <div *ngIf="availableUpgrades.length > 0">
+              <!-- Link that opens the menu -->
+              <a href="#" [matMenuTriggerFor]="menu" (click)="$event.preventDefault()">
+                {{ selectedUpgradeEdition?.effectiveDate ? 'Selected: ' + selectedUpgradeEdition?.effectiveDate : 'New dependency versions available' }}
+              </a>
+          
+              <!-- Menu with upgrade options -->
+              <mat-menu #menu="matMenu">
+                <button mat-menu-item 
+                        *ngFor="let upgrade of availableUpgrades" 
+                        [disabled]="edition.editionStatus != 'AUTHORING'" 
+                        (click)="onUpgradeSelect(upgrade)">
+                  {{ upgrade.effectiveDate }}
+                </button>
+              </mat-menu>
+          
+              <!-- Message and action button -->
+              <span *ngIf="selectedUpgradeEdition">
+                &nbsp;→&nbsp;
+                <a href="javascript:void(0)" (click)="upgradeEdition()">
+                    Run dependency upgrade
+                </a>
+              </span>
+              
+            </div>
+        </div>
+    </div>
+  </div>
+  

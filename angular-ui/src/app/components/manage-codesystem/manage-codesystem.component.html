@@ -15,6 +15,12 @@
                         <b>Activities in this stage</b>
                     </div>
                     <div class="sub-stage sub-stage-text">
+                        <div><b>Dependency configuration</b></div>
+                        <div class="sub-stage-text">
+                            <app-upgrade-edition [edition]="edition"></app-upgrade-edition>
+                        </div>
+                    </div>
+                    <div class="sub-stage sub-stage-text">
                         <div><b>Content development</b></div>
                         <div class="sub-stage-text">
                             <div *ngIf="edition.editionStatus == 'AUTHORING'">Content managers are uploading content in the extension</div>

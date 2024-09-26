@@ -18,10 +18,7 @@ export class SelectEditionComponent implements OnChanges {
   loading = false;
   deleting = false;
   roles: any[] = [];
-  availableUpgrades: any[] = [];
-  loadingUpgrades = false;
   parentEdition: any;
-  selectedUpgradeEdition: any;
 
   @Output() editionSelected = new EventEmitter<any>();
 
@@ -40,9 +37,7 @@ export class SelectEditionComponent implements OnChanges {
   }
 
   async refresh() {
-    this.availableUpgrades = [];
     this.parentEdition = null;
-    this.selectedUpgradeEdition = null;
     this.getRoles();
     this.refreshSelectedEdition();
   }
@@ -52,7 +47,6 @@ export class SelectEditionComponent implements OnChanges {
     lastValueFrom(this.simplexService.getEdition(this.selectedEdition.shortName)).then(
       (edition) => {
         this.selectedEdition = edition;
-        this.refreshAvailableUpgrades(edition);
         this.loading = false;
       },
       (error) => {
@@ -64,37 +58,6 @@ export class SelectEditionComponent implements OnChanges {
         this.loading = false;
       }
     );
-  }
-
-  async refreshAvailableUpgrades(edition: any) {
-    this.loadingUpgrades = true;
-    try {
-      let workingBranchPath = edition.workingBranchPath;
-      let parentBranch = workingBranchPath.substring(
-        0,
-        workingBranchPath.lastIndexOf('/')
-      );
-      const codeSystems = await lastValueFrom(
-        this.simplexService.getCodeSystemForBranch(parentBranch)
-      );
-      this.parentEdition = codeSystems.items[0];
-      let parentCodeSystemShortName = this.parentEdition.shortName;
-      const versions = await lastValueFrom(
-        this.simplexService.getCodeSystemVersions(parentCodeSystemShortName)
-      );
-      this.availableUpgrades = versions.items.filter(
-        (version) => version.effectiveDate > edition.dependantVersionEffectiveTime
-      );
-    } catch (error) {
-      console.error(error);
-      this.snackBar.open('Failed to load available upgrades', 'Dismiss', {
-        duration: 5000,
-      });
-    } finally {
-      this.loadingUpgrades = false;
-      // Manually trigger change detection
-      this.changeDetectorRef.detectChanges();
-    }
   }
 
   getRoles() {
@@ -169,27 +132,4 @@ export class SelectEditionComponent implements OnChanges {
     );
   }
 
-  upgradeEdition() {
-    this.loading = true;
-    lastValueFrom(this.simplexService.upgradeEdition(this.selectedEdition.shortName, this.selectedUpgradeEdition.effectiveDate)).then(
-      (result) => {
-        this.loading = false;
-        this.refresh();
-        this.snackBar.open('Edition upgraded!', 'Dismiss', {
-          duration: 5000
-        });
-      },
-      (error) => {
-        console.error(error);
-        this.loading = false;
-        this.snackBar.open('Failed to upgrade edition', 'Dismiss', {
-          duration: 5000
-        });
-      }
-    );
-  }
-
-  onSelectionChange(event: any) {
-    this.selectedUpgradeEdition = event.value;
-  }
 }
