@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Subscription, lastValueFrom } from 'rxjs';
 import { User } from '../../models/user';
 import { AuthenticationService } from '../../services/authentication/authentication.service';
@@ -16,6 +16,7 @@ import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-con
 export class SnomedNavbarComponent implements OnInit {
 
     @Input() selectedEdition: any = null;
+    @Output() home = new EventEmitter<any>();
 
     environment: string;
     path: string;
@@ -174,5 +175,9 @@ export class SnomedNavbarComponent implements OnInit {
     selectEdition(item: any) {
         this.selectedEdition = item;
         this.uiConfigurationService.setSelectedEdition(item);
+    }
+
+    goHome() {
+        this.home.emit();
     }
 }
