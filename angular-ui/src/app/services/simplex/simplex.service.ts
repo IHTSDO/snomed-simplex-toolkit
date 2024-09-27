@@ -227,6 +227,14 @@ export class SimplexService {
     return this.http.post(`/api/codesystems/${edition}/approve-content-for-release`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public createReleaseCandidate(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/create-release-candidate`, null).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public finalizeRelease(edition: string): Observable<any> {
+    return this.http.post(`/api/codesystems/${edition}/finalize-release`, null).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public startMaintenance(edition: string): Observable<any> {
     return this.http.post(`/api/codesystems/${edition}/start-maintenance`, null).pipe(catchError(this.handleError.bind(this)));
   }

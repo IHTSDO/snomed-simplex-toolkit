@@ -159,6 +159,38 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     );
   }
 
+  createReleaseCandidate() {
+    this.edition.editionStatus = 'MAINTENANCE';
+    this.alert('Creating release candidate');
+    this.simplexService.createReleaseCandidate(this.edition.shortName).subscribe(
+      (response: any) => {
+        this.alert('Release candidate creation started');
+        this.refreshEdition();
+      },
+      error => {
+        console.error('Release candidate creation failed:', error);
+        this.alert('Release candidate creation failed');
+        this.refreshEdition();
+      }
+    );
+  }
+
+  finalizeRelease() {
+    this.edition.editionStatus = 'MAINTENANCE';
+    this.alert('Finalizing release');
+    this.simplexService.finalizeRelease(this.edition.shortName).subscribe(
+      (response: any) => {
+        this.alert('Release publication started');
+        this.refreshEdition();
+      },
+      error => {
+        console.error('Release publication failed:', error);
+        this.alert('Release publication failed');
+        this.refreshEdition();
+      }
+    );
+  }
+
   startMaintenance() {
     this.edition.editionStatus = 'MAINTENANCE';
     this.alert('Starting maintenance mode');
