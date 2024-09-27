@@ -36,6 +36,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.*;
@@ -348,6 +349,15 @@ public class ReleaseServiceClient {
         CreateBuildRequest createBuildRequest = new CreateBuildRequest(effectiveTime, releaseCenterBranch);
         ResponseEntity<SRSBuild> response = getClient().exchange(url, HttpMethod.POST, new HttpEntity<>(createBuildRequest), SRSBuild.class);
         return response.getBody();
+    }
+
+    public void publishBuild(SRSBuild build) throws ServiceException {
+        try {
+            String url = "%s/publish".formatted(build.url());
+            getClient().exchange(url, HttpMethod.POST, null, Void.class);
+        } catch (RestClientException | IllegalArgumentException e) {
+            logger.error("Failed to publish build {}", build, e);
+        }
     }
 
     public Pair<String, File> downloadReleasePackage(String buildUrl) throws ServiceException {

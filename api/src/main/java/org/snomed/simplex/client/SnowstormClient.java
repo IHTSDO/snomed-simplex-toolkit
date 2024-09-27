@@ -217,6 +217,11 @@ public class SnowstormClient {
 		restTemplate.exchange(format(CODESYSTEM_ENDPOINT, codeSystem.getShortName()), HttpMethod.PUT, new HttpEntity<>(codeSystem), CodeSystem.class);
 	}
 
+	public void versionCodeSystem(CodeSystem codeSystem, String effectiveTime) {
+		CodeSystemVersioningRequest request = new CodeSystemVersioningRequest(effectiveTime, "Release %s".formatted(effectiveTime), false);
+		restTemplate.exchange(format("/codesystems/%s/versions", codeSystem.getShortName()), HttpMethod.POST, new HttpEntity<>(request), Void.class);
+	}
+
 	public void deleteCodeSystem(String shortName) {
 		restTemplate.delete(format(CODESYSTEM_ENDPOINT, shortName));
 	}

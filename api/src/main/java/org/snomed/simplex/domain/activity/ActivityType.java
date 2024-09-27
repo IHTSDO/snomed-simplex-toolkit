@@ -8,7 +8,7 @@ public enum ActivityType {
 	ADD_CONTENT_APPROVAL("Add content approval"),
 	REMOVE_CONTENT_APPROVAL("Remove content approval"),
 	UPGRADE("Upgrade"), CLASSIFY("Classify"), VALIDATE("Validate"), AUTOMATIC_FIX("Automatic Fix"),
-	UPDATE_CONFIGURATION("Update configuration"), BUILD_RELEASE("Build release");
+	UPDATE_CONFIGURATION("Update configuration"), BUILD_RELEASE("Build release"), FINALIZE_RELEASE("Finalize release");
 
 	private final String display;
 

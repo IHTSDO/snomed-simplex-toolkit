@@ -326,6 +326,23 @@ public class CodeSystemController {
 		}
 	}
 
+	@Operation(summary = "Finalize the RF2 release.",
+			description = """
+					Publishes the latest release candidate as the final RF2 release. It also creates a CodeSystem version using the
+					effective-time of the latest release candidate.
+					The effective-time is a datestamp which must be unique therefore the maximum frequency of releases is one per day.
+					""")
+	@PostMapping("{codeSystem}/finalize-release")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void finalizeRelease(@PathVariable String codeSystem) throws ServiceException {
+		CodeSystem theCodeSystem = getCodeSystemDetails(codeSystem);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, FINALIZE_RELEASE, () -> {
+			codeSystemService.finalizeRelease(theCodeSystem);
+			return null;
+		});
+	}
+
+
 	@PostMapping("{codeSystem}/start-maintenance")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void startMaintenance(@PathVariable String codeSystem) throws ServiceException {

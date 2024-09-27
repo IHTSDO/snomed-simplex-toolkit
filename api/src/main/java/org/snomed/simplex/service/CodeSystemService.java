@@ -188,6 +188,18 @@ public class CodeSystemService {
 		setEditionStatus(codeSystem, EditionStatus.RELEASE, snowstormClient);
 	}
 
+	public void finalizeRelease(CodeSystem codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		SRSBuild build = getReleaseCompleteBuildOrThrow(codeSystem);
+		String effectiveTime = build.configuration().getEffectiveTime();
+
+		logger.info("Versioning CodeSystem {}", codeSystem.getShortName());
+		snowstormClient.versionCodeSystem(codeSystem, effectiveTime);
+
+		logger.info("Publishing Release {}", build);
+		releaseServiceClient.publishBuild(build);
+	}
+
 	public void startAuthoring(CodeSystem codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		clearBuildStatus(codeSystem, snowstormClient);
@@ -611,6 +623,18 @@ public class CodeSystemService {
 	}
 
 	public Pair<String, File> downloadReleaseCandidate(CodeSystem codeSystem) throws ServiceException {
+		SRSBuild buildUrl = getReleaseCompleteBuildOrThrow(codeSystem);
+
+		try {
+			return releaseServiceClient.downloadReleasePackage(buildUrl.url());
+		} catch (ServiceException e) {
+			String errorMessage = "Failed to download release package.";
+			supportRegister.handleSystemError(codeSystem, errorMessage, e);
+			throw new ServiceExceptionWithStatusCode(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	private SRSBuild getReleaseCompleteBuildOrThrow(CodeSystem codeSystem) throws ServiceException {
 		if (codeSystem.getEditionStatus() != EditionStatus.RELEASE || codeSystem.getBuildStatus() == CodeSystemBuildStatus.COMPLETE) {
 			throw new ServiceExceptionWithStatusCode("This function is only available when CodeSytem is in release mode " +
 					"and the release candidate build is complete.", HttpStatus.CONFLICT);
@@ -622,13 +646,6 @@ public class CodeSystemService {
 		if (CodeSystemBuildStatus.fromSRSStatus(buildStatus) != CodeSystemBuildStatus.COMPLETE) {
 			throw new ServiceExceptionWithStatusCode("The release candidate build is not yet complete.", HttpStatus.CONFLICT);
 		}
-
-		try {
-			return releaseServiceClient.downloadReleasePackage(buildUrl);
-		} catch (ServiceException e) {
-			String errorMessage = "Failed to download release package.";
-			supportRegister.handleSystemError(codeSystem, errorMessage, e);
-			throw new ServiceExceptionWithStatusCode(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
+		return build;
 	}
 }
