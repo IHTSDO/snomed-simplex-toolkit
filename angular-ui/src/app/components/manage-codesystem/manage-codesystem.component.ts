@@ -111,6 +111,13 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  isBuildReleaseRunning(): boolean {
+    this.jobs = this.jobComponent.getJobs();
+    let result = this.jobs.some(job => (job.jobType === 'EXTERNAL_SERVICE' && job.display === 'Build release' && job.status === 'IN_PROGRESS'));
+    return result;
+  }
+
+
   startReleasePreparation() {
     this.edition.editionStatus = 'MAINTENANCE';
     this.alert('Closing authoring cycle and starting release preparation');
@@ -165,6 +172,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     this.simplexService.createReleaseCandidate(this.edition.shortName).subscribe(
       (response: any) => {
         this.alert('Release candidate creation started');
+        this.jobComponent.loadJobs(true);
         this.refreshEdition();
       },
       error => {
@@ -181,6 +189,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     this.simplexService.finalizeRelease(this.edition.shortName).subscribe(
       (response: any) => {
         this.alert('Release publication started');
+        this.jobComponent.loadJobs(true);
         this.refreshEdition();
       },
       error => {
@@ -207,21 +216,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     );
   }
 
-
-  async refreshJobs() {
-    const response = await lastValueFrom(
-      this.simplexService.getJobs(this.edition.shortName)
-    );
-    this.jobs = response;
-  }
-
   async refreshEdition() {
     this.loadingReleaseStatus = true;
     const response = await lastValueFrom(
       this.simplexService.getEdition(this.edition.shortName)
     );
     this.edition = response;
-    this.refreshJobs();
     this.refreshIssues();
     this.loadingReleaseStatus = false;
     this.changeDetectorRef.detectChanges();

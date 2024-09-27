@@ -12,6 +12,7 @@ import { UiConfigurationService } from './services/ui-configuration/ui-configura
 import { SimplexService } from './services/simplex/simplex.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { LegalAgreementService } from './services/legal-agreement/legal-agreement.service';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
     selector: 'app-root',
@@ -36,12 +37,11 @@ export class AppComponent implements OnInit {
 
     showWelcome = true;
 
-    constructor(private authoringService: AuthoringService,
-                private branchingService: BranchingService,
-                private envService: EnvService,
+    constructor(private envService: EnvService,
                 private toastr: ToastrService,
                 private titleService: Title,
-                private modalService: ModalService,
+                private route: ActivatedRoute,
+                private router: Router,
                 private simplexService: SimplexService,
                 private snackBar: MatSnackBar,
                 private uiConfigurationService: UiConfigurationService,
@@ -52,6 +52,22 @@ export class AppComponent implements OnInit {
         this.titleService.setTitle('Simplex');
         this.environment = this.envService.env;
         this.assignFavicon();
+
+        this.route.queryParams.subscribe(params => {
+            if (params['showWelcome'] === 'false') {
+                this.closeWelcome();
+                this.router.navigate([], {
+                    queryParams: {
+                        showWelcome: null
+                    },
+                    queryParamsHandling: 'merge' // Merge with other params in the URL
+                });
+            }
+        });
+    }
+
+    closeWelcome() {
+        this.showWelcome = false;
         this.simplexService.refreshUIConfiguration();
         this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
             this.selectedEdition = edition;

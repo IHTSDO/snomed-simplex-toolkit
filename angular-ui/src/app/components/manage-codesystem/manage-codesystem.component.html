@@ -186,8 +186,11 @@
                             <div>Preview content in browser 
                                 <span>→ <a href="javascript:void(0)" (click)="browseToDailyBuild()">Open browser</a></span>
                             </div>
-                            <div>Create release candidate 
-                                <span>→ <a href="javascript:void(0)" (click)="createReleaseCandidate()">Download</a></span>
+                            <div>Release candidate 
+                                <span>→&nbsp;
+                                    <a href="javascript:void(0)" (click)="createReleaseCandidate()" *ngIf="!isBuildReleaseRunning()">Create release candidate package</a>
+                                    <span *ngIf="isBuildReleaseRunning()" class="ok-message">Candidate release build running...</span>
+                                </span>
                             </div>
                         </div>
                         <div *ngIf="edition.editionStatus && edition.editionStatus != 'RELEASE'">Publication not ready</div>

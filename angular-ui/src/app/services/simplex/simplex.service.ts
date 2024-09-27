@@ -31,7 +31,8 @@ export class SimplexService {
 
   public login(): void{
     let config: any = this.uiConfigurationService.getConfiguration();
-    const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href}`;
+    const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href + '?showWelcome=false'}`;
+    console.log(redirectUrl);
     window.location.href = redirectUrl;
   }
 

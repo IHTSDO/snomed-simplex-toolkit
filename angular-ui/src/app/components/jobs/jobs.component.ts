@@ -106,6 +106,10 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     }
   }
 
+  public getJobs(): any[] {
+    return this.jobs;
+  }
+
   public loadJobs(clear: boolean) {
     if (clear) {
       this.jobs = [];
@@ -118,7 +122,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         catchError((error) => {
           console.error('An error occurred:', error);
           this.snackBar.open('Error loading jobs', 'Dismiss', {
-            duration: 5000,
+            duration: 15000,
           });
           this.loading = false;
           return of([]); // Return an empty observable array

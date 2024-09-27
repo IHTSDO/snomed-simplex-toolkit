@@ -1,4 +1,4 @@
-<app-welcome *ngIf="showWelcome" (closePanel)="showWelcome = $event"></app-welcome>
+<app-welcome *ngIf="showWelcome" (closePanel)="closeWelcome()"></app-welcome>
 <div *ngIf="!showWelcome">
     <app-snomed-navbar [selectedEdition]="selectedEdition" (home)="showWelcome = true"></app-snomed-navbar>
     <app-main-view [selectedEdition]="selectedEdition"></app-main-view>
