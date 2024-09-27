@@ -267,10 +267,18 @@ public class CodeSystemService {
 		}
 	}
 
-	public void buildRelease(String effectiveTime, ExternalServiceJob asyncJob) {
+	public void buildReleaseCandidate(String effectiveTime, ExternalServiceJob asyncJob) {
 		try {
 			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(asyncJob.getCodeSystem());
+			CodeSystem.CodeSystemVersion latestVersion = codeSystem.getLatestVersion();
+			if (latestVersion != null && Integer.parseInt(effectiveTime) <= latestVersion.effectiveDate()) {
+				asyncJob.setStatus(JobStatus.USER_CONTENT_ERROR);
+				asyncJob.setErrorMessage(("The latest version of this Code System is %s. " +
+						"The effective-time date of the new release candidate must be after the latest version.").formatted(latestVersion.effectiveDate()));
+				return;
+			}
+
 			SRSBuild releaseBuild = releaseServiceClient.buildProduct(codeSystem, effectiveTime);
 			String releaseBuildUrl = releaseBuild.url();
 			asyncJob.setLink(releaseBuildUrl);
