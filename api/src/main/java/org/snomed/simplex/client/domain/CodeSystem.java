@@ -25,6 +25,7 @@ public class CodeSystem {
 	private boolean showCustomConcepts;
 	private boolean classified;
 	private String latestValidationReport;
+	private String latestReleaseCandidateBuild;
 	private long contentHeadTimestamp;
 	private Set<String> userRoles;
 
@@ -205,6 +206,14 @@ public class CodeSystem {
 
 	public String getLatestValidationReport() {
 		return latestValidationReport;
+	}
+
+	public String getLatestReleaseCandidateBuild() {
+		return latestReleaseCandidateBuild;
+	}
+
+	public void setLatestReleaseCandidateBuild(String latestReleaseCandidateBuild) {
+		this.latestReleaseCandidateBuild = latestReleaseCandidateBuild;
 	}
 
 	public long getContentHeadTimestamp() {

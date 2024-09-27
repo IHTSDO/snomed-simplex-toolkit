@@ -149,6 +149,7 @@ public class SnowstormClient {
 		codeSystem.setPreviousPackage(branch.getMetadataValue(Branch.PREVIOUS_PACKAGE_METADATA_KEY));
 		codeSystem.setPreviousDependencyPackage(branch.getMetadataValue(Branch.PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY));
 		codeSystem.setLatestValidationReport(branch.getMetadataValue(Branch.LATEST_VALIDATION_REPORT_METADATA_KEY));
+		codeSystem.setLatestReleaseCandidateBuild(branch.getMetadataValue(Branch.LATEST_BUILD_METADATA_KEY));
 		codeSystem.setBuildStatus(CodeSystemBuildStatus.fromBranchMetadata(branch.getMetadataValue(Branch.BUILD_STATUS_METADATA_KEY)));
 		codeSystem.setEditionStatus(getEditionStatus(branch.getMetadataValue(Branch.EDITION_STATUS_METADATA_KEY)));
 	}
