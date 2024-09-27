@@ -39,12 +39,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import static org.snomed.simplex.domain.activity.ActivityType.*;
 import static org.snomed.simplex.domain.activity.ComponentType.CODE_SYSTEM;
