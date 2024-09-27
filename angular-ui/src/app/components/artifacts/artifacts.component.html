@@ -66,7 +66,7 @@
         <!-- <h4 *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
             Select an artifact to view details
         </h4> -->
-        <div *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="waiting-panel">
+        <div *ngIf="!selectedArtifact && !newArtifactMode" class="waiting-panel">
             <img src="/assets/artifact.png">
         </div>
         <div *ngIf="!newArtifactMode && selectedArtifact">
