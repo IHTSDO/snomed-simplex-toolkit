@@ -14,7 +14,7 @@
             <div *ngIf="availableUpgrades.length > 0">
               <!-- Link that opens the menu -->
               <a href="#" [matMenuTriggerFor]="menu" (click)="$event.preventDefault()">
-                {{ selectedUpgradeEdition?.effectiveDate ? 'Selected: ' + selectedUpgradeEdition?.effectiveDate : 'New dependency versions available' }}
+                {{ selectedUpgradeEdition?.effectiveDate ? 'New dependency: ' + selectedUpgradeEdition?.effectiveDate : 'New dependency versions available' }}
               </a>
           
               <!-- Menu with upgrade options -->
@@ -23,7 +23,7 @@
                         *ngFor="let upgrade of availableUpgrades" 
                         [disabled]="edition.editionStatus != 'AUTHORING'" 
                         (click)="onUpgradeSelect(upgrade)">
-                  {{ upgrade.effectiveDate }}
+                  {{ upgrade.effectiveDate }} version
                 </button>
               </mat-menu>
           
