@@ -36,4 +36,8 @@ public class TestActivityRepository extends NoopRepository<Activity> implements 
 	public Optional<Activity> findActivityByCodesystemAndStartDate(String codeSystem, Long startDate) {
 		return Optional.empty();
 	}
+
+	@Override
+	public void deleteAllByActivityType(String activityType) {
+	}
 }
