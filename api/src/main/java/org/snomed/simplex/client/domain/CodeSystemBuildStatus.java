@@ -1,12 +1,10 @@
 package org.snomed.simplex.client.domain;
 
-import org.snomed.simplex.domain.JobStatus;
-
 public enum CodeSystemBuildStatus {
 
 	TODO, IN_PROGRESS, FAILED, COMPLETE;
 
-	public static CodeSystemBuildStatus fromSRStatus(String status) {
+	public static CodeSystemBuildStatus fromSRSStatus(String status) {
 		if (status != null) {
 			if (status.contains("CANCELLED") || status.contains("FAILED")) {
 				return FAILED;

@@ -445,7 +445,7 @@ public class CodeSystemService {
 			try {
 				// Get client using the security context of the user who created the job
 				SRSBuild build = releaseServiceClient.getBuild(buildUrl);
-				buildStatus = CodeSystemBuildStatus.fromSRStatus(build.status());
+				buildStatus = CodeSystemBuildStatus.fromSRSStatus(build.status());
 				logger.debug("Build status {} for {}", buildStatus, buildUrl);
 
 				switch (buildStatus) {
@@ -461,6 +461,9 @@ public class CodeSystemService {
 						logger.info("Build completed. Branch:{}, SRS Job:{}, Status:{}", job.getBranch(), buildUrl, buildStatus);
 						job.setStatus(JobStatus.COMPLETE);
 						buildComplete = true;
+						break;
+					default:
+						logger.warn("Unexpected build status: {}, Branch:{}", buildStatus, job.getBranch());
 						break;
 				}
 			} catch (ServiceException e) {

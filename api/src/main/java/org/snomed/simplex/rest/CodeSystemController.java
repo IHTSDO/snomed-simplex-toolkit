@@ -302,7 +302,7 @@ public class CodeSystemController {
 		String finalEffectiveTime = effectiveTime;
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, BUILD_RELEASE, () -> {
 			jobService.startExternalServiceJob(theCodeSystem, BUILD_RELEASE,
-					(job) -> codeSystemService.buildRelease(finalEffectiveTime, job));
+					job -> codeSystemService.buildRelease(finalEffectiveTime, job));
 			return null;
 		});
 	}
