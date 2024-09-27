@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.util.Strings;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
@@ -13,8 +14,8 @@ import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
-import org.snomed.simplex.client.srs.domain.SRSProduct;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
+import org.snomed.simplex.client.srs.domain.SRSProduct;
 import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.domain.activity.ActivityType;
@@ -33,11 +34,17 @@ import org.snomed.simplex.service.validation.ValidationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.snomed.simplex.domain.activity.ActivityType.*;
 import static org.snomed.simplex.domain.activity.ComponentType.CODE_SYSTEM;
@@ -166,8 +173,7 @@ public class CodeSystemController {
 		ExternalServiceJob validationJob = codeSystemService.getLatestValidationJob(theCodeSystem);
 		codeSystemService.addValidationStatus(theCodeSystem, validationJob);
 		CodeSystemValidationStatus validationStatus = theCodeSystem.getValidationStatus();
-		switch (validationStatus) {
-			case TODO, IN_PROGRESS, SYSTEM_ERROR ->
+		if (Set.of(CodeSystemValidationStatus.TODO, CodeSystemValidationStatus.IN_PROGRESS, CodeSystemValidationStatus.SYSTEM_ERROR).contains(validationStatus)) {
 					throw new ServiceExceptionWithStatusCode("The latest validation report is not available.",
 							HttpStatus.CONFLICT.value());
 		}
@@ -305,6 +311,21 @@ public class CodeSystemController {
 					job -> codeSystemService.buildRelease(finalEffectiveTime, job));
 			return null;
 		});
+	}
+
+	@GetMapping(path = "{codeSystem}/release-candidate", produces="application/zip")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void downloadReleaseCandidate(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException {
+		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		Pair<String, File> tempFile = codeSystemService.downloadReleaseCandidate(theCodeSystem);
+		String filename = tempFile.getLeft();
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename.replace(".zip", "-release-candidate.zip") + "\"");
+		File file = tempFile.getRight();
+		try (FileInputStream fileInputStream = new FileInputStream(file)) {
+			StreamUtils.copy(fileInputStream, response.getOutputStream());
+		} catch (IOException e) {
+			throw new ServiceExceptionWithStatusCode("Failed to copy download file.", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	@PostMapping("{codeSystem}/start-maintenance")

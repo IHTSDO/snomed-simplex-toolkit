@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tomcat.util.http.fileupload.util.Streams;
 import org.ihtsdo.otf.snomedboot.ReleaseImportException;
 import org.ihtsdo.otf.snomedboot.ReleaseImporter;
 import org.slf4j.Logger;
@@ -13,6 +15,7 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
+import org.snomed.simplex.client.srs.domain.OutputFile;
 import org.snomed.simplex.client.srs.domain.ProductUpdateRequestInternal;
 import org.snomed.simplex.client.srs.domain.SRSBuild;
 import org.snomed.simplex.client.srs.domain.SRSProduct;
@@ -24,6 +27,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.*;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
@@ -34,10 +38,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -209,7 +210,7 @@ public class ReleaseServiceClient {
         logger.info("Generating manifest");
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
-        if (!effectiveTime.matches("[0-9]{8}")) {
+        if (!effectiveTime.matches("\\d{8}")) {
             throw new ServiceExceptionWithStatusCode(
                     format("Invalid package effective time '%s'. Expected format yyyyyMMdd, for example: %s", effectiveTime, dateFormat.format(new Date())), HttpStatus.BAD_REQUEST);
         }
@@ -347,6 +348,32 @@ public class ReleaseServiceClient {
         CreateBuildRequest createBuildRequest = new CreateBuildRequest(effectiveTime, releaseCenterBranch);
         ResponseEntity<SRSBuild> response = getClient().exchange(url, HttpMethod.POST, new HttpEntity<>(createBuildRequest), SRSBuild.class);
         return response.getBody();
+    }
+
+    public Pair<String, File> downloadReleasePackage(String buildUrl) throws ServiceException {
+        RestTemplate client = getClient();
+        String outputFilesUrl = "%s/outputfiles".formatted(buildUrl);
+        ParameterizedTypeReference<List<OutputFile>> responseType = new ParameterizedTypeReference<>() {};
+        ResponseEntity<List<OutputFile>> outputFiles = client.exchange(outputFilesUrl, HttpMethod.GET, null, responseType);
+        List<OutputFile> body = outputFiles.getBody();
+        if (body == null) {
+            throw new ServiceException("Failed to list download files for release build.");
+        }
+        for (OutputFile outputFile : body) {
+            if (outputFile.getId().endsWith(".zip")) {
+                String url = outputFile.getUrl();
+                String filename = url.substring(url.lastIndexOf("/") + 1);
+                return client.execute(url, HttpMethod.GET,
+                        httpRequest -> httpRequest.getHeaders().add("Accept", "application/zip"), httpResponse -> {
+                            File tempFile = File.createTempFile("download", "tmp");
+                            try (InputStream inputStream = httpResponse.getBody()) {
+                                Streams.copy(inputStream, new FileOutputStream(tempFile), true);
+                            }
+                            return Pair.of(filename, tempFile);
+                        });
+            }
+        }
+        throw new ServiceException("Failed to download release package.");
     }
 
     private String getProductName(CodeSystem codeSystem) {

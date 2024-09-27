@@ -2,6 +2,7 @@ package org.snomed.simplex.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.AsyncJob;
@@ -35,5 +36,9 @@ public class SupportRegister {
 		}
 		job.setErrorMessage(format("%s The support team have been made aware. Please try again later.", errorMessage));
 		supportLog.info("Support Issue|System|CodeSystem:{}, Job:{}|{}, Message:{}", job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage, exception);
+	}
+
+	public void handleSystemError(CodeSystem codeSystem, String errorMessage, ServiceException exception) {
+		supportLog.info("Support Issue|System|CodeSystem:{}, Message:{}", codeSystem.getShortName(), errorMessage, exception);
 	}
 }

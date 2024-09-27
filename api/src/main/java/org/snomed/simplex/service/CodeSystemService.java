@@ -1,5 +1,6 @@
 package org.snomed.simplex.service;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -24,6 +25,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -130,7 +132,6 @@ public class CodeSystemService {
 		String userGroupName = getUserGroupName(createCodeSystemRequest.getShortName());
 		snowstormClient.setAuthorPermissions(newCodeSystem, userGroupName);
 
-		// TODO Update code system with module as uriModuleId - Only SnowstormX so far.
 		return newCodeSystem;
 	}
 
@@ -564,10 +565,12 @@ public class CodeSystemService {
 				ValidationReport validationReport = validationServiceClient.getValidation(codeSystem.getLatestValidationReport());
 				ExternalServiceJob tempJob = new ExternalServiceJob(codeSystem, "temp job");
 				setValidationJobStatusAndMessage(tempJob, validationReport);
-				switch (tempJob.getStatus()) {
-					case USER_CONTENT_ERROR -> status = CodeSystemValidationStatus.CONTENT_ERROR;
-					case USER_CONTENT_WARNING -> status = CodeSystemValidationStatus.CONTENT_WARNING;
-					case COMPLETE -> status = CodeSystemValidationStatus.COMPLETE;
+				if (tempJob.getStatus() == JobStatus.USER_CONTENT_ERROR) {
+					status = CodeSystemValidationStatus.CONTENT_ERROR;
+				} else if (tempJob.getStatus() == JobStatus.USER_CONTENT_WARNING) {
+					status = CodeSystemValidationStatus.CONTENT_WARNING;
+				} else if (tempJob.getStatus() == JobStatus.COMPLETE) {
+					status = CodeSystemValidationStatus.COMPLETE;
 				}
 				ValidationReport.ValidationResult validationResult = validationReport.rvfValidationResult();
 				if (validationResult != null) {
@@ -599,4 +602,25 @@ public class CodeSystemService {
 		snowstormClient.upsertBranchMetadata(branchPath, metadataUpdate);
 	}
 
+	public Pair<String, File> downloadReleaseCandidate(CodeSystem codeSystem) throws ServiceException {
+		if (codeSystem.getEditionStatus() != EditionStatus.RELEASE || codeSystem.getBuildStatus() == CodeSystemBuildStatus.COMPLETE) {
+			throw new ServiceExceptionWithStatusCode("This function is only available when CodeSytem is in release mode " +
+					"and the release candidate build is complete.", HttpStatus.CONFLICT);
+		}
+
+		String buildUrl = codeSystem.getLatestReleaseCandidateBuild();
+		SRSBuild build = releaseServiceClient.getBuild(buildUrl);
+		String buildStatus = build.status();
+		if (CodeSystemBuildStatus.fromSRSStatus(buildStatus) != CodeSystemBuildStatus.COMPLETE) {
+			throw new ServiceExceptionWithStatusCode("The release candidate build is not yet complete.", HttpStatus.CONFLICT);
+		}
+
+		try {
+			return releaseServiceClient.downloadReleasePackage(buildUrl);
+		} catch (ServiceException e) {
+			String errorMessage = "Failed to download release package.";
+			supportRegister.handleSystemError(codeSystem, errorMessage, e);
+			throw new ServiceExceptionWithStatusCode(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
 }
