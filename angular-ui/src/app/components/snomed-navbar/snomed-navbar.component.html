@@ -14,10 +14,17 @@
             </mat-menu>
         </span>
     </a>
-    <button mat-icon-button [matMenuTriggerFor]="menu" class="nav-button"><mat-icon>person</mat-icon></button>
-    <mat-menu #menu="matMenu">
-        <button mat-menu-item (click)="login()">Login</button>
-        <button mat-menu-item (click)="logout()">Logout</button>
-        <button mat-menu-item (click)="removeAgreementAndReload()">See legal agreement</button>
-    </mat-menu>
+    <div>
+        <button mat-icon-button [matMenuTriggerFor]="menu" class="nav-button" matTooltip="User menu"><mat-icon>person</mat-icon></button>
+        <mat-menu #menu="matMenu">
+            <button mat-menu-item (click)="login()">Login</button>
+            <button mat-menu-item (click)="logout()">Logout</button>
+            <button mat-menu-item (click)="removeAgreementAndReload()">See legal agreement</button>
+        </mat-menu>
+        <button mat-icon-button [matMenuTriggerFor]="menu3" class="nav-button" matTooltip="Help"><mat-icon>help</mat-icon></button>
+        <mat-menu #menu3="matMenu">
+            <a mat-menu-item href="https://confluence.ihtsdotools.org/display/SIMPLEXUG/Simple+Extension+%28Simplex%29+Tool+User+Guide" target="_blank">User guide</a>
+            <a mat-menu-item href="https://ihtsdo.freshdesk.com/support/tickets/new" target="_blank">Contact support</a>
+        </mat-menu>
+    </div>
 </nav>

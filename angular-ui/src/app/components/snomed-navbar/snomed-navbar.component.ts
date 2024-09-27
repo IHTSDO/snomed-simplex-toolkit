@@ -180,4 +180,5 @@ export class SnomedNavbarComponent implements OnInit {
     goHome() {
         this.home.emit();
     }
+    
 }
