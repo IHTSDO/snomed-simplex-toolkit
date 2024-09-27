@@ -7,8 +7,11 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
+import org.snomed.simplex.client.srs.ReleaseServiceClient;
+import org.snomed.simplex.client.srs.domain.SRSBuild;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.PackageConfiguration;
+import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
@@ -42,10 +45,12 @@ public class CodeSystemService {
 	private final JobService jobService;
 	private final SupportRegister supportRegister;
 	private final ValidationServiceClient validationServiceClient;
+	private final ReleaseServiceClient releaseServiceClient;
 	private final SecurityService securityService;
 
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> validationJobsToMonitor = new HashMap<>();
+	private final Map<String, ExternalServiceJob> releaseJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> upgradeJobsToMonitor = new HashMap<>();
 
 	@Value("${simplex.short-name.max-length:70}")
@@ -54,12 +59,14 @@ public class CodeSystemService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public CodeSystemService(SnowstormClientFactory snowstormClientFactory, JobService jobService, SupportRegister supportRegister,
-			ValidationServiceClient validationServiceClient, SecurityService securityService) {
+			ValidationServiceClient validationServiceClient, ReleaseServiceClient releaseServiceClient,
+			SecurityService securityService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.jobService = jobService;
 		this.supportRegister = supportRegister;
 		this.validationServiceClient = validationServiceClient;
+		this.releaseServiceClient = releaseServiceClient;
 		this.securityService = securityService;
 	}
 
@@ -156,7 +163,9 @@ public class CodeSystemService {
 	}
 
 	public void startReleasePrep(CodeSystem codeSystem) throws ServiceException {
-		setEditionStatus(codeSystem, EditionStatus.PREPARING_RELEASE, snowstormClientFactory.getClient());
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		clearBuildStatus(codeSystem, snowstormClient);
+		setEditionStatus(codeSystem, EditionStatus.PREPARING_RELEASE, snowstormClient);
 	}
 
 	public void approveContentForRelease(CodeSystem codeSystem) throws ServiceException {
@@ -174,15 +183,24 @@ public class CodeSystemService {
 		if (!Set.of(CodeSystemValidationStatus.COMPLETE, CodeSystemValidationStatus.CONTENT_WARNING).contains(validationStatus)) {
 			throw new ServiceExceptionWithStatusCode("Validation is not clean.", HttpStatus.CONFLICT);
 		}
+		clearBuildStatus(codeSystem, snowstormClient);
 		setEditionStatus(codeSystem, EditionStatus.RELEASE, snowstormClient);
 	}
 
 	public void startAuthoring(CodeSystem codeSystem) throws ServiceException {
-		setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClientFactory.getClient());
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		clearBuildStatus(codeSystem, snowstormClient);
+		setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
 	}
 
 	public void startMaintenance(CodeSystem codeSystem) throws ServiceException {
-		setEditionStatus(codeSystem, EditionStatus.MAINTENANCE, snowstormClientFactory.getClient());
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		clearBuildStatus(codeSystem, snowstormClient);
+		setEditionStatus(codeSystem, EditionStatus.MAINTENANCE, snowstormClient);
+	}
+
+	private void clearBuildStatus(CodeSystem codeSystem, SnowstormClient snowstormClient) {
+		setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name(), codeSystem, snowstormClient);
 	}
 
 	private void setEditionStatus(CodeSystem codeSystem, EditionStatus editionStatus, SnowstormClient snowstormClient) {
@@ -245,6 +263,23 @@ public class CodeSystemService {
 			validationJobsToMonitor.put(validationUri.toString(), asyncJob);
 		} catch (ServiceException e) {
 			supportRegister.handleSystemError(asyncJob, "Failed to create validation job.", e);
+		}
+	}
+
+	public void buildRelease(String effectiveTime, ExternalServiceJob asyncJob) {
+		try {
+			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(asyncJob.getCodeSystem());
+			SRSBuild releaseBuild = releaseServiceClient.buildProduct(codeSystem, effectiveTime);
+			String releaseBuildUrl = releaseBuild.url();
+			asyncJob.setLink(releaseBuildUrl);
+			snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(),
+					Map.of(Branch.LATEST_BUILD_METADATA_KEY, releaseBuildUrl,
+							Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name()));
+
+			releaseJobsToMonitor.put(releaseBuildUrl, asyncJob);
+		} catch (ServiceException e) {
+			supportRegister.handleSystemError(asyncJob, "Failed to start release build job.", e);
 		}
 	}
 
@@ -398,6 +433,59 @@ public class CodeSystemService {
 		}
 	}
 
+	@Scheduled(initialDelay = 15, fixedDelay = 15, timeUnit = TimeUnit.SECONDS)
+	public void monitorReleaseJobs() {
+		Set<String> completedBuildJobs = new HashSet<>();
+		for (Map.Entry<String, ExternalServiceJob> entry : releaseJobsToMonitor.entrySet()) {
+			String buildUrl = entry.getKey();
+			ExternalServiceJob job = entry.getValue();
+			SecurityContextHolder.setContext(job.getSecurityContext());
+			boolean buildComplete = false;
+			CodeSystemBuildStatus buildStatus = null;
+			try {
+				// Get client using the security context of the user who created the job
+				SRSBuild build = releaseServiceClient.getBuild(buildUrl);
+				buildStatus = CodeSystemBuildStatus.fromSRStatus(build.status());
+				logger.debug("Build status {} for {}", buildStatus, buildUrl);
+
+				switch (buildStatus) {
+					case IN_PROGRESS:
+						job.setStatus(JobStatus.IN_PROGRESS);
+						break;
+					case FAILED:
+						supportRegister.handleSystemError(job, "SRS build failed.");
+						job.setStatus(JobStatus.SYSTEM_ERROR);// We don't expect the build to fail
+						buildComplete = true;
+						break;
+					case COMPLETE:
+						logger.info("Build completed. Branch:{}, SRS Job:{}, Status:{}", job.getBranch(), buildUrl, buildStatus);
+						job.setStatus(JobStatus.COMPLETE);
+						buildComplete = true;
+						break;
+				}
+			} catch (ServiceException e) {
+				supportRegister.handleSystemError(job, "SRS API issue.", e);
+				buildComplete = true;
+			}
+			if (buildComplete) {
+				completedBuildJobs.add(buildUrl);
+				if (buildStatus != null) {
+					try {
+						String codeSystem = job.getCodeSystem();
+						SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+						CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+						setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, buildStatus.name(), theCodeSystem, snowstormClient);
+					} catch (ServiceException e) {
+						supportRegister.handleSystemError(job, "Failed to update build status in branch metadata", e);
+					}
+				}
+			}
+		}
+		for (String completedBuildJob : completedBuildJobs) {
+			releaseJobsToMonitor.remove(completedBuildJob);
+		}
+	}
+
 	private static void setValidationJobStatusAndMessage(ExternalServiceJob job, ValidationReport validationReport) {
 		ValidationReport.ValidationResult validationResult = validationReport.rvfValidationResult();
 		if (validationResult == null) {
@@ -491,7 +579,7 @@ public class CodeSystemService {
 	}
 
 	public ExternalServiceJob getLatestValidationJob(CodeSystem codeSystem) {
-        return (ExternalServiceJob) jobService.getLatestJobOfType(codeSystem.getShortName(), "Validate");
+		return (ExternalServiceJob) jobService.getLatestJobOfType(codeSystem.getShortName(), ActivityType.VALIDATE.getDisplay());
 	}
 
 	public PackageConfiguration getPackageConfiguration(Branch branch) {

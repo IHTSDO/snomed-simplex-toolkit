@@ -40,4 +40,14 @@ public class ExternalServiceJob extends AsyncJob {
 	public void setLink(String link) {
 		this.link = link;
 	}
+
+	@Override
+	public String toString() {
+		return "ExternalServiceJob{" +
+				super.toString() +
+				", 'branch='" + branch + '\'' +
+				", contentHeadTimestamp=" + contentHeadTimestamp +
+				", link='" + link + '\'' +
+				'}';
+	}
 }

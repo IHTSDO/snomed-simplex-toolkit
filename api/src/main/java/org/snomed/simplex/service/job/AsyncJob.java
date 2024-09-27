@@ -105,4 +105,15 @@ public abstract class AsyncJob {
 	public SecurityContext getSecurityContext() {
 		return securityContext;
 	}
+
+	@Override
+	public String toString() {
+		return "AsyncJob{" +
+				"id='" + id + '\'' +
+				", created=" + created +
+				", display='" + display + '\'' +
+				", status=" + status +
+				", codeSystem=" + codeSystem +
+				'}';
+	}
 }

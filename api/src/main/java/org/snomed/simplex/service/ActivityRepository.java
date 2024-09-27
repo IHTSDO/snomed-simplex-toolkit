@@ -12,4 +12,6 @@ public interface ActivityRepository extends ElasticsearchRepository<Activity, St
 	Page<Activity> findActivitiesByCodesystemIsOrderByStartDateDesc(String codesystem, PageRequest pageRequest);
 
 	Optional<Activity> findActivityByCodesystemAndStartDate(String codeSystem, Long startDate);
+
+	void deleteAllByActivityType(String activityType);
 }

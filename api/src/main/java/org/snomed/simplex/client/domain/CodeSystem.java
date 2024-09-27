@@ -21,6 +21,7 @@ public class CodeSystem {
 
 	private CodeSystemClassificationStatus classificationStatus;
 	private CodeSystemValidationStatus validationStatus;
+	private CodeSystemBuildStatus buildStatus;
 	private boolean showCustomConcepts;
 	private boolean classified;
 	private String latestValidationReport;
@@ -156,6 +157,14 @@ public class CodeSystem {
 
 	public void setValidationStatus(CodeSystemValidationStatus validationStatus) {
 		this.validationStatus = validationStatus;
+	}
+
+	public CodeSystemBuildStatus getBuildStatus() {
+		return buildStatus;
+	}
+
+	public void setBuildStatus(CodeSystemBuildStatus buildStatus) {
+		this.buildStatus = buildStatus;
 	}
 
 	public boolean isShowCustomConcepts() {

@@ -10,6 +10,7 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
+import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.client.srs.domain.SRSProduct;
@@ -222,36 +223,6 @@ public class CodeSystemController {
 		});
 	}
 
-	@PostMapping(path = "{codeSystem}/product-packaging/build")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	@Operation(summary = "Start a Release Service build for a code system. ",
-			description = """
-					This operation regenerates the Release Service product manifest, uploads the latest delta files,
-					and creates and starts a Release Service build.
-					""")
-	public void buildReleaseProduct(@PathVariable String codeSystem, @RequestParam(required = false) String effectiveTime)
-			throws ServiceException {
-
-		SnowstormClient snowstormClient = clientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		if (effectiveTime == null) {
-			effectiveTime = new SimpleDateFormat("yyyyMMdd").format(new Date());
-		}
-
-		PackageConfiguration packageConfiguration = codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());
-		if (Strings.isBlank(packageConfiguration.orgName()) || Strings.isBlank(packageConfiguration.orgContactDetails())) {
-			throw new ServiceExceptionWithStatusCode("Organisation name and contact details must be set before creating a build.", HttpStatus.CONFLICT);
-		}
-
-
-		String finalEffectiveTime = effectiveTime;
-		activityService.recordActivity(codeSystem, CODE_SYSTEM, START_BUILD, () -> {
-			// TODO: Convert to Simplex scheduled job.
-			releaseServiceClient.buildProduct(theCodeSystem, finalEffectiveTime);
-			return null;
-		});
-	}
-
 	@DeleteMapping("{codeSystem}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void deleteCodeSystem(@PathVariable String codeSystem) throws ServiceException {
@@ -268,6 +239,16 @@ public class CodeSystemController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
 			snowstormClient.setCodeSystemWorkingBranch(theCodeSystem, request.getBranchPath());
+			return null;
+		});
+	}
+
+	@PostMapping("{codeSystem}/start-authoring")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void startAuthoring(@PathVariable String codeSystem) throws ServiceException {
+		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, REMOVE_CONTENT_APPROVAL, () -> {
+			codeSystemService.startAuthoring(theCodeSystem);
 			return null;
 		});
 	}
@@ -292,12 +273,36 @@ public class CodeSystemController {
 		});
 	}
 
-	@PostMapping("{codeSystem}/start-authoring")
+	@PostMapping("{codeSystem}/create-release-candidate")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public void startAuthoring(@PathVariable String codeSystem) throws ServiceException {
-		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
-		activityService.recordActivity(codeSystem, CODE_SYSTEM, REMOVE_CONTENT_APPROVAL, () -> {
-			codeSystemService.startAuthoring(theCodeSystem);
+	@Operation(summary = "Create a release candidate using the SNOMED Release Service. ",
+			description = """
+					This operation regenerates the Release Service product manifest, uploads the latest delta files,
+					and creates and starts a Release Service build.
+					The effectiveTime parameter (format yyyyMMdd) sets the effective time of the components and is included in the package name of the release candidate.
+					If no effectiveTime is given it defaults to today's date.
+					""")
+	public void startReleaseBuild(@PathVariable String codeSystem, @RequestParam(required = false) String effectiveTime) throws ServiceException {
+		SnowstormClient snowstormClient = clientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		if (effectiveTime == null) {
+			effectiveTime = new SimpleDateFormat("yyyyMMdd").format(new Date());
+		}
+
+		if (theCodeSystem.getEditionStatus() != EditionStatus.RELEASE) {
+			throw new ServiceExceptionWithStatusCode("CodeSystem must be approved for release before creating a release candidate.", HttpStatus.CONFLICT);
+		}
+
+		PackageConfiguration packageConfiguration = codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());
+		if (Strings.isBlank(packageConfiguration.orgName()) || Strings.isBlank(packageConfiguration.orgContactDetails())) {
+			throw new ServiceExceptionWithStatusCode("Organisation name and contact details must be set before creating a build.", HttpStatus.CONFLICT);
+		}
+		releaseServiceClient.getCreateProduct(theCodeSystem, packageConfiguration);
+
+		String finalEffectiveTime = effectiveTime;
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, BUILD_RELEASE, () -> {
+			jobService.startExternalServiceJob(theCodeSystem, BUILD_RELEASE,
+					(job) -> codeSystemService.buildRelease(finalEffectiveTime, job));
 			return null;
 		});
 	}

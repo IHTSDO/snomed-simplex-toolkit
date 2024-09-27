@@ -12,6 +12,8 @@ public class Branch {
 	public static final String PREVIOUS_PACKAGE_METADATA_KEY = "previousPackage";
 	public static final String PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY = "previousDependencyPackage";
 	public static final String LATEST_VALIDATION_REPORT_METADATA_KEY = "latestValidationReport";
+	public static final String LATEST_BUILD_METADATA_KEY = "latestBuild";
+	public static final String BUILD_STATUS_METADATA_KEY = "buildStatus";
 	public static final String SHOW_CUSTOM_CONCEPTS = "showCustomConcepts";
 	public static final String DEFAULT_MODULE_ID_METADATA_KEY = "defaultModuleId";
 	public static final String EDITION_STATUS_METADATA_KEY = "editionStatus";

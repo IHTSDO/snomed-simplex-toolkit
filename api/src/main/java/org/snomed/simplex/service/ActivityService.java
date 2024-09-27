@@ -37,6 +37,9 @@ public class ActivityService {
 
 		this.repository = repository;
 		resourceManager = new ResourceManager(resourceManagerConfiguration, resourceLoader);
+
+		// Remove entries with old activity-types
+		repository.deleteAllByActivityType("STOP_RELEASE_PREP");
 	}
 
 	public org.snomed.simplex.domain.Page<Activity> findActivities(String codesystem, PageRequest pageRequest) {
