@@ -2,17 +2,22 @@
 	<mat-drawer #drawer mode="side" disableClose="true" opened="true">
         <mat-nav-list>
             <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'artifacts'}" (click)="selectedMenuItem = 'artifacts'">
-                <mat-spinner [diameter]="20" *ngIf="changingEdition" class="tab-spinner"></mat-spinner>
-                <mat-icon mat-list-icon *ngIf="!changingEdition">edit</mat-icon>
-                <span>Artifacts</span>
+                <span class="nav-item">
+                    <mat-icon mat-list-icon *ngIf="!changingEdition">edit</mat-icon>
+                    <span class="nav-item-name">Artifacts</span>
+                </span>
             </mat-list-item>
             <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'manage'}" (click)="selectedMenuItem = 'manage'">
-                <mat-icon mat-list-icon>settings</mat-icon>
-                <span>Manage Edition</span>
+                <span class="nav-item">
+                    <mat-icon mat-list-icon>settings</mat-icon>
+                    <span class="nav-item-name">Manage Edition</span>
+                </span>
             </mat-list-item>
             <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'info'}" (click)="selectedMenuItem = 'info'">
-                <mat-icon mat-list-icon>info</mat-icon>
-                <span>Edition info</span>
+                <span class="nav-item">
+                    <mat-icon mat-list-icon>info</mat-icon>
+                    <span class="nav-item-name">Edition info</span>
+                </span>
             </mat-list-item>
         </mat-nav-list>
     </mat-drawer>

@@ -41,9 +41,9 @@ div.main-view {
   mat-nav-list {
     width: 60px;
     overflow: hidden;
-    transition: width 0.3s;
+    // transition: width 0.02s;
   
-    span {
+    .nav-item-name {
       opacity: 0;
       display: none;
     }
@@ -51,14 +51,21 @@ div.main-view {
   
   mat-drawer:hover {
     mat-nav-list {
-      width: 180px;
-      span {
+      width: 200px;
+      .nav-item-name {
         display: inline-block;
         opacity: 1;
         margin: auto 10px;
         transition: all 0.1s ease-in 0.2s;
       }
     }
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
   }
 
   .selected-menu-item {
