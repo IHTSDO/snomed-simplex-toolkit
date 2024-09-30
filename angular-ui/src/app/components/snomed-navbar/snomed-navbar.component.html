@@ -17,7 +17,6 @@
     <div>
         <button mat-icon-button [matMenuTriggerFor]="menu" class="nav-button" matTooltip="User menu"><mat-icon>person</mat-icon></button>
         <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="login()">Login</button>
             <button mat-menu-item (click)="logout()">Logout</button>
             <button mat-menu-item (click)="removeAgreementAndReload()">See legal agreement</button>
         </mat-menu>

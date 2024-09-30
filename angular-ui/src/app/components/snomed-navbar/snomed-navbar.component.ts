@@ -158,10 +158,6 @@ export class SnomedNavbarComponent implements OnInit {
         this.pathingService.setActiveTask(null);
     }
 
-    login() {
-        this.simplexService.login();
-    }
-
     logout() {
         this.simplexService.logout();
         // this.authenticationService.logout();
