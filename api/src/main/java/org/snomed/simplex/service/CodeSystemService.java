@@ -80,13 +80,26 @@ public class CodeSystemService {
 		return codeSystems;
 	}
 
-	public CodeSystem getCodeSystemDetails(String codeSystem) throws ServiceException {
+	public CodeSystem getCodeSystemDetails(String codeSystemShortName) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem codeSystemForDisplay = snowstormClient.getCodeSystemForDisplay(codeSystem);
-		addClassificationStatus(codeSystemForDisplay);
-		addValidationStatus(codeSystemForDisplay);
-		securityService.updateUserRolePermissionCache(Collections.singletonList(codeSystemForDisplay));
-		return codeSystemForDisplay;
+		CodeSystem codeSystem = snowstormClient.getCodeSystemForDisplay(codeSystemShortName);
+		addClassificationStatus(codeSystem);
+		addValidationStatus(codeSystem);
+		securityService.updateUserRolePermissionCache(Collections.singletonList(codeSystem));
+
+		// If publishing, check SRS publish status
+		if (codeSystem.getEditionStatus() == EditionStatus.PUBLISHING) {
+			String buildUrl = codeSystem.getLatestReleaseCandidateBuild();
+			SRSBuild build = releaseServiceClient.getBuild(buildUrl);
+			if (build.getTags().contains("PUBLISHED")) {
+				synchronized (this) {
+					setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
+					clearBuildStatus(codeSystem, snowstormClient);
+				}
+			}
+		}
+
+		return codeSystem;
 	}
 
 	public CodeSystem createCodeSystem(CreateCodeSystemRequest createCodeSystemRequest) throws ServiceException {
