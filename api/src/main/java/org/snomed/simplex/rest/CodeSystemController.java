@@ -105,7 +105,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/upgrade")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob startUpgrade(@PathVariable String codeSystem, @RequestBody CodeSystemUpgradeRequest upgradeRequest) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		return jobService.startExternalServiceJob(theCodeSystem, ActivityType.UPGRADE, job -> codeSystemService.upgradeCodeSystem(job, upgradeRequest));
 	}
@@ -113,7 +113,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/classify")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob createClassificationJob(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		codeSystemService.addClassificationStatus(theCodeSystem);
         if (theCodeSystem.isClassified()) {
@@ -128,7 +128,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/validate")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob startValidation(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		return jobService.startExternalServiceJob(theCodeSystem, ActivityType.VALIDATE, codeSystemService::validate);
 	}
@@ -136,7 +136,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/validate/run-automatic-fixes")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void runAutomaticFixes(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, AUTOMATIC_FIX, () -> {
 			validationService.runAutomaticFixes(theCodeSystem);
@@ -147,7 +147,7 @@ public class CodeSystemController {
 	@GetMapping("{codeSystem}/validate/issues")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public ValidationFixList getValidationFixList(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		ValidationReport validationReport = getCompletedValidationReportOrThrow(theCodeSystem);
 		return validationService.getValidationFixList(validationReport);
@@ -158,7 +158,7 @@ public class CodeSystemController {
 	@ApiResponse(responseCode = "200", description = "The latest validation report was ready and downloaded okay.")
 	@ApiResponse(responseCode = "400", description = "The latest validation report is not ready for download.")
 	public void downloadValidationReport(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException, IOException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		ValidationReport validationReport = getCompletedValidationReportOrThrow(theCodeSystem);
 		response.setHeader("Content-Disposition", "attachment; filename=\"Simplex_Validation_Report.xlsx\"");
@@ -193,7 +193,7 @@ public class CodeSystemController {
 
 					This endpoint also saves the generated configuration.""")
 	public SRSProduct getReleaseProduct(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		PackageConfiguration packageConfiguration = codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());
 		return releaseServiceClient.getCreateProduct(theCodeSystem, packageConfiguration);
@@ -208,7 +208,7 @@ public class CodeSystemController {
 
 					The organisation name and contact details are required.""")
 	public PackageConfiguration getReleaseProductConfig(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		return codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());
 	}
@@ -219,7 +219,7 @@ public class CodeSystemController {
 			@PathVariable String codeSystem,
 			@RequestBody PackageConfiguration packageConfiguration) throws ServiceException {
 
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
 			codeSystemService.updatePackageConfiguration(packageConfiguration, codeSystemObject.getBranchPath());
@@ -239,7 +239,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/working-branch")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void setBranchOverride(@PathVariable String codeSystem, @RequestBody SetBranchRequest request) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
 			snowstormClient.setCodeSystemWorkingBranch(theCodeSystem, request.getBranchPath());
@@ -250,7 +250,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/start-authoring")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void startAuthoring(@PathVariable String codeSystem) throws ServiceException {
-		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, REMOVE_CONTENT_APPROVAL, () -> {
 			codeSystemService.startAuthoring(theCodeSystem);
 			return null;
@@ -260,7 +260,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/start-release-prep")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void startReleasePrep(@PathVariable String codeSystem) throws ServiceException {
-		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, START_RELEASE_PREP, () -> {
 			codeSystemService.startReleasePrep(theCodeSystem);
 			return null;
@@ -287,7 +287,7 @@ public class CodeSystemController {
 					If no effectiveTime is given it defaults to today's date.
 					""")
 	public void startReleaseBuild(@PathVariable String codeSystem, @RequestParam(required = false) String effectiveTime) throws ServiceException {
-		SnowstormClient snowstormClient = clientFactory.getClient();
+		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		if (effectiveTime == null) {
 			effectiveTime = new SimpleDateFormat("yyyyMMdd").format(new Date());
@@ -314,7 +314,7 @@ public class CodeSystemController {
 	@GetMapping(path = "{codeSystem}/release-candidate", produces="application/zip")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void downloadReleaseCandidate(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException {
-		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
 		Pair<String, File> tempFile = codeSystemService.downloadReleaseCandidate(theCodeSystem);
 		String filename = tempFile.getLeft();
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename.replace(".zip", "-release-candidate.zip") + "\"");
@@ -346,11 +346,15 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/start-maintenance")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void startMaintenance(@PathVariable String codeSystem) throws ServiceException {
-		CodeSystem theCodeSystem = clientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
 		activityService.recordActivity(codeSystem, CODE_SYSTEM, REMOVE_CONTENT_APPROVAL, () -> {
 			codeSystemService.startMaintenance(theCodeSystem);
 			return null;
 		});
+	}
+
+	private SnowstormClient getSnowstormClient() throws ServiceException {
+		return clientFactory.getClient();
 	}
 
 }

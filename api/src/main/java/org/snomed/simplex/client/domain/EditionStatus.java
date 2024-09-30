@@ -9,7 +9,9 @@ public enum EditionStatus {
 	MAINTENANCE("Maintenance Mode"),
 	AUTHORING("Authoring"),
 	PREPARING_RELEASE("Preparing Release"),
-	RELEASE("Release");
+	RELEASE("Release"),
+	PUBLISHING("Publishing");
+
 	private static Set<String> names;
 
 	private final String display;

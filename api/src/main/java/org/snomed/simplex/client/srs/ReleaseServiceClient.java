@@ -356,7 +356,7 @@ public class ReleaseServiceClient {
             String url = "%s/publish".formatted(build.url());
             getClient().exchange(url, HttpMethod.POST, null, Void.class);
         } catch (RestClientException | IllegalArgumentException e) {
-            logger.error("Failed to publish build {}", build, e);
+            throw new ServiceException("Release Service publish build request failed.", e);
         }
     }
 

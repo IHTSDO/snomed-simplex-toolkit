@@ -165,11 +165,20 @@ public class CodeSystemService {
 
 	public void startReleasePrep(CodeSystem codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		publishingStatusCheck(codeSystem);
 		clearBuildStatus(codeSystem, snowstormClient);
 		setEditionStatus(codeSystem, EditionStatus.PREPARING_RELEASE, snowstormClient);
 	}
 
+	private static void publishingStatusCheck(CodeSystem codeSystem) {
+		if (codeSystem.getEditionStatus() == EditionStatus.PUBLISHING) {
+			throw new IllegalStateException("Please wait for publishing to complete.");
+		}
+	}
+
 	public void approveContentForRelease(CodeSystem codeSystem) throws ServiceException {
+		publishingStatusCheck(codeSystem);
+
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		if (codeSystem.getEditionStatus() != EditionStatus.PREPARING_RELEASE) {
 			throw new ServiceExceptionWithStatusCode("CodeSystem must be in 'Preparing Release' status first before approving content for release.", HttpStatus.CONFLICT);
@@ -189,9 +198,12 @@ public class CodeSystemService {
 	}
 
 	public void finalizeRelease(CodeSystem codeSystem) throws ServiceException {
+		publishingStatusCheck(codeSystem);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		SRSBuild build = getReleaseCompleteBuildOrThrow(codeSystem);
 		String effectiveTime = build.configuration().getEffectiveTime();
+
+		setEditionStatus(codeSystem, EditionStatus.PUBLISHING, snowstormClient);
 
 		logger.info("Versioning CodeSystem {}", codeSystem.getShortName());
 		snowstormClient.versionCodeSystem(codeSystem, effectiveTime);
@@ -201,12 +213,14 @@ public class CodeSystemService {
 	}
 
 	public void startAuthoring(CodeSystem codeSystem) throws ServiceException {
+		publishingStatusCheck(codeSystem);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		clearBuildStatus(codeSystem, snowstormClient);
 		setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
 	}
 
 	public void startMaintenance(CodeSystem codeSystem) throws ServiceException {
+		publishingStatusCheck(codeSystem);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		clearBuildStatus(codeSystem, snowstormClient);
 		setEditionStatus(codeSystem, EditionStatus.MAINTENANCE, snowstormClient);
@@ -214,11 +228,6 @@ public class CodeSystemService {
 
 	private void clearBuildStatus(CodeSystem codeSystem, SnowstormClient snowstormClient) {
 		setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name(), codeSystem, snowstormClient);
-	}
-
-	private void setEditionStatus(CodeSystem codeSystem, EditionStatus editionStatus, SnowstormClient snowstormClient) {
-		codeSystem.setEditionStatus(editionStatus);
-		setCodeSystemMetadata(Branch.EDITION_STATUS_METADATA_KEY, codeSystem.getEditionStatus().name(), codeSystem, snowstormClient);
 	}
 
 	private static void setCodeSystemMetadata(String key, String value, CodeSystem codeSystem, SnowstormClient snowstormClient) {
@@ -247,11 +256,17 @@ public class CodeSystemService {
 		}
 	}
 
+	private void setEditionStatus(CodeSystem codeSystem, EditionStatus editionStatus, SnowstormClient snowstormClient) {
+		codeSystem.setEditionStatus(editionStatus);
+		setCodeSystemMetadata(Branch.EDITION_STATUS_METADATA_KEY, codeSystem.getEditionStatus().name(), codeSystem, snowstormClient);
+	}
+
 	public void upgradeCodeSystem(ExternalServiceJob asyncJob, CodeSystemUpgradeRequest upgradeRequest) {
 		try {
 			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 
 			CodeSystem codeSystem = asyncJob.getCodeSystemObject();
+			publishingStatusCheck(codeSystem);
 			setEditionStatus(codeSystem, EditionStatus.MAINTENANCE, snowstormClient);
 			// Disable daily-build to prevent content rollback during upgrade
 			codeSystem.setDailyBuildAvailable(false);
