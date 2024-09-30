@@ -42,6 +42,16 @@ export class SimplexService {
     window.location.href = redirectUrl;
   }
 
+  public logoutAccount():  Observable<any> {
+    let config: any = this.uiConfigurationService.getConfiguration();
+    let endpoint: string = config.endpoints.imsEndpoint;
+    endpoint = endpoint.replace('#/', '');
+    const url = `${endpoint}api/account/logout`;
+    console.log('Logging out from account');
+    console.log(url);
+    return this.http.post(url, {}).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public refreshUIConfiguration(): void {
     this.http.get('/api/ui-configuration').subscribe((config) => {
       this.uiConfigurationService.setConfiguration(config);
