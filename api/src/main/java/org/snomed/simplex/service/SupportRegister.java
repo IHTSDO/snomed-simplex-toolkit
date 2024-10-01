@@ -36,12 +36,14 @@ public class SupportRegister {
 			job.setServiceException(exception);
 		}
 		job.setErrorMessage(format("%s The support team have been made aware. Please try again later.", errorMessage));
+		String stackTrace = getStackTrace(exception);
 		supportLog.error("Support Issue|System|CodeSystem:{}| Job:{},{}| MESSAGE:{}| STACK_TRACE:{}", job.getCodeSystem(), job.getId(),
-				job.getDisplay(), errorMessage, getStackTrace(exception));
+				job.getDisplay(), errorMessage, stackTrace);
 	}
 
 	public void handleSystemError(CodeSystem codeSystem, String errorMessage, ServiceException exception) {
-		supportLog.error("Support Issue|System|CodeSystem:{}| MESSAGE:{}| STACK_TRACE:{}", codeSystem.getShortName(), errorMessage, getStackTrace(exception));
+		String stackTrace = getStackTrace(exception);
+		supportLog.error("Support Issue|System|CodeSystem:{}| MESSAGE:{}| STACK_TRACE:{}", codeSystem.getShortName(), errorMessage, stackTrace);
 	}
 
 	private String getStackTrace(ServiceException exception) {
