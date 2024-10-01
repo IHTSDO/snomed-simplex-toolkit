@@ -33,6 +33,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   skeleton: any[] = Array(2).fill({});
   loading = false;
   showMapInfo = false;
+  hasInProgressJob = false;
 
   selectedFile: File = null;
   selectedFileType: string = null;
@@ -143,12 +144,12 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
           }
         });
 
-        const hasInProgressJob = this.jobs.some(
+        this.hasInProgressJob = this.jobs.some(
           (job) => job.status === 'IN_PROGRESS'
         );
 
         // If there's an in-progress job and no interval is currently set, set up the interval
-        if (hasInProgressJob && !this.intervalId) {
+        if (this.hasInProgressJob && !this.intervalId) {
           clearInterval(this.intervalId);
           this.intervalId = setInterval(() => {
             this.loadJobs(false);
@@ -156,7 +157,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         }
 
         // If there's no in-progress job and an interval is currently set, adjust the interval
-        if (!hasInProgressJob && this.intervalId) {
+        if (!this.hasInProgressJob && this.intervalId) {
           clearInterval(this.intervalId);
           this.intervalId = setInterval(() => {
             this.loadJobs(false);

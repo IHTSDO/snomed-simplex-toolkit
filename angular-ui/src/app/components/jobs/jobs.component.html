@@ -214,7 +214,7 @@
       />
     </mat-form-field>
 </div>
-
+<p *ngIf="hasInProgressJob" class="no-imports right">Jobs are running, you can navigate to other parts of Simplex and come back later</p>
 <table mat-table [dataSource]="loading ? skeleton : jobs">
   
     <!-- Created Column -->
