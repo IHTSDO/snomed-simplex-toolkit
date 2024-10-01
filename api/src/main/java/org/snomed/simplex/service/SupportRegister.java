@@ -18,7 +18,7 @@ public class SupportRegister {
 	public void handleTechnicalContentIssue(AsyncJob job, String errorMessage) {
 		job.setStatus(JobStatus.TECHNICAL_CONTENT_ISSUE);
 		job.setErrorMessage(format("%s. Please contact support.", errorMessage));
-		supportLog.info("Support Issue|Content|CodeSystem:{}, Job:{}|{}, Message:{}", job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage);
+		supportLog.error("Support Issue|Content|CodeSystem:{}, Job:{}|{}, Message:{}", job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage);
 	}
 
 	public void handleSystemError(AsyncJob job, String errorMessage) throws ServiceException {
@@ -35,10 +35,10 @@ public class SupportRegister {
 			job.setServiceException(exception);
 		}
 		job.setErrorMessage(format("%s The support team have been made aware. Please try again later.", errorMessage));
-		supportLog.info("Support Issue|System|CodeSystem:{}, Job:{}|{}, Message:{}", job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage, exception);
+		supportLog.error("Support Issue|System|CodeSystem:{}, Job:{}|{}, Message:{}", job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage, exception);
 	}
 
 	public void handleSystemError(CodeSystem codeSystem, String errorMessage, ServiceException exception) {
-		supportLog.info("Support Issue|System|CodeSystem:{}, Message:{}", codeSystem.getShortName(), errorMessage, exception);
+		supportLog.error("Support Issue|System|CodeSystem:{}, Message:{}", codeSystem.getShortName(), errorMessage, exception);
 	}
 }
