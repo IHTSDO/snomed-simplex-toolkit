@@ -159,9 +159,10 @@ export class SnomedNavbarComponent implements OnInit {
     }
 
     logout() {
-        this.simplexService.logoutAccount().subscribe(() => {
-            this.goHome();
-        });
+        this.simplexService.logout();
+        // this.simplexService.logoutAccount().subscribe(() => {
+        //     this.goHome();
+        // });
     }
 
     removeAgreementAndReload() {

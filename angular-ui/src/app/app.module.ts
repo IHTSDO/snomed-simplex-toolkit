@@ -70,6 +70,8 @@ import {MatCardModule} from '@angular/material/card';
 import { ProductPackagingComponent } from './components/product-packaging/product-packaging.component';
 import { WelcomeComponent } from './components/welcome/welcome.component';
 import { UpgradeEditionComponent } from './components/upgrade-edition/upgrade-edition.component';
+import { EditionActivitiesComponent } from './components/edition-activities/edition-activities.component';
+import { ElapsedPipe } from './pipes/elapsed/elapsed.pipe';
 
 // SERVICE IMPORTS
 
@@ -83,6 +85,7 @@ import { UpgradeEditionComponent } from './components/upgrade-edition/upgrade-ed
         ProjectPipe,
         ModalComponent,
         TextFilterPipe,
+        ElapsedPipe,
         MainViewComponent,
         CodesystemsComponent,
         BootConfigComponent,
@@ -109,7 +112,8 @@ import { UpgradeEditionComponent } from './components/upgrade-edition/upgrade-ed
         ValidationResultsComponent,
         ProductPackagingComponent,
         WelcomeComponent,
-        UpgradeEditionComponent
+        UpgradeEditionComponent,
+        EditionActivitiesComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         FormsModule,

@@ -204,6 +204,13 @@ export class SimplexService {
     }
   }
 
+  public getActivities(edition: string, offset?: number, limit?: number): Observable<any> {
+    if (!offset) offset = 0;
+    if (!limit) limit = 20;
+    const url = `/api/${edition}/activities?offset=${offset}&limit=${limit}`;
+    return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getRoles(): Observable<any> {
     return this.http.get('/api/auth').pipe(catchError(this.handleError.bind(this)));
   }
