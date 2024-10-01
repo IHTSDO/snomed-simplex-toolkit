@@ -100,6 +100,7 @@ public class JobService {
 				asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
 				asyncJob.setServiceException(e);
 				activity.exception(e);
+				supportRegister.handleSystemError(asyncJob, e.getMessage(), e);
 			} catch (Exception e) {
 				ServiceException serviceException = new ServiceException("Unexpected error.", e);
 				activity.exception(serviceException);

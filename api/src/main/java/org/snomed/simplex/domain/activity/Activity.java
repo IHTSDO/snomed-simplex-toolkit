@@ -2,13 +2,12 @@ package org.snomed.simplex.domain.activity;
 
 import org.ihtsdo.sso.integration.SecurityUtil;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.util.ExceptionUtil;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -73,14 +72,7 @@ public class Activity {
 	public void exception(ServiceException e) {
 		setError(true);
 		setMessage(e.getMessage());
-		setStackTrace(getStackTraceAsString(e));
-	}
-
-	private String getStackTraceAsString(Exception e) {
-		StringWriter sw = new StringWriter();
-		PrintWriter pw = new PrintWriter(sw);
-		e.printStackTrace(pw);
-		return sw.toString();
+		setStackTrace(ExceptionUtil.getStackTraceAsString(e));
 	}
 
 	public void setStartDate(Date startDate) {

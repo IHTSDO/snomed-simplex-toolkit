@@ -6,6 +6,7 @@ import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.util.ExceptionUtil;
 import org.springframework.stereotype.Service;
 
 import static java.lang.String.format;
@@ -18,7 +19,7 @@ public class SupportRegister {
 	public void handleTechnicalContentIssue(AsyncJob job, String errorMessage) {
 		job.setStatus(JobStatus.TECHNICAL_CONTENT_ISSUE);
 		job.setErrorMessage(format("%s. Please contact support.", errorMessage));
-		supportLog.error("Support Issue|Content|CodeSystem:{}, Job:{}|{}, Message:{}", job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage);
+		supportLog.error("Support Issue|Content|CodeSystem:{}| Job:{},{}| MESSAGE:{}", job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage);
 	}
 
 	public void handleSystemError(AsyncJob job, String errorMessage) throws ServiceException {
@@ -35,10 +36,15 @@ public class SupportRegister {
 			job.setServiceException(exception);
 		}
 		job.setErrorMessage(format("%s The support team have been made aware. Please try again later.", errorMessage));
-		supportLog.error("Support Issue|System|CodeSystem:{}, Job:{}|{}, Message:{}", job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage, exception);
+		supportLog.error("Support Issue|System|CodeSystem:{}| Job:{},{}| MESSAGE:{}| STACK_TRACE:{}", job.getCodeSystem(), job.getId(),
+				job.getDisplay(), errorMessage, getStackTrace(exception));
 	}
 
 	public void handleSystemError(CodeSystem codeSystem, String errorMessage, ServiceException exception) {
-		supportLog.error("Support Issue|System|CodeSystem:{}, Message:{}", codeSystem.getShortName(), errorMessage, exception);
+		supportLog.error("Support Issue|System|CodeSystem:{}| MESSAGE:{}| STACK_TRACE:{}", codeSystem.getShortName(), errorMessage, getStackTrace(exception));
+	}
+
+	private String getStackTrace(ServiceException exception) {
+		return exception != null ? ExceptionUtil.getStackTraceAsString(exception).replace("\n", "") : "none";
 	}
 }
