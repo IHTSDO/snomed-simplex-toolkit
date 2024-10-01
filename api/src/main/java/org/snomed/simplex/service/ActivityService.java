@@ -4,6 +4,7 @@ import org.ihtsdo.otf.resourcemanager.ResourceManager;
 import org.ihtsdo.sso.integration.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.domain.Component;
 import org.snomed.simplex.config.ActivityResourceManagerConfiguration;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.domain.activity.Activity;
@@ -44,8 +45,13 @@ public class ActivityService {
 		repository.deleteAllByActivityType("ADD_CONTENT_APPROVAL");
 	}
 
-	public org.snomed.simplex.domain.Page<Activity> findActivities(String codesystem, PageRequest pageRequest) {
-		org.springframework.data.domain.Page<Activity> springPage = repository.findActivitiesByCodesystemIsOrderByStartDateDesc(codesystem, pageRequest);
+	public org.snomed.simplex.domain.Page<Activity> findActivities(String codesystem, String componentId, PageRequest pageRequest) {
+		org.springframework.data.domain.Page<Activity> springPage;
+		if (componentId == null) {
+			springPage = repository.findActivitiesByCodesystemIsOrderByStartDateDesc(codesystem, pageRequest);
+		} else {
+			springPage = repository.findActivitiesByCodesystemIsAndComponentIdOrderByStartDateDesc(codesystem, componentId, pageRequest);
+		}
 		return new Page<>(springPage);
 	}
 

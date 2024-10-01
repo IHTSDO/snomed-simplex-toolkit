@@ -33,6 +33,11 @@ public class TestActivityRepository extends NoopRepository<Activity> implements 
 	}
 
 	@Override
+	public Page<Activity> findActivitiesByCodesystemIsAndComponentIdOrderByStartDateDesc(String codesystem, String componentId, PageRequest pageRequest) {
+		return null;
+	}
+
+	@Override
 	public Optional<Activity> findActivityByCodesystemAndStartDate(String codeSystem, Long startDate) {
 		return Optional.empty();
 	}

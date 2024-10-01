@@ -28,10 +28,11 @@ public class ActivityController {
 	@GetMapping
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public Page<Activity> getActivities(@PathVariable String codeSystem,
+			@RequestParam(required = false) String componentId,
 			@RequestParam(required = false, defaultValue = "0") int offset,
 			@RequestParam(required = false, defaultValue = "100") int limit) {
 
-		return activityService.findActivities(codeSystem, ControllerHelper.getPageRequest(offset, limit));
+		return activityService.findActivities(codeSystem, componentId, ControllerHelper.getPageRequest(offset, limit));
 	}
 
 	@GetMapping(path = "/{startDate}")
