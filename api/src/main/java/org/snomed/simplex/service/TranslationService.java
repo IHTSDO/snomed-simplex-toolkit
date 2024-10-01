@@ -82,7 +82,7 @@ public class TranslationService {
 		timer.checkpoint("ECL for lang refsets");
 
 		for (ConceptMini translationRefset : translationRefsets) {
-			Page<RefsetMember> firstMember = snowstormClient.getRefsetMembers(translationRefset.getConceptId(), codeSystem, true, 0, 1);
+			Page<RefsetMember> firstMember = snowstormClient.getRefsetMembers(translationRefset.getConceptId(), codeSystem, true, 1, null);
 			timer.checkpoint(format("Load one lang refset member for %s.", translationRefset.getIdAndFsnTerm()));
 
 			if (!firstMember.getItems().isEmpty()) {

@@ -169,7 +169,7 @@ public class ReleaseManifestService {
 
 	private static String getLangRefsetLanguageCode(CodeSystem codeSystem, SnowstormClient snowstormClient, ConceptMini refset) throws HTTPClientException {
 		String languageCode = "-en";
-		Page<RefsetMember> refsetMembers = snowstormClient.getRefsetMembers(refset.getConceptId(), codeSystem, true, 0, 5);
+		Page<RefsetMember> refsetMembers = snowstormClient.getRefsetMembers(refset.getConceptId(), codeSystem, true, 5, null);
 		if (refsetMembers.getTotal() > 0) {
 			RefsetMember firstLanguageRefsetMember = refsetMembers.getItems().get(0);
 			ReferencedComponent referencedComponent = firstLanguageRefsetMember.getReferencedComponent();

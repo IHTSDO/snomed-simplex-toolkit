@@ -250,7 +250,7 @@ public class CodeSystemService {
 	}
 
 	private void createModuleOntologyExpression(String moduleId, CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
-		List<RefsetMember> ontologyMembers = snowstormClient.getRefsetMembers(OWL_ONTOLOGY_REFSET, codeSystem, false, 0, 100).getItems();
+		List<RefsetMember> ontologyMembers = snowstormClient.getRefsetMembers(OWL_ONTOLOGY_REFSET, codeSystem, false, 100, null).getItems();
 		RefsetMember existingOntologyExpressionMember = null;
 		for (RefsetMember ontologyMember : ontologyMembers) {
 			if (ontologyMember.isActive() && ontologyMember.getAdditionalFields().get(OWL_EXPRESSION).startsWith("Ontology(<http://snomed.info/sct/")) {

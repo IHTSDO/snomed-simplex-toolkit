@@ -1,6 +1,7 @@
 package org.snomed.simplex.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
@@ -303,10 +304,14 @@ public class SnowstormClient {
 		}
 	}
 
-	public Page<RefsetMember> getRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly, int offset, int limit) throws HTTPClientException {
+	public Page<RefsetMember> getRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly,
+			int limit, String searchAfter) throws HTTPClientException {
+
 		try {
-			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&offset=%s&limit=%s%s",
-							codeSystem.getWorkingBranchPath(), refsetId, offset, limit, activeOnly ? "&active=true" : ""),
+			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&limit=%s%s&searchAfter=%s",
+							codeSystem.getWorkingBranchPath(), refsetId, limit,
+							activeOnly ? "&active=true" : "",
+							searchAfter != null ? searchAfter : ""),
 					HttpMethod.GET, null, responseTypeRefsetPage);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
@@ -315,12 +320,16 @@ public class SnowstormClient {
 	}
 
 	public List<RefsetMember> loadAllRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly) throws ServiceException {
-		Page<RefsetMember> page = getRefsetMembers(refsetId, codeSystem, activeOnly, 0, MAX_PAGE_SIZE);
-		if (page.getTotal() > page.getItems().size()) {
-			// TODO: Load the rest. Will need to implement scrolling beyond 10K members in Snowstorm.
-			logger.warn("WARNING, only the first 10K members were loaded! There are {} in total!", page.getTotal());
-		}
-		return page.getItems();
+		List<RefsetMember> refsetMembers = new ArrayList<>();
+		String searchAfter = null;
+		Page<RefsetMember> page;
+		do {
+			page = getRefsetMembers(refsetId, codeSystem, activeOnly, MAX_PAGE_SIZE, searchAfter);
+			refsetMembers.addAll(page.getItems());
+			searchAfter = page.getSearchAfter();
+		} while (!page.getItems().isEmpty());
+
+		return refsetMembers;
 	}
 
 	public int countAllActiveRefsetMembers(String refsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
@@ -425,20 +434,25 @@ public class SnowstormClient {
 			return new ArrayList<>();
 		}
 
-		ConceptSearchRequest searchRequest = new ConceptSearchRequest(conceptIds);
-		searchRequest.setReturnIdOnly(true);
-		searchRequest.setActiveFilter(true);
-		searchRequest.setLimit(MAX_PAGE_SIZE);
 		try {
-			ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(format("/%s/concepts/search", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
-					new HttpEntity<>(searchRequest), responseTypeSCTIDPage);
-			Page<Long> page = pageOfIds.getBody();
-			if (page != null && page.getTotal() > page.getItems().size()) {
-				// FIXME: Limited to 10K
-				throw new ServiceException("Failed to load concept list greater than 10K");
+			List<Long> results = null;
+			for (List<String> conceptIdBatch : Iterables.partition(conceptIds, MAX_PAGE_SIZE)) {
+				ConceptSearchRequest searchRequest = new ConceptSearchRequest(conceptIdBatch);
+				searchRequest.setReturnIdOnly(true);
+				searchRequest.setActiveFilter(true);
+				searchRequest.setLimit(MAX_PAGE_SIZE);
+
+				ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(format("/%s/concepts/search", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
+						new HttpEntity<>(searchRequest), responseTypeSCTIDPage);
+				Page<Long> page = pageOfIds.getBody();
+				throwIfNull(page, "concept search results");
+				if (results == null) {
+					results = new ArrayList<>(page.getItems());
+				} else {
+					results.addAll(page.getItems());
+				}
 			}
-			throwIfNull(page, "concept search results");
-			return page.getItems();
+			return results;
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "fetch concept ids");
 		}
