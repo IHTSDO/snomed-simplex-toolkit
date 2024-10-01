@@ -29,6 +29,7 @@ public class HttpSecurityConfig {
 			"/",
 			"/*",
 			"/assets/*",
+			"/media/*",
 			"/api/version",
 			"/api/ui-configuration",
 			"/api/",
