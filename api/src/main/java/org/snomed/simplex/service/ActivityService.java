@@ -62,10 +62,21 @@ public class ActivityService {
 
 	public <T> T recordActivity(String codeSystem, ComponentType componentType, ActivityType activityType,
 			ServiceCallable<T> callable) throws ServiceException {
+		return recordActivity(codeSystem, componentType, activityType, null, callable);
+	}
+
+	public <T> T recordActivity(String codeSystem, ComponentType componentType, ActivityType activityType, String componentId,
+			ServiceCallable<T> callable) throws ServiceException {
+
 
 		Activity activity = new Activity(SecurityUtil.getUsername(), codeSystem, componentType, activityType);
+		activity.setComponentId(componentId);
 		try {
-			return callable.call();
+			T result = callable.call();
+			if (activityType == ActivityType.CREATE && result instanceof Component) {
+				activity.setComponentId(((Component) result).getId());
+			}
+			return result;
 		} catch (ServiceException e) {
 			activity.exception(e);
 			throw e;

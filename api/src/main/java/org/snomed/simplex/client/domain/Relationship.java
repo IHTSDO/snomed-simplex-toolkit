@@ -1,5 +1,7 @@
 package org.snomed.simplex.client.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class Relationship extends Component {
 
 	private String relationshipId;
@@ -30,6 +32,12 @@ public class Relationship extends Component {
 		relationship.characteristicType = "INFERRED_RELATIONSHIP";
 		relationship.modifier = "EXISTENTIAL";
 		return relationship;
+	}
+
+	@Override
+	@JsonIgnore
+	public String getId() {
+		return relationshipId;
 	}
 
 	public String getRelationshipId() {

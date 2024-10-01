@@ -16,6 +16,11 @@ public class Axiom extends Component {
 		this.relationships = relationships;
 	}
 
+	@Override
+	public String getId() {
+		return axiomId;
+	}
+
 	public String getAxiomId() {
 		return axiomId;
 	}

@@ -61,6 +61,7 @@ public class JobService {
 	public AsyncJob queueContentJob(CodeSystem codeSystem, String display, InputStream jobInputStream, String originalFilename, String refsetId,
 			Activity activity, AsyncFunction<ContentJob> function) throws IOException {
 
+		activity.setComponentId(refsetId);
 		ContentJob asyncJob = new ContentJob(codeSystem, display, refsetId);
 		File tempFile = File.createTempFile(asyncJob.getId(), "txt");
 		try (FileOutputStream out = new FileOutputStream(tempFile)) {

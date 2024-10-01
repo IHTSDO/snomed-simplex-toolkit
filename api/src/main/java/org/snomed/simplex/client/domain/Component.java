@@ -1,6 +1,8 @@
 package org.snomed.simplex.client.domain;
 
-public class Component {
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+public abstract class Component {
 
 	private boolean active;
 	private boolean released;
@@ -15,6 +17,9 @@ public class Component {
 		this();
 		this.moduleId = moduleId;
 	}
+
+	@JsonIgnore
+	public abstract String getId();
 
 	public boolean isActive() {
 		return active;

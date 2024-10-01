@@ -1,5 +1,7 @@
 package org.snomed.simplex.client.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -97,6 +99,12 @@ public class Description extends Component {
 		this.term = term;
 		this.caseSignificance = caseSignificance;
 		this.acceptabilityMap = acceptabilityMap;
+	}
+
+	@Override
+	@JsonIgnore
+	public String getId() {
+		return descriptionId;
 	}
 
 	public Description addAcceptability(String langRefsetId, Acceptability acceptability) {

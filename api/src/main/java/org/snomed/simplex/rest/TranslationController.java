@@ -74,7 +74,7 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		activityService.recordActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.DELETE, () -> {
+		activityService.recordActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.DELETE, refsetId, () -> {
 			translationService.deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
 			return null;
 		});

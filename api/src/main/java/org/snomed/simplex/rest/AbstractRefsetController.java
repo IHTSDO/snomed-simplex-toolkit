@@ -100,7 +100,7 @@ public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 	public void deleteRefset(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		activityService.recordActivity(codeSystem, getComponentType(), ActivityType.DELETE, () -> {
+		activityService.recordActivity(codeSystem, getComponentType(), ActivityType.DELETE, refsetId, () -> {
 			snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 			getRefsetService().deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
 			return null;

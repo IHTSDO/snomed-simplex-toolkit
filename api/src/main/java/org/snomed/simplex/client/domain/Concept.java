@@ -78,6 +78,12 @@ public class Concept extends Component {
 		return !definitionStatus.equals(PRIMITIVE);
 	}
 
+	@Override
+	@JsonIgnore
+	public String getId() {
+		return conceptId;
+	}
+
 	public String getConceptId() {
 		return conceptId;
 	}
