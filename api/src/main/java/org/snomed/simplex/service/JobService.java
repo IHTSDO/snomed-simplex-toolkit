@@ -123,7 +123,14 @@ public class JobService {
 	}
 
 	public List<AsyncJob> listJobs(String codeSystem, String refsetId, JobType jobType) {
-		List<AsyncJob> jobs = new ArrayList<>(codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).values());
+		List<AsyncJob> jobs;
+		if (codeSystem != null) {
+			jobs = new ArrayList<>(codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).values());
+		} else {
+			jobs = codeSystemJobs.values().stream()
+					.flatMap(value -> value.values().stream())
+					.toList();
+		}
 		return jobs.stream()
 				.filter(job -> jobType == null || job.getJobType() == jobType)
 				.filter(job -> refsetId == null || (job instanceof ContentJob && refsetId.equals(((ContentJob)job).getRefsetId())))
@@ -134,6 +141,7 @@ public class JobService {
 	@Scheduled(fixedDelay = 3_600_000)// Every hour
 	public void expireOldJobs() {
 		synchronized (codeSystemJobs) {
+			// Delete jobs over 7 days old
 			GregorianCalendar maxAge = new GregorianCalendar();
 			maxAge.add(Calendar.DAY_OF_YEAR, -7);
 			for (Map<String, AsyncJob> codeSystemJobs : codeSystemJobs.values()) {

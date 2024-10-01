@@ -1,5 +1,6 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.job.AsyncJob;
@@ -11,7 +12,7 @@ import java.util.List;
 
 @RestController
 @Tag(name = "Processing Jobs", description = "-")
-@RequestMapping("api/{codeSystem}/jobs")
+@RequestMapping("api")
 public class JobController {
 
 	private final JobService service;
@@ -20,7 +21,16 @@ public class JobController {
 		this.service = service;
 	}
 
-	@GetMapping
+	@Operation(summary = "Admin function to list system wide jobs")
+	@GetMapping("/jobs")
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public List<AsyncJob> listAllJobs(@RequestParam(required = false) String refsetId,
+			@RequestParam(required = false) JobType jobType) {
+
+		return service.listJobs(null, refsetId, jobType);
+	}
+
+	@GetMapping("/{codeSystem}/jobs")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<AsyncJob> listJobs(@PathVariable String codeSystem, @RequestParam(required = false) String refsetId,
 			@RequestParam(required = false) JobType jobType) {
@@ -28,7 +38,7 @@ public class JobController {
 		return service.listJobs(codeSystem, refsetId, jobType);
 	}
 
-	@GetMapping("/{jobId}")
+	@GetMapping("/{codeSystem}/jobs/{jobId}")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob getJob(@PathVariable String codeSystem, @PathVariable String jobId) {
 		return service.getAsyncJob(codeSystem, jobId);
