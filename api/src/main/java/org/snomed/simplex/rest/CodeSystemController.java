@@ -251,7 +251,7 @@ public class CodeSystemController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void startAuthoring(@PathVariable String codeSystem) throws ServiceException {
 		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
-		activityService.recordActivity(codeSystem, CODE_SYSTEM, REMOVE_CONTENT_APPROVAL, () -> {
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, START_AUTHORING, () -> {
 			codeSystemService.startAuthoring(theCodeSystem);
 			return null;
 		});
@@ -271,7 +271,7 @@ public class CodeSystemController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void approveContentChanges(@PathVariable String codeSystem) throws ServiceException {
 		CodeSystem theCodeSystem = getCodeSystemDetails(codeSystem);
-		activityService.recordActivity(codeSystem, CODE_SYSTEM, ADD_CONTENT_APPROVAL, () -> {
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, APPROVE_CONTENT, () -> {
 			codeSystemService.approveContentForRelease(theCodeSystem);
 			return null;
 		});
@@ -347,7 +347,7 @@ public class CodeSystemController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void startMaintenance(@PathVariable String codeSystem) throws ServiceException {
 		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
-		activityService.recordActivity(codeSystem, CODE_SYSTEM, REMOVE_CONTENT_APPROVAL, () -> {
+		activityService.recordActivity(codeSystem, CODE_SYSTEM, START_MAINTENANCE, () -> {
 			codeSystemService.startMaintenance(theCodeSystem);
 			return null;
 		});

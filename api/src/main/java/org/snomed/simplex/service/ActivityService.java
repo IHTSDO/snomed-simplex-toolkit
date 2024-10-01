@@ -40,6 +40,8 @@ public class ActivityService {
 
 		// Remove entries with old activity-types
 		repository.deleteAllByActivityType("STOP_RELEASE_PREP");
+		repository.deleteAllByActivityType("REMOVE_CONTENT_APPROVAL");
+		repository.deleteAllByActivityType("ADD_CONTENT_APPROVAL");
 	}
 
 	public org.snomed.simplex.domain.Page<Activity> findActivities(String codesystem, PageRequest pageRequest) {
