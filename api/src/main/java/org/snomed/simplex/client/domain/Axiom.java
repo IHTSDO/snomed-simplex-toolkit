@@ -1,5 +1,7 @@
 package org.snomed.simplex.client.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.List;
 
 public class Axiom extends Component {
@@ -17,8 +19,9 @@ public class Axiom extends Component {
 	}
 
 	@Override
+	@JsonIgnore
 	public String getId() {
-		return axiomId;
+		return getAxiomId();
 	}
 
 	public String getAxiomId() {

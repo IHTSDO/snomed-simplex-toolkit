@@ -81,7 +81,7 @@ public class Concept extends Component {
 	@Override
 	@JsonIgnore
 	public String getId() {
-		return conceptId;
+		return getConceptId();
 	}
 
 	public String getConceptId() {

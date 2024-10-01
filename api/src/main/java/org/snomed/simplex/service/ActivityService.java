@@ -81,8 +81,8 @@ public class ActivityService {
 		activity.setComponentId(componentId);
 		try {
 			T result = callable.call();
-			if (activityType == ActivityType.CREATE && result instanceof Component) {
-				activity.setComponentId(((Component) result).getId());
+			if (activityType == ActivityType.CREATE && result instanceof Component component) {
+				activity.setComponentId(component.getId());
 			}
 			return result;
 		} catch (ServiceException e) {

@@ -9,11 +9,11 @@ public abstract class Component {
 	private String moduleId;
 	private String effectiveTime;
 
-	public Component() {
+	protected Component() {
 		active = true;
 	}
 
-	public Component(String moduleId) {
+	protected Component(String moduleId) {
 		this();
 		this.moduleId = moduleId;
 	}

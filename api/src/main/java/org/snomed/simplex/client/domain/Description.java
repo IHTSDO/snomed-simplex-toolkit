@@ -104,7 +104,7 @@ public class Description extends Component {
 	@Override
 	@JsonIgnore
 	public String getId() {
-		return descriptionId;
+		return getDescriptionId();
 	}
 
 	public Description addAcceptability(String langRefsetId, Acceptability acceptability) {

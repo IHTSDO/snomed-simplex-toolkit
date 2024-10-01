@@ -37,7 +37,7 @@ public class Relationship extends Component {
 	@Override
 	@JsonIgnore
 	public String getId() {
-		return relationshipId;
+		return getRelationshipId();
 	}
 
 	public String getRelationshipId() {
