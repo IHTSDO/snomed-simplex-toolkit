@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom, Subject } from 'rxjs';
@@ -44,6 +44,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
 
   constructor(private fb: FormBuilder,
               private simplexService: SimplexService,
+              private changeDetectorRef: ChangeDetectorRef,
               private snackBar: MatSnackBar) {}
 
   ngOnInit() {
@@ -112,6 +113,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
         .subscribe((subsets) => {
             this.subsets = subsets;
             this.loadingSubsets = false;
+            this.changeDetectorRef.detectChanges();
         });
   }
 
@@ -123,6 +125,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
         .subscribe((translations) => {
             this.translations = translations;
             this.loadingTranslations = false;
+            this.changeDetectorRef.detectChanges();
         });
   }
 
@@ -134,6 +137,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
         .subscribe((maps) => {
             this.maps = maps;
             this.loadingMaps = false;
+            this.changeDetectorRef.detectChanges();
         });
   }
 
