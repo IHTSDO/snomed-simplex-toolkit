@@ -166,6 +166,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
             (edition) => {
               this.saving = false;
               this.form.reset();
+              this.form.enable();
               this.newArtifactMode = false;
               this.loadArtifacts(this.edition);
             },
@@ -183,6 +184,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
             (edition) => {
               this.saving = false;
               this.form.reset();
+              this.form.enable();
               this.newArtifactMode = false;
               this.loadArtifacts(this.edition);
             },
@@ -200,6 +202,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
             (edition) => {
               this.saving = false;
               this.form.reset();
+              this.form.enable();
               this.newArtifactMode = false;
               this.loadArtifacts(this.edition);
             },
@@ -217,6 +220,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
             (edition) => {
               this.saving = false;
               this.form.reset();
+              this.form.enable();
               this.newArtifactMode = false;
               this.loadArtifacts(this.edition);
             },
