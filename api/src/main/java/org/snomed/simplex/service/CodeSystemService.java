@@ -87,6 +87,8 @@ public class CodeSystemService {
 		addValidationStatus(codeSystem);
 		securityService.updateUserRolePermissionCache(Collections.singletonList(codeSystem));
 
+		runStatusChecks(codeSystem, snowstormClient);
+
 		// If publishing, check SRS publish status
 		if (codeSystem.getEditionStatus() == EditionStatus.PUBLISHING) {
 			String buildUrl = codeSystem.getLatestReleaseCandidateBuild();
@@ -100,6 +102,16 @@ public class CodeSystemService {
 		}
 
 		return codeSystem;
+	}
+
+	private void runStatusChecks(CodeSystem codeSystem, SnowstormClient snowstormClient) {
+		if (codeSystem.getBuildStatus() == CodeSystemBuildStatus.IN_PROGRESS) {
+			String buildUrl = codeSystem.getLatestReleaseCandidateBuild();
+			if (buildUrl == null || !releaseJobsToMonitor.containsKey(buildUrl)) {
+				logger.info("Reseting build status of {}", codeSystem.getShortName());
+				clearBuildStatus(codeSystem, snowstormClient);
+			}
+		}
 	}
 
 	public CodeSystem createCodeSystem(CreateCodeSystemRequest createCodeSystemRequest) throws ServiceException {
