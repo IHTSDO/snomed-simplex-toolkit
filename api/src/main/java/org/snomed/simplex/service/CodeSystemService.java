@@ -677,7 +677,7 @@ public class CodeSystemService {
 	}
 
 	private SRSBuild getReleaseCompleteBuildOrThrow(CodeSystem codeSystem) throws ServiceException {
-		if (codeSystem.getEditionStatus() != EditionStatus.RELEASE || codeSystem.getBuildStatus() == CodeSystemBuildStatus.COMPLETE) {
+		if (codeSystem.getEditionStatus() != EditionStatus.RELEASE || codeSystem.getBuildStatus() != CodeSystemBuildStatus.COMPLETE) {
 			throw new ServiceExceptionWithStatusCode("This function is only available when CodeSytem is in release mode " +
 					"and the release candidate build is complete.", HttpStatus.CONFLICT);
 		}
