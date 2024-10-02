@@ -39,8 +39,8 @@ public class CodeSystem {
 	private boolean postcoordinated;
 	private boolean dailyBuildAvailable;
 	private Map<String, String> languages;
-	private List<ConceptMini> modules;
 	private CodeSystemVersion latestVersion;
+	private List<ConceptMini> modules;
 
 	private Branch branchObject;
 

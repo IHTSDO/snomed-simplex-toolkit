@@ -240,7 +240,9 @@ public class CodeSystemService {
 	}
 
 	private void clearBuildStatus(CodeSystem codeSystem, SnowstormClient snowstormClient) {
-		setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name(), codeSystem, snowstormClient);
+		CodeSystemBuildStatus newStatus = CodeSystemBuildStatus.TODO;
+		codeSystem.setBuildStatus(newStatus);
+		setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, newStatus.name(), codeSystem, snowstormClient);
 	}
 
 	private static void setCodeSystemMetadata(String key, String value, CodeSystem codeSystem, SnowstormClient snowstormClient) {
