@@ -12,7 +12,9 @@ import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.client.srs.domain.SRSBuild;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.PackageConfiguration;
+import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
+import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
@@ -48,6 +50,7 @@ public class CodeSystemService {
 	private final SupportRegister supportRegister;
 	private final ValidationServiceClient validationServiceClient;
 	private final ReleaseServiceClient releaseServiceClient;
+	private final ActivityService activityService;
 	private final SecurityService securityService;
 
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
@@ -62,13 +65,14 @@ public class CodeSystemService {
 
 	public CodeSystemService(SnowstormClientFactory snowstormClientFactory, JobService jobService, SupportRegister supportRegister,
 			ValidationServiceClient validationServiceClient, ReleaseServiceClient releaseServiceClient,
-			SecurityService securityService) {
+			ActivityService activityService, SecurityService securityService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.jobService = jobService;
 		this.supportRegister = supportRegister;
 		this.validationServiceClient = validationServiceClient;
 		this.releaseServiceClient = releaseServiceClient;
+		this.activityService = activityService;
 		this.securityService = securityService;
 	}
 
@@ -101,8 +105,11 @@ public class CodeSystemService {
 						String effectiveTime = build.configuration().getEffectiveTime();
 						String releasePackageFilename = releaseServiceClient.getReleasePackageFilename(buildUrl);
 						snowstormClient.setVersionReleasePackage(codeSystem, effectiveTime, releasePackageFilename);
+
 						setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
 						clearBuildStatus(codeSystem, snowstormClient);
+						Activity activity = new Activity(Activity.AUTOMATIC, codeSystemShortName, ComponentType.CODE_SYSTEM, ActivityType.START_AUTHORING);
+						activityService.recordCompletedActivity(activity);
 					}
 				}
 			}

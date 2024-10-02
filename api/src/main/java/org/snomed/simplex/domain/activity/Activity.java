@@ -15,6 +15,8 @@ import java.util.Date;
 @Document(indexName = "#{@indexNameProvider.indexName('activity')}")
 public class Activity {
 
+	public static final String AUTOMATIC = "AUTOMATIC";
+
 	@Id
 	private String id;
 
