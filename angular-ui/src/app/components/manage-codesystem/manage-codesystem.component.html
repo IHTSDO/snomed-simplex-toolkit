@@ -180,8 +180,8 @@
                 <div class="arrow-down"></div>
             </div>
 
-            <div class="stage" [ngClass]="{ 'current-stage' : (edition.editionStatus == 'RELEASE'),
-                                                 'inactive-stage' : (edition.editionStatus != 'RELEASE') }">
+            <div class="stage" [ngClass]="{ 'current-stage' : (edition.editionStatus == 'RELEASE' || edition.editionStatus == 'PUBLISHING'),
+                                                 'inactive-stage' : (edition.editionStatus != 'RELEASE' && edition.editionStatus != 'PUBLISHING') }">
                 <div class="component-col-flexible left">
                     <span class="stage-title">Release ready for publication</span>
                     <div class="left">
@@ -195,14 +195,15 @@
                             </div>
                             <div>Release candidate 
                                 <span>→&nbsp;
-                                    <a href="javascript:void(0)" (click)="createReleaseCandidate()" *ngIf="edition.buildStatus != 'IN_PROGRESS' && edition.buildStatus != 'COMPLETE'">
-                                        Create release candidate package
-                                    </a>
-                                    <span *ngIf="edition.buildStatus == 'IN_PROGRESS'" class="ok-message">Candidate release build running...</span>
+                                    <!-- <a href="javascript:void(0)" (click)="createReleaseCandidate()" *ngIf="edition.buildStatus != 'IN_PROGRESS' && edition.buildStatus != 'COMPLETE'">
+                                        Not available
+                                    </a> -->
+                                    <span *ngIf="edition.buildStatus != 'IN_PROGRESS' && edition.buildStatus != 'COMPLETE'">Not available</span>
+                                    <span *ngIf="edition.buildStatus == 'IN_PROGRESS'" class="pulse">Candidate release build running...</span>
                                     <a href="javascript:void(0)" (click)="downloadReleaseCandidate()" *ngIf="edition.buildStatus == 'COMPLETE' && !downloadReleaseCandidateDisabled">
                                         Download release candidate package
                                     </a>
-                                    <span *ngIf="edition.buildStatus == 'COMPLETE' && downloadReleaseCandidateDisabled" class="ok-message">Downloading package...</span>
+                                    <span *ngIf="edition.buildStatus == 'COMPLETE' && downloadReleaseCandidateDisabled" class="ok-message pulse">Downloading package...</span>
                                 </span>
                             </div>
                         </div>
@@ -210,7 +211,18 @@
                         <div *ngIf="!edition.editionStatus">Loading...</div>
                     </div>
                     <div class="centered buttons-panel">
-                        <button mat-flat-button color="accent" [disabled]="edition.editionStatus != 'RELEASE'" (click)="finalizeRelease()">Publish and complete release cycle</button>
+                        <button mat-flat-button color="accent" disabled *ngIf="edition.editionStatus != 'RELEASE'  && edition.editionStatus != 'PUBLISHING'">
+                            Publish and complete release cycle
+                        </button>
+                        <button mat-flat-button color="accent" *ngIf="edition.editionStatus == 'RELEASE' && edition.buildStatus != 'IN_PROGRESS' && edition.buildStatus != 'COMPLETE'" (click)="createReleaseCandidate()">
+                            Create release candidate package
+                        </button>
+                        <button mat-flat-button disabled class="pulse" *ngIf="edition.editionStatus == 'RELEASE' && edition.buildStatus == 'IN_PROGRESS'">Building Release Candidate</button>
+                        <button mat-flat-button color="accent" *ngIf="edition.editionStatus == 'RELEASE' && edition.buildStatus == 'COMPLETE'" (click)="finalizeRelease()">
+                            Publish and complete release cycle
+                        </button>
+                        <button mat-flat-button disabled class="pulse" *ngIf="edition.editionStatus == 'PUBLISHING'">Publishing in process</button>
+                        <p class="pub-message" *ngIf="edition.editionStatus == 'PUBLISHING'">Once the release is published, the editing cycle will be closed and the edition will be available for download. This process may take several hours.</p>
                     </div>
                 </div>
             </div>

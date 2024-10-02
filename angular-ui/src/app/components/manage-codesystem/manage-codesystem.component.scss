@@ -238,6 +238,7 @@ mat-list-item {
 .buttons-panel {
   display: flex;
   justify-content: center;
+  flex-direction: column;
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -288,3 +289,9 @@ mat-list-item {
   }
 }
 
+.pub-message {
+  color: rgb(50, 53, 50);
+  font-style: italic;
+  font-size: 1.1rem;
+  text-align: center;
+}
