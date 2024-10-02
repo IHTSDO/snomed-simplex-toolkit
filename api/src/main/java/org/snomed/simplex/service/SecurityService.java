@@ -57,7 +57,8 @@ public class SecurityService {
 			return true;
 		}
 
-		if (!userCodesystemRoleCache.containsKey(codesystem)) {
+		String principal = (String) authentication.getPrincipal();
+		if (!userCodesystemRoleCache.containsKey(principal)) {
 			try {
 				SnowstormClient client = snowstormClientFactory.getClient();
 				CodeSystem codeSystem = client.getCodeSystemOrThrow(codesystem);
@@ -67,7 +68,7 @@ public class SecurityService {
 				return false;
 			}
 		}
-		return userCodesystemRoleCache.getOrDefault((String) authentication.getPrincipal(), Collections.emptyMap())
+		return userCodesystemRoleCache.getOrDefault(principal, Collections.emptyMap())
 				.getOrDefault(codesystem, Collections.emptySet()).contains(role);
 	}
 }
