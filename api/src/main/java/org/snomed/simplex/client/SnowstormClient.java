@@ -44,6 +44,7 @@ public class SnowstormClient {
 	public static final int MAX_PAGE_SIZE = 10_000;
 	public static final String CONCEPT_ENDPOINT = "/%s/concepts/%s";
 	public static final String CODESYSTEM_ENDPOINT = "/codesystems/%s";
+	public static final String CODESYSTEMS_VERSIONS_ENDPOINT = "/codesystems/%s/versions";
 
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
@@ -155,6 +156,13 @@ public class SnowstormClient {
 		codeSystem.setEditionStatus(getEditionStatus(branch.getMetadataValue(Branch.EDITION_STATUS_METADATA_KEY)));
 	}
 
+	public List<CodeSystemVersion> getVersions(CodeSystem codeSystem) {
+		String url = format(CODESYSTEMS_VERSIONS_ENDPOINT + "?showFutureVersions=true", codeSystem.getShortName());
+		ParameterizedTypeReference<Page<CodeSystemVersion>> responseType = new ParameterizedTypeReference<>() {};
+		ResponseEntity<Page<CodeSystemVersion>> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(null), responseType);
+		return response.getBody().getItems();
+	}
+
 	private static EditionStatus getEditionStatus(String editionStatus) {
 		if (Strings.isBlank(editionStatus) || !EditionStatus.getNames().contains(editionStatus)) {
 			editionStatus = EditionStatus.AUTHORING.name();
@@ -220,7 +228,7 @@ public class SnowstormClient {
 
 	public void versionCodeSystem(CodeSystem codeSystem, String effectiveTime) {
 		CodeSystemVersioningRequest request = new CodeSystemVersioningRequest(effectiveTime, "Release %s".formatted(effectiveTime), false);
-		restTemplate.exchange(format("/codesystems/%s/versions", codeSystem.getShortName()), HttpMethod.POST, new HttpEntity<>(request), Void.class);
+		restTemplate.exchange(format(CODESYSTEMS_VERSIONS_ENDPOINT, codeSystem.getShortName()), HttpMethod.POST, new HttpEntity<>(request), Void.class);
 	}
 
 	public void deleteCodeSystem(String shortName) {

@@ -8,10 +8,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.util.Strings;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
-import org.snomed.simplex.client.domain.CodeSystem;
-import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
-import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
-import org.snomed.simplex.client.domain.EditionStatus;
+import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
@@ -42,6 +39,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 import static org.snomed.simplex.domain.activity.ActivityType.*;
@@ -351,6 +349,14 @@ public class CodeSystemController {
 			codeSystemService.startMaintenance(theCodeSystem);
 			return null;
 		});
+	}
+
+	@Operation(summary = "List CodeSystem versions that have completed publication.")
+	@GetMapping("{codeSystem}/versions")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public Page<CodeSystemVersion> listVersions(@PathVariable String codeSystem) throws ServiceException {
+		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
+		return new Page<>(codeSystemService.getVersionsWithPackages(theCodeSystem));
 	}
 
 	private SnowstormClient getSnowstormClient() throws ServiceException {

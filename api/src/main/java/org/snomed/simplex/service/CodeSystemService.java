@@ -1,5 +1,6 @@
 package org.snomed.simplex.service;
 
+import com.google.common.base.Strings;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +13,7 @@ import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.client.srs.domain.SRSBuild;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.PackageConfiguration;
+import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
@@ -172,6 +174,12 @@ public class CodeSystemService {
 		snowstormClient.setAuthorPermissions(newCodeSystem, userGroupName);
 
 		return newCodeSystem;
+	}
+
+	public List<CodeSystemVersion> getVersionsWithPackages(CodeSystem theCodeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		List<CodeSystemVersion> versions = snowstormClient.getVersions(theCodeSystem);
+		return versions.stream().filter(version -> version.releasePackage() != null).toList();
 	}
 
 	protected String getUserGroupName(String shortName) {
