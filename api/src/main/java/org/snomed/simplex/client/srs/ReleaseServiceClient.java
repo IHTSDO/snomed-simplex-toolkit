@@ -360,7 +360,26 @@ public class ReleaseServiceClient {
         }
     }
 
+    public String getReleasePackageFilename(String buildUrl) throws ServiceException {
+        String url = getReleasePackageUrl(buildUrl);
+        return url.substring(url.lastIndexOf("/") + 1);
+    }
+
     public Pair<String, File> downloadReleasePackage(String buildUrl) throws ServiceException {
+        String url = getReleasePackageUrl(buildUrl);
+
+        String filename = url.substring(url.lastIndexOf("/") + 1);
+        return getClient().execute(url, HttpMethod.GET,
+                httpRequest -> httpRequest.getHeaders().add("Accept", "application/zip"), httpResponse -> {
+                    File tempFile = File.createTempFile("download", "tmp");
+                    try (InputStream inputStream = httpResponse.getBody()) {
+                        Streams.copy(inputStream, new FileOutputStream(tempFile), true);
+                    }
+                    return Pair.of(filename, tempFile);
+                });
+    }
+
+    public String getReleasePackageUrl(String buildUrl) throws ServiceException {
         RestTemplate client = getClient();
         String outputFilesUrl = "%s/outputfiles".formatted(buildUrl);
         ParameterizedTypeReference<List<OutputFile>> responseType = new ParameterizedTypeReference<>() {};
@@ -371,19 +390,10 @@ public class ReleaseServiceClient {
         }
         for (OutputFile outputFile : body) {
             if (outputFile.getId().endsWith(".zip")) {
-                String url = outputFile.getUrl();
-                String filename = url.substring(url.lastIndexOf("/") + 1);
-                return client.execute(url, HttpMethod.GET,
-                        httpRequest -> httpRequest.getHeaders().add("Accept", "application/zip"), httpResponse -> {
-                            File tempFile = File.createTempFile("download", "tmp");
-                            try (InputStream inputStream = httpResponse.getBody()) {
-                                Streams.copy(inputStream, new FileOutputStream(tempFile), true);
-                            }
-                            return Pair.of(filename, tempFile);
-                        });
+                return outputFile.getUrl();
             }
         }
-        throw new ServiceException("Failed to download release package.");
+        throw new ServiceException("No release package found in build output files.");
     }
 
     private String getProductName(CodeSystem codeSystem) {

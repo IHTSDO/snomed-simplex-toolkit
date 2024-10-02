@@ -95,8 +95,15 @@ public class CodeSystemService {
 			SRSBuild build = releaseServiceClient.getBuild(buildUrl);
 			if (build.getTags().contains("PUBLISHED")) {
 				synchronized (this) {
-					setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
-					clearBuildStatus(codeSystem, snowstormClient);
+					// After acquiring the lock, is status still publishing?
+					codeSystem = snowstormClient.getCodeSystemForDisplay(codeSystemShortName);
+					if (codeSystem.getEditionStatus() == EditionStatus.PUBLISHING) {
+						String effectiveTime = build.configuration().getEffectiveTime();
+						String releasePackageFilename = releaseServiceClient.getReleasePackageFilename(buildUrl);
+						snowstormClient.setVersionReleasePackage(codeSystem, effectiveTime, releasePackageFilename);
+						setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
+						clearBuildStatus(codeSystem, snowstormClient);
+					}
 				}
 			}
 		}

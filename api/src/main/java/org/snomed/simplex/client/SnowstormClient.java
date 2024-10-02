@@ -709,6 +709,11 @@ public class SnowstormClient {
 		throw new ServiceException(format("Timed out while waiting for async job. URL: %s", location));
 	}
 
+	public void setVersionReleasePackage(CodeSystem codeSystem, String effectiveTime, String releasePackageFilename) {
+		String url = format("/codesystems/%s/versions/%s?releasePackage=%s", codeSystem.getShortName(), effectiveTime, releasePackageFilename);
+		restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(null), Void.class);
+	}
+
 	private static final class ConceptBulkLoadRequest {
 
 		private final Set<String> conceptIds;
