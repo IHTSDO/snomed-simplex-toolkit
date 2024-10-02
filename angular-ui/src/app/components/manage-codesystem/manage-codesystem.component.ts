@@ -24,6 +24,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   loadingReleaseStatus = false;
   loadingIssues = false;
   issuesReport: any;
+  downloadReleaseCandidateDisabled = false;
 
   humanReadableIssueAdvice: string[] = [
     'Issues found in the following descriptions. Please update the descriptions to resolve the issues.',
@@ -110,13 +111,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
       this.refreshSubscription.unsubscribe();
     }
   }
-
-  isBuildReleaseRunning(): boolean {
-    this.jobs = this.jobComponent.getJobs();
-    let result = this.jobs.some(job => (job.jobType === 'EXTERNAL_SERVICE' && job.display === 'Build release' && job.status === 'IN_PROGRESS'));
-    return result;
-  }
-
 
   startReleasePreparation() {
     this.edition.editionStatus = 'MAINTENANCE';
@@ -340,7 +334,37 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
     let browserUrl = `/browser/?perspective=full&edition=${branch}&release=&languages=${langs}&simplexFlagModuleId=${this.edition.defaultModule}&dailyBuildFocus=true`;
     const tab = window.open(browserUrl, 'simplex-browser');
     tab.focus();
-  } 
-  
+  }
 
+  downloadReleaseCandidate() {
+    this.downloadReleaseCandidateDisabled = true;
+    this.snackBar.open(
+      `Requesting Release Candidate Package. The download will start soon.`,
+      'Dismiss',
+      {
+        duration: 5000,
+      }
+    );
+    this.simplexService.getReleaseCandidatePackage(this.edition.shortName).subscribe(
+      (fileBlob: Blob) => {
+        const filename = this.edition.shortName + '-Edition-Release-Candidate.zip'; // Example filename
+        this.simplexService.triggerDownload(fileBlob, filename);
+        setTimeout(() => {
+          this.downloadReleaseCandidateDisabled = false;
+        }, 5000);
+      },
+      (error) => {
+        console.error('Download failed:', error);
+        this.snackBar.open(`Download failed`, 'Dismiss', {
+          duration: 5000,
+        });
+      }
+    );
+  }
+
+  public downloadReleaseCandidateDirectly(): void {
+    const fileUrl = `/api/codesystems/${this.edition.shortName}/release-candidate`;
+    window.open(fileUrl);
+  }
+  
 }

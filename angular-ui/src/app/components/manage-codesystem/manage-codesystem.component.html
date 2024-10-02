@@ -188,8 +188,14 @@
                             </div>
                             <div>Release candidate 
                                 <span>→&nbsp;
-                                    <a href="javascript:void(0)" (click)="createReleaseCandidate()" *ngIf="!isBuildReleaseRunning()">Create release candidate package</a>
-                                    <span *ngIf="isBuildReleaseRunning()" class="ok-message">Candidate release build running...</span>
+                                    <a href="javascript:void(0)" (click)="createReleaseCandidate()" *ngIf="edition.buildStatus != 'IN_PROGRESS' && edition.buildStatus != 'COMPLETE'">
+                                        Create release candidate package
+                                    </a>
+                                    <span *ngIf="edition.buildStatus == 'IN_PROGRESS'" class="ok-message">Candidate release build running...</span>
+                                    <a href="javascript:void(0)" (click)="downloadReleaseCandidate()" *ngIf="edition.buildStatus == 'COMPLETE' && !downloadReleaseCandidateDisabled">
+                                        Download release candidate package
+                                    </a>
+                                    <span *ngIf="edition.buildStatus == 'COMPLETE' && downloadReleaseCandidateDisabled" class="ok-message">Downloading package...</span>
                                 </span>
                             </div>
                         </div>

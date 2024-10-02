@@ -32,7 +32,7 @@ export class EditionActivitiesComponent implements OnInit, OnChanges {
 
   loadActivities() {
     this.loading = true;
-    this.simplexService.getActivities(this.edition.shortName).subscribe(
+    this.simplexService.getActivities(this.edition.shortName, 0, 5).subscribe(
       (data: any) => {
         this.loading = false;
         this.activities = data;
