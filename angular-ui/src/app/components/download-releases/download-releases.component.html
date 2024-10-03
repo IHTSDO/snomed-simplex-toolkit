@@ -1,0 +1,70 @@
+<div class="component-row">
+  <div class="component-col">
+    <h4>Releases: {{ edition.name }}</h4>
+    <table mat-table [dataSource]="loading ? skeleton : versions">
+
+        <!-- Created Column -->
+        <ng-container matColumnDef="effectiveDate">
+          <th mat-header-cell *matHeaderCellDef> Effective Date </th>
+          <td mat-cell *matCellDef="let element">
+            <div *ngIf="loading" class="skeleton-cell"></div>
+            <span *ngIf="!loading">{{ element.effectiveDate }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Name Column -->
+        <ng-container matColumnDef="releasePackage">
+          <th mat-header-cell *matHeaderCellDef> Package </th>
+          <td mat-cell *matCellDef="let element">
+            <div *ngIf="loading" class="skeleton-cell"></div>
+            <span *ngIf="!loading">{{ element.releasePackage }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Status Column -->
+        <ng-container matColumnDef="action">
+          <th mat-header-cell *matHeaderCellDef> </th>
+          <td mat-cell *matCellDef="let element">
+            <div *ngIf="loading" class="skeleton-cell"></div>
+            <button mat-icon-button matTooltip="Download" [disabled]="downloadReleaseDisabled" *ngIf="!loading" (click)="downloadRelease(element)">
+                <mat-icon>cloud_download</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <!-- Table Header and Row Definitions -->
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+    <p *ngIf="!loading && versions?.length == 0" class="no-imports">No release packages have been published yet</p>
+  </div>
+  <div class="component-col">
+    <div class="release-package-help">
+      <h4>Working with Release Packages</h4>
+      <p class="help-p">
+          Release packages in Simplex are provided as zip files, formatted according to the specifications outlined in the 
+          <a href="https://confluence.ihtsdotools.org/display/DOCRELFMT" target="_blank">SNOMED International Release File Specification</a>. 
+          These packages contain the necessary components, including terminology, descriptions, relationships, and reference sets, needed for 
+          implementation in SNOMED CT-enabled systems. Understanding how to use these packages effectively is crucial for successful deployment 
+          in your clinical environments.
+      </p>
+  
+      <h4>Importing into Terminology Servers</h4>
+      <p class="help-p">
+          The primary method for implementing release packages is to import them into a terminology server that supports SNOMED CT, such as 
+          Snowstorm or other FHIR-compliant servers. This process involves uploading the zip file directly to the server, which will then extract 
+          and integrate the contained components into its existing data structures. By doing so, the terminology server can provide real-time access 
+          to the latest SNOMED CT content for applications and services using the terminology.
+      </p>
+  
+      <h4>Using Release Packages with Databases</h4>
+      <p class="help-p">
+          In cases where a terminology server is not available, the contents of the release packages can be imported into a local database. This 
+          method requires manually extracting the zip file and loading the individual data files into database tables. While this approach provides 
+          an alternative means of utilizing SNOMED CT content, it requires a more in-depth understanding of the file formats and the database schema 
+          needed to store and query the terminology effectively.
+      </p>
+    </div>
+  </div>
+</div>

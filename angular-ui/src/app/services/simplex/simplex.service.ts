@@ -276,7 +276,18 @@ export class SimplexService {
   }
 
   public getReleaseCandidatePackage(edition: string): Observable<Blob> {
-    const apiUrl = `/api/codesystems/${edition}/release-candidate`; // Adjust the endpoint if needed
+    const apiUrl = `/api/codesystems/${edition}/release-candidate`; 
+    return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
+        catchError(this.handleError.bind(this))
+    );
+  }
+
+  getReleasePackages(edition: string): Observable<any> {
+    return this.http.get(`/api/codesystems/${edition}/versions`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getReleasePackage(edition: string, version: string): Observable<Blob> {
+    const apiUrl = `/api/codesystems/${edition}/versions/${version}/package`; 
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
         catchError(this.handleError.bind(this))
     );

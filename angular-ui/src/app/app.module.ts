@@ -72,6 +72,7 @@ import { WelcomeComponent } from './components/welcome/welcome.component';
 import { UpgradeEditionComponent } from './components/upgrade-edition/upgrade-edition.component';
 import { EditionActivitiesComponent } from './components/edition-activities/edition-activities.component';
 import { ElapsedPipe } from './pipes/elapsed/elapsed.pipe';
+import { DownloadReleasesComponent } from './components/download-releases/download-releases.component';
 
 // SERVICE IMPORTS
 
@@ -113,7 +114,8 @@ import { ElapsedPipe } from './pipes/elapsed/elapsed.pipe';
         ProductPackagingComponent,
         WelcomeComponent,
         UpgradeEditionComponent,
-        EditionActivitiesComponent
+        EditionActivitiesComponent,
+        DownloadReleasesComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         FormsModule,

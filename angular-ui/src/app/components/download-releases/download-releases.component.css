@@ -1,0 +1,59 @@
+h4 {
+    margin-top: 0.5rem;
+    margin-left: 4rem;
+    margin-bottom: 2rem;
+}
+.skeleton-cell {
+    height: 20px;
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    animation: pulse 1.5s infinite ease-in-out;
+  }
+  
+  @keyframes pulse {
+    0% {
+      background-color: #e0e0e0;
+    }
+    50% {
+      background-color: #f0f0f0;
+    }
+    100% {
+      background-color: #e0e0e0;
+    }
+  }
+
+  .no-imports {
+    font-weight: lighter;
+    font-style: italic;
+    margin-top: 2rem;
+}
+
+:host ::ng-deep .mat-paginator {
+  font-size: 12px; /* Adjust the font size as needed */
+}
+
+:host ::ng-deep .mat-paginator .mat-paginator-range-label,
+:host ::ng-deep .mat-paginator .mat-paginator-page-size-label,
+:host ::ng-deep .mat-paginator .mat-select-trigger,
+:host ::ng-deep .mat-paginator .mat-paginator-navigation button {
+  font-size: 12px;
+}
+
+.component-row {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.component-col {
+  flex: 1;
+  margin: 0 10px;
+}
+
+.help-p {
+  margin-bottom: 3rem;
+  color: rgb(73, 71, 71);
+}
