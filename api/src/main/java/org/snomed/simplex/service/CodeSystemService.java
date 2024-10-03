@@ -499,15 +499,17 @@ public class CodeSystemService {
 				SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 				SnowstormUpgradeJob upgradeJob = snowstormClient.getUpgradeJob(upgradeLocation);
 				SnowstormUpgradeJob.Status status = upgradeJob.getStatus();
+				CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(job.getCodeSystem());
 				if (status == SnowstormUpgradeJob.Status.COMPLETED) {
-					CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(job.getCodeSystem());
 					codeSystem.setDailyBuildAvailable(true);
 					snowstormClient.updateCodeSystem(codeSystem);
+					setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
 					logger.info("Upgrade complete. Codesystem:{}", codeSystem.getShortName());
 					job.setStatus(JobStatus.COMPLETE);
 					upgradeComplete = true;
 				} else if (status == SnowstormUpgradeJob.Status.FAILED) {
 					supportRegister.handleSystemError(job, "Upgrade failed to run in Terminology Server.");
+					setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
 					upgradeComplete = true;
 				}
 			} catch (ServiceException e) {
