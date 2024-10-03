@@ -26,3 +26,14 @@ h4 {
     font-style: italic;
     margin-top: 2rem;
 }
+
+:host ::ng-deep .mat-paginator {
+  font-size: 12px; /* Adjust the font size as needed */
+}
+
+:host ::ng-deep .mat-paginator .mat-paginator-range-label,
+:host ::ng-deep .mat-paginator .mat-paginator-page-size-label,
+:host ::ng-deep .mat-paginator .mat-select-trigger,
+:host ::ng-deep .mat-paginator .mat-paginator-navigation button {
+  font-size: 12px;
+}
