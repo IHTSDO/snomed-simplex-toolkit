@@ -50,14 +50,11 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 	}
 
 	public ChangeSummary updateRefsetViaSpreadsheet(ContentJob contentJob) throws ServiceException {
-		return updateRefsetViaSpreadsheet(contentJob.getRefsetId(), contentJob.getInputStream(), contentJob.getCodeSystemObject());
-	}
-
-	public ChangeSummary updateRefsetViaSpreadsheet(String refsetId, InputStream inputStream, CodeSystem codeSystem) throws ServiceException {
+		CodeSystem codeSystem = contentJob.getCodeSystemObject();
 		// Check refset exists
-		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId, codeSystem);
-		List<T> sheetMembers = spreadsheetService.readComponentSpreadsheet(inputStream, getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
-		return update(refset, sheetMembers, codeSystem, new ContentJob(codeSystem, format("Update refset %s", refset.getPt()), refsetId));
+		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(contentJob.getRefsetId(), codeSystem);
+		List<T> sheetMembers = spreadsheetService.readComponentSpreadsheet(contentJob.getInputStream(), getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
+		return update(refset, sheetMembers, codeSystem, contentJob);
 	}
 
 	public ChangeSummary updateRefsetViaCustomFile(ContentJob contentJob, SubsetUploadProvider uploadProvider) throws ServiceException {
