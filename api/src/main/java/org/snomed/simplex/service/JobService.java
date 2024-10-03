@@ -63,7 +63,7 @@ public class JobService {
 
 		activity.setComponentId(refsetId);
 		ContentJob asyncJob = new ContentJob(codeSystem, display, refsetId);
-		File tempFile = File.createTempFile(asyncJob.getId(), "txt");
+		File tempFile = File.createTempFile("user-temp-file_" + asyncJob.getId(), "txt");
 		try (FileOutputStream out = new FileOutputStream(tempFile)) {
 			StreamUtils.copy(jobInputStream, out);
 		}

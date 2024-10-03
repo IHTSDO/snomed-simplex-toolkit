@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.util.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.*;
@@ -63,6 +65,8 @@ public class CodeSystemController {
 	private final ReleaseServiceClient releaseServiceClient;
 
 	private final ActivityService activityService;
+
+	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService, JobService jobService,
 			ValidationServiceClient validationServiceClient, ValidationService validationService,
@@ -314,14 +318,8 @@ public class CodeSystemController {
 	public void downloadReleaseCandidate(@PathVariable String codeSystem, HttpServletResponse response) throws ServiceException {
 		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
 		Pair<String, File> tempFile = codeSystemService.downloadReleaseCandidate(theCodeSystem);
-		String filename = tempFile.getLeft();
-		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename.replace(".zip", "-release-candidate.zip") + "\"");
-		File file = tempFile.getRight();
-		try (FileInputStream fileInputStream = new FileInputStream(file)) {
-			StreamUtils.copy(fileInputStream, response.getOutputStream());
-		} catch (IOException e) {
-			throw new ServiceExceptionWithStatusCode("Failed to copy download file.", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
+		String filename = tempFile.getLeft().replace(".zip", "-release-candidate.zip");
+		respondWithFile(response, filename, tempFile.getRight());
 	}
 
 	@Operation(summary = "Finalize the RF2 release.",
@@ -359,8 +357,43 @@ public class CodeSystemController {
 		return new Page<>(codeSystemService.getVersionsWithPackages(theCodeSystem));
 	}
 
+	@GetMapping("{codeSystem}/versions/{effectiveTime}")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public CodeSystemVersion getVersion(@PathVariable String codeSystem, @PathVariable Integer effectiveTime) throws ServiceException {
+		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
+		return doGetVersion(theCodeSystem, effectiveTime);
+	}
+
+	@GetMapping(path = "{codeSystem}/versions/{effectiveTime}/package", produces="application/zip")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void getVersionPackage(@PathVariable String codeSystem, @PathVariable Integer effectiveTime, HttpServletResponse response) throws ServiceException {
+		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
+		CodeSystemVersion codeSystemVersion = doGetVersion(theCodeSystem, effectiveTime);
+		Pair<String, File> packageNameAndFile = codeSystemService.downloadVersionPackage(theCodeSystem, codeSystemVersion);
+		respondWithFile(response, packageNameAndFile.getLeft(), packageNameAndFile.getRight());
+	}
+
+	private CodeSystemVersion doGetVersion(CodeSystem codeSystem, Integer effectiveTime) throws ServiceException {
+		List<CodeSystemVersion> versionsWithPackages = codeSystemService.getVersionsWithPackages(codeSystem);
+		return versionsWithPackages.stream().filter(version -> effectiveTime.equals(version.effectiveDate())).findFirst().orElse(null);
+	}
+
 	private SnowstormClient getSnowstormClient() throws ServiceException {
 		return clientFactory.getClient();
 	}
 
+	private void respondWithFile(HttpServletResponse response, String filename, File file) {
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+		try (FileInputStream fileInputStream = new FileInputStream(file)) {
+			if (!response.isCommitted()) {
+				StreamUtils.copy(fileInputStream, response.getOutputStream());
+			}
+		} catch (IOException e) {
+			logger.info("Client hung up while downloading {}.", filename);
+		} finally {
+			if (!file.delete()) {
+				logger.warn("Failed to delete temp download file {}", file.getAbsoluteFile());
+			}
+		}
+	}
 }

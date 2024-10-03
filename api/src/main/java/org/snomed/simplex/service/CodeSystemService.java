@@ -1,7 +1,8 @@
 package org.snomed.simplex.service;
 
-import com.google.common.base.Strings;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.tomcat.util.http.fileupload.util.Streams;
+import org.ihtsdo.otf.resourcemanager.ResourceManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -11,9 +12,9 @@ import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.client.srs.domain.SRSBuild;
+import org.snomed.simplex.config.VersionedPackagesResourceManagerConfiguration;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.PackageConfiguration;
-import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
@@ -24,12 +25,13 @@ import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
+import java.io.*;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -54,6 +56,7 @@ public class CodeSystemService {
 	private final ReleaseServiceClient releaseServiceClient;
 	private final ActivityService activityService;
 	private final SecurityService securityService;
+	private final ResourceManager versionedPackagesResourceManager;
 
 	private final Map<String, ExternalServiceJob> classificationJobsToMonitor = new HashMap<>();
 	private final Map<String, ExternalServiceJob> validationJobsToMonitor = new HashMap<>();
@@ -66,8 +69,9 @@ public class CodeSystemService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public CodeSystemService(SnowstormClientFactory snowstormClientFactory, JobService jobService, SupportRegister supportRegister,
-			ValidationServiceClient validationServiceClient, ReleaseServiceClient releaseServiceClient,
-			ActivityService activityService, SecurityService securityService) {
+			ValidationServiceClient validationServiceClient, ReleaseServiceClient releaseServiceClient, ActivityService activityService,
+			VersionedPackagesResourceManagerConfiguration resourceManagerConfiguration, ResourceLoader resourceLoader,
+			SecurityService securityService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.jobService = jobService;
@@ -75,6 +79,7 @@ public class CodeSystemService {
 		this.validationServiceClient = validationServiceClient;
 		this.releaseServiceClient = releaseServiceClient;
 		this.activityService = activityService;
+		this.versionedPackagesResourceManager = new ResourceManager(resourceManagerConfiguration, resourceLoader);
 		this.securityService = securityService;
 	}
 
@@ -690,10 +695,30 @@ public class CodeSystemService {
 		SRSBuild buildUrl = getReleaseCompleteBuildOrThrow(codeSystem);
 
 		try {
-			return releaseServiceClient.downloadReleasePackage(buildUrl.url());
+			return releaseServiceClient.downloadReleaseCandidatePackage(buildUrl.url());
 		} catch (ServiceException e) {
 			String errorMessage = "Failed to download release package.";
 			supportRegister.handleSystemError(codeSystem, errorMessage, e);
+			throw new ServiceExceptionWithStatusCode(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	public Pair<String, File> downloadVersionPackage(CodeSystem codeSystem, CodeSystemVersion codeSystemVersion) throws ServiceException {
+		try {
+			String filename = codeSystemVersion.releasePackage();
+			File tempFile = File.createTempFile("release-download" + UUID.randomUUID(), "tmp");
+			logger.info("Downloading versioned package {}", filename);
+			try (InputStream inputStream = versionedPackagesResourceManager.readResourceStream(filename)) {
+				Streams.copy(inputStream, new FileOutputStream(tempFile), true);
+			}
+			return Pair.of(filename, tempFile);
+		} catch (FileNotFoundException e) {
+			String errorMessage = "Release package not found.";
+			supportRegister.handleSystemError(codeSystem, errorMessage, new ServiceException(errorMessage, e));
+			throw new ServiceExceptionWithStatusCode(errorMessage, HttpStatus.NOT_FOUND);
+		} catch (IOException e) {
+			String errorMessage = "Failed to download release package.";
+			supportRegister.handleSystemError(codeSystem, errorMessage, new ServiceException(errorMessage, e));
 			throw new ServiceExceptionWithStatusCode(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}

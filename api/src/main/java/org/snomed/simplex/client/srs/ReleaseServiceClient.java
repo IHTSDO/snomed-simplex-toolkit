@@ -361,17 +361,17 @@ public class ReleaseServiceClient {
     }
 
     public String getReleasePackageFilename(String buildUrl) throws ServiceException {
-        String url = getReleasePackageUrl(buildUrl);
+        String url = getReleaseCandidatePackageUrl(buildUrl);
         return url.substring(url.lastIndexOf("/") + 1);
     }
 
-    public Pair<String, File> downloadReleasePackage(String buildUrl) throws ServiceException {
-        String url = getReleasePackageUrl(buildUrl);
+    public Pair<String, File> downloadReleaseCandidatePackage(String buildUrl) throws ServiceException {
+        String url = getReleaseCandidatePackageUrl(buildUrl);
 
         String filename = url.substring(url.lastIndexOf("/") + 1);
         return getClient().execute(url, HttpMethod.GET,
                 httpRequest -> httpRequest.getHeaders().add("Accept", "application/zip"), httpResponse -> {
-                    File tempFile = File.createTempFile("download", "tmp");
+                    File tempFile = File.createTempFile("release-candidate-download" + UUID.randomUUID(), "tmp");
                     try (InputStream inputStream = httpResponse.getBody()) {
                         Streams.copy(inputStream, new FileOutputStream(tempFile), true);
                     }
@@ -379,7 +379,7 @@ public class ReleaseServiceClient {
                 });
     }
 
-    public String getReleasePackageUrl(String buildUrl) throws ServiceException {
+    public String getReleaseCandidatePackageUrl(String buildUrl) throws ServiceException {
         RestTemplate client = getClient();
         String outputFilesUrl = "%s/outputfiles".formatted(buildUrl);
         ParameterizedTypeReference<List<OutputFile>> responseType = new ParameterizedTypeReference<>() {};
