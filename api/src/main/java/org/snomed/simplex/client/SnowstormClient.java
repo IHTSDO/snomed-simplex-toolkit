@@ -159,8 +159,13 @@ public class SnowstormClient {
 	public List<CodeSystemVersion> getVersions(CodeSystem codeSystem) {
 		String url = format(CODESYSTEMS_VERSIONS_ENDPOINT + "?showFutureVersions=true", codeSystem.getShortName());
 		ParameterizedTypeReference<Page<CodeSystemVersion>> responseType = new ParameterizedTypeReference<>() {};
-		ResponseEntity<Page<CodeSystemVersion>> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(null), responseType);
-		return response.getBody().getItems();
+		ResponseEntity<Page<CodeSystemVersion>> response = restTemplate.exchange(url, HttpMethod.GET, null, responseType);
+		Page<CodeSystemVersion> body = response.getBody();
+		if (body != null) {
+			return body.getItems();
+		} else {
+			return Collections.emptyList();
+		}
 	}
 
 	private static EditionStatus getEditionStatus(String editionStatus) {
@@ -719,7 +724,7 @@ public class SnowstormClient {
 
 	public void setVersionReleasePackage(CodeSystem codeSystem, String effectiveTime, String releasePackageFilename) {
 		String url = format("/codesystems/%s/versions/%s?releasePackage=%s", codeSystem.getShortName(), effectiveTime, releasePackageFilename);
-		restTemplate.exchange(url, HttpMethod.PUT, new HttpEntity<>(null), Void.class);
+		restTemplate.exchange(url, HttpMethod.PUT, null, Void.class);
 	}
 
 	private static final class ConceptBulkLoadRequest {

@@ -13,9 +13,11 @@ public class StreamUtils {
 
 	public static void copyViaTempFile(InputStream input, OutputStream output, boolean closeOutputStream) throws IOException {
 		File tempFile = File.createTempFile("download" + UUID.randomUUID(), "tmp");
-		try {
-			Streams.copy(input, new FileOutputStream(tempFile), true);
-			Streams.copy(new FileInputStream(tempFile), output, closeOutputStream);
+		try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+			Streams.copy(input, outputStream, true);
+		}
+		try (FileInputStream inputStream = new FileInputStream(tempFile)) {
+			Streams.copy(inputStream, output, closeOutputStream);
 		} finally {
 			if (!tempFile.delete()) {
 				logger.warn("Failed to delete temporary file {}", tempFile.getAbsolutePath());
