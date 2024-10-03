@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, Input } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
@@ -12,13 +12,14 @@ import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-con
 export class UpgradeEditionComponent {
 
   @Input() edition: any;
-
+  @Output() upgradeStarted = new EventEmitter<any>();
 
   availableUpgrades: any[] = [];
   loadingUpgrades = false;
   parentEdition: any;
   selectedUpgradeEdition: any;
   lastEditionShortName: string;
+  upgraderequested = false;
 
   constructor(private simplexService: SimplexService,
     private snackBar: MatSnackBar,
@@ -69,9 +70,13 @@ export class UpgradeEditionComponent {
   }
 
   upgradeEdition() {
+    this.snackBar.open('Requesting upgrade...', 'Dismiss', {
+      duration: 5000
+    });
     lastValueFrom(this.simplexService.upgradeEdition(this.edition.shortName, this.selectedUpgradeEdition.effectiveDate)).then(
       (result) => {
         this.edition.editionStatus = 'MAINTENANCE';
+        this.upgradeStarted.emit();
         this.snackBar.open('Edition upgraded requested', 'Dismiss', {
           duration: 5000
         });

@@ -17,7 +17,7 @@
                     <div class="sub-stage sub-stage-text">
                         <div><b>Dependency configuration</b></div>
                         <div class="sub-stage-text">
-                            <app-upgrade-edition [edition]="edition"></app-upgrade-edition>
+                            <app-upgrade-edition [edition]="edition" (upgradeStarted)="jobComponent.loadJobs(true)"></app-upgrade-edition>
                         </div>
                     </div>
                     <div class="sub-stage sub-stage-text">
