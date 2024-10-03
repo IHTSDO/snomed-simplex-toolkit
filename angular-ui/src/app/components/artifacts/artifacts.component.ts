@@ -99,6 +99,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   loadConceptsArtifact(conceptId: string) {
+    this.editionDetails = null;
     lastValueFrom(this.simplexService.getEdition(this.edition)).then(
       (edition) => {
         this.editionDetails = edition;

@@ -5,6 +5,9 @@
             <mat-spinner *ngIf="loadingReleaseStatus" [diameter]="17"></mat-spinner>
         </div>
         <div class="left-container">
+            <div class="maintenance" *ngIf="edition.editionStatus == 'MAINTENANCE'">
+                The edition is in Mainteance Mode, editing and release preparation will resume after the maintenance jobs are finished
+            </div>
             <div class="stage" [ngClass]="{ 'completed-stage' : (edition.editionStatus == 'PREPARING_RELEASE' || edition.editionStatus == 'RELEASE'), 'inactive-stage' : (!edition.editionStatus), 'current-stage' : (edition.editionStatus == 'AUTHORING') }">
                 <div class="component-col-flexible">
                     <span class="stage-title">
@@ -124,7 +127,7 @@
                             <div *ngIf="edition.validationStatus == 'CONTENT_WARNING'" class="warnings">{{ getValidationStatusInfo(edition.validationStatus) }}</div>
                             <div *ngIf="edition.validationStatus == 'COMPLETE'">Validation is up to date and there are no errors or warnings</div>
                         </div>
-                        <div *ngIf="edition.editionStatus && edition.editionStatus == 'AUTHORING'">Release preparation not started</div>
+                        <div *ngIf="edition.editionStatus && (edition.editionStatus == 'AUTHORING' || edition.editionStatus == 'MAINTENANCE')">Release preparation not started</div>
                         <div *ngIf="edition.editionStatus && edition.editionStatus == 'RELEASE'">Release preparation finished</div>
                         <div *ngIf="!edition.editionStatus">Loading...</div>
                     </div>
@@ -138,7 +141,7 @@
                                 <span>→ <a href="javascript:void(0)" (click)="generateChangeReport()">Download XLS</a></span>
                             </div>
                         </div>
-                        <div *ngIf="edition.editionStatus && edition.editionStatus == 'AUTHORING'">Release preparation not started</div>
+                        <div *ngIf="edition.editionStatus && (edition.editionStatus == 'AUTHORING' || edition.editionStatus == 'MAINTENANCE')">Release preparation not started</div>
                         <div *ngIf="edition.editionStatus && edition.editionStatus == 'RELEASE'">Release preparation finished</div>
                         <div *ngIf="!edition.editionStatus">Loading...</div>
                     </div>

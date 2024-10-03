@@ -295,3 +295,11 @@ mat-list-item {
   font-size: 1.1rem;
   text-align: center;
 }
+
+.maintenance {
+  margin-right: 10px; /* Adjust space between name and description */
+  text-align: center;
+  width: 90%;
+  font-style: italic;
+  color: brown;
+}
