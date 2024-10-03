@@ -38,8 +38,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
 
   artifactTypes = ["subset", "map", "translation"];
   form: FormGroup = this.fb.group({
-    type: ['', Validators.required],
-    preferredTerm: ['', Validators.required]
+    type: ['', Validators.required]
   });
 
   constructor(private fb: FormBuilder,
@@ -57,20 +56,30 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
     if (changes['edition'] && changes['edition'].currentValue) {
       this.loadArtifacts(changes['edition'].currentValue);
       this.selectedArtifact = null;
+      this.newArtifactMode = false;
     }
   }
 
   toggleFormControls(typeValue: string) {
-    this.formKeys.forEach(controlName => {
-      if (controlName !== 'type') {
-        const control = this.form.get(controlName);
-        if (typeValue === 'concepts') {
-          control.disable();
-        } else {
-          control.enable();
-        }
+    if (typeValue === 'concepts') {
+      if (this.form.contains('preferredTerm')) {
+        this.form.removeControl('preferredTerm');
       }
-    });
+    } else {
+      if (!this.form.contains('preferredTerm')) {
+        this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
+      }
+    }
+    // this.formKeys.forEach(controlName => {
+    //   if (controlName !== 'type') {
+    //     const control = this.form.get(controlName);
+    //     if (typeValue === 'concepts') {
+    //       control.disable();
+    //     } else {
+    //       control.enable();
+    //     }
+    //   }
+    // });
   }
 
   loadArtifacts(edition: string) {

@@ -133,7 +133,7 @@
                     <input matInput formControlName="{{controlName}}" *ngIf="controlName !== 'type'">
                     <button *ngIf="form.controls[controlName]['value'] && controlName !== 'type'" matSuffix 
                         mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
-                        [disabled]= "form.get('type').value === 'concepts'">
+                        [disabled]= "form.get(controlName).disabled">
                         <mat-icon>close</mat-icon>
                     </button>
 
