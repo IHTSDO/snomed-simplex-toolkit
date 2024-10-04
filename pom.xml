@@ -20,23 +20,13 @@
 	<properties>
 		<!-- BOM Overrides. Remove and reassert as needed when upgrading the BOM. -->
 		<spring.version>6.1.13</spring.version>
-		<springdoc-openapi-ui.version>1.8.0</springdoc-openapi-ui.version>
+		<springdoc-openapi-starter-webmvc-ui.version>2.6.0</springdoc-openapi-starter-webmvc-ui.version>
 	</properties>
 
 	<modules>
 		<module>angular-ui</module>
 		<module>api</module>
 	</modules>
-
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.springdoc</groupId>
-				<artifactId>springdoc-openapi-ui</artifactId>
-				<version>${springdoc-openapi-ui.version}</version>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 
 	<build>
 		<plugins>

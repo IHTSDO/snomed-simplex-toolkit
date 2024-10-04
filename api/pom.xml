@@ -35,10 +35,7 @@
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-ui</artifactId>
+			<version>${springdoc-openapi-starter-webmvc-ui.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
