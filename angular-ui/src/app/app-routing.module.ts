@@ -1,36 +1,24 @@
-import {NgModule} from '@angular/core';
-import {RouterModule, Routes} from '@angular/router';
-import {AppComponent} from './app.component';
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { ArtifactsComponent } from './components/artifacts/artifacts.component';
+import { DownloadReleasesComponent } from './components/download-releases/download-releases.component';
+import { ManageCodesystemComponent } from './components/manage-codesystem/manage-codesystem.component';
+import { SelectEditionComponent } from './components/select-edition/select-edition.component';
+import { WelcomeComponent } from './components/welcome/welcome.component';
 
 const routes: Routes = [
-    {
-        path: ':branch',
-        component: AppComponent,
-        children: [
-            {
-                path: ':extension',
-                component: AppComponent,
-                children: [
-                    {
-                        path: ':project',
-                        component: AppComponent,
-                        children: [
-                            {
-                                path: ':task',
-                                component: AppComponent
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-    }
+    { path: 'home', component: WelcomeComponent },
+    { path: 'artifacts', component: ArtifactsComponent },
+    { path: 'artifact/:edition?', component: ArtifactsComponent },
+    { path: 'manage/:edition?', component: ManageCodesystemComponent },
+    { path: 'info/:edition?', component: SelectEditionComponent },
+    { path: 'releases/:edition?', component: DownloadReleasesComponent },
+    { path: '', redirectTo: '/home', pathMatch: 'full' }
 ];
+  
 
 @NgModule({
-    imports: [RouterModule.forRoot(routes)],
-    exports: [RouterModule]
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
 })
-export class AppRoutingModule {
-
-}
+export class AppRoutingModule {}

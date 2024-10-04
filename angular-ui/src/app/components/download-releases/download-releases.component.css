@@ -2,7 +2,15 @@ h4 {
     margin-top: 0.5rem;
     margin-left: 4rem;
     margin-bottom: 2rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
 }
+
+.refresh-icon {
+    color: gray;
+}
+
 .skeleton-cell {
     height: 20px;
     width: 100%;

@@ -31,13 +31,14 @@ export class SimplexService {
 
   public login(): void{
     let config: any = this.uiConfigurationService.getConfiguration();
-    const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href + '?showWelcome=false'}`;
+    const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href}`;
     console.log(redirectUrl);
     window.location.href = redirectUrl;
   }
 
   public logout(): void{
     let config: any = this.uiConfigurationService.getConfiguration();
+    console.log('copnfig', config)
     const redirectUrl = `${config.endpoints.imsEndpoint}logout?serviceReferer=${window.location.href}`;
     window.location.href = redirectUrl;
   }
@@ -45,7 +46,7 @@ export class SimplexService {
   public logoutAccount():  Observable<any> {
     let config: any = this.uiConfigurationService.getConfiguration();
     let endpoint: string = config.endpoints.imsEndpoint;
-    endpoint = endpoint.replace('#/', '');
+    // endpoint = endpoint.replace('#/', '');
     const url = `${endpoint}api/account/logout`;
     console.log('Logging out from account');
     console.log(url);

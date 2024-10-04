@@ -1,4 +1,5 @@
 import { Component, Output, EventEmitter } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-welcome',
@@ -7,12 +8,10 @@ import { Component, Output, EventEmitter } from '@angular/core';
 })
 export class WelcomeComponent {
 
-  @Output() closePanel: EventEmitter<boolean> = new EventEmitter<boolean>();
-
-  constructor() { }
+  constructor(private router: Router) { }
 
   closeWelcome() {
-    this.closePanel.emit(false);  // Emit false when the welcome panel is closed
+    this.router.navigate(['artifacts']);
   }
 
 }

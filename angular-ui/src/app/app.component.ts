@@ -1,18 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import 'jquery';
 import { Title } from '@angular/platform-browser';
-import { AuthoringService } from './services/authoring/authoring.service';
-import { BranchingService } from './services/branching/branching.service';
 import { EnvService } from './services/environment/env.service';
 import { ToastrService } from 'ngx-toastr';
 import {ModalService} from "./services/modal/modal.service";
-import {Subscription, lastValueFrom} from "rxjs";
+import {Subscription, filter, lastValueFrom} from "rxjs";
 import {NewCodesystem} from "./models/codesystem";
 import { UiConfigurationService } from './services/ui-configuration/ui-configuration.service';
 import { SimplexService } from './services/simplex/simplex.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { LegalAgreementService } from './services/legal-agreement/legal-agreement.service';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 
 @Component({
     selector: 'app-root',
@@ -35,8 +33,6 @@ export class AppComponent implements OnInit {
     selectedEdition: any = null;
     showLegalModal: boolean = false;
 
-    showWelcome = true;
-
     constructor(private envService: EnvService,
                 private toastr: ToastrService,
                 private titleService: Title,
@@ -52,22 +48,13 @@ export class AppComponent implements OnInit {
         this.titleService.setTitle('Simplex');
         this.environment = this.envService.env;
         this.assignFavicon();
-
-        this.route.queryParams.subscribe(params => {
-            if (params['showWelcome'] === 'false') {
-                this.closeWelcome();
-                this.router.navigate([], {
-                    queryParams: {
-                        showWelcome: null
-                    },
-                    queryParamsHandling: 'merge' // Merge with other params in the URL
-                });
-            }
-        });
+        if (!this.legalAgreementService.hasAgreed()) {
+            // If the user hasn't agreed yet, show the modal
+            this.showLegalModal = true;
+        }
     }
 
     closeWelcome() {
-        this.showWelcome = false;
         this.simplexService.refreshUIConfiguration();
         this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
             this.selectedEdition = edition;
@@ -100,6 +87,10 @@ export class AppComponent implements OnInit {
                 favicon.attr('href', 'favicon.ico');
                 break;
         }
+    }
+
+    isInHome(): boolean {
+        return this.router.url === '/home';
     }
 
     cloneObject(object): any {

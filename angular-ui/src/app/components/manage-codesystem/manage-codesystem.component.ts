@@ -6,14 +6,15 @@ import { HttpClient } from '@angular/common/http';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { JobsComponent } from '../jobs/jobs.component';
+import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 
 @Component({
   selector: 'app-manage-codesystem',
   templateUrl: './manage-codesystem.component.html',
   styleUrls: ['./manage-codesystem.component.scss']
 })
-export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
-  @Input() edition: any;
+export class ManageCodesystemComponent implements OnInit, OnDestroy {
+  edition: any;
 
   @ViewChild(JobsComponent) jobComponent: JobsComponent;
 
@@ -25,27 +26,32 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy, OnChanges {
   loadingIssues = false;
   issuesReport: any;
   downloadReleaseCandidateDisabled = false;
+  private subscriptions: Subscription = new Subscription();
 
   humanReadableIssueAdvice: string[] = [
     'Issues found in the following descriptions. Please update the descriptions to resolve the issues.',
   ];
   constructor(private simplexService: SimplexService,
     private snackBar: MatSnackBar, private http: HttpClient,
+    private uiService: UiConfigurationService,
     private changeDetectorRef: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    const editionSubscription = this.uiService.getSelectedEdition().subscribe(edition => {
+      if (edition) {
+        this.edition = edition;
+        this.refreshEdition();
+        this.issuesReport = null;
+      }
+    });
     this.startRefresh();
+    this.subscriptions.add(editionSubscription);
   }
+    
 
   ngOnDestroy(): void {
     this.stopRefresh();
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['edition']) {
-      this.issuesReport = null;
-      this.refreshEdition();
-    }
+    this.subscriptions.unsubscribe();
   }
 
   async runClassification() {

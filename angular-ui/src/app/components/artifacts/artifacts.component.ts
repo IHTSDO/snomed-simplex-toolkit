@@ -1,18 +1,20 @@
 import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { lastValueFrom, Subject } from 'rxjs';
+import { lastValueFrom, Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { ConceptsListComponent } from './concepts-list/concepts-list.component';
+import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-artifacts',
   templateUrl: './artifacts.component.html',
   styleUrls: ['./artifacts.component.scss']
 })
-export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
-  @Input() edition: string;
+export class ArtifactsComponent implements OnInit, OnDestroy {
+  edition: string | null = null;
 
   @ViewChild('conceptsList') conceptsList: ConceptsListComponent;
   
@@ -35,6 +37,8 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   loadingTranslations = false;
   loadingMaps = false;
   saving = false;
+  private subscriptions: Subscription = new Subscription();
+
 
   artifactTypes = ["subset", "map", "translation"];
   form: FormGroup = this.fb.group({
@@ -44,20 +48,25 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   constructor(private fb: FormBuilder,
               private simplexService: SimplexService,
               private changeDetectorRef: ChangeDetectorRef,
+              private uiService: UiConfigurationService,
+              private router: Router,
               private snackBar: MatSnackBar) {}
 
   ngOnInit() {
     this.form.get('type').valueChanges.subscribe(value => {
       this.toggleFormControls(value);
     });
-  }
-
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes['edition'] && changes['edition'].currentValue) {
-      this.loadArtifacts(changes['edition'].currentValue);
-      this.selectedArtifact = null;
-      this.newArtifactMode = false;
-    }
+    const editionSubscription = this.uiService.getSelectedEdition().subscribe(edition => {
+      let url = this.router.url;
+      if (edition && url.includes('artifact')) {
+        this.editionDetails = edition;
+        this.edition = edition.shortName;
+        this.loadArtifacts(edition.shortName);
+        this.selectedArtifact = null;
+        this.newArtifactMode = false;
+      }
+    });
+    this.subscriptions.add(editionSubscription);
   }
 
   toggleFormControls(typeValue: string) {
@@ -70,16 +79,6 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
         this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
       }
     }
-    // this.formKeys.forEach(controlName => {
-    //   if (controlName !== 'type') {
-    //     const control = this.form.get(controlName);
-    //     if (typeValue === 'concepts') {
-    //       control.disable();
-    //     } else {
-    //       control.enable();
-    //     }
-    //   }
-    // });
   }
 
   loadArtifacts(edition: string) {
@@ -154,6 +153,7 @@ export class ArtifactsComponent implements OnInit, OnChanges, OnDestroy {
   ngOnDestroy() {
     this.cancelOngoingRequests$.next();
     this.cancelOngoingRequests$.complete();
+    this.subscriptions.unsubscribe();
   }
 
   get formKeys(): string[] {

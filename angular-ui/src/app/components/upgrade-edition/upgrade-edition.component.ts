@@ -30,7 +30,7 @@ export class UpgradeEditionComponent {
 
   ngOnChanges() {
   // Refresh the selected edition when it changes
-    if (this.edition && this.edition.editionStatus && this.edition.editionStatus === 'AUTHORING') {
+    if (this.edition && this.edition.editionStatus) {
       if (this.edition.shortName !== this.lastEditionShortName) {
         this.refreshAvailableUpgrades(this.edition);
         this.lastEditionShortName = this.edition.shortName;

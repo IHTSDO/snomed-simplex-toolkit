@@ -1,12 +1,12 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { Subscription, lastValueFrom } from 'rxjs';
+import { Subscription, filter, lastValueFrom } from 'rxjs';
 import { User } from '../../models/user';
 import { AuthenticationService } from '../../services/authentication/authentication.service';
-import {PathingService} from '../../services/pathing/pathing.service';
 import {Location} from '@angular/common';
 import { LegalAgreementService } from 'src/app/services/legal-agreement/legal-agreement.service';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 
 @Component({
     selector: 'app-snomed-navbar',
@@ -16,7 +16,6 @@ import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-con
 export class SnomedNavbarComponent implements OnInit {
 
     @Input() selectedEdition: any = null;
-    @Output() home = new EventEmitter<any>();
 
     environment: string;
     path: string;
@@ -44,119 +43,72 @@ export class SnomedNavbarComponent implements OnInit {
 
     constructor(
         private authenticationService: AuthenticationService, 
-        private pathingService: PathingService, 
         private location: Location, 
         private legalAgreementService: LegalAgreementService,
         private uiConfigurationService: UiConfigurationService,
+        private route: ActivatedRoute,
+        private router: Router,
         private simplexService: SimplexService) {
-            this.environment = window.location.host.split(/[.]/)[0].split(/[-]/)[0];
-            this.userSubscription = this.authenticationService.getUser().subscribe(data => this.user = data);
-            this.branchesSubscription = this.pathingService.getBranches().subscribe(data => this.branches = data);
-            this.activeBranchSubscription = this.pathingService.getActiveBranch().subscribe(data => this.activeBranch = data);
-            this.projectsSubscription = this.pathingService.getProjects().subscribe(data => this.projects = data);
-            this.activeProjectSubscription = this.pathingService.getActiveProject().subscribe(data => this.activeProject = data);
-            this.tasksSubscription = this.pathingService.getTasks().subscribe(data => this.tasks = data);
-            this.activeTaskSubscription = this.pathingService.getActiveTask().subscribe(data => this.activeTask = data);
         }
 
     ngOnInit() {
-        // this.authenticationService.setUser();
-        this.path = this.location.path();
-        this.loadEditions();
-        // this.pathingService.httpGetBranches().subscribe(branches => {
-        //     this.pathingService.setBranches(branches);
-        //     if (!this.path) {
-        //         this.pathingService.setActiveBranch(branches[0]);
-        //     }
-        // });
-        //
-        // this.pathingService.httpGetProjects().subscribe(projects => {
-        //     this.pathingService.setProjects(projects);
-        //     this.setPath(this.path);
-        // });
+        // Listen to navigation events to capture route changes
+        this.router.events.pipe(
+            filter(event => event instanceof NavigationEnd)
+        ).subscribe(() => {
+            const editionParam = this.route.firstChild.snapshot.paramMap.get('edition?');
+            // Load editions if the edition parameter is defined
+            const url = this.router.url;
+            if (editionParam) {
+                this.loadEditions(editionParam);
+            } else if (!url.includes('/home')) {
+                // Load editions if the edition parameter is not defined
+                this.loadEditions(null);
+            }
+        });
     }
 
-    loadEditions() {
+    isInHome(): boolean {
+        return this.router.url === '/home';
+    }
+
+    initialize() {
+        this.simplexService.refreshUIConfiguration();
+        this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+            this.selectedEdition = edition;
+        });
+    }
+        
+    loadEditions(editionParam: string | null) {
+        if (!this.uiConfigurationService.getConfiguration()) {
+            this.initialize();
+        }
         this.editions = [];
         this.loading = true;
+        
         lastValueFrom(this.simplexService.getEditions()).then(
-          (editions) => {
-            // remove editions with empty name
-            editions.items = editions.items.filter((item) => item.name); 
+            (editions) => {
+            // Remove editions with empty names
+            editions.items = editions.items.filter((item) => item.name);
             this.editions = editions.items;
+        
+            // Find the edition that matches the 'edition' parameter, if available
+            const matchedEdition = this.editions.find((item) => item.shortName === editionParam);
+        
+            // Select the matched edition or fall back to the first one
+            if (editionParam && matchedEdition) {
+                this.selectEdition(matchedEdition);
+            } else {
+                this.selectEdition(this.editions[0]);
+            }
             this.loading = false;
-          },
-          (error) => {
+            },
+            (error) => {
             console.error(error);
-          }
+            }
         );
-      }
-
-
-    setPath(path) {
-        const splitPath = path.split('?')[0].split('/');
-        this.setBranch({ branchPath: 'MAIN'});
-        if (path.includes('SNOMEDCT')) {
-            if (splitPath.length > 2) {
-                this.setBranch({ branchPath: splitPath[1] + '/' + splitPath[2]});
-            }
-
-            if (splitPath.length > 3) {
-                this.setProject({ key: splitPath[3]});
-            }
-
-            if (splitPath.length > 4) {
-                this.setTask({ key: splitPath[4]});
-            }
-        } else {
-            if (splitPath.length > 1) {
-                this.setBranch({ branchPath: splitPath[1]});
-            }
-
-            if (splitPath.length > 2) {
-                this.setProject({ key: splitPath[2]});
-            }
-
-            if (splitPath.length > 3) {
-                this.setTask({ key: splitPath[3]});
-            }
-        }
     }
-
-    setBranch(branch) {
-        this.pathingService.setActiveBranch(branch);
-
-        this.pathingService.setActiveProject(null);
-
-        this.pathingService.setTasks([]);
-        this.pathingService.setActiveTask(null);
-    }
-
-    setProject(project) {
-        const proj = this.projects.find(item => item.key === project.key);
-        this.pathingService.setActiveProject(proj);
-
-        this.pathingService.setTasks([]);
-        this.pathingService.setActiveTask(null);
-
-        if (proj.key) {
-            this.pathingService.httpGetTasks(proj).subscribe(tasks => {
-                this.pathingService.setTasks(tasks);
-            });
-        }
-    }
-
-    noProject() {
-        this.pathingService.setActiveProject(null);
-    }
-
-    setTask(task) {
-        this.pathingService.setActiveTask(task);
-    }
-
-    noTask() {
-        this.pathingService.setActiveTask(null);
-    }
+          
 
     logout() {
         this.simplexService.logout();
@@ -173,10 +125,27 @@ export class SnomedNavbarComponent implements OnInit {
     selectEdition(item: any) {
         this.selectedEdition = item;
         this.uiConfigurationService.setSelectedEdition(item);
+        let url = this.router.url;
+        this.updateEditionInUrl(item.shortName);
+    }
+
+    updateEditionInUrl(edition: string) {
+        // Get the current active route
+        const currentRoute = this.router.url;
+        // Check if the current route has an 'edition' parameter, update it or append if not
+        const newRoute = currentRoute.includes('/home') ? ['home'] :
+                         currentRoute.includes('artifacts/') ? ['artifact', edition] :
+                         currentRoute.includes('artifact/') ? ['artifact', edition] :                 
+                         currentRoute.includes('manage/') ? ['manage', edition] :
+                         currentRoute.includes('info/') ? ['info', edition] :
+                         currentRoute.includes('releases/') ? ['releases', edition] : ['artifact', edition];
+    
+        // Navigate to the new route while keeping the current path structure
+        this.router.navigate(newRoute);
     }
 
     goHome() {
-        this.home.emit();
+        this.router.navigate(['/home']);
     }
     
 }

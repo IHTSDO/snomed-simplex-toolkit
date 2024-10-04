@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, NgZone, OnChanges, OnInit, Output } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, Subscription } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 
@@ -9,18 +9,16 @@ import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-con
   templateUrl: './select-edition.component.html',
   styleUrls: ['./select-edition.component.scss']
 })
-export class SelectEditionComponent implements OnChanges {
+export class SelectEditionComponent implements OnInit {
 
-  editions = [];
   editionFields = ["name", "namespace", "defaultModule", "defaultModuleDisplay", "shortName"];
-  @Input() selectedEdition: any;
+  selectedEdition: any;
   newEditionMode= false;
   loading = false;
   deleting = false;
   roles: any[] = [];
-  parentEdition: any;
+  private subscriptions: Subscription = new Subscription();
 
-  @Output() editionSelected = new EventEmitter<any>();
 
   constructor(private simplexService: SimplexService,
               private snackBar: MatSnackBar,
@@ -28,21 +26,21 @@ export class SelectEditionComponent implements OnChanges {
               private changeDetectorRef: ChangeDetectorRef
               ) {}
 
-
-  ngOnChanges() {
-    // Refresh the selected edition when it changes
-    if (this.selectedEdition) {
-      this.refresh();
-    }
+  ngOnInit(): void {
+    const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+      if (edition) {
+        this.selectedEdition = edition;
+        if (!edition.namespace) {
+          this.refreshEdition();
+        }
+        this.changeDetectorRef.detectChanges();
+        this.getRoles();
+      }
+    });
+    this.subscriptions.add(editionSubscription);
   }
 
-  async refresh() {
-    this.parentEdition = null;
-    this.getRoles();
-    this.refreshSelectedEdition();
-  }
-
-  async refreshSelectedEdition() {
+  async refreshEdition() {
     this.loading = true;
     lastValueFrom(this.simplexService.getEdition(this.selectedEdition.shortName)).then(
       (edition) => {
@@ -80,15 +78,12 @@ export class SelectEditionComponent implements OnChanges {
   }
 
   loadEditions() {
-    this.editions = [];
     this.loading = true;
     lastValueFrom(this.simplexService.getEditions()).then(
       (editions) => {
         // remove editions with empty name
         editions.items = editions.items.filter((item) => item.name); 
-        this.editions = editions.items;
-        this.loading = false;
-        if (this.editions.length > 0 && !this.selectedEdition) { this.onEditionClick(this.editions[0]) } 
+        this.uiConfigurationService.setSelectedEdition(editions.items[0]);
       },
       (error) => {
         console.error(error);
@@ -98,12 +93,6 @@ export class SelectEditionComponent implements OnChanges {
         });
       }
     );
-  }
-
-  onEditionClick(item: any) {
-    this.selectedEdition = item;
-    this.editionSelected.emit(item);
-    this.uiConfigurationService.setSelectedEdition(item);
   }
 
   toggleNewEditionMode() {
@@ -116,7 +105,6 @@ export class SelectEditionComponent implements OnChanges {
       (result) => {
         this.deleting = false;
         this.selectedEdition = null;
-        this.editionSelected.emit(null);
         this.loadEditions();
         this.snackBar.open('Edition deleted!', 'Dismiss', {
           duration: 5000

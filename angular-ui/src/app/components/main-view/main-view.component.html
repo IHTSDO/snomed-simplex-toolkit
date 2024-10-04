@@ -1,78 +1,37 @@
 <mat-drawer-container class="drawer-container mat-typography">
-	<mat-drawer #drawer mode="side" disableClose="true" opened="true">
+	<mat-drawer #drawer mode="side" disableClose="true" opened="true" *ngIf="!isInHome()">
         <mat-nav-list>
-            <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'artifacts'}" (click)="selectedMenuItem = 'artifacts'">
+            <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'artifacts'}" (click)="navigateTo('artifact')">
                 <span class="nav-item">
-                    <mat-icon mat-list-icon *ngIf="!changingEdition">edit</mat-icon>
-                    <span class="nav-item-name">Artifacts</span>
+                  <mat-icon mat-list-icon>edit</mat-icon>
+                  <span class="nav-item-name">Artifacts</span>
+                </span>
+              </mat-list-item>
+              <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'manage'}" (click)="navigateTo('manage')">
+                <span class="nav-item">
+                  <mat-icon mat-list-icon>settings</mat-icon>
+                  <span class="nav-item-name">Manage Edition</span>
+                </span>
+              </mat-list-item>
+              <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'releases'}" (click)="navigateTo('releases')">
+                <span class="nav-item">
+                  <mat-icon mat-list-icon>library_books</mat-icon>
+                  <span class="nav-item-name">Releases</span>
                 </span>
             </mat-list-item>
-            <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'manage'}" (click)="selectedMenuItem = 'manage'">
-                <span class="nav-item">
-                    <mat-icon mat-list-icon>settings</mat-icon>
-                    <span class="nav-item-name">Manage Edition</span>
-                </span>
-            </mat-list-item>
-            <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'info'}" (click)="selectedMenuItem = 'info'">
-                <span class="nav-item">
-                    <mat-icon mat-list-icon>info</mat-icon>
-                    <span class="nav-item-name">Edition info</span>
-                </span>
-            </mat-list-item>
-            <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'releases'}" (click)="selectedMenuItem = 'releases'">
-                <span class="nav-item">
-                    <mat-icon mat-list-icon>library_books</mat-icon>
-                    <span class="nav-item-name">Releases</span>
-                </span>
+            <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'info'}" (click)="navigateTo('info')">
+              <span class="nav-item">
+                <mat-icon mat-list-icon>info</mat-icon>
+                <span class="nav-item-name">Edition info</span>
+              </span>
             </mat-list-item>
         </mat-nav-list>
     </mat-drawer>
 
 	<div class="example-sidenav-content">
-        <div *ngIf="selectedMenuItem == 'artifacts'">
-            <app-artifacts [edition]="selectedEdition?.shortName"></app-artifacts>
+        <div class="example-sidenav-content">
+            <router-outlet></router-outlet>
         </div>
-        <div *ngIf="selectedMenuItem == 'manage'">
-            <app-manage-codesystem [edition]="selectedEdition"></app-manage-codesystem>
-        </div>
-        <div *ngIf="selectedMenuItem == 'info'">
-            <app-select-edition (editionSelected)="editionSelected($event)" [selectedEdition]="selectedEdition"></app-select-edition>
-        </div>
-        <div *ngIf="selectedMenuItem == 'releases'">
-            <app-download-releases [edition]="selectedEdition"></app-download-releases>
-        </div>
-
-        <!-- <div class="main-view">
-            <h3 *ngIf="!selectedEdition"><i>Select an edition</i></h3>
-            <h3 *ngIf="selectedEdition">{{ selectedEdition.name }}</h3>
-            <mat-tab-group mat-stretch-tabs="false" mat-align-tabs="start">
-            
-                <mat-tab [disabled]="!selectedEdition">
-                    <ng-template mat-tab-label>
-                        <mat-icon class="tab-icon">filter_list</mat-icon>
-                        Edit Content
-                        <mat-spinner [diameter]="20" *ngIf="changingEdition" class="tab-spinner"></mat-spinner>
-                        <span class="tab-spinner spacer" *ngIf="!changingEdition"></span>
-                    </ng-template>
-                    <app-artifacts [edition]="selectedEdition?.shortName"></app-artifacts>
-                </mat-tab>
-        
-                <mat-tab [disabled]="!selectedEdition">
-                    <ng-template mat-tab-label>
-                        <mat-icon class="tab-icon">settings</mat-icon> Manage Edition
-                    </ng-template>
-                    <app-publish [edition]="selectedEdition?.shortName"></app-publish>
-                </mat-tab>
-        
-                <mat-tab>
-                    <ng-template mat-tab-label>
-                        <mat-icon class="tab-icon">info</mat-icon> Edition Info
-                    </ng-template>
-                    <app-select-edition (editionSelected)="editionSelected($event)"></app-select-edition>
-                </mat-tab>
-        
-            </mat-tab-group>    
-        </div> -->
 	</div>
 </mat-drawer-container>
 

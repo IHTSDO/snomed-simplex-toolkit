@@ -15,7 +15,7 @@ export class UiConfigurationService {
     this.configuration = configuration;
   }
 
-  getConfiguration(): Observable<any> {
+  getConfiguration(): any {
     return this.configuration;
   }
 

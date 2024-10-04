@@ -1,6 +1,10 @@
 <div class="component-row">
   <div class="component-col">
-    <h4>Releases: {{ edition.name }}</h4>
+    <h4>Releases: {{ edition?.name }} 
+      <button mat-icon-button [disabled]="!edition || loading" (click)="loadVersions()">
+        <mat-icon class="refresh-icon">refresh</mat-icon>
+      </button>
+    </h4>
     <table mat-table [dataSource]="loading ? skeleton : versions">
 
         <!-- Created Column -->
