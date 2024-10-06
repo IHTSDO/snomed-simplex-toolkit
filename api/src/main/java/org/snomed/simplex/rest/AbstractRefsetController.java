@@ -16,7 +16,7 @@ import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.CreateConceptRequest;
 import org.snomed.simplex.service.ActivityService;
-import org.snomed.simplex.service.JobService;
+import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.RefsetUpdateService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,10 +30,10 @@ import java.util.List;
 public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 
 	private final SnowstormClientFactory clientFactory;
-	private final JobService jobService;
+	private final ContentProcessingJobService jobService;
 	private final ActivityService activityService;
 
-	protected AbstractRefsetController(SnowstormClientFactory clientFactory, JobService jobService, ActivityService activityService) {
+	protected AbstractRefsetController(SnowstormClientFactory clientFactory, ContentProcessingJobService jobService, ActivityService activityService) {
 		this.clientFactory = clientFactory;
 		this.jobService = jobService;
 		this.activityService = activityService;
@@ -58,7 +58,7 @@ public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
-		Concept concept = activityService.recordActivity(codeSystem, getComponentType(), ActivityType.CREATE, () ->
+		Concept concept = activityService.runActivity(codeSystem, getComponentType(), ActivityType.CREATE, () ->
 				snowstormClient.createSimpleMetadataConcept(getRefsetType(), createConceptRequest.getPreferredTerm(),
 						Concepts.FOUNDATION_METADATA_CONCEPT_TAG, theCodeSystem));
 		return snowstormClient.getRefset(concept.getConceptId(), theCodeSystem);
@@ -81,7 +81,7 @@ public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
-		try (InputStream inputStream = file.getInputStream()){
+		try (InputStream inputStream = file.getInputStream()) {
 			Activity activity = new Activity(SecurityUtil.getUsername(), codeSystem, getComponentType(), ActivityType.UPDATE);
 			return jobService.queueContentJob(theCodeSystem, getSpreadsheetUploadJobName(), inputStream, file.getOriginalFilename(), refsetId, activity,
 					asyncJob -> getRefsetService().updateRefsetViaSpreadsheet(asyncJob));
@@ -100,7 +100,7 @@ public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 	public void deleteRefset(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		activityService.recordActivity(codeSystem, getComponentType(), ActivityType.DELETE, refsetId, () -> {
+		activityService.runActivity(codeSystem, getComponentType(), ActivityType.DELETE, refsetId, () -> {
 			snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 			getRefsetService().deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
 			return null;

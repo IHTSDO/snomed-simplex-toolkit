@@ -1,6 +1,7 @@
 package org.snomed.simplex.service;
 
 import org.snomed.simplex.domain.activity.Activity;
+import org.snomed.simplex.domain.activity.ActivityType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
@@ -16,4 +17,6 @@ public interface ActivityRepository extends ElasticsearchRepository<Activity, St
 	Optional<Activity> findActivityByCodesystemAndStartDate(String codeSystem, Long startDate);
 
 	void deleteAllByActivityType(String activityType);
+
+	Page<Activity> findActivityByCodesystemAndActivityTypeOrderByStartDateDesc(String codeSystem, ActivityType activityType, PageRequest pageRequest);
 }

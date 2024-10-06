@@ -13,8 +13,8 @@ import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.CustomConceptService;
-import org.snomed.simplex.service.JobService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,9 +30,9 @@ public class CustomConceptController {
 
 	private final CustomConceptService customConceptService;
 	private final SnowstormClientFactory snowstormClientFactory;
-	private final JobService jobService;
+	private final ContentProcessingJobService jobService;
 
-	public CustomConceptController(CustomConceptService customConceptService, SnowstormClientFactory snowstormClientFactory, JobService jobService) {
+	public CustomConceptController(CustomConceptService customConceptService, SnowstormClientFactory snowstormClientFactory, ContentProcessingJobService jobService) {
 		this.customConceptService = customConceptService;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.jobService = jobService;

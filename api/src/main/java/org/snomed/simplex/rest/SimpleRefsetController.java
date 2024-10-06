@@ -11,7 +11,7 @@ import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.ActivityService;
-import org.snomed.simplex.service.JobService;
+import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.RefsetToolSubsetReader;
 import org.snomed.simplex.service.SimpleRefsetService;
 import org.snomed.simplex.service.job.AsyncJob;
@@ -28,10 +28,10 @@ import java.io.IOException;
 public class SimpleRefsetController extends AbstractRefsetController<RefsetMemberIntent> {
 
 	private final SimpleRefsetService simpleRefsetService;
-	private final JobService jobService;
+	private final ContentProcessingJobService jobService;
 
 	public SimpleRefsetController(SnowstormClientFactory snowstormClientFactory,
-			SimpleRefsetService simpleRefsetService, JobService jobService, ActivityService activityService) {
+			SimpleRefsetService simpleRefsetService, ContentProcessingJobService jobService, ActivityService activityService) {
 
 		super(snowstormClientFactory, jobService, activityService);
 		this.simpleRefsetService = simpleRefsetService;

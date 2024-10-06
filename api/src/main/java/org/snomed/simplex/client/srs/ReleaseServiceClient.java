@@ -14,7 +14,9 @@ import org.snomed.simplex.client.AuthenticationClient;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.CodeSystemBuildStatus;
 import org.snomed.simplex.client.domain.ConceptMini;
+import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.srs.domain.OutputFile;
 import org.snomed.simplex.client.srs.domain.ProductUpdateRequestInternal;
 import org.snomed.simplex.client.srs.domain.SRSBuild;
@@ -106,6 +108,21 @@ public class ReleaseServiceClient {
         this.releaseManifestService = releaseManifestService;
         this.snowstormClientFactory = snowstormClientFactory;
         this.authenticationClient = authenticationClient;
+    }
+
+    public SRSBuild getReleaseCompleteBuildOrThrow(CodeSystem codeSystem) throws ServiceException {
+        if (codeSystem.getEditionStatus() != EditionStatus.RELEASE || codeSystem.getBuildStatus() != CodeSystemBuildStatus.COMPLETE) {
+            throw new ServiceExceptionWithStatusCode("This function is only available when CodeSytem is in release mode " +
+                    "and the release candidate build is complete.", HttpStatus.CONFLICT);
+        }
+
+        String buildUrl = codeSystem.getLatestReleaseCandidateBuild();
+        SRSBuild build = getBuild(buildUrl);
+        String buildStatus = build.status();
+        if (CodeSystemBuildStatus.fromSRSStatus(buildStatus) != CodeSystemBuildStatus.COMPLETE) {
+            throw new ServiceExceptionWithStatusCode("The release candidate build is not yet complete.", HttpStatus.CONFLICT);
+        }
+        return build;
     }
 
     public SRSProduct getCreateProduct(CodeSystem codeSystem, PackageConfiguration packageConfiguration) throws ServiceException {

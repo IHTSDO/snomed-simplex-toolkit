@@ -15,7 +15,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.CreateConceptRequest;
 import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.service.ActivityService;
-import org.snomed.simplex.service.JobService;
+import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.TranslationService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,10 +38,10 @@ public class TranslationController {
 
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final TranslationService translationService;
-	private final JobService jobService;
+	private final ContentProcessingJobService jobService;
 	private final ActivityService activityService;
 
-	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, JobService jobService,
+	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, ContentProcessingJobService jobService,
 			ActivityService activityService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
@@ -61,7 +61,7 @@ public class TranslationController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void createTranslation(@PathVariable String codeSystem, @RequestBody CreateConceptRequest request) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		activityService.recordActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.CREATE, () ->
+		activityService.runActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.CREATE, () ->
 			snowstormClient.createSimpleMetadataConcept(Concepts.LANG_REFSET, request.getPreferredTerm(), Concepts.FOUNDATION_METADATA_CONCEPT_TAG,
 					snowstormClient.getCodeSystemOrThrow(codeSystem))
 		);
@@ -74,7 +74,7 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		activityService.recordActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.DELETE, refsetId, () -> {
+		activityService.runActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.DELETE, refsetId, () -> {
 			translationService.deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
 			return null;
 		});

@@ -2,7 +2,7 @@ package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.snomed.simplex.service.JobService;
+import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.JobType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@Tag(name = "Processing Jobs", description = "-")
+@Tag(name = "Content Processing Jobs", description = "-")
 @RequestMapping("api")
-public class JobController {
+public class ContentProcessingJobController {
 
-	private final JobService service;
+	private final ContentProcessingJobService service;
 
-	public JobController(JobService service) {
+	public ContentProcessingJobController(ContentProcessingJobService service) {
 		this.service = service;
 	}
 

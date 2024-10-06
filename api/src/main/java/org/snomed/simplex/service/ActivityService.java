@@ -2,8 +2,10 @@ package org.snomed.simplex.service;
 
 import org.ihtsdo.otf.resourcemanager.ResourceManager;
 import org.ihtsdo.sso.integration.SecurityUtil;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Component;
 import org.snomed.simplex.config.ActivityResourceManagerConfiguration;
 import org.snomed.simplex.domain.Page;
@@ -12,8 +14,9 @@ import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
-import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.service.external.ExternalFunctionJobService;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -60,6 +63,13 @@ public class ActivityService {
 		return activity.orElseThrow(() -> new ServiceExceptionWithStatusCode("Activity not found.", HttpStatus.NOT_FOUND));
 	}
 
+	public Activity findLatestByCodeSystemAndActivityType(String codeSystem, ActivityType activityType) {
+		PageRequest pageRequest = PageRequest.of(0, 1);
+		org.springframework.data.domain.Page<Activity> page =
+				repository.findActivityByCodesystemAndActivityTypeOrderByStartDateDesc(codeSystem, activityType, pageRequest);
+		return page.isEmpty() ? null : page.iterator().next();
+	}
+
 	public InputStream getActivityInputFile(Activity activity) throws IOException {
 		String fileUpload = activity.getFileUpload();
 		if (fileUpload == null) {
@@ -68,20 +78,25 @@ public class ActivityService {
 		return resourceManager.readResourceStreamOrNullIfNotExists(fileUpload);
 	}
 
-	public <T> T recordActivity(String codeSystem, ComponentType componentType, ActivityType activityType,
+	public <T> T runActivity(String codeSystem, ComponentType componentType, ActivityType activityType,
 			ServiceCallable<T> callable) throws ServiceException {
-		return recordActivity(codeSystem, componentType, activityType, null, callable);
+		return doRunActivity(codeSystem, componentType, activityType, null, callable);
 	}
 
-	public <T> T recordActivity(String codeSystem, ComponentType componentType, ActivityType activityType, String componentId,
+	public void runActivity(String codeSystem, ComponentType componentType, ActivityType activityType, String componentId,
+			ServiceCallable<Void> callable) throws ServiceException {
+		doRunActivity(codeSystem, componentType, activityType, componentId, callable);
+	}
+
+	private <T> T doRunActivity(String codeSystem, ComponentType componentType, ActivityType activityType, String componentId,
 			ServiceCallable<T> callable) throws ServiceException {
 
-
-		Activity activity = new Activity(SecurityUtil.getUsername(), codeSystem, componentType, activityType);
+		Activity activity = createActivity(codeSystem, componentType, activityType);
 		activity.setComponentId(componentId);
 		try {
 			T result = callable.call();
 			if (activityType == ActivityType.CREATE && result instanceof Component component) {
+				// Populate newly created component id
 				activity.setComponentId(component.getId());
 			}
 			return result;
@@ -89,31 +104,30 @@ public class ActivityService {
 			activity.exception(e);
 			throw e;
 		} finally {
+			// Instant activities end straight away
 			activity.end();
 			repository.save(activity);
 		}
 	}
 
-	public void recordQueuedActivity(Activity activity, AsyncJob asyncJob) throws ServiceException {
-		if (asyncJob instanceof ContentJob job) {
-			// Save user upload file
-			File userInputFile = job.getInputFileCopy();
-			String inputFileOriginalName = job.getInputFileOriginalName();
-			String fileExtension = "txt";
-			if (inputFileOriginalName != null && inputFileOriginalName.contains(".")) {
-				String inputFileExtension = inputFileOriginalName.substring(inputFileOriginalName.lastIndexOf(".") + 1);
-				if (!inputFileExtension.isEmpty()) {
-					fileExtension = inputFileExtension;
-				}
+	public void addQueuedContentActivity(Activity activity, ContentJob job) throws ServiceException {
+		// Save user upload file
+		File userInputFile = job.getInputFileCopy();
+		String inputFileOriginalName = job.getInputFileOriginalName();
+		String fileExtension = "txt";
+		if (inputFileOriginalName != null && inputFileOriginalName.contains(".")) {
+			String inputFileExtension = inputFileOriginalName.substring(inputFileOriginalName.lastIndexOf(".") + 1);
+			if (!inputFileExtension.isEmpty()) {
+				fileExtension = inputFileExtension;
 			}
-			if (userInputFile != null) {
-				String filePath = getFilePath(activity, fileExtension);
-				try (InputStream inputStream = new FileInputStream(userInputFile)){
-					resourceManager.writeResource(filePath, inputStream);
-					activity.setFileUpload(filePath);
-				} catch (IOException e) {
-					throw new ServiceException("Failed to save user input file for activity tracker.", e);
-				}
+		}
+		if (userInputFile != null) {
+			String filePath = getFilePath(activity, fileExtension);
+			try (InputStream inputStream = new FileInputStream(userInputFile)){
+				resourceManager.writeResource(filePath, inputStream);
+				activity.setFileUpload(filePath);
+			} catch (IOException e) {
+				throw new ServiceException("Failed to save user input file for activity tracker.", e);
 			}
 		}
 
@@ -122,9 +136,29 @@ public class ActivityService {
 		repository.save(activity);
 	}
 
-	public void recordCompletedActivity(Activity activity) {
+	public <T> ExternalServiceJob startExternalServiceActivity(CodeSystem codeSystem, ComponentType componentType, ActivityType activityType,
+			ExternalFunctionJobService<T> service, T param) throws ServiceException {
+
+		Activity activity = createActivity(codeSystem.getShortName(), componentType, activityType);
+		try {
+			return service.callService(codeSystem, activity, param);
+		} catch (ServiceException e) {
+			// External service function call failed
+			activity.exception(e);
+			throw e;
+		} finally {
+			// Long-running activities are not ended here
+			repository.save(activity);
+		}
+	}
+
+	public void endAsynchronousActivity(Activity activity) {
 		activity.end();
 		repository.save(activity);
+	}
+
+	private static @NotNull Activity createActivity(String codeSystem, ComponentType componentType, ActivityType activityType) {
+		return new Activity(SecurityUtil.getUsername(), codeSystem, componentType, activityType);
 	}
 
 	protected String getFilePath(Activity activity, String fileExtension) {

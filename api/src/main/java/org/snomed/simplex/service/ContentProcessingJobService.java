@@ -5,8 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.activity.Activity;
-import org.snomed.simplex.domain.activity.ActivityType;
-import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,10 +21,9 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
 
 @Service
-public class JobService {
+public class ContentProcessingJobService {
 
 	private final Map<String, Map<String, AsyncJob>> codeSystemJobs;
 	private final ExecutorService jobExecutorService;
@@ -35,27 +32,11 @@ public class JobService {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public JobService(@Value("${job.concurrent.threads}") int nThreads, SupportRegister supportRegister, ActivityService activityService) {
+	public ContentProcessingJobService(@Value("${job.concurrent.threads}") int nThreads, SupportRegister supportRegister, ActivityService activityService) {
 		codeSystemJobs = new HashMap<>();
 		jobExecutorService = Executors.newFixedThreadPool(nThreads);
 		this.supportRegister = supportRegister;
 		this.activityService = activityService;
-	}
-
-	public AsyncJob startExternalServiceJob(CodeSystem codeSystem, ActivityType activityType, Consumer<ExternalServiceJob> function) throws ServiceException {
-		String shortName = codeSystem.getShortName();
-		ExternalServiceJob asyncJob = new ExternalServiceJob(codeSystem, activityType.getDisplay(),
-				codeSystem.getWorkingBranchPath(), codeSystem.getContentHeadTimestamp());
-
-		asyncJob.setSecurityContext(SecurityContextHolder.getContext());
-		asyncJob.setStatus(JobStatus.IN_PROGRESS);
-
-		activityService.recordActivity(codeSystem.getShortName(), ComponentType.CODE_SYSTEM, activityType, () -> {
-			function.accept(asyncJob);
-			return null;
-		});
-		codeSystemJobs.computeIfAbsent(shortName, i -> new LinkedHashMap<>()).put(asyncJob.getId(), asyncJob);
-		return asyncJob;
 	}
 
 	public AsyncJob queueContentJob(CodeSystem codeSystem, String display, InputStream jobInputStream, String originalFilename, String refsetId,
@@ -77,14 +58,14 @@ public class JobService {
 		});
 	}
 
-	private <T extends AsyncJob> T doQueueJob(CodeSystem codeSystem, AsyncFunction<T> function, T asyncJob, Activity activity, Runnable onCompleteRunnable) {
+	private ContentJob doQueueJob(CodeSystem codeSystem, AsyncFunction<ContentJob> function, ContentJob asyncJob, Activity activity, Runnable onCompleteRunnable) {
 		// Add job to thread limited executor service to be run when there is capacity
 		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
 
 		asyncJob.setStatus(JobStatus.QUEUED);
 
 		try {
-			activityService.recordQueuedActivity(activity, asyncJob);
+			activityService.addQueuedContentActivity(activity, asyncJob);
 		} catch (ServiceException e) {
 			supportRegister.handleSystemError(asyncJob, "Failed to record activity.", e);
 		}
@@ -106,7 +87,7 @@ public class JobService {
 				activity.exception(serviceException);
 				supportRegister.handleSystemError(asyncJob, "Unexpected error.", serviceException);
 			} finally {
-				activityService.recordCompletedActivity(activity);
+				activityService.endAsynchronousActivity(activity);
 				if (onCompleteRunnable != null) {
 					onCompleteRunnable.run();
 				}
@@ -134,7 +115,7 @@ public class JobService {
 		}
 		return jobs.stream()
 				.filter(job -> jobType == null || job.getJobType() == jobType)
-				.filter(job -> refsetId == null || (job instanceof ContentJob && refsetId.equals(((ContentJob)job).getRefsetId())))
+				.filter(job -> refsetId == null || (job instanceof ContentJob contentJob && refsetId.equals(contentJob.getRefsetId())))
 				.sorted(Comparator.comparing(AsyncJob::getCreated).reversed())
 				.toList();
 	}
@@ -145,23 +126,18 @@ public class JobService {
 			// Delete jobs over 7 days old
 			GregorianCalendar maxAge = new GregorianCalendar();
 			maxAge.add(Calendar.DAY_OF_YEAR, -7);
-			for (Map<String, AsyncJob> codeSystemJobs : codeSystemJobs.values()) {
+			for (Map<String, AsyncJob> jobs : codeSystemJobs.values()) {
 				List<String> expired = new ArrayList<>();
-				for (Map.Entry<String, AsyncJob> entry : codeSystemJobs.entrySet()) {
+				for (Map.Entry<String, AsyncJob> entry : jobs.entrySet()) {
 					if (entry.getValue().getCreated().before(maxAge.getTime())) {
 						expired.add(entry.getKey());
 					}
 				}
 				for (String key : expired) {
-					codeSystemJobs.remove(key);
+					jobs.remove(key);
 				}
 			}
 		}
 	}
 
-	public AsyncJob getLatestJobOfType(String codeSystem, String display) {
-		List<AsyncJob> list = codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).values().stream()
-				.filter(job -> display.equals(job.getDisplay())).toList();
-		return list.isEmpty() ? null : list.get(list.size() - 1);
-	}
 }

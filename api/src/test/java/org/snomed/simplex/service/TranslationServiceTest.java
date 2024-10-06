@@ -1,5 +1,10 @@
 package org.snomed.simplex.service;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mockito;
 import org.snomed.simplex.TestConfig;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
@@ -8,23 +13,17 @@ import org.snomed.simplex.client.domain.Concept;
 import org.snomed.simplex.client.domain.Description;
 import org.snomed.simplex.client.domain.DummyProgressMonitor;
 import org.snomed.simplex.exceptions.ServiceException;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 
 @SpringBootTest
 @ContextConfiguration(classes = TestConfig.class)
@@ -39,7 +38,7 @@ class TranslationServiceTest {
 	@Captor
 	private ArgumentCaptor<List<Concept>> conceptsSentToUpdate;
 
-	private CodeSystem testCodeSystem = new CodeSystem("SNOMEDCT-TEST", "", "MAIN/SNOMEDCT-TEST");
+	private final CodeSystem testCodeSystem = new CodeSystem("SNOMEDCT-TEST", "", "MAIN/SNOMEDCT-TEST");
 
 	private SnowstormClient mockSnowstormClient;
 

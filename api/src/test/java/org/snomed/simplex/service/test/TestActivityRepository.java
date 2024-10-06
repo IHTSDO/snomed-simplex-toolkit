@@ -1,6 +1,7 @@
 package org.snomed.simplex.service.test;
 
 import org.snomed.simplex.domain.activity.Activity;
+import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.service.ActivityRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +35,11 @@ public class TestActivityRepository extends NoopRepository<Activity> implements 
 
 	@Override
 	public Page<Activity> findActivitiesByCodesystemIsAndComponentIdOrderByStartDateDesc(String codesystem, String componentId, PageRequest pageRequest) {
+		return null;
+	}
+
+	@Override
+	public Page<Activity> findActivityByCodesystemAndActivityTypeOrderByStartDateDesc(String codeSystem, ActivityType activityType, PageRequest pageRequest) {
 		return null;
 	}
 
