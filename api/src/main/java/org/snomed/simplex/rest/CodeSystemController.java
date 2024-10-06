@@ -54,33 +54,24 @@ public class CodeSystemController {
 
 	private final SnowstormClientFactory clientFactory;
 	private final CodeSystemService codeSystemService;
-	private final ClassifyJobService classifyService;
-	private final ValidateJobService validateJobService;
 	private final ValidationService validationService;
+	private final ValidateJobService validateJobService;
 	private final ValidationServiceClient validationServiceClient;
 	private final UpgradeJobService upgradeJobService;
-	private final ReleaseCandidateJobService releaseCandidateJobService;
-	private final ReleaseServiceClient releaseServiceClient;
-	private final PublishReleaseJobService publishReleaseJobService;
 	private final ActivityService activityService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService, ClassifyJobService classifyService,
-			ValidateJobService validateJobService, ValidationService validationService, ValidationServiceClient validationServiceClient,
-			UpgradeJobService upgradeJobService, ReleaseCandidateJobService releaseCandidateJobService, ReleaseServiceClient releaseServiceClient,
-			PublishReleaseJobService publishReleaseJobService, ActivityService activityService) {
+	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService,
+			ValidationService validationService, ValidateJobService validateJobService, ValidationServiceClient validationServiceClient,
+			UpgradeJobService upgradeJobService, ActivityService activityService) {
 
 		this.clientFactory = clientFactory;
 		this.codeSystemService = codeSystemService;
-		this.classifyService = classifyService;
-		this.validateJobService = validateJobService;
 		this.validationService = validationService;
+		this.validateJobService = validateJobService;
 		this.validationServiceClient = validationServiceClient;
 		this.upgradeJobService = upgradeJobService;
-		this.releaseCandidateJobService = releaseCandidateJobService;
-		this.releaseServiceClient = releaseServiceClient;
-		this.publishReleaseJobService = publishReleaseJobService;
 		this.activityService = activityService;
 	}
 
@@ -121,13 +112,14 @@ public class CodeSystemController {
 	public AsyncJob createClassificationJob(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		classifyService.addClassificationStatus(theCodeSystem);
+		codeSystemService.addClassificationStatus(theCodeSystem);
         if (theCodeSystem.isClassified()) {
 			throw new ServiceException("This codesystem is already classified.");
 		} else if (theCodeSystem.getClassificationStatus() == CodeSystemClassificationStatus.IN_PROGRESS) {
 			throw new ServiceException("Classification is already in progress.");
 		}
 
+		ClassifyJobService classifyService = codeSystemService.getClassifyJobService();
 		return activityService.startExternalServiceActivity(theCodeSystem, CODE_SYSTEM, ActivityType.CLASSIFY, classifyService, null);
 	}
 
@@ -201,6 +193,7 @@ public class CodeSystemController {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		PackageConfiguration packageConfiguration = codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());
+		ReleaseServiceClient releaseServiceClient = codeSystemService.getReleaseServiceClient();
 		return releaseServiceClient.getCreateProduct(theCodeSystem, packageConfiguration);
 	}
 
@@ -306,8 +299,10 @@ public class CodeSystemController {
 		if (Strings.isBlank(packageConfiguration.orgName()) || Strings.isBlank(packageConfiguration.orgContactDetails())) {
 			throw new ServiceExceptionWithStatusCode("Organisation name and contact details must be set before creating a build.", HttpStatus.CONFLICT);
 		}
+		ReleaseServiceClient releaseServiceClient = codeSystemService.getReleaseServiceClient();
 		releaseServiceClient.getCreateProduct(theCodeSystem, packageConfiguration);
 
+		ReleaseCandidateJobService releaseCandidateJobService = codeSystemService.getReleaseCandidateJobService();
 		activityService.startExternalServiceActivity(theCodeSystem, CODE_SYSTEM, BUILD_RELEASE, releaseCandidateJobService, effectiveTime);
 	}
 
@@ -331,6 +326,7 @@ public class CodeSystemController {
 	public void finalizeRelease(@PathVariable String codeSystem) throws ServiceException {
 		CodeSystem theCodeSystem = getCodeSystemDetails(codeSystem);
 		// There is no job for this action. Publish status is updated when user views CodeSystem.
+		PublishReleaseJobService publishReleaseJobService = codeSystemService.getPublishReleaseJobService();
 		activityService.startExternalServiceActivity(theCodeSystem, CODE_SYSTEM, FINALIZE_RELEASE, publishReleaseJobService, null);
 	}
 

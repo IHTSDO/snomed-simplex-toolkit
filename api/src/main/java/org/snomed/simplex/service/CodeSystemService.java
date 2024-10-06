@@ -332,4 +332,23 @@ public class CodeSystemService {
 		}
 	}
 
+	public void addClassificationStatus(CodeSystem codeSystem) {
+		classifyService.addClassificationStatus(codeSystem);
+	}
+
+	public ClassifyJobService getClassifyJobService() {
+		return classifyService;
+	}
+
+	public ReleaseServiceClient getReleaseServiceClient() {
+		return releaseServiceClient;
+	}
+
+	public ReleaseCandidateJobService getReleaseCandidateJobService() {
+		return releaseCandidateJobService;
+	}
+
+	public PublishReleaseJobService getPublishReleaseJobService() {
+		return publishReleaseJobService;
+	}
 }
