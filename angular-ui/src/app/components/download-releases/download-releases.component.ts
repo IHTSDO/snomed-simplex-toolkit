@@ -54,7 +54,7 @@ export class DownloadReleasesComponent implements OnInit, OnDestroy {
       );
       this.simplexService.getReleasePackage(this.edition.shortName, version.effectiveDate).subscribe(
         (fileBlob: Blob) => {
-          const filename = this.edition.shortName + '-Edition-Release-Candidate.zip'; // Example filename
+          const filename = version.releasePackage; // Example filename
           this.simplexService.triggerDownload(fileBlob, filename);
           setTimeout(() => {
             this.downloadReleaseDisabled = false;
