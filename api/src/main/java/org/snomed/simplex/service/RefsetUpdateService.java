@@ -52,7 +52,7 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 		CodeSystem codeSystem = contentJob.getCodeSystemObject();
 		// Check refset exists
 		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(contentJob.getRefsetId(), codeSystem);
-		List<T> sheetMembers = spreadsheetService.readComponentSpreadsheet(contentJob.getInputStream(), getInputSheetExpectedHeaders(), getInputSheetMemberExtractor());
+		List<T> sheetMembers = spreadsheetService.readComponentSpreadsheet(contentJob.getInputStream(), getInputSheetExpectedHeaders(), getInputSheetMemberExtractor(), codeSystem.getContentHeadTimestamp());
 		return update(refset, sheetMembers, codeSystem, contentJob);
 	}
 

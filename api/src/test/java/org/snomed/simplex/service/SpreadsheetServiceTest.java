@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +37,31 @@ class SpreadsheetServiceTest {
 	}
 
 	@Test
+	void testSpreadsheetUpdateCheck() {
+		List<SheetHeader> inputSheetHeaders = customConceptService.getInputSheetHeaders(Collections.emptyList());
+		SheetRowToComponentIntentExtractor<ConceptIntent> inputSheetComponentExtractor =
+				customConceptService.getInputSheetComponentExtractor(Collections.emptyList());
+
+		// Test with correct timestamp
+		try {
+			long correctTimestamp = 1727964880378L;
+			InputStream inputStream = getClass().getResourceAsStream("/test-spreadsheets/conceptsSpreadsheet.xlsx");
+			spreadsheetService.readComponentSpreadsheet(inputStream, inputSheetHeaders, inputSheetComponentExtractor, correctTimestamp);
+		} catch (ServiceException e) {
+			fail("Timestamp check failed, it should have passed.");
+		}
+
+		try {
+			long incorrectTimestamp = 1727964880000L;
+			InputStream inputStream = getClass().getResourceAsStream("/test-spreadsheets/conceptsSpreadsheet.xlsx");
+			spreadsheetService.readComponentSpreadsheet(inputStream, inputSheetHeaders, inputSheetComponentExtractor, incorrectTimestamp);
+			fail("Timestamp check passed, it should have failed.");
+		} catch (ServiceException e) {
+			// Pass
+		}
+	}
+
+	@Test
 	void testReadSheet() throws ServiceException {
 		InputStream inputStream = getClass().getResourceAsStream("/test-spreadsheets/conceptsSpreadsheet.xlsx");
 
@@ -52,7 +78,7 @@ class SpreadsheetServiceTest {
 
 		SheetRowToComponentIntentExtractor<ConceptIntent> inputSheetComponentExtractor =
 				customConceptService.getInputSheetComponentExtractor(List.of(langRefsetA, langRefsetB));
-		List<ConceptIntent> sheetConcepts = spreadsheetService.readComponentSpreadsheet(inputStream, inputSheetHeaders, inputSheetComponentExtractor);
+		List<ConceptIntent> sheetConcepts = spreadsheetService.readComponentSpreadsheet(inputStream, inputSheetHeaders, inputSheetComponentExtractor, 1727964880378L);
 		assertEquals(11, sheetConcepts.size());
 
 		ConceptIntent conceptIntent1 = sheetConcepts.get(1);

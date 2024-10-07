@@ -10,19 +10,18 @@ import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.domain.ComponentIntent;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.spreadsheet.HeaderConfiguration;
 import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
 import org.snomed.simplex.util.CollectionUtils;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -37,6 +36,7 @@ public class SpreadsheetService {
 
 	public static final XSSFFont BOLD_FONT = new XSSFFont();
 	public static final String NEW_LINE = "\n";
+	public static final String SIMPLEX_BRANCH_TIMESTAMP_PREFIX = "Simplex branch timestamp:";
 
 	static {
 		BOLD_FONT.setBold(true);
@@ -76,12 +76,27 @@ public class SpreadsheetService {
 		return workbook;
 	}
 
-	public Workbook createConceptSpreadsheet(List<SheetHeader> headers, List<Concept> concepts, List<ConceptMini> langRefsets) {
+	public Workbook createConceptSpreadsheet(List<SheetHeader> headers, List<Concept> concepts, List<ConceptMini> langRefsets, long contentHeadTimestamp) {
 		Workbook workbook = new XSSFWorkbook();
 		Sheet sheet = workbook.createSheet();
+		addHeader(headers, contentHeadTimestamp, sheet);
 
-		int rowOffset = 0;
-		Row headerRow = sheet.createRow(rowOffset++);
+		List<Row> dataRows = new ArrayList<>();
+		// Format all value cells as text.
+		// To prevent them being automatically formatted as number because that can lead to formatting / rounding issues.
+		CellStyle cellStyle = getCellStyle(workbook);
+		int rowOffset = 1;
+		for (Concept concept : concepts) {
+			rowOffset = addConceptRows(langRefsets, concept, sheet, rowOffset, cellStyle, dataRows);
+		}
+
+		resizeColumns(sheet, dataRows);
+
+		return workbook;
+	}
+
+	private static void addHeader(List<SheetHeader> headers, long contentHeadTimestamp, Sheet sheet) {
+		Row headerRow = sheet.createRow(0);
 		headerRow.setHeight((short) (headerRow.getHeight() * 4));
 		int columnOffset = 0;
 		for (SheetHeader header : headers) {
@@ -99,73 +114,80 @@ public class SpreadsheetService {
 			cell.setCellStyle(headerCellStyle);
 			columnOffset++;
 		}
-		List<Row> dataRows = new ArrayList<>();
-		// Format all value cells as text.
-		// To prevent them being automatically formatted as number because that can lead to formatting / rounding issues.
-		CellStyle cellStyle = getCellStyle(workbook);
 
-		for (Concept concept : concepts) {
-			columnOffset = 0;
-			Row row = sheet.createRow(rowOffset++);
-			// Parent Concept Identifier | Parent Concept Term | Concept Identifier | Active | Terms in English, US dialect | [0.*] Terms in X
-			String parentId = "";
-			String parentFSN = "";
-			for (Axiom classAxiom : concept.getClassAxioms()) {
-				for (Relationship relationship : classAxiom.getRelationships()) {
-					if (relationship.getTypeId().equals(IS_A)) {
-						parentId = relationship.getTarget().getConceptId();
-						DescriptionMini fsn = relationship.getTarget().getFsn();
-						parentFSN = fsn != null ? fsn.getTerm() : "";
-					}
+		columnOffset = 26 * 3;
+		Cell timestampCell = headerRow.createCell(columnOffset);
+		XSSFRichTextString textString = new XSSFRichTextString();
+		textString.append((SIMPLEX_BRANCH_TIMESTAMP_PREFIX + "%s").formatted(contentHeadTimestamp));
+		timestampCell.setCellValue(textString);
+	}
+
+	private static int addConceptRows(List<ConceptMini> langRefsets, Concept concept, Sheet sheet, int rowOffset, CellStyle cellStyle, List<Row> dataRows) {
+		Row row = sheet.createRow(rowOffset++);
+
+		// Parent Concept Identifier | Parent Concept Term | Concept Identifier | Active | Terms in English, US dialect | [0.*] Terms in X
+		addParentIdAndTerm(concept, cellStyle, row);
+
+
+		// add concept id
+		int columnOffset = 2;
+		Cell cell = row.createCell(columnOffset++);
+		cell.setCellStyle(cellStyle);
+		cell.setCellValue(concept.getConceptId());
+
+		// add active
+		cell = row.createCell(columnOffset++);
+		cell.setCellStyle(cellStyle);
+		cell.setCellValue(concept.isActive() ? "" : "false");
+
+		// add terms
+		List<Description> descriptions = concept.getDescriptions();
+		List<String> langRefsetIds = new ArrayList<>();
+		langRefsetIds.add(Concepts.US_LANG_REFSET);
+		langRefsetIds.addAll(langRefsets.stream().map(ConceptMini::getConceptId).toList());
+		Map<String, List<String>> descriptionsPerLangRefset = getDescriptionsPerLangRefset(descriptions, langRefsetIds);
+		int maxTerms = descriptionsPerLangRefset.values().stream().map(List::size).max(Integer::compare).orElse(1);
+		for (int i = 0; i < maxTerms; i++) {
+			if (i > 0) {
+				dataRows.add(row);
+				row = sheet.createRow(rowOffset++);
+			}
+			int termColumnOffset = columnOffset;
+			for (String langRefsetId : langRefsetIds) {
+				List<String> terms = descriptionsPerLangRefset.get(langRefsetId);
+				String term = "";
+				if (terms.size() > i) {
+					term = terms.get(i);
+				}
+				cell = row.createCell(termColumnOffset++);
+				cell.setCellStyle(cellStyle);
+				cell.setCellValue(term);
+			}
+		}
+		dataRows.add(row);
+		return rowOffset;
+	}
+
+	private static void addParentIdAndTerm(Concept concept, CellStyle cellStyle, Row row) {
+		String parentId = "";
+		String parentFSN = "";
+		for (Axiom classAxiom : concept.getClassAxioms()) {
+			for (Relationship relationship : classAxiom.getRelationships()) {
+				if (relationship.getTypeId().equals(IS_A)) {
+					parentId = relationship.getTarget().getConceptId();
+					DescriptionMini fsn = relationship.getTarget().getFsn();
+					parentFSN = fsn != null ? fsn.getTerm() : "";
 				}
 			}
-
-			Cell cell = row.createCell(columnOffset++);
-			cell.setCellStyle(cellStyle);
-			cell.setCellValue(parentId);
-
-			cell = row.createCell(columnOffset++);
-			cell.setCellStyle(cellStyle);
-			cell.setCellValue(parentFSN);
-
-			cell = row.createCell(columnOffset++);
-			cell.setCellStyle(cellStyle);
-			cell.setCellValue(concept.getConceptId());
-
-			cell = row.createCell(columnOffset++);
-			cell.setCellStyle(cellStyle);
-			cell.setCellValue(concept.isActive() ? "" : "false");
-
-			List<Description> descriptions = concept.getDescriptions();
-			List<String> langRefsetIds = new ArrayList<>();
-			langRefsetIds.add(Concepts.US_LANG_REFSET);
-			langRefsetIds.addAll(langRefsets.stream().map(ConceptMini::getConceptId).toList());
-			Map<String, List<String>> descriptionsPerLangRefset = getDescriptionsPerLangRefset(descriptions, langRefsetIds);
-			int maxTerms = descriptionsPerLangRefset.values().stream().map(List::size).max(Integer::compare).orElse(1);
-			for (int i = 0; i < maxTerms; i++) {
-				if (i > 0) {
-					dataRows.add(row);
-					row = sheet.createRow(rowOffset++);
-				}
-				int termColumnOffset = columnOffset;
-				for (String langRefsetId : langRefsetIds) {
-					List<String> terms = descriptionsPerLangRefset.get(langRefsetId);
-					String term = "";
-					if (terms.size() > i) {
-						term = terms.get(i);
-					}
-					cell = row.createCell(termColumnOffset++);
-					cell.setCellStyle(cellStyle);
-					cell.setCellValue(term);
-				}
-			}
-
-			dataRows.add(row);
 		}
 
-		resizeColumns(sheet, dataRows);
+		Cell cell = row.createCell(0);
+		cell.setCellStyle(cellStyle);
+		cell.setCellValue(parentId);
 
-		return workbook;
+		cell = row.createCell(1);
+		cell.setCellStyle(cellStyle);
+		cell.setCellValue(parentFSN);
 	}
 
 	public Workbook createValidationReportSpreadsheet(ValidationReport validationReport) {
@@ -338,8 +360,8 @@ public class SpreadsheetService {
 		}
 	}
 
-	public <T extends ComponentIntent> List<T> readComponentSpreadsheet(InputStream spreadsheetStream,
-			List<SheetHeader> expectedHeader, SheetRowToComponentIntentExtractor<T> componentIntentExtractor) throws ServiceException {
+	public <T extends ComponentIntent> List<T> readComponentSpreadsheet(InputStream spreadsheetStream, List<SheetHeader> expectedHeader,
+			SheetRowToComponentIntentExtractor<T> componentIntentExtractor, long expectedContentHeadTimestamp) throws ServiceException {
 
 		int rowNumber = 0;
 		try {
@@ -350,6 +372,7 @@ public class SpreadsheetService {
 				for (Row cells : sheet) {
 					rowNumber++;
 					if (headerConfiguration == null) {
+						verifySheetMatchesLatestCommit(cells, expectedContentHeadTimestamp);
 						headerConfiguration = getHeaderConfiguration(cells, expectedHeader);
 					} else {
 						T componentIntent = componentIntentExtractor.extract(cells, rowNumber, headerConfiguration);
@@ -362,6 +385,28 @@ public class SpreadsheetService {
 			}
 		} catch (IOException e) {
 			throw new ServiceException(String.format("Failed to read row %s of input file, %s", rowNumber, e.getMessage()));
+		}
+	}
+
+	private void verifySheetMatchesLatestCommit(Row headerCells, long expectedContentHeadTimestamp) throws ServiceExceptionWithStatusCode {
+		boolean timestampMatches = false;
+		for (Cell cell : headerCells) {
+			String stringCellValue = cell.getStringCellValue();
+			if (stringCellValue != null && stringCellValue.startsWith(SIMPLEX_BRANCH_TIMESTAMP_PREFIX)) {
+				String timestamp = stringCellValue.substring(SIMPLEX_BRANCH_TIMESTAMP_PREFIX.length());
+				if (timestamp.matches("^\\d+$")) {
+					long actualTimestamp = Long.parseLong(timestamp);
+					if (expectedContentHeadTimestamp == actualTimestamp) {
+						timestampMatches = true;
+						break;
+					}
+				}
+			}
+		}
+		if (!timestampMatches) {
+			throw new ServiceExceptionWithStatusCode(
+					"The uploaded spreadsheet is not up to date with the latest changes in the Edition. " +
+							"Please download the latest spreadsheet from Simplex, add changes to that and upload.", HttpStatus.CONFLICT);
 		}
 	}
 

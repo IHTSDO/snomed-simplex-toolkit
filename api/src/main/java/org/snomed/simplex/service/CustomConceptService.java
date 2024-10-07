@@ -60,7 +60,7 @@ public class CustomConceptService {
 		String defaultModule = codeSystem.getDefaultModule();
 		List<Long> conceptIds = snowstormClient.findAllConceptsByModule(codeSystem, defaultModule).stream().map(ConceptMini::getConceptId).map(Long::parseLong).toList();
 		List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
-		try (Workbook workbook = spreadsheetService.createConceptSpreadsheet(getInputSheetHeaders(translationService.listTranslations(codeSystem, snowstormClient)), concepts, langRefsets)) {
+		try (Workbook workbook = spreadsheetService.createConceptSpreadsheet(getInputSheetHeaders(langRefsets), concepts, langRefsets, codeSystem.getContentHeadTimestamp())) {
 			workbook.write(outputStream);
 		} catch (IOException e) {
 			throw new ServiceException("Failed to write concept spreadsheet to API response stream.", e);
@@ -77,7 +77,8 @@ public class CustomConceptService {
 		List<String> extensionLangRefsets = langRefsets.stream().map(ConceptMini::getConceptId).toList();
 		Set<String> allLangRefsetsInScope = new HashSet<>(extensionLangRefsets);
 		allLangRefsetsInScope.add(Concepts.US_LANG_REFSET);
-		List<ConceptIntent> sheetConcepts = spreadsheetService.readComponentSpreadsheet(inputStream, getInputSheetHeaders(langRefsets), getInputSheetComponentExtractor(extensionLangRefsets));
+		List<ConceptIntent> sheetConcepts = spreadsheetService.readComponentSpreadsheet(inputStream, getInputSheetHeaders(langRefsets),
+				getInputSheetComponentExtractor(extensionLangRefsets), codeSystem.getContentHeadTimestamp());
 		return createUpdateConcepts(codeSystem, sheetConcepts, allLangRefsetsInScope, asyncJob, snowstormClient);
 	}
 
