@@ -277,79 +277,94 @@ public class CustomConceptService {
 	}
 
 	protected SheetRowToComponentIntentExtractor<ConceptIntent> getInputSheetComponentExtractor(final List<String> langRefsetIds) {
+		return new ConceptIntentSheetRowToComponentIntentExtractor(langRefsetIds);
+	}
 
-		return new SheetRowToComponentIntentExtractor<>() {
+	private static class ConceptIntentSheetRowToComponentIntentExtractor implements SheetRowToComponentIntentExtractor<ConceptIntent> {
 
-			private static final String PARENT_CODE = "Parent Concept Identifier";
-			private static final String CONCEPT_CODE = "Concept Identifier";
-			private static final String ACTIVE = "Active";
-			private static final String TERMS_EN_US = "Terms in English, US dialect";
+		private static final String PARENT_CODE = "Parent Concept Identifier";
+		private static final String CONCEPT_CODE = "Concept Identifier";
+		private static final String ACTIVE = "Active";
+		private static final String TERMS_EN_US = "Terms in English, US dialect";
+		private final List<String> langRefsetIds;
 
-			private ConceptIntent mainComponent;
-			private boolean headerValidationComplete;
-			private final Map<Integer, String> termColumnIndexToLangRefsetMap = new HashMap<>();
-			private final Pattern langRefsetIdPattern = Pattern.compile("Terms in .*\\(([0-9]+)\\).*");
+		private ConceptIntent mainComponent;
+		private boolean headerValidationComplete;
+		private Map<Integer, String> termColumnIndexToLangRefsetMap;
+		private final Pattern langRefsetIdPattern;
 
-			@Override
-			public ConceptIntent extract(Row row, Integer rowNumber, HeaderConfiguration headerConfiguration) throws ServiceException {
-				if (!headerValidationComplete) {
-					Integer enUsIndex = headerConfiguration.getColumnStarting(TERMS_EN_US);
-					if (enUsIndex == null) {
-						throw new ServiceException(format("Mandatory column not found. Please ensure there is a column with title starting '%s'", TERMS_EN_US));
-					}
-					termColumnIndexToLangRefsetMap.put(enUsIndex, Concepts.US_LANG_REFSET);
+		public ConceptIntentSheetRowToComponentIntentExtractor(List<String> langRefsetIds) {
+			this.langRefsetIds = langRefsetIds;
+			termColumnIndexToLangRefsetMap = new HashMap<>();
+			langRefsetIdPattern = Pattern.compile("Terms in .*\\(([0-9]+)\\).*");
+		}
 
-					List<Integer> languageHeaders = headerConfiguration.getColumnsMatching("Terms in .*\\)");
-					for (Integer languageHeaderColumn : languageHeaders) {
-						SheetHeader header = headerConfiguration.getHeader(languageHeaderColumn);
-						String name = header.getName();
-						Matcher matcher = langRefsetIdPattern.matcher(name);
-						if (matcher.matches()) {
-							String langRefsetId = matcher.group(1);
-							if (langRefsetIds.contains(langRefsetId)) {
-								termColumnIndexToLangRefsetMap.put(languageHeaderColumn, langRefsetId);
-							} else {
-								throw new ServiceException(format("The language reference set code given in the header of column %s is not one of the expected values.",
-										languageHeaderColumn + 1));
-							}
-						} else {
-							throw new ServiceException(format("The header of column %s does not match the expected pattern for language reference sets.",
-									languageHeaderColumn + 1));
-						}
-					}
-					headerValidationComplete = true;
-				}
-
-				ConceptIntent conceptIntent;
-
-				String parentCode = SpreadsheetService.readSnomedConcept(row, headerConfiguration.getColumn(PARENT_CODE), rowNumber);
-				if (parentCode != null) {
-					conceptIntent = new ConceptIntent(parentCode, rowNumber);
-					boolean inactive = row.getCell(headerConfiguration.getColumn(ACTIVE), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("false");
-					conceptIntent.setInactive(inactive);
-					mainComponent = conceptIntent;
-					String conceptCode = SpreadsheetService.readSnomedConcept(row, headerConfiguration.getColumn(CONCEPT_CODE), rowNumber);
-					conceptIntent.setConceptCode(conceptCode);
-				} else {
-					conceptIntent = mainComponent;
-				}
-				if (conceptIntent == null) {
-					return null;
-				}
-
-				for (Map.Entry<Integer, String> entry : termColumnIndexToLangRefsetMap.entrySet()) {
-					Cell cell = row.getCell(entry.getKey(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-					if (cell != null) {
-						String term = cell.getStringCellValue();
-						if (!term.isEmpty()) {
-							conceptIntent.addTerm(term, entry.getValue());
-						}
-					}
-				}
-
-				// If there was no parent code then we updated the previous concept, don't return it again
-				return parentCode != null ? conceptIntent : null;
+		@Override
+		public ConceptIntent extract(Row row, Integer rowNumber, HeaderConfiguration headerConfiguration) throws ServiceException {
+			if (!headerValidationComplete) {
+				termColumnIndexToLangRefsetMap = getTermColumnIndexToLangRefsetMap(headerConfiguration);
+				headerValidationComplete = true;
 			}
-		};
+
+			ConceptIntent conceptIntent;
+
+			String parentCode = SpreadsheetService.readSnomedConcept(row, headerConfiguration.getColumn(PARENT_CODE), rowNumber);
+			if (parentCode != null) {
+				conceptIntent = new ConceptIntent(parentCode, rowNumber);
+				boolean inactive = row.getCell(headerConfiguration.getColumn(ACTIVE), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("false");
+				conceptIntent.setInactive(inactive);
+				mainComponent = conceptIntent;
+				String conceptCode = SpreadsheetService.readSnomedConcept(row, headerConfiguration.getColumn(CONCEPT_CODE), rowNumber);
+				conceptIntent.setConceptCode(conceptCode);
+			} else {
+				conceptIntent = mainComponent;
+			}
+			if (conceptIntent == null) {
+				return null;
+			}
+
+			for (Map.Entry<Integer, String> entry : termColumnIndexToLangRefsetMap.entrySet()) {
+				Cell cell = row.getCell(entry.getKey(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+				if (cell != null) {
+					String term = cell.getStringCellValue();
+					if (!term.isEmpty()) {
+						conceptIntent.addTerm(term, entry.getValue());
+					}
+				}
+			}
+
+			// If there was no parent code then we updated the previous concept, don't return it again
+			return parentCode != null ? conceptIntent : null;
+		}
+
+		private Map<Integer, String> getTermColumnIndexToLangRefsetMap(HeaderConfiguration headerConfiguration) throws ServiceException {
+			Map<Integer, String> map = new HashMap<>();
+
+			Integer enUsIndex = headerConfiguration.getColumnStarting(TERMS_EN_US);
+			if (enUsIndex == null) {
+				throw new ServiceException(format("Mandatory column not found. Please ensure there is a column with title starting '%s'", TERMS_EN_US));
+			}
+			map.put(enUsIndex, Concepts.US_LANG_REFSET);
+
+			List<Integer> languageHeaders = headerConfiguration.getColumnsMatching("Terms in .*\\)");
+			for (Integer languageHeaderColumn : languageHeaders) {
+				SheetHeader header = headerConfiguration.getHeader(languageHeaderColumn);
+				String name = header.getName();
+				Matcher matcher = langRefsetIdPattern.matcher(name);
+				if (matcher.matches()) {
+					String langRefsetId = matcher.group(1);
+					if (langRefsetIds.contains(langRefsetId)) {
+						map.put(languageHeaderColumn, langRefsetId);
+					} else {
+						throw new ServiceException(format("The language reference set code given in the header of column %s is not one of the expected values.",
+								languageHeaderColumn + 1));
+					}
+				} else {
+					throw new ServiceException(format("The header of column %s does not match the expected pattern for language reference sets.",
+							languageHeaderColumn + 1));
+				}
+			}
+			return map;
+		}
 	}
 }
