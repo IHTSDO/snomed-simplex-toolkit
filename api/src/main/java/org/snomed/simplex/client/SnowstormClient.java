@@ -722,8 +722,8 @@ public class SnowstormClient {
 		throw new ServiceException(format("Timed out while waiting for async job. URL: %s", location));
 	}
 
-	public void setVersionReleasePackage(CodeSystem codeSystem, String effectiveTime, String releasePackageFilename) {
-		String url = format("/codesystems/%s/versions/%s?releasePackage=%s", codeSystem.getShortName(), effectiveTime, releasePackageFilename);
+	public void setVersionReleasePackage(CodeSystem codeSystem, String effectiveTime, String releasePackageFilepath) {
+		String url = format("/codesystems/%s/versions/%s?releasePackage=%s", codeSystem.getShortName(), effectiveTime, releasePackageFilepath);
 		restTemplate.exchange(url, HttpMethod.PUT, null, Void.class);
 	}
 
