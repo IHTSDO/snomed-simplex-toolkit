@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { JobsComponent } from '../jobs/jobs.component';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
+import { EditionActivitiesComponent } from '../edition-activities/edition-activities.component';
 
 @Component({
   selector: 'app-manage-codesystem',
@@ -17,6 +18,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   edition: any;
 
   @ViewChild(JobsComponent) jobComponent: JobsComponent;
+  @ViewChild(EditionActivitiesComponent) activitiesComponent: EditionActivitiesComponent;
+
 
   private refreshSubscription: Subscription;
  
@@ -223,6 +226,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     );
     this.edition = response;
     this.refreshIssues();
+    this.activitiesComponent.loadActivities(false);
+    this.jobComponent.loadJobs(false);
     this.loadingReleaseStatus = false;
     this.changeDetectorRef.detectChanges();
   }

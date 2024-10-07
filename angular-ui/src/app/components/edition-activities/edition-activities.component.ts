@@ -25,20 +25,22 @@ export class EditionActivitiesComponent implements OnInit, OnChanges {
   constructor(private simplexService: SimplexService) { }
 
   ngOnInit() {
-    this.loadActivities();
+    this.loadActivities(true);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['edition'] && changes['edition'].currentValue) {
       if (!changes['edition'].previousValue || changes['edition'].currentValue.shortName !== changes['edition'].previousValue.shortName) {
         this.pageIndex = 0;
-        this.loadActivities();
+        this.loadActivities(true);
       }
     }
   }
 
-  loadActivities() {
-    this.loading = true;
+  public loadActivities(clear: boolean) {
+    if (clear) {
+      this.loading = true;
+    }
     const offset = this.pageIndex * this.pageSize;
     this.simplexService.getActivities(this.edition.shortName, offset, this.pageSize).subscribe(
       (data: any) => {
@@ -56,7 +58,7 @@ export class EditionActivitiesComponent implements OnInit, OnChanges {
   onPageChange(event: PageEvent) {
     this.pageIndex = event.pageIndex;
     this.pageSize = event.pageSize;
-    this.loadActivities();
+    this.loadActivities(true);
   }
 
 }

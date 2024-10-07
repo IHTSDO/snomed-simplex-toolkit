@@ -33,7 +33,14 @@
       <th mat-header-cell *matHeaderCellDef> Duration </th>
       <td mat-cell *matCellDef="let element">
         <div *ngIf="loading" class="skeleton-cell"></div>
-        <span *ngIf="!loading">{{ element.endDate - element.startDate | elapsed }}</span>
+        <span *ngIf="!loading">
+          <span *ngIf="element.endDate">
+            {{ element.endDate - element.startDate | elapsed }}
+          </span>
+          <span *ngIf="!element.endDate">
+            <mat-spinner [diameter]="12"></mat-spinner>
+          </span>
+        </span>
       </td>
     </ng-container>
 
