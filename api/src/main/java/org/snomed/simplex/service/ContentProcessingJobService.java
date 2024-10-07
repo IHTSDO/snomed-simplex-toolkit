@@ -6,6 +6,7 @@ import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.job.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -78,7 +79,11 @@ public class ContentProcessingJobService {
 				asyncJob.setChangeSummary(changeSummary);
 				asyncJob.setStatus(JobStatus.COMPLETE);
 			} catch (ServiceException e) {
-				asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
+				if (e instanceof ServiceExceptionWithStatusCode errorWithCode && errorWithCode.getJobStatus() != null) {
+					asyncJob.setStatus(errorWithCode.getJobStatus());
+				} else {
+					asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
+				}
 				asyncJob.setServiceException(e);
 				activity.exception(e);
 				supportRegister.handleSystemError(asyncJob, e.getMessage(), e);

@@ -9,6 +9,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.client.rvf.ValidationReport;
 import org.snomed.simplex.domain.ComponentIntent;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.spreadsheet.HeaderConfiguration;
@@ -406,7 +407,8 @@ public class SpreadsheetService {
 		if (!timestampMatches) {
 			throw new ServiceExceptionWithStatusCode(
 					"The uploaded spreadsheet is not up to date with the latest changes in the Edition. " +
-							"Please download the latest spreadsheet from Simplex, add changes to that and upload.", HttpStatus.CONFLICT);
+							"Please download the latest spreadsheet from Simplex, add changes to that and upload.", HttpStatus.CONFLICT)
+					.setJobStatus(JobStatus.USER_CONTENT_ERROR);
 		}
 	}
 
