@@ -1,5 +1,6 @@
 package org.snomed.simplex.rest;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.snomed.simplex.domain.Page;
@@ -56,6 +57,16 @@ public class ActivityController {
 		try (InputStream activityInputFile = activityService.getActivityInputFile(activity)) {
 			StreamUtils.copy(activityInputFile, response.getOutputStream());
 		}
+	}
+
+	@Operation(summary = "Admin function to force stop an Activity.")
+	@PostMapping(path = "/{startDate}/end")
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public void forceEndActivity(@PathVariable String codeSystem, @PathVariable Long startDate) throws ServiceExceptionWithStatusCode {
+		Activity activity = activityService.findActivityOrThrow(codeSystem, startDate);
+		activity.setError(true);
+		activity.setMessage("Admin ended this activity.");
+		activityService.endAsynchronousActivity(activity);
 	}
 
 }
