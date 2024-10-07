@@ -37,3 +37,14 @@ h4 {
 :host ::ng-deep .mat-paginator .mat-paginator-navigation button {
   font-size: 12px;
 }
+
+.errors-icon {
+  color: #CE0037;
+}
+
+.flex-cont {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: .5rem;
+}

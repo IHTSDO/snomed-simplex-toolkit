@@ -38,7 +38,7 @@
             {{ element.endDate - element.startDate | elapsed }}
           </span>
           <span *ngIf="!element.endDate">
-            <mat-spinner [diameter]="12"></mat-spinner>
+            <mat-spinner [diameter]="20"></mat-spinner>
           </span>
         </span>
       </td>
@@ -51,6 +51,9 @@
         <div *ngIf="loading" class="skeleton-cell"></div>
         <ng-container *ngIf="!loading">
           <!-- Icons based on status -->
+           <span *ngIf="element.error" [matTooltip]="element.message" class="flex-cont errors-icon">
+              <mat-icon class="">error</mat-icon>ERROR
+           </span>
         </ng-container>
       </td>
     </ng-container>
