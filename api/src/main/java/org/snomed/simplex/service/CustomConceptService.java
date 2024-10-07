@@ -259,7 +259,7 @@ public class CustomConceptService {
 		return parentConcept;
 	}
 
-	private List<SheetHeader> getInputSheetHeaders(List<ConceptMini> langRefsets) {
+	protected List<SheetHeader> getInputSheetHeaders(List<ConceptMini> langRefsets) {
 		List<SheetHeader> headers = new ArrayList<>();
 		headers.add(new SheetHeader("Parent Concept Identifier").setSubtitle("Only one can be given per concept."));
 		headers.add(new SheetHeader("Parent Concept Term").setSubtitle("This is just for reference."));
@@ -276,7 +276,7 @@ public class CustomConceptService {
 		return headers;
 	}
 
-	private SheetRowToComponentIntentExtractor<ConceptIntent> getInputSheetComponentExtractor(final List<String> langRefsetIds) {
+	protected SheetRowToComponentIntentExtractor<ConceptIntent> getInputSheetComponentExtractor(final List<String> langRefsetIds) {
 
 		return new SheetRowToComponentIntentExtractor<>() {
 
@@ -340,7 +340,10 @@ public class CustomConceptService {
 				for (Map.Entry<Integer, String> entry : termColumnIndexToLangRefsetMap.entrySet()) {
 					Cell cell = row.getCell(entry.getKey(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
 					if (cell != null) {
-						conceptIntent.addTerm(cell.getStringCellValue(), entry.getValue());
+						String term = cell.getStringCellValue();
+						if (!term.isEmpty()) {
+							conceptIntent.addTerm(term, entry.getValue());
+						}
 					}
 				}
 
