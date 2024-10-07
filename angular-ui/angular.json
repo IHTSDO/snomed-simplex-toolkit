@@ -21,6 +21,7 @@
             "outputPath": {
               "base": "dist/simplex-ui"
             },
+            "deployUrl": "/static/",
             "index": "src/index.html",
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
