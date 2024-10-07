@@ -296,7 +296,7 @@ public class CustomConceptService {
 		public ConceptIntentSheetRowToComponentIntentExtractor(List<String> langRefsetIds) {
 			this.langRefsetIds = langRefsetIds;
 			termColumnIndexToLangRefsetMap = new HashMap<>();
-			langRefsetIdPattern = Pattern.compile("Terms in .*\\(([0-9]+)\\).*");
+			langRefsetIdPattern = Pattern.compile("Terms in .*\\((\\d+)\\).*");
 		}
 
 		@Override
