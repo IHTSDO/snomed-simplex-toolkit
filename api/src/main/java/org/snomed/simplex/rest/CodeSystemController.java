@@ -168,8 +168,7 @@ public class CodeSystemController {
 		validateJobService.addValidationStatus(theCodeSystem);
 		CodeSystemValidationStatus validationStatus = theCodeSystem.getValidationStatus();
 		if (Set.of(CodeSystemValidationStatus.TODO, CodeSystemValidationStatus.IN_PROGRESS, CodeSystemValidationStatus.SYSTEM_ERROR).contains(validationStatus)) {
-					throw new ServiceExceptionWithStatusCode("The latest validation report is not available.",
-							HttpStatus.CONFLICT.value());
+					throw new ServiceExceptionWithStatusCode("The latest validation report is not available.", HttpStatus.CONFLICT);
 		}
 		String validationReportUrl;
 		ExternalServiceJob latestJob = validateJobService.getLatestJob(theCodeSystem.getShortName());

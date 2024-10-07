@@ -6,15 +6,16 @@ import org.springframework.http.HttpStatus;
 public class ServiceExceptionWithStatusCode extends ServiceException {
 
 	private final int statusCode;
-	private JobStatus jobStatus;
+	private final JobStatus jobStatus;
 
-	public ServiceExceptionWithStatusCode(String message, int statusCode) {
+	public ServiceExceptionWithStatusCode(String message, HttpStatus statusCode, JobStatus jobStatus) {
 		super(message);
-		this.statusCode = statusCode;
+		this.statusCode = statusCode.value();
+		this.jobStatus = jobStatus;
 	}
 
 	public ServiceExceptionWithStatusCode(String message, HttpStatus statusCode) {
-		this(message, statusCode.value());
+		this(message, statusCode, null);
 	}
 
 	public int getStatusCode() {
@@ -25,8 +26,4 @@ public class ServiceExceptionWithStatusCode extends ServiceException {
 		return jobStatus;
 	}
 
-	public ServiceExceptionWithStatusCode setJobStatus(JobStatus jobStatus) {
-		this.jobStatus = jobStatus;
-		return this;
-	}
 }

@@ -429,7 +429,7 @@ public class ReleaseServiceClient {
                 String authenticationToken = authenticationClient.fetchAuthenticationToken(releaseServiceUsername, releaseServicePassword);
                 if (authenticationToken == null || authenticationToken.isEmpty()) {
                     throw new ServiceExceptionWithStatusCode("Failed to authenticate with Release Service system user. " +
-                            "Unable to process request.", 403);
+                            "Unable to process request.", HttpStatus.FORBIDDEN);
                 }
 
                 MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();

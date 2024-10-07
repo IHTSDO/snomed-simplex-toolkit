@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,7 +38,7 @@ public class SnowstormClientFactory {
 		try {
 			String authenticationToken = getAuthenticationToken();
 			if (authenticationToken == null || authenticationToken.isEmpty()) {
-				throw new ServiceExceptionWithStatusCode("Authentication token is missing. Unable to process request.", 403);
+				throw new ServiceExceptionWithStatusCode("Authentication token is missing. Unable to process request.", HttpStatus.FORBIDDEN);
 			}
 			return clientCache.get(authenticationToken, () -> new SnowstormClient(snowstormUrl, authenticationToken, objectMapper));
 		} catch (ExecutionException e) {

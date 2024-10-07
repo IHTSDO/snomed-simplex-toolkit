@@ -407,8 +407,7 @@ public class SpreadsheetService {
 		if (!timestampMatches) {
 			throw new ServiceExceptionWithStatusCode(
 					"The uploaded spreadsheet is not up to date with the latest changes in the Edition. " +
-							"Please download the latest spreadsheet from Simplex, add changes to that and upload.", HttpStatus.CONFLICT)
-					.setJobStatus(JobStatus.USER_CONTENT_ERROR);
+							"Please download the latest spreadsheet from Simplex, add changes to that and upload.", HttpStatus.CONFLICT, JobStatus.USER_CONTENT_ERROR);
 		}
 	}
 

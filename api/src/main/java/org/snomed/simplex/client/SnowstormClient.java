@@ -18,6 +18,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
@@ -95,7 +96,7 @@ public class SnowstormClient {
 
 	private static void throwIfNull(Object object, String type) throws ServiceExceptionWithStatusCode {
 		if (object == null) {
-			throw new ServiceExceptionWithStatusCode("Failed to fetch %s from Snowstorm.".formatted(type), 500);
+			throw new ServiceExceptionWithStatusCode("Failed to fetch %s from Snowstorm.".formatted(type), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -179,7 +180,7 @@ public class SnowstormClient {
 		ResponseEntity<Branch> branchResponse = restTemplate.getForEntity(format("/branches/%s", branchPath), Branch.class);
 		Branch branch = branchResponse.getBody();
 		if (branch == null) {
-			throw new ServiceExceptionWithStatusCode(format("Branch not found %s", branchPath), 404);
+			throw new ServiceExceptionWithStatusCode(format("Branch not found %s", branchPath), HttpStatus.NOT_FOUND);
 		}
 		return branch;
 	}
