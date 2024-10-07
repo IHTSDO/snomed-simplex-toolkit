@@ -44,6 +44,7 @@ public abstract class ExternalFunctionJobService<T> {
 			}
 		} catch (ServiceException e) {
 			supportRegister.handleSystemError(asyncJob, "Failed to create " + getFunctionName() + ".", e);
+			throw e;
 		}
 		return asyncJob;
 	}
