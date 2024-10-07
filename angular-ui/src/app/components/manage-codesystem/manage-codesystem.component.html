@@ -1,3 +1,9 @@
+<div *ngIf="!edition">
+    <div class="waiting">
+        Waiting for edition information
+        <mat-spinner [diameter]="20"></mat-spinner>
+    </div>
+</div>
 <div class="component-row" *ngIf="edition">
     <div class="component-col">
         <div class="header-container">
@@ -165,11 +171,14 @@
                         <button mat-flat-button disabled *ngIf="edition.editionStatus && edition.editionStatus == 'AUTHORING'">
                             Approve content changes <mat-icon>check</mat-icon>
                         </button>
-                        <button mat-flat-button color="warn" *ngIf="edition.editionStatus && edition.editionStatus == 'RELEASE'" (click)="startAuthoring()">
+                        <button mat-flat-button color="warn" *ngIf="edition.editionStatus && edition.editionStatus == 'RELEASE' && edition.buildStatus != 'IN_PROGRESS'" (click)="startAuthoring()">
                             Remove content approval <mat-icon>cancel</mat-icon>
                         </button>
                         <button mat-flat-button disabled *ngIf="edition.editionStatus == 'MAINTENANCE'">
                             Mainteance mode
+                        </button>
+                        <button mat-flat-button disabled *ngIf="edition.editionStatus && edition.editionStatus == 'RELEASE' && edition.buildStatus == 'IN_PROGRESS'">
+                            Building release candidate
                         </button>
                     </div>
                 

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import { Subscription, catchError, lastValueFrom, of } from 'rxjs';
@@ -82,6 +82,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   constructor(
     private simplexService: SimplexService,
+    private changeDetectorRef: ChangeDetectorRef,
     private snackBar: MatSnackBar
   ) {}
 
@@ -135,6 +136,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         );
         this.jobs = data.slice(0, 5);
         this.loading = false;
+        this.changeDetectorRef.detectChanges();
 
         // After updating jobs, check if any previously IN_PROGRESS jobs are now COMPLETED
         previousInProgressJobs.forEach((prevJob) => {

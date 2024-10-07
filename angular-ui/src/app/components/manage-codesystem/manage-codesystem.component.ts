@@ -8,6 +8,7 @@ import { saveAs } from 'file-saver';
 import { JobsComponent } from '../jobs/jobs.component';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { EditionActivitiesComponent } from '../edition-activities/edition-activities.component';
+import { error } from 'jquery';
 
 @Component({
   selector: 'app-manage-codesystem',
@@ -58,6 +59,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   }
 
   async runClassification() {
+    this.alert('Requesting classification');
     this.edition.classificationStatus = 'IN_PROGRESS';
     const response = await lastValueFrom(
       this.simplexService.startClassification(this.edition.shortName)
@@ -68,6 +70,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   }
 
   async runValidation() {
+    this.alert('Requesting validation');
     this.edition.validationStatus = 'IN_PROGRESS';
     const response = await lastValueFrom(
       this.simplexService.startValidation(this.edition.shortName)
@@ -78,6 +81,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   }
 
   async runClassificationAndValidation() {
+    this.alert('Requesting classification and validation');
     this.edition.classificationStatus = 'IN_PROGRESS';
     this.edition.validationStatus = 'IN_PROGRESS';
     const classificationResponse = await lastValueFrom(
@@ -180,7 +184,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       },
       error => {
         console.error('Release candidate creation failed:', error);
-        this.alert('Release candidate creation failed');
+        this.alert('Release candidate creation failed: ' + error.error.message);
         this.refreshEdition();
       }
     );
@@ -255,9 +259,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       });
       this.issuesReport.errorCount = errorCount;
       this.issuesReport.warningCount = warningCount;
-
+      console.log('Issues refreshed');
+      console.log(this.issuesReport);
       this.loadingIssues = false;
       this.changeDetectorRef.detectChanges();
+    } else {
+      this.issuesReport = {errorCount: 0, warningCount: 0, fixes: []};
     }
   }
 

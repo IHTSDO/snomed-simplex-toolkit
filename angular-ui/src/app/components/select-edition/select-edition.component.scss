@@ -79,3 +79,12 @@ mat-list-item:not(:last-child) {
 .action-button {
   margin-left: 1rem;
 }
+
+.waiting {
+  padding: 2rem;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-start;
+}

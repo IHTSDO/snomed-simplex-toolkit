@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
 @Component({
@@ -16,7 +17,7 @@ export class ProductPackagingComponent implements OnInit, OnChanges {
   loading = false;
   private lastChangeTime = 0;
 
-  constructor(private fb: FormBuilder, private simplexService: SimplexService) {}
+  constructor(private fb: FormBuilder, private snackBar: MatSnackBar, private simplexService: SimplexService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['edition'] && changes['edition'].currentValue) {
@@ -54,6 +55,7 @@ export class ProductPackagingComponent implements OnInit, OnChanges {
       },
       (error) => {
         console.error('Error fetching packaging configuration', error);
+        this.alert('Error fetching packaging configuration: ' + error.error.message);
         this.loading = false;
       }
     );
@@ -65,10 +67,12 @@ export class ProductPackagingComponent implements OnInit, OnChanges {
       this.simplexService.updateProductPackagingConfiguration(this.edition.shortName, this.packagingForm.value).subscribe(
         (response) => {
           console.log('Packaging details saved successfully', response);
+          this.alert('Packaging details saved successfully');
           this.saving = false;
         },
         (error) => {
           console.error('Error saving packaging details', error);
+          this.alert('Error saving packaging details: ' + error.error.message);
           this.saving = false;
         }
       );
@@ -78,5 +82,11 @@ export class ProductPackagingComponent implements OnInit, OnChanges {
   closePanelEvent(): void {
     // Logic to close the panel (customize as needed)
     console.log('Panel closed');
+  }
+
+  private alert(message: string) {
+    this.snackBar.open(message, 'Dismiss', {
+      duration: 5000
+    });
   }
 }

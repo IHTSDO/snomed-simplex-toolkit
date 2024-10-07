@@ -1,4 +1,10 @@
-<div class="component-row">
+<div *ngIf="!selectedEdition">
+    <div class="waiting">
+        Waiting for edition information
+        <mat-spinner [diameter]="20"></mat-spinner>
+    </div>
+</div>
+<div class="component-row" *ngIf="selectedEdition">
     <div class="component-col">
         <div *ngIf="!newEditionMode && selectedEdition">
             <h3>Details of: {{ selectedEdition?.name }}</h3>

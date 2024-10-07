@@ -163,6 +163,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   onClick(item: any, type: string) {
     item.type = type;
     this.selectedArtifact = item;
+    this.changeDetectorRef.detectChanges();
   }
   submit() {
     this.form.markAllAsTouched();

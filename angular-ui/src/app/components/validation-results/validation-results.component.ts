@@ -1,18 +1,5 @@
-import {
-  trigger,
-  state,
-  style,
-  transition,
-  animate,
-} from '@angular/animations';
-import {
-  Component,
-  Input,
-  OnChanges,
-  SimpleChanges,
-  signal,
-  effect,
-} from '@angular/core';
+import { trigger, state, animate, style, transition, } from '@angular/animations';
+import { Component, Input, OnChanges, signal, SimpleChanges, } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { isEqual } from 'lodash';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';

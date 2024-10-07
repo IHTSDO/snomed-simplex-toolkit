@@ -65,3 +65,12 @@ h4 {
   margin-bottom: 3rem;
   color: rgb(73, 71, 71);
 }
+
+.waiting {
+  padding: 2rem;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-start;
+}

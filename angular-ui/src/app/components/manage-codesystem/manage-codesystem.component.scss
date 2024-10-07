@@ -303,3 +303,12 @@ mat-list-item {
   font-style: italic;
   color: brown;
 }
+
+.waiting {
+  padding: 2rem;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+  justify-content: flex-start;
+}
