@@ -76,8 +76,8 @@ public class PublishReleaseJobService extends ExternalFunctionJobService<Void> {
 				codeSystem = snowstormClient.getCodeSystemForDisplay(codeSystemShortName);
 				if (codeSystem.getEditionStatus() == EditionStatus.PUBLISHING) {
 					String effectiveTime = build.configuration().getEffectiveTime();
-					String releasePackageFilepath = "%s/%s".formatted(effectiveTime, releaseServiceClient.getReleasePackageFilename(buildUrl));
-					snowstormClient.setVersionReleasePackage(codeSystem, effectiveTime, releasePackageFilepath);
+					String releasePackageFilename = releaseServiceClient.getReleasePackageFilename(buildUrl);
+					snowstormClient.setVersionReleasePackage(codeSystem, effectiveTime, releasePackageFilename);
 
 					Activity finaliseActivity = activityService.findLatestByCodeSystemAndActivityType(codeSystemShortName, ActivityType.FINALIZE_RELEASE);
 					if (finaliseActivity != null) {

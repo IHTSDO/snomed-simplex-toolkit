@@ -320,9 +320,6 @@ public class CodeSystemService {
 			try (InputStream inputStream = versionedPackagesResourceManager.readResourceStream(filename)) {
 				Streams.copy(inputStream, new FileOutputStream(tempFile), true);
 			}
-			if (filename.contains("/")) {
-				filename = filename.substring(filename.lastIndexOf('/') + 1);
-			}
 			return Pair.of(filename, tempFile);
 		} catch (FileNotFoundException e) {
 			String errorMessage = "Release package not found.";
