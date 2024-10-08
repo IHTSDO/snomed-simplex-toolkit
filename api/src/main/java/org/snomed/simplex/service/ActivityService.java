@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -35,6 +36,7 @@ public class ActivityService {
 
 	private final ActivityRepository repository;
 	private final ResourceManager resourceManager;
+	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public ActivityService(ActivityRepository repository, ActivityResourceManagerConfiguration resourceManagerConfiguration,
 			ResourceLoader resourceLoader) {
@@ -47,6 +49,20 @@ public class ActivityService {
 		repository.deleteAllByActivityType("REMOVE_CONTENT_APPROVAL");
 		repository.deleteAllByActivityType("ADD_CONTENT_APPROVAL");
 		repository.deleteAllByActivityType("START_BUILD");
+
+		// End activities that can't recover
+		List<Activity> runningActivities = repository.findActivitiesByEndDate(null);
+		List<Activity> activitiesToEnd = runningActivities.stream()
+				.filter(activity -> activity.getActivityType() != ActivityType.FINALIZE_RELEASE).toList();
+		for (Activity activity : activitiesToEnd) {
+			activity.setError(true);
+			activity.setMessage("Simplex was restarted. Please try again.");
+			activity.end();
+		}
+		if (!activitiesToEnd.isEmpty()) {
+			repository.saveAll(activitiesToEnd);
+		}
+		logger.info("{} activities ended with error due to restart.", activitiesToEnd.size());
 	}
 
 	public org.snomed.simplex.domain.Page<Activity> findActivities(String codesystem, String componentId, PageRequest pageRequest) {

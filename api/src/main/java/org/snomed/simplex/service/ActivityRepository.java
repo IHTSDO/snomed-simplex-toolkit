@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ActivityRepository extends ElasticsearchRepository<Activity, String> {
@@ -19,4 +20,6 @@ public interface ActivityRepository extends ElasticsearchRepository<Activity, St
 	void deleteAllByActivityType(String activityType);
 
 	Page<Activity> findActivityByCodesystemAndActivityTypeOrderByStartDateDesc(String codeSystem, ActivityType activityType, PageRequest pageRequest);
+
+	List<Activity> findActivitiesByEndDate(Long endDate);
 }

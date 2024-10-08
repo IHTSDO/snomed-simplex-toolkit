@@ -44,6 +44,11 @@ public class TestActivityRepository extends NoopRepository<Activity> implements 
 	}
 
 	@Override
+	public List<Activity> findActivitiesByEndDate(Long endDate) {
+		return List.of();
+	}
+
+	@Override
 	public Optional<Activity> findActivityByCodesystemAndStartDate(String codeSystem, Long startDate) {
 		return Optional.empty();
 	}
