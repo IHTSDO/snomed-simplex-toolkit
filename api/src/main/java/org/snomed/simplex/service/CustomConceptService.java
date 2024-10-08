@@ -204,7 +204,10 @@ public class CustomConceptService {
 					List<Description> descriptions = new ArrayList<>(termLangDescriptionMap.values());
 					for (String langRefsetId : langRefsetIds) {
 						String language = getLanguageCode(codeSystem, langRefsetId);
-						boolean updateConceptDescriptions = translationService.updateConceptDescriptions(concept.getConceptId(), concept.getDescriptions(), descriptions,
+						List<Description> langRefsetRelevantDescriptions = descriptions.stream()
+								.filter(description -> description.getAcceptabilityMap().containsKey(langRefsetId)).toList();
+						boolean updateConceptDescriptions = translationService.updateConceptDescriptions(concept.getConceptId(),
+								concept.getDescriptions(), new ArrayList<>(langRefsetRelevantDescriptions),
 								language, langRefsetId, true, new DummyChangeMonitor(), new ChangeSummary());
 						if (updateConceptDescriptions) {
 							if (existingConceptNotYetChanged) {
