@@ -26,27 +26,27 @@ public class NoopRepository<T> implements ElasticsearchRepository<T, String> {
 
 	@Override
 	public void deleteById(String s, RefreshPolicy refreshPolicy) {
-
+		// Dummy implementation
 	}
 
 	@Override
 	public void delete(T entity, RefreshPolicy refreshPolicy) {
-
+		// Dummy implementation
 	}
 
 	@Override
 	public void deleteAllById(Iterable<? extends String> strings, RefreshPolicy refreshPolicy) {
-
+		// Dummy implementation
 	}
 
 	@Override
 	public void deleteAll(Iterable<? extends T> entities, RefreshPolicy refreshPolicy) {
-
+		// Dummy implementation
 	}
 
 	@Override
 	public void deleteAll(RefreshPolicy refreshPolicy) {
-
+		// Dummy implementation
 	}
 
 	@Override
@@ -86,27 +86,27 @@ public class NoopRepository<T> implements ElasticsearchRepository<T, String> {
 
 	@Override
 	public void deleteById(String s) {
-
+		// Dummy implementation
 	}
 
 	@Override
 	public void delete(T entity) {
-
+		// Dummy implementation
 	}
 
 	@Override
 	public void deleteAllById(Iterable<? extends String> strings) {
-
+		// Dummy implementation
 	}
 
 	@Override
 	public void deleteAll(Iterable<? extends T> entities) {
-
+		// Dummy implementation
 	}
 
 	@Override
 	public void deleteAll() {
-
+		// Dummy implementation
 	}
 
 	@Override

@@ -50,5 +50,6 @@ public class TestActivityRepository extends NoopRepository<Activity> implements 
 
 	@Override
 	public void deleteAllByActivityType(String activityType) {
+		// Dummy implementation
 	}
 }
