@@ -9,10 +9,12 @@ import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.domain.SnowstormUpgradeJob;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +48,13 @@ public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgr
 	protected String doCallService(CodeSystem codeSystem, ExternalServiceJob job, CodeSystemUpgradeRequest upgradeRequest) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		publishingStatusCheck(codeSystem);
+
+		// Upgrade version check
+		if (upgradeRequest.newDependantVersion() <= codeSystem.getDependantVersionEffectiveTime()) {
+			throw new ServiceExceptionWithStatusCode("The upgrade version much be newer than the current version.", HttpStatus.CONFLICT,
+					JobStatus.USER_CONTENT_ERROR);
+		}
+
 		setEditionStatus(codeSystem, EditionStatus.MAINTENANCE, snowstormClient);
 		// Disable daily-build to prevent content rollback during upgrade
 		codeSystem.setDailyBuildAvailable(false);
