@@ -79,21 +79,7 @@ public class ContentProcessingJobService {
 				asyncJob.setChangeSummary(changeSummary);
 				asyncJob.setStatus(JobStatus.COMPLETE);
 			} catch (ServiceException e) {
-				if (e instanceof ServiceExceptionWithStatusCode errorWithCode && errorWithCode.getJobStatus() != null) {
-					asyncJob.setStatus(errorWithCode.getJobStatus());
-				} else {
-					if (asyncJob.getStatus() == null) {
-						asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
-					}
-				}
-				asyncJob.setServiceException(e);
-				activity.exception(e);
-				JobStatus status = asyncJob.getStatus();
-				if (status == JobStatus.SYSTEM_ERROR) {
-					supportRegister.handleSystemError(asyncJob, e.getMessage(), e);
-				} else if (status == JobStatus.TECHNICAL_CONTENT_ISSUE) {
-					supportRegister.handleTechnicalContentIssue(asyncJob, e.getMessage());
-				}
+				handleServiceException(asyncJob, activity, e);
 			} catch (Exception e) {
 				ServiceException serviceException = new ServiceException("Unexpected error.", e);
 				activity.exception(serviceException);
@@ -108,6 +94,24 @@ public class ContentProcessingJobService {
 
 		codeSystemJobs.computeIfAbsent(codeSystem.getShortName(), i -> new LinkedHashMap<>()).put(asyncJob.getId(), asyncJob);
 		return asyncJob;
+	}
+
+	private void handleServiceException(ContentJob asyncJob, Activity activity, ServiceException e) {
+		if (e instanceof ServiceExceptionWithStatusCode errorWithCode && errorWithCode.getJobStatus() != null) {
+			asyncJob.setStatus(errorWithCode.getJobStatus());
+		} else {
+			if (asyncJob.getStatus() == null) {
+				asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
+			}
+		}
+		asyncJob.setServiceException(e);
+		activity.exception(e);
+		JobStatus status = asyncJob.getStatus();
+		if (status == JobStatus.SYSTEM_ERROR) {
+			supportRegister.handleSystemError(asyncJob, e.getMessage(), e);
+		} else if (status == JobStatus.TECHNICAL_CONTENT_ISSUE) {
+			supportRegister.handleTechnicalContentIssue(asyncJob, e.getMessage());
+		}
 	}
 
 	public AsyncJob getAsyncJob(String codeSystem, String jobId) {
