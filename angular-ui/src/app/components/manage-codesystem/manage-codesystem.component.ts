@@ -259,8 +259,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       });
       this.issuesReport.errorCount = errorCount;
       this.issuesReport.warningCount = warningCount;
-      console.log('Issues refreshed');
-      console.log(this.issuesReport);
       this.loadingIssues = false;
       this.changeDetectorRef.detectChanges();
     } else {

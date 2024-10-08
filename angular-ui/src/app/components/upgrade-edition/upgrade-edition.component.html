@@ -5,9 +5,12 @@
             <div>
                 Parent edition → {{ parentEdition?.name }}, {{ edition.dependantVersionEffectiveTime }}
             </div>
-            <div *ngIf="availableUpgrades.length == 0">
-              No newer versions available
+            <div *ngIf="availableUpgrades.length == 0 && edition.editionStatus != 'MAINTENANCE'">
+                No newer versions available
             </div>
+            <div *ngIf="edition.editionStatus == 'MAINTENANCE'">
+                Maintenance mode
+          </div>
             <div *ngIf="availableUpgrades.length > 0 && edition.editionStatus == 'AUTHORING'">
               <!-- Link that opens the menu -->
               <a href="#" [matMenuTriggerFor]="menu" (click)="$event.preventDefault()">
@@ -24,17 +27,21 @@
               </mat-menu>
           
               <!-- Message and action button -->
-              <span *ngIf="selectedUpgradeEdition">
+              <span *ngIf="selectedUpgradeEdition && !upgradeRequested">
                 &nbsp;→&nbsp;
                 <a href="javascript:void(0)" (click)="upgradeEdition()">
                     Run dependency upgrade
                 </a>
               </span>
+              <span *ngIf="upgradeRequested">
+                &nbsp;→&nbsp;
+                Upgrade requested
+              </span>
               
             </div>
-            <div *ngIf="availableUpgrades.length > 0 && edition.editionStatus != 'AUTHORING'">
+            <!-- <div *ngIf="availableUpgrades.length > 0 && edition.editionStatus != 'AUTHORING'">
                 New dependency versions available
-            </div>
+            </div> -->
         </div>
     </div>
   </div>

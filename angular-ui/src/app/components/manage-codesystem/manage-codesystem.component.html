@@ -12,7 +12,7 @@
         </div>
         <div class="left-container">
             <div class="maintenance" *ngIf="edition.editionStatus == 'MAINTENANCE'">
-                The edition is in Mainteance Mode, editing and release preparation will resume after the maintenance jobs are finished
+                The edition is in Mainteance Mode.<br>Editing and release preparation will resume once the maintenance jobs are finished.
             </div>
             <div class="stage" [ngClass]="{ 'completed-stage' : (edition.editionStatus == 'PREPARING_RELEASE' || edition.editionStatus == 'RELEASE'), 'inactive-stage' : (!edition.editionStatus), 'current-stage' : (edition.editionStatus == 'AUTHORING') }">
                 <div class="component-col-flexible">
@@ -246,9 +246,9 @@
         </div> -->
         <app-validation-results class="validation-container" [editionDetails]="edition" [issues]="issuesReport" >
         </app-validation-results>
-        <div class="validation-container">
+        <!-- <div class="validation-container">
             <app-jobs [edition]="edition.shortName" [refsetId]="'external'"></app-jobs>
-        </div>
+        </div> -->
         <div class="validation-container">
             <app-edition-activities [edition]="edition"></app-edition-activities>
         </div>

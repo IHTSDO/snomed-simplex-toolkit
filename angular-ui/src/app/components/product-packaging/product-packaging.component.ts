@@ -66,7 +66,6 @@ export class ProductPackagingComponent implements OnInit, OnChanges {
       this.saving = true;
       this.simplexService.updateProductPackagingConfiguration(this.edition.shortName, this.packagingForm.value).subscribe(
         (response) => {
-          console.log('Packaging details saved successfully', response);
           this.alert('Packaging details saved successfully');
           this.saving = false;
         },

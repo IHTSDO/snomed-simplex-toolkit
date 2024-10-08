@@ -32,13 +32,11 @@ export class SimplexService {
   public login(): void{
     let config: any = this.uiConfigurationService.getConfiguration();
     const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href}`;
-    console.log(redirectUrl);
     window.location.href = redirectUrl;
   }
 
   public logout(): void{
     let config: any = this.uiConfigurationService.getConfiguration();
-    console.log('copnfig', config)
     const redirectUrl = `${config.endpoints.imsEndpoint}logout?serviceReferer=${window.location.href}`;
     window.location.href = redirectUrl;
   }
@@ -48,8 +46,6 @@ export class SimplexService {
     let endpoint: string = config.endpoints.imsEndpoint;
     // endpoint = endpoint.replace('#/', '');
     const url = `${endpoint}api/account/logout`;
-    console.log('Logging out from account');
-    console.log(url);
     return this.http.post(url, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
@@ -292,6 +288,10 @@ export class SimplexService {
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
         catchError(this.handleError.bind(this))
     );
+  }
+
+  public getLanguageCodes(): Observable<any> {
+    return this.http.get(`/api/language-codes`).pipe(catchError(this.handleError.bind(this)));
   }
 
 

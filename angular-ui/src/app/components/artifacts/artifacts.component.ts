@@ -1,5 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom, Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -38,6 +38,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   loadingMaps = false;
   saving = false;
   private subscriptions: Subscription = new Subscription();
+  languageCodes: any[] = [];
 
 
   artifactTypes = ["subset", "map", "translation"];
@@ -67,18 +68,28 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
       }
     });
     this.subscriptions.add(editionSubscription);
+    this.simplexService.getLanguageCodes().subscribe(data => {
+      this.languageCodes = data;
+    })
   }
 
   toggleFormControls(typeValue: string) {
     if (typeValue === 'concepts') {
-      if (this.form.contains('preferredTerm')) {
         this.form.removeControl('preferredTerm');
-      }
-    } else {
-      if (!this.form.contains('preferredTerm')) {
+        this.form.removeControl('languageCode');
+    } else if (typeValue == 'translation') {
         this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
-      }
+        this.form.addControl('languageCode', this.fb.control('', [Validators.required, this.languageCodeValidator]));
+    } else {
+        this.form.removeControl('languageCode');
+        this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
     }
+  }
+
+  languageCodeValidator(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+    const isValid = /^[a-z]{2}$/.test(value);
+    return isValid ? null : { invalidLanguageCode: true };
   }
 
   loadArtifacts(edition: string) {
@@ -169,9 +180,12 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
     this.form.markAllAsTouched();
     const type = this.form.value.type;
     if (this.form.valid) {
-      const subset = {
+      let subset: any = {
         preferredTerm: this.form.value.preferredTerm
       };
+      if (type == 'translation') {
+        subset.languageCode = this.form.value.languageCode;
+      }
       this.saving = true;
       // Set the form to disabled
       this.form.disable();

@@ -130,8 +130,8 @@
                     <mat-label>{{controlName | camelToTitle}}</mat-label>
 
                     <!-- Input for other controls -->
-                    <input matInput formControlName="{{controlName}}" *ngIf="controlName !== 'type'">
-                    <button *ngIf="form.controls[controlName]['value'] && controlName !== 'type'" matSuffix 
+                    <input matInput formControlName="{{controlName}}" *ngIf="controlName !== 'type' && controlName !== 'languageCode'">
+                    <button *ngIf="form.controls[controlName]['value'] && controlName !== 'type' && controlName !== 'languageCode'" matSuffix 
                         mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
                         [disabled]= "form.get(controlName).disabled">
                         <mat-icon>close</mat-icon>
@@ -142,6 +142,10 @@
                         <mat-option *ngIf="!showConceptsArtifact" value="concepts">Concepts</mat-option>
                         <mat-option *ngFor="let type of artifactTypes" [value]="type">{{type | titlecase}}</mat-option>
                     </mat-select>
+
+                    <mat-select *ngIf="controlName === 'languageCode'" formControlName="languageCode">
+                        <mat-option *ngFor="let languageCode of languageCodes" [value]="languageCode.code">{{languageCode.code}} - {{languageCode.name}}</mat-option>
+                    </mat-select>
         
 
                     <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
@@ -149,7 +153,7 @@
             </form>
             <div>
                 <button mat-flat-button (click)="newArtifactMode = false" *ngIf="!saving">Cancel</button>
-                <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving">Create</button>
+                <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="form.invalid">Create</button>
                 <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating artifact...</p>
             </div>
         </div>

@@ -35,7 +35,6 @@ export class DownloadReleasesComponent implements OnInit, OnDestroy {
   }
 
   loadVersions() {
-    console.log('Loading versions');
     this.loading = true;
     this.simplexService.getReleasePackages(this.edition.shortName).subscribe((versions) => {
       this.versions = versions.items;

@@ -19,7 +19,7 @@ export class UpgradeEditionComponent {
   parentEdition: any;
   selectedUpgradeEdition: any;
   lastEditionShortName: string;
-  upgraderequested = false;
+  upgradeRequested = false;
 
   constructor(private simplexService: SimplexService,
     private snackBar: MatSnackBar,
@@ -73,8 +73,12 @@ export class UpgradeEditionComponent {
     this.snackBar.open('Requesting upgrade...', 'Dismiss', {
       duration: 5000
     });
+    this.upgradeRequested = true;
     lastValueFrom(this.simplexService.upgradeEdition(this.edition.shortName, this.selectedUpgradeEdition.effectiveDate)).then(
       (result) => {
+        this.selectedUpgradeEdition = null;
+        this.upgradeRequested = false;
+        this.availableUpgrades = [];
         this.edition.editionStatus = 'MAINTENANCE';
         this.upgradeStarted.emit();
         this.snackBar.open('Edition upgraded requested', 'Dismiss', {
@@ -83,6 +87,9 @@ export class UpgradeEditionComponent {
       },
       (error) => {
         console.error(error);
+        this.selectedUpgradeEdition = null;
+        this.upgradeRequested = false;
+        this.availableUpgrades = [];
         this.snackBar.open('Failed to upgrade edition', 'Dismiss', {
           duration: 5000
         });

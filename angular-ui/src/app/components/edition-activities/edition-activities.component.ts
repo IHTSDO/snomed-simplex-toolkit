@@ -50,7 +50,7 @@ export class EditionActivitiesComponent implements OnInit, OnChanges {
       },
       (error) => {
         this.loading = false;
-        console.log('Error loading activities', error);
+        console.error('Error loading activities', error);
       }
     );
   }
