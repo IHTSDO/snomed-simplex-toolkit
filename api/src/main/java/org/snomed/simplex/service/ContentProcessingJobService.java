@@ -82,11 +82,18 @@ public class ContentProcessingJobService {
 				if (e instanceof ServiceExceptionWithStatusCode errorWithCode && errorWithCode.getJobStatus() != null) {
 					asyncJob.setStatus(errorWithCode.getJobStatus());
 				} else {
-					asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
+					if (asyncJob.getStatus() == null) {
+						asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
+					}
 				}
 				asyncJob.setServiceException(e);
 				activity.exception(e);
-				supportRegister.handleSystemError(asyncJob, e.getMessage(), e);
+				JobStatus status = asyncJob.getStatus();
+				if (status == JobStatus.SYSTEM_ERROR) {
+					supportRegister.handleSystemError(asyncJob, e.getMessage(), e);
+				} else if (status == JobStatus.TECHNICAL_CONTENT_ISSUE) {
+					supportRegister.handleTechnicalContentIssue(asyncJob, e.getMessage());
+				}
 			} catch (Exception e) {
 				ServiceException serviceException = new ServiceException("Unexpected error.", e);
 				activity.exception(serviceException);
