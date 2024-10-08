@@ -66,7 +66,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     );
     this.alert('Classification requested');
     this.refreshEdition();
-    this.jobComponent.loadJobs(true);
+    if (this.jobComponent) {
+      this.jobComponent.loadJobs(true);
+    }
   }
 
   async runValidation() {
@@ -77,7 +79,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     );
     this.alert('Validation requested');
     this.refreshEdition();
-    this.jobComponent.loadJobs(true);
+    if (this.jobComponent) {
+      this.jobComponent.loadJobs(true);
+    }
   }
 
   async runClassificationAndValidation() {
@@ -92,7 +96,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     );
     this.alert('Classification and validation requested');
     this.refreshEdition();
-    this.jobComponent.loadJobs(true);
+    if (this.jobComponent) {
+      this.jobComponent.loadJobs(true);
+    } 
   }
 
   downloadValidationResults() {
@@ -179,7 +185,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     this.simplexService.createReleaseCandidate(this.edition.shortName).subscribe(
       (response: any) => {
         this.alert('Release candidate creation started');
-        this.jobComponent.loadJobs(true);
+        if (this.jobComponent) {
+          this.jobComponent.loadJobs(true);
+        }
         this.refreshEdition();
       },
       error => {
@@ -196,7 +204,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     this.simplexService.finalizeRelease(this.edition.shortName).subscribe(
       (response: any) => {
         this.alert('Release publication started');
-        this.jobComponent.loadJobs(true);
+        if (this.jobComponent) {
+          this.jobComponent.loadJobs(true);
+        }
         this.refreshEdition();
       },
       error => {
@@ -231,7 +241,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     this.edition = response;
     this.refreshIssues();
     this.activitiesComponent.loadActivities(false);
-    this.jobComponent.loadJobs(false);
+    if (this.jobComponent) {
+      this.jobComponent.loadJobs(true);
+    }
     this.loadingReleaseStatus = false;
     this.changeDetectorRef.detectChanges();
   }

@@ -135,6 +135,7 @@
                         </div>
                         <div *ngIf="edition.editionStatus && (edition.editionStatus == 'AUTHORING' || edition.editionStatus == 'MAINTENANCE')">Release preparation not started</div>
                         <div *ngIf="edition.editionStatus && edition.editionStatus == 'RELEASE'">Release preparation finished</div>
+                        <div *ngIf="edition.editionStatus && edition.editionStatus == 'PUBLISHING'">Publishing</div>
                         <div *ngIf="!edition.editionStatus">Loading...</div>
                     </div>
                     <div class="sub-stage sub-stage-text">
@@ -149,6 +150,7 @@
                         </div>
                         <div *ngIf="edition.editionStatus && (edition.editionStatus == 'AUTHORING' || edition.editionStatus == 'MAINTENANCE')">Release preparation not started</div>
                         <div *ngIf="edition.editionStatus && edition.editionStatus == 'RELEASE'">Release preparation finished</div>
+                        <div *ngIf="edition.editionStatus && edition.editionStatus == 'PUBLISHING'">Publishing</div>
                         <div *ngIf="!edition.editionStatus">Loading...</div>
                     </div>
                     <div class="centered buttons-panel">
@@ -219,7 +221,8 @@
                                 </span>
                             </div>
                         </div>
-                        <div *ngIf="edition.editionStatus && edition.editionStatus != 'RELEASE'">Publication not ready</div>
+                        <div *ngIf="edition.editionStatus && edition.editionStatus != 'RELEASE' && edition.editionStatus != 'PUBLISHING'">Publication not ready</div>
+                        <div *ngIf="edition.editionStatus == 'PUBLISHING'">Publishing</div>
                         <div *ngIf="!edition.editionStatus">Loading...</div>
                     </div>
                     <div class="centered buttons-panel">
