@@ -240,10 +240,10 @@
       <th mat-header-cell *matHeaderCellDef> Status </th>
       <td mat-cell *matCellDef="let element">
         <div *ngIf="loading" class="skeleton-cell"></div>
-        <span *ngIf="!loading && element.status == 'SYSTEM_ERROR'" [matTooltip]="element.errorMessage" class="flex-cont errors-icon">
-            ERROR
+        <span *ngIf="!loading && (element.status.indexOf('ERROR') !== -1)" class="flex-cont errors-icon">
+            {{ element.status }} <mat-icon class="info-icon" [matTooltip]="element.errorMessage">info</mat-icon>
         </span>
-        <span *ngIf="!loading && element.status != 'SYSTEM_ERROR'" [matTooltip]="element.errorMessage">{{ element.status }}</span>
+        <span *ngIf="!loading && (element.status.indexOf('ERROR') == -1)" [matTooltip]="element.errorMessage">{{ element.status }}</span>
       </td>
     </ng-container>
   
