@@ -10,14 +10,17 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.ConceptIntent;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.service.job.DummyChangeMonitor;
 import org.snomed.simplex.service.spreadsheet.HeaderConfiguration;
 import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -32,6 +35,7 @@ import java.util.stream.Collectors;
 import static java.lang.String.format;
 import static java.util.function.Predicate.not;
 import static org.snomed.simplex.client.domain.Concepts.IS_A;
+import static org.snomed.simplex.client.domain.Concepts.US_LANG_REFSET;
 
 @Service
 public class CustomConceptService {
@@ -310,7 +314,8 @@ public class CustomConceptService {
 			ConceptIntent conceptIntent;
 
 			String parentCode = SpreadsheetService.readSnomedConcept(row, headerConfiguration.getColumn(PARENT_CODE), rowNumber);
-			if (parentCode != null) {
+			boolean conceptRow = parentCode != null;
+			if (conceptRow) {
 				conceptIntent = new ConceptIntent(parentCode, rowNumber);
 				boolean inactive = row.getCell(headerConfiguration.getColumn(ACTIVE), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("false");
 				conceptIntent.setInactive(inactive);
@@ -333,9 +338,13 @@ public class CustomConceptService {
 					}
 				}
 			}
+			if (conceptRow && conceptIntent.getLangRefsetTerms().getOrDefault(US_LANG_REFSET, Collections.emptyList()).isEmpty()) {
+				throw new ServiceExceptionWithStatusCode("English (US Dialect) term missing from row %s.".formatted(rowNumber),
+						HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
+			}
 
 			// If there was no parent code then we updated the previous concept, don't return it again
-			return parentCode != null ? conceptIntent : null;
+			return conceptRow ? conceptIntent : null;
 		}
 
 		private Map<Integer, String> getTermColumnIndexToLangRefsetMap(HeaderConfiguration headerConfiguration) throws ServiceException {

@@ -1,12 +1,15 @@
 package org.snomed.simplex.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.snomed.simplex.TestConfig;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.client.domain.DescriptionMini;
 import org.snomed.simplex.domain.ConceptIntent;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.junit.jupiter.api.Test;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +32,16 @@ class SpreadsheetServiceTest {
 
 	@Autowired
 	private CustomConceptService customConceptService;
+	private List<SheetHeader> basicSheetHeaders;
+	private SheetRowToComponentIntentExtractor<ConceptIntent> basicComponentExtractor;
+	private long correctTimestamp;
+
+	@BeforeEach
+	void setUp() {
+		basicSheetHeaders = customConceptService.getInputSheetHeaders(Collections.emptyList());
+		basicComponentExtractor = customConceptService.getInputSheetComponentExtractor(Collections.emptyList());
+		correctTimestamp = 1727964880378L;
+	}
 
 	@Test
 	void fixConceptCode() throws ServiceException {
@@ -38,26 +51,33 @@ class SpreadsheetServiceTest {
 
 	@Test
 	void testSpreadsheetUpdateCheck() {
-		List<SheetHeader> inputSheetHeaders = customConceptService.getInputSheetHeaders(Collections.emptyList());
-		SheetRowToComponentIntentExtractor<ConceptIntent> inputSheetComponentExtractor =
-				customConceptService.getInputSheetComponentExtractor(Collections.emptyList());
-
 		// Test with correct timestamp
 		try {
-			long correctTimestamp = 1727964880378L;
 			InputStream inputStream = getClass().getResourceAsStream("/test-spreadsheets/conceptsSpreadsheet.xlsx");
-			spreadsheetService.readComponentSpreadsheet(inputStream, inputSheetHeaders, inputSheetComponentExtractor, correctTimestamp);
+			spreadsheetService.readComponentSpreadsheet(inputStream, basicSheetHeaders, basicComponentExtractor, correctTimestamp);
 		} catch (ServiceException e) {
 			fail("Timestamp check failed, it should have passed.");
 		}
 
+		// Test with incorrect timestamp
 		try {
 			long incorrectTimestamp = 1727964880000L;
 			InputStream inputStream = getClass().getResourceAsStream("/test-spreadsheets/conceptsSpreadsheet.xlsx");
-			spreadsheetService.readComponentSpreadsheet(inputStream, inputSheetHeaders, inputSheetComponentExtractor, incorrectTimestamp);
+			spreadsheetService.readComponentSpreadsheet(inputStream, basicSheetHeaders, basicComponentExtractor, incorrectTimestamp);
 			fail("Timestamp check passed, it should have failed.");
 		} catch (ServiceException e) {
 			// Pass
+		}
+	}
+
+	@Test
+	void testSpreadsheetBlankTerm() {
+		try {
+			InputStream inputStream = getClass().getResourceAsStream("/test-spreadsheets/conceptsSpreadsheet-blank-term.xlsx");
+			spreadsheetService.readComponentSpreadsheet(inputStream, basicSheetHeaders, basicComponentExtractor, correctTimestamp);
+			fail("Upload passed, it should have failed.");
+		} catch (ServiceException e) {
+			assertTrue(e instanceof ServiceExceptionWithStatusCode withStatusCode && withStatusCode.getJobStatus() == JobStatus.USER_CONTENT_ERROR);
 		}
 	}
 

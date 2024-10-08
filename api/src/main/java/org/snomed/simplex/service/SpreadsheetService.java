@@ -511,7 +511,8 @@ public class SpreadsheetService {
 				cellValue = part + checkSum;
 			}
 		} else {
-			throw new ServiceException(String.format("Unable to fix SNOMED CT concept id in column %s, row %s, the number is corrupted. Value '%s'.", column + 1, row, rawValue));
+			throw new ServiceExceptionWithStatusCode(String.format("Unable to fix SNOMED CT concept id in column %s, row %s, " +
+					"the number is corrupted. Value '%s'.", column + 1, row, rawValue), HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
 		}
 		return cellValue;
 	}
