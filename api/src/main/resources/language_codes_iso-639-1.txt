@@ -114,7 +114,7 @@ South Ndebele	nr
 Ndonga	ng
 Nepali	ne
 Norwegian	no
-Norwegian Bokmål	nb
+Norwegian BokmÃ¥l	nb
 Norwegian Nynorsk	nn
 Sichuan Yi, Nuosu	ii
 Occitan	oc
@@ -172,7 +172,7 @@ Urdu	ur
 Uzbek	uz
 Venda	ve
 Vietnamese	vi
-Volapük	vo
+VolapÃ¼k	vo
 Walloon	wa
 Welsh	cy
 Wolof	wo
