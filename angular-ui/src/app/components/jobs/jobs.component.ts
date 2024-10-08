@@ -173,6 +173,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     if (input.files && input.files.length) {
       this.selectedFile = input.files[0];
     }
+    event.target['value'] = '';
   }
 
   downloadConceptsSpreadsheet() {
