@@ -214,6 +214,7 @@
       />
     </mat-form-field>
 </div>
+<h4>Recent uploads</h4>
 <p *ngIf="hasInProgressJob" class="no-imports right">Jobs are running, you can navigate to other parts of Simplex and come back later</p>
 <table mat-table [dataSource]="loading ? skeleton : jobs">
   
@@ -278,5 +279,5 @@
 </table>
 
 <!-- <mat-spinner [diameter]="20" *ngIf="loading" class="loading-spinner"></mat-spinner> -->
-<p *ngIf="!loading && jobs.length == 0 && refsetId != 'external'" class="no-imports">No data imports were requested recently in this component</p>
-<p *ngIf="!loading && jobs.length == 0 && refsetId == 'external'" class="no-imports">No recent tasks in this edition</p>
+<p *ngIf="!loading && jobs.length == 0 && refsetId != 'external'" class="no-imports">There are no recent uploads for this component</p>
+<p *ngIf="!loading && jobs.length == 0 && refsetId == 'external'" class="no-imports">There are no recent tasks for this edition</p>
