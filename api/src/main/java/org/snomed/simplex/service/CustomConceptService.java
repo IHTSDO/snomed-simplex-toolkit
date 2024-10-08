@@ -171,7 +171,7 @@ public class CustomConceptService {
 					// Build set of needed descriptions
 					Map<String, Description> termLangDescriptionMap = new HashMap<>();// Map to reuse description if lang + term is the same
 					for (String langRefsetId : langRefsetIds) {
-						String language = "en";
+						String language = getLanguageCode(codeSystem, langRefsetId);
 						List<String> terms = intent.getLangRefsetTerms().getOrDefault(langRefsetId, Collections.emptyList());
 						if (!terms.isEmpty()) {
 							// Create PT from first term in the list
@@ -203,8 +203,9 @@ public class CustomConceptService {
 					boolean existingConceptNotYetChanged = concept.getConceptId() != null && !changed;
 					List<Description> descriptions = new ArrayList<>(termLangDescriptionMap.values());
 					for (String langRefsetId : langRefsetIds) {
+						String language = getLanguageCode(codeSystem, langRefsetId);
 						boolean updateConceptDescriptions = translationService.updateConceptDescriptions(concept.getConceptId(), concept.getDescriptions(), descriptions,
-								"en", langRefsetId, true, new DummyChangeMonitor(), new ChangeSummary());
+								language, langRefsetId, true, new DummyChangeMonitor(), new ChangeSummary());
 						if (updateConceptDescriptions) {
 							if (existingConceptNotYetChanged) {
 								existingConceptNotYetChanged = false;
@@ -228,6 +229,10 @@ public class CustomConceptService {
 			}
 		}
 		return changeSummary;
+	}
+
+	private static String getLanguageCode(CodeSystem codeSystem, String langRefsetId) {
+		return codeSystem.getTranslationLanguages().getOrDefault(langRefsetId, "en");
 	}
 
 	private void replaceNonBreakingSpaces(List<ConceptIntent> conceptIntents) {
@@ -332,7 +337,7 @@ public class CustomConceptService {
 			for (Map.Entry<Integer, String> entry : termColumnIndexToLangRefsetMap.entrySet()) {
 				Cell cell = row.getCell(entry.getKey(), Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
 				if (cell != null) {
-					String term = cell.getStringCellValue();
+					String term = cell.getStringCellValue().trim();
 					if (!term.isEmpty()) {
 						conceptIntent.addTerm(term, entry.getValue());
 					}

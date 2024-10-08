@@ -20,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,6 +58,7 @@ class CustomConceptServiceTest {
 		String patientFriendlyTerm = "121000003010";
 		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
 		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
 		List<ConceptIntent> conceptIntents = new ArrayList<>();
 		char nonBreakingSpaceCharacter = (char) 160;
 		conceptIntents.add(new ConceptIntent("  429926006  ", 1)
