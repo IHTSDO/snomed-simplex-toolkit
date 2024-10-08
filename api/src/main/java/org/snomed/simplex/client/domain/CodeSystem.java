@@ -41,6 +41,7 @@ public class CodeSystem {
 	private Map<String, String> languages;
 	private CodeSystemVersion latestVersion;
 	private List<ConceptMini> modules;
+	private Map<String, String> translationLanguages;
 
 	private Branch branchObject;
 
@@ -246,6 +247,15 @@ public class CodeSystem {
 
 	public void setEditionStatus(EditionStatus editionStatus) {
 		this.editionStatus = editionStatus;
+	}
+
+	@JsonIgnore
+	public Map<String, String> getTranslationLanguages() {
+		return translationLanguages;
+	}
+
+	public void setTranslationLanguages(Map<String, String> translationLanguages) {
+		this.translationLanguages = translationLanguages;
 	}
 
 	@JsonIgnore

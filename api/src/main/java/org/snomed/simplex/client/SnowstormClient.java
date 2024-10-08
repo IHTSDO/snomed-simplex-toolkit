@@ -46,6 +46,7 @@ public class SnowstormClient {
 	public static final String CONCEPT_ENDPOINT = "/%s/concepts/%s";
 	public static final String CODESYSTEM_ENDPOINT = "/codesystems/%s";
 	public static final String CODESYSTEMS_VERSIONS_ENDPOINT = "/codesystems/%s/versions";
+	public static final String BRANCH_X_ENDPOINT = "/branches/%s";
 
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
@@ -155,6 +156,7 @@ public class SnowstormClient {
 		codeSystem.setLatestReleaseCandidateBuild(branch.getMetadataValue(Branch.LATEST_BUILD_METADATA_KEY));
 		codeSystem.setBuildStatus(CodeSystemBuildStatus.fromBranchMetadata(branch.getMetadataValue(Branch.BUILD_STATUS_METADATA_KEY)));
 		codeSystem.setEditionStatus(getEditionStatus(branch.getMetadataValue(Branch.EDITION_STATUS_METADATA_KEY)));
+		codeSystem.setTranslationLanguages(getTranslationLanguages(branch));
 	}
 
 	public List<CodeSystemVersion> getVersions(CodeSystem codeSystem) {
@@ -177,7 +179,7 @@ public class SnowstormClient {
 	}
 
 	public Branch getBranchOrThrow(String branchPath) throws ServiceException {
-		ResponseEntity<Branch> branchResponse = restTemplate.getForEntity(format("/branches/%s", branchPath), Branch.class);
+		ResponseEntity<Branch> branchResponse = restTemplate.getForEntity(format(BRANCH_X_ENDPOINT, branchPath), Branch.class);
 		Branch branch = branchResponse.getBody();
 		if (branch == null) {
 			throw new ServiceExceptionWithStatusCode(format("Branch not found %s", branchPath), HttpStatus.NOT_FOUND);
@@ -200,7 +202,7 @@ public class SnowstormClient {
 
 	private boolean isBranchExists(String branchPath) {
 		try {
-			restTemplate.exchange(format("/branches/%s", branchPath), HttpMethod.GET, null, Map.class);
+			restTemplate.exchange(format(BRANCH_X_ENDPOINT, branchPath), HttpMethod.GET, null, Map.class);
 		} catch (HttpStatusCodeException e) {
 			return false;
 		}
@@ -251,7 +253,12 @@ public class SnowstormClient {
 	}
 
 	public void upsertBranchMetadata(String branchPath, Map<String, String> newBranchMetadata) {
-		restTemplate.exchange(format("/branches/%s/metadata-upsert", branchPath), HttpMethod.PUT, new HttpEntity<>(newBranchMetadata), Map.class);
+		restTemplate.exchange(format("/branches/%s/metadata-upsert", branchPath), HttpMethod.PUT, new HttpEntity<>(newBranchMetadata), Void.class);
+	}
+
+	public void saveAllBranchMetadata(String branchPath, Map<String, Object> allBranchMetadata) {
+		Map<String, Map<String, Object>> metdataUpdateRequest = Map.of("metadata", allBranchMetadata);
+		restTemplate.exchange(format(BRANCH_X_ENDPOINT, branchPath), HttpMethod.PUT, new HttpEntity<>(metdataUpdateRequest), Void.class);
 	}
 
 	public void deleteBranchAndChildren(String branchPath) {
@@ -726,6 +733,31 @@ public class SnowstormClient {
 	public void setVersionReleasePackage(CodeSystem codeSystem, String effectiveTime, String releasePackageFilename) {
 		String url = format("/codesystems/%s/versions/%s?releasePackage=%s", codeSystem.getShortName(), effectiveTime, releasePackageFilename);
 		restTemplate.exchange(url, HttpMethod.PUT, null, Void.class);
+	}
+
+	public void addTranslationLanguage(String refsetId, String languageCode, CodeSystem codeSystem, SnowstormClient snowstormClient) {
+		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(),
+				Map.of((Branch.SIMPLEX_TRANSLATION_METADATA_KEY + "%s").formatted(refsetId), languageCode));
+		codeSystem.getTranslationLanguages().put(refsetId, languageCode);
+	}
+
+	private Map<String, String> getTranslationLanguages(Branch branch) {
+		Map<String, String> translationLanguages = new HashMap<>();
+		branch.getMetadata().forEach((key, value) -> {
+			if (key.startsWith(Branch.SIMPLEX_TRANSLATION_METADATA_KEY)) {
+				translationLanguages.put(key.substring(Branch.SIMPLEX_TRANSLATION_METADATA_KEY.length()), value.toString());
+			}
+		});
+		return translationLanguages;
+	}
+
+	public void removeTranslationLanguage(String refsetId, CodeSystem codeSystem) throws ServiceException {
+		String branchPath = codeSystem.getBranchPath();
+		Branch branch = getBranchOrThrow(branchPath);
+		Map<String, Object> metadata = branch.getMetadata();
+		metadata.remove((Branch.SIMPLEX_TRANSLATION_METADATA_KEY + "%s").formatted(refsetId));
+		saveAllBranchMetadata(branchPath, metadata);
+		codeSystem.getTranslationLanguages().remove(refsetId);
 	}
 
 	private static final class ConceptBulkLoadRequest {

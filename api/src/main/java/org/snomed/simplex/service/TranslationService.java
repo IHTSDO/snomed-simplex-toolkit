@@ -1,6 +1,7 @@
 package org.snomed.simplex.service;
 
 import ch.qos.logback.classic.Level;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -11,13 +12,16 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.*;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.util.TimerUtil;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -75,6 +79,30 @@ public class TranslationService {
 		return languageCodes;
 	}
 
+	public Concept createTranslation(String preferredTerm, String languageCode, CodeSystem codeSystem) throws ServiceException {
+		validateCreateRequest(preferredTerm, languageCode);
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		Concept concept = snowstormClient.createSimpleMetadataConcept(Concepts.LANG_REFSET, preferredTerm,
+				Concepts.FOUNDATION_METADATA_CONCEPT_TAG, codeSystem);
+
+		snowstormClient.addTranslationLanguage(concept.getConceptId(), languageCode, codeSystem, snowstormClient);
+		return concept;
+	}
+
+	private void validateCreateRequest(String preferredTerm, String languageCode) throws ServiceExceptionWithStatusCode {
+		if (Strings.isNullOrEmpty(preferredTerm)) {
+			throw new ServiceExceptionWithStatusCode("Translation term is required.", HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
+		}
+		if (Strings.isNullOrEmpty(languageCode)) {
+			throw new ServiceExceptionWithStatusCode("Translation term is required.", HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
+		}
+		String languageCodeLower = languageCode.toLowerCase();
+		if (languageCodes.stream().noneMatch(code -> code.getCode().equals(languageCodeLower))) {
+			throw new ServiceExceptionWithStatusCode("Unrecognised language code.", HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
+		}
+	}
+
 	public List<ConceptMini> listTranslations(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
 		TimerUtil timer = new TimerUtil("Load translations", Level.INFO, 2);
 
@@ -82,17 +110,31 @@ public class TranslationService {
 		timer.checkpoint("ECL for lang refsets");
 
 		for (ConceptMini translationRefset : translationRefsets) {
-			Page<RefsetMember> firstMember = snowstormClient.getRefsetMembers(translationRefset.getConceptId(), codeSystem, true, 1, null);
-			timer.checkpoint(format("Load one lang refset member for %s.", translationRefset.getIdAndFsnTerm()));
+			String langRefsetId = translationRefset.getConceptId();
+			String languageCode = codeSystem.getTranslationLanguages().get(langRefsetId);
+			if (languageCode == null) {
+				// This should rarely happen
+				// Search for existing lang refset entries
+				Page<RefsetMember> firstMember = snowstormClient.getRefsetMembers(langRefsetId, codeSystem, true, 1, null);
+				timer.checkpoint(format("Load one lang refset member for %s.", translationRefset.getIdAndFsnTerm()));
 
-			if (!firstMember.getItems().isEmpty()) {
-				RefsetMember member = firstMember.getItems().iterator().next();
-				ReferencedComponent referencedComponent = member.getReferencedComponent();
-				String lang = referencedComponent.getLang();
-				if (lang != null) {
-					translationRefset.addExtraField("lang", lang);
+				if (!firstMember.getItems().isEmpty()) {
+					RefsetMember member = firstMember.getItems().iterator().next();
+					ReferencedComponent referencedComponent = member.getReferencedComponent();
+					languageCode = referencedComponent.getLang();
 				}
+				if (languageCode == null) {
+					languageCode = "en";
+					logger.warn("Setting language default language code {} for {}, {}",
+							languageCode, codeSystem.getShortName(), langRefsetId);
+				} else {
+					logger.info("Using existing lang refset entries to set language code {} for {}, {}",
+							languageCode, codeSystem.getShortName(), langRefsetId);
+				}
+				snowstormClient.addTranslationLanguage(langRefsetId, languageCode, codeSystem, snowstormClient);
 			}
+
+			translationRefset.addExtraField("lang", languageCode);
 		}
 		return translationRefsets;
 	}
@@ -307,8 +349,10 @@ public class TranslationService {
 				.findFirst().orElse(null);
 	}
 
-	public void deleteRefsetMembersAndConcept(String refsetId, CodeSystem theCodeSystem) throws ServiceException {
-		refsetService.deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
+	public void deleteTranslationAndMembers(String refsetId, CodeSystem codeSystem) throws ServiceException {
+		refsetService.deleteRefsetMembersAndConcept(refsetId, codeSystem);
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		snowstormClient.removeTranslationLanguage(refsetId, codeSystem);
 	}
 
 	private CSVOutputChangeMonitor getCsvOutputChangeMonitor() throws ServiceException {

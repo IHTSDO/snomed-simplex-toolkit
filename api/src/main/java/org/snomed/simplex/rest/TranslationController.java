@@ -7,12 +7,11 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
-import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
-import org.snomed.simplex.rest.pojos.CreateConceptRequest;
+import org.snomed.simplex.rest.pojos.CreateTranslationRequest;
 import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
@@ -58,12 +57,11 @@ public class TranslationController {
 	}
 
 	@PostMapping("{codeSystem}/translations")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public void createTranslation(@PathVariable String codeSystem, @RequestBody CreateConceptRequest request) throws ServiceException {
+	@PreAuthorize("hasPermission('ADMIN', #codeSystem)")// Admin needed because it changes branch metadata
+	public void createTranslation(@PathVariable String codeSystem, @RequestBody CreateTranslationRequest request) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		activityService.runActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.CREATE, () ->
-			snowstormClient.createSimpleMetadataConcept(Concepts.LANG_REFSET, request.getPreferredTerm(), Concepts.FOUNDATION_METADATA_CONCEPT_TAG,
-					snowstormClient.getCodeSystemOrThrow(codeSystem))
+			translationService.createTranslation(request.getPreferredTerm(), request.getLanguageCode(), snowstormClient.getCodeSystemOrThrow(codeSystem))
 		);
 	}
 
@@ -75,7 +73,7 @@ public class TranslationController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 		activityService.runActivity(codeSystem, ComponentType.TRANSLATION, ActivityType.DELETE, refsetId, () -> {
-			translationService.deleteRefsetMembersAndConcept(refsetId, theCodeSystem);
+			translationService.deleteTranslationAndMembers(refsetId, theCodeSystem);
 			return null;
 		});
 	}
