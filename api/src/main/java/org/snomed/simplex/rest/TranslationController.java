@@ -92,7 +92,7 @@ public class TranslationController {
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob uploadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId,
-			@RequestParam String languageCode, @RequestParam MultipartFile file,
+			@RequestParam MultipartFile file,
 			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase,
 			@RequestParam(defaultValue = "false") boolean overwriteExistingCaseSignificance,
 			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {
@@ -101,7 +101,7 @@ public class TranslationController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
-				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(languageCode, translationTermsUseTitleCase, asyncJob));
+				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(translationTermsUseTitleCase, asyncJob));
 	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")

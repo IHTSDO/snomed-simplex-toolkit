@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import jakarta.annotation.PostConstruct;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -139,19 +140,28 @@ public class TranslationService {
 		return translationRefsets;
 	}
 
-	public ChangeSummary uploadTranslationAsWeblateCSV(String languageCode, boolean translationTermsUseTitleCase, ContentJob asyncJob) throws ServiceException {
+	public ChangeSummary uploadTranslationAsWeblateCSV(boolean translationTermsUseTitleCase, ContentJob asyncJob) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), languageCode, asyncJob.getCodeSystemObject(), asyncJob.getInputStream(),
+		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(),
 				translationTermsUseTitleCase, snowstormClient, asyncJob);
 	}
 
-	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, String languageCode, CodeSystem codeSystem, InputStream inputStream,
+	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
 			boolean translationTermsUseTitleCase, SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
 
+		String languageCode = getLanguageCodeOrThrow(languageRefsetId, codeSystem);
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
 			return doUploadTranslation(() -> readTranslationsFromWeblateCSV(inputStream, languageCode, languageRefsetId),
 					languageRefsetId, translationTermsUseTitleCase, codeSystem, snowstormClient, progressMonitor, changeMonitor);
 		}
+	}
+
+	private static @NotNull String getLanguageCodeOrThrow(String languageRefsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		String languageCode = codeSystem.getTranslationLanguages().get(languageRefsetId);
+		if (languageCode == null) {
+			throw new ServiceExceptionWithStatusCode("Language code not set for translation.", HttpStatus.CONFLICT, JobStatus.SYSTEM_ERROR);
+		}
+		return languageCode;
 	}
 
 	public ChangeSummary uploadTranslationAsRefsetToolArchive(ContentJob contentJob) throws ServiceException {
@@ -175,6 +185,10 @@ public class TranslationService {
 		logger.info("Reading translation file..");
 		Map<Long, List<Description>> conceptDescriptions = uploadProvider.readUpload();
 
+		String languageCode = getLanguageCodeOrThrow(languageRefsetId, codeSystem);
+		// Validate language codes
+		validateLanguageCodes(conceptDescriptions, languageCode);
+
 		// Replace bad characters
 		for (List<Description> conceptDescriptionList : conceptDescriptions.values()) {
 			for (Description description : conceptDescriptionList) {
@@ -191,8 +205,6 @@ public class TranslationService {
 			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 
-		// Grab language code from first uploaded description
-		String languageCode = conceptDescriptions.values().iterator().next().get(0).getLang();
 		int processed = 0;
 		int batchSize = 500;
 		ChangeSummary changeSummary = new ChangeSummary();
@@ -224,6 +236,16 @@ public class TranslationService {
 		changeSummary.setNewTotal(newActiveCount);
 		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
 		return changeSummary;
+	}
+
+	private static void validateLanguageCodes(Map<Long, List<Description>> conceptDescriptions, String languageCode) throws ServiceExceptionWithStatusCode {
+		long descriptionsWithIncorrectLanguageCode = conceptDescriptions.values().stream().flatMap(Collection::stream)
+				.filter(description -> !languageCode.equals(description.getLang())).count();
+		if (descriptionsWithIncorrectLanguageCode > 0) {
+			throw new ServiceExceptionWithStatusCode(("%s of the uploaded terms have an incorrect language. " +
+					"Set language code to '%s' for all terms and try again.").formatted(descriptionsWithIncorrectLanguageCode, languageCode),
+					HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
+		}
 	}
 
 	public boolean updateConceptDescriptions(String conceptId, List<Description> existingDescriptions, List<Description> uploadedDescriptions,

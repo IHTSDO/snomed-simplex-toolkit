@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mockito;
+import org.snomed.otf.snomedboot.testutil.ZipUtil;
 import org.snomed.simplex.TestConfig;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
@@ -18,8 +19,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ContextConfiguration;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -42,10 +47,13 @@ class TranslationServiceTest {
 
 	private SnowstormClient mockSnowstormClient;
 
+	private final String testLangRefset = "123000";
+
 	@BeforeEach
 	void setup() throws ServiceException {
 		mockSnowstormClient = Mockito.mock(SnowstormClient.class);
 		Mockito.when(snowstormClientFactory.getClient()).thenReturn(mockSnowstormClient);
+		testCodeSystem.setTranslationLanguages(Map.of(testLangRefset, "vi"));
 	}
 
 	@Test
@@ -74,7 +82,7 @@ class TranslationServiceTest {
 	void testBlankHeader() throws ServiceException {
 		SnowstormClient client = snowstormClientFactory.getClient();
 		try {
-			service.uploadTranslationAsWeblateCSV("", "fr", testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"), false,
+			service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"), false,
 					client, new DummyProgressMonitor());
 			fail();
 		} catch (ServiceException e) {
@@ -90,7 +98,7 @@ class TranslationServiceTest {
 						new Concept("").setConceptId("674814021000119106")));
 		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
 
-		service.uploadTranslationAsWeblateCSV("", "vi", testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"), false,
+		service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"), false,
 				snowstormClientFactory.getClient(), new DummyProgressMonitor());
 
 		List<Concept> updatedConcepts = conceptsSentToUpdate.getValue();
@@ -98,15 +106,25 @@ class TranslationServiceTest {
 		Concept concept = updatedConcepts.get(0);
 		assertEquals("880529761000119102", concept.getConceptId());
 		assertEquals("[Description{lang='vi', term='nhiễm trùng đường hô hấp dưới do SARS-CoV-2', " +
-				"caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', acceptabilityMap={=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
+				"caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', acceptabilityMap={123000=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
 		concept = updatedConcepts.get(1);
 		assertEquals("740215071000132100", concept.getConceptId());
 		assertEquals("[Description{lang='vi', term='những thay đổi của liệu pháp miễn dịch trong bàng quang sau tiêm BCG', " +
-				"caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', acceptabilityMap={=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
+				"caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', acceptabilityMap={123000=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
 		concept = updatedConcepts.get(2);
 		assertEquals("674814021000119106", concept.getConceptId());
 		assertEquals("[Description{lang='vi', term='hội chứng suy hô hấp cấp tính gây ra bởi coronavirus 2 gây hội chứng hô hấp cấp tính nặng', " +
-				"caseSignificance='CASE_INSENSITIVE', acceptabilityMap={=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
+				"caseSignificance='CASE_INSENSITIVE', acceptabilityMap={123000=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
 	}
 
+	@Test
+	void testUploadRefsetAndTranslationToolWrongLanguage() throws IOException {
+		try {
+			File exportFile = ZipUtil.zipDirectoryRemovingCommentsAndBlankLines("src/test/resources/refset-translation-tool-example-export");
+			service.uploadTranslationAsRefsetToolArchive(testLangRefset, testCodeSystem, new FileInputStream(exportFile), new DummyProgressMonitor());
+			fail();
+		} catch (ServiceException e) {
+			assertEquals("3 of the uploaded terms have an incorrect language. Set language code to 'vi' for all terms and try again.", e.getMessage());
+		}
+	}
 }
