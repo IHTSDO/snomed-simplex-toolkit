@@ -274,7 +274,7 @@ public class CustomConceptService {
 				"To make a concept inactive enter a value of false."));
 		String termSubtitle = "The first term will be the preferred term. \r\n" +
 				"Each additional synonym should use a new row. There is no need to repeat the values in columns A to D.";
-		headers.add(new SheetHeader("Terms in English, US dialect").setSubtitle(termSubtitle));
+		headers.add(new SheetHeader("Terms in English, US dialect. This term is required.").setSubtitle(termSubtitle));
 		for (ConceptMini langRefset : langRefsets) {
 			headers.add(new SheetHeader(format("Terms in %s (%s)", langRefset.getPt().getTerm(), langRefset.getConceptId())).setSubtitle(termSubtitle).optional());
 		}
