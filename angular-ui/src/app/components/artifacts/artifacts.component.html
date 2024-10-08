@@ -105,6 +105,14 @@
                         <span class="details-field-value">{{ selectedArtifact.conceptId }}</span>
                     </div>
                 </div>
+                <div class="component-row" *ngIf="selectedArtifact?.type == 'translation'">
+                    <div class="component-col align-right">
+                        <span class="details-field-name">Language Code</span>
+                    </div>
+                    <div class="component-col">
+                        <span class="details-field-value">{{ selectedArtifact.lang }}</span>
+                    </div>
+                </div>
                 <div class="component-row">
                     <div class="component-col align-right">
                         <span class="details-field-name">Active member count</span>
