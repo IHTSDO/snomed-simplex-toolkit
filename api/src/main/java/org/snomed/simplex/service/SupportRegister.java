@@ -30,9 +30,7 @@ public class SupportRegister {
 	}
 
 	public void handleSystemError(AsyncJob job, String errorMessage, ServiceException exception) {
-		if (job.getStatus() == null) {
-			job.setStatus(JobStatus.SYSTEM_ERROR);
-		}
+		job.setStatus(JobStatus.SYSTEM_ERROR);
 		job.setErrorMessage(errorMessage);
 		if (exception != null) {
 			job.setServiceException(exception);
