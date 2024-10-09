@@ -108,6 +108,13 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
     this.loadArtifacts(this.edition);
   }
 
+  updateSelectedArtifact(artifact: any) {
+    if (artifact.conceptId == this.selectedArtifact?.conceptId) {
+      this.selectedArtifact = artifact;
+      this.changeDetectorRef.detectChanges();
+    }
+  }
+
   loadConceptsArtifact(conceptId: string) {
     this.editionDetails = null;
     lastValueFrom(this.simplexService.getEdition(this.edition)).then(
@@ -118,6 +125,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
           lastValueFrom(this.simplexService.getConcepts(this.edition,0,1)).then(
             (concepts) => {
               this.conceptsArtifact.count = concepts.total;
+              this.updateSelectedArtifact(this.conceptsArtifact)
             }
           )
         }
@@ -133,6 +141,9 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
         .subscribe((subsets) => {
             this.subsets = subsets;
             this.loadingSubsets = false;
+            this.subsets.forEach(subset => {
+              this.updateSelectedArtifact(subset);
+            });
             this.changeDetectorRef.detectChanges();
         });
   }
@@ -145,6 +156,9 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
         .subscribe((translations) => {
             this.translations = translations;
             this.loadingTranslations = false;
+            this.translations.forEach(translation => {
+              this.updateSelectedArtifact(translation);
+            });
             this.changeDetectorRef.detectChanges();
         });
   }
@@ -157,6 +171,9 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
         .subscribe((maps) => {
             this.maps = maps;
             this.loadingMaps = false;
+            this.maps.forEach(map => {
+              this.updateSelectedArtifact(map);
+            });
             this.changeDetectorRef.detectChanges();
         });
   }
