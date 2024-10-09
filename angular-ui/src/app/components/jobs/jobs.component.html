@@ -203,17 +203,6 @@
     </div>
 </div>
 
-<div class="row">
-    <mat-form-field *ngIf="selectedFileType == 'weblateTranslation'">
-      <mat-label>Language Code</mat-label>
-      <input
-        matInput
-        placeholder="es, da, nl, etc."
-        [value]="selectedLanguageCode"
-        (input)="onSelectedLanguageCodeChange($event)"
-      />
-    </mat-form-field>
-</div>
 <h4>Recent uploads</h4>
 <p *ngIf="hasInProgressJob" class="no-imports right">Jobs are running, you can navigate to other parts of Simplex and come back later</p>
 <table mat-table [dataSource]="loading ? skeleton : jobs">

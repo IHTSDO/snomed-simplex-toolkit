@@ -70,7 +70,6 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     },
   ];
   filteredFileTypes = [];
-  selectedLanguageCode: string = '';
 
   downloadConceptFileDisabled = false;
   downloadRefsetFileDisabled = false;
@@ -354,13 +353,6 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     this.selectedFileType = event.value;
     // Optionally reset related variables
     this.selectedFile = null;
-    this.selectedLanguageCode = '';
   }
 
-  // Handle changes in selected language code
-  onSelectedLanguageCodeChange(event: Event): void {
-    const inputElement = event.target as HTMLInputElement;
-    this.selectedLanguageCode = inputElement.value;
-  }
-  
 }
