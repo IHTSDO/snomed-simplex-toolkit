@@ -233,7 +233,9 @@
         <span *ngIf="!loading && (element.status.indexOf('ERROR') !== -1)" class="flex-cont errors-icon">
             {{ element.status }} <mat-icon class="info-icon" [matTooltip]="element.errorMessage">info</mat-icon>
         </span>
-        <span *ngIf="!loading && (element.status.indexOf('ERROR') == -1)" [matTooltip]="element.errorMessage">{{ element.status }}</span>
+        <span *ngIf="!loading && (element.status.indexOf('ERROR') == -1)" [matTooltip]="element.errorMessage" [ngClass]="{' pulse' : element.status ==  'IN_PROGRESS'}">
+            {{ element.status }}
+        </span>
       </td>
     </ng-container>
   
@@ -242,8 +244,12 @@
       <th mat-header-cell *matHeaderCellDef> Records </th>
       <td mat-cell *matCellDef="let element">
         <div *ngIf="loading" class="skeleton-cell"></div>
-        <span *ngIf="!loading && (element.recordsProcessed < element.recordsTotal)">{{ (element.recordsProcessed * 100) / element.recordsTotal }}%</span>
+        <!-- <span *ngIf="!loading && (element.recordsProcessed < element.recordsTotal)">{{ (element.recordsProcessed * 100) / element.recordsTotal }}%</span> -->
         <span *ngIf="!loading && (element.recordsProcessed >= element.recordsTotal)">{{ element.recordsTotal }}</span>
+        <span *ngIf="!loading && (element.recordsProcessed < element.recordsTotal)">
+            {{ element.recordsProcessed }} / {{ element.recordsTotal }}
+      </span>
+        <!-- <span>{{ element.recordsProcessed }}</span> -->
       </td>
     </ng-container>
   
@@ -256,7 +262,11 @@
           <!-- Original content for icons -->
           <mat-icon *ngIf="element.status == 'COMPLETED'" [ngStyle]="{'color': 'green'}">check_circle</mat-icon>
           <mat-icon *ngIf="element.status == 'FAILED'" [ngStyle]="{'color': 'red'}">error</mat-icon>
-          <mat-spinner [diameter]="20" *ngIf="element.status == 'IN_PROGRESS'"></mat-spinner>
+          <mat-progress-spinner *ngIf="element.status == 'IN_PROGRESS'"
+            [diameter]="20"
+            [mode]="'determinate'"
+            [value]="(element.recordsProcessed * 100) / element.recordsTotal">
+          </mat-progress-spinner>          
           <mat-icon *ngIf="element.status == 'QUEUED'" [ngStyle]="{'color': 'blue'}">hourglass_empty</mat-icon>
           <mat-icon *ngIf="element.status == 'CANCELLED'" [ngStyle]="{'color': 'grey'}">cancel</mat-icon>
         </ng-container>

@@ -119,3 +119,18 @@ mat-form-field:last-child {
     align-items: center;
     gap: .5rem;
   }
+
+  .pulse {
+    display: inline-block; /* Ensures the span behaves correctly */
+    animation: pulseOpacity 1.5s infinite; /* 1.5s duration, infinite loop */
+    font-style: italic;
+  }
+  
+  @keyframes pulseOpacity {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+  }

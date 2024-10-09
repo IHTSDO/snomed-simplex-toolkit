@@ -235,6 +235,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     fileType: string
   ): Promise<void> {
     if (this.selectedFile && this.edition && componentType && fileType) {
+      this.alert('Uploading file...');
       try {
         if (
           componentType === 'translation' &&
