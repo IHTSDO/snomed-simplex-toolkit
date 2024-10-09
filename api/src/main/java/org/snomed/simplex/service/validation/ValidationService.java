@@ -31,6 +31,7 @@ public class ValidationService {
 	private final Map<String, Pair<String, String>> validationFixMethodToTitleAndInstructionsMap;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 	private final Map<String, Integer> assertionSortOrderMap;
+	private final Set<String> missingFixesReported = new HashSet<>();
 
 	public ValidationService(ValidationTriageConfig validationTriageConfig, ValidationServiceClient validationServiceClient,
 			SnowstormClientFactory snowstormClientFactory, SupportRegister supportRegister) throws ServiceException {
@@ -101,7 +102,9 @@ public class ValidationService {
 				}
 			}
 			if (!fixFound) {
-				logger.error("No validation fix found for assertion {}", assertionUuid);
+				if (missingFixesReported.add(assertionUuid)) {
+					logger.error("No validation fix found for assertion {}", assertionUuid);
+				}
 				createFix(fixesRequired, assertion, UNKNOWN_FIX_KEY, severity);
 			}
 		}
