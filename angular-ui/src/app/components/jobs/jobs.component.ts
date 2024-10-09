@@ -239,26 +239,18 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       try {
         if (
           componentType === 'translation' &&
-          fileType === 'weblateTranslation' &&
-          this.selectedLanguageCode
+          fileType === 'weblateTranslation'
         ) {
           const response = await lastValueFrom(
             this.simplexService.uploadWeblateTranslation(
               this.edition,
               refsetId,
-              this.selectedFile,
-              this.selectedLanguageCode
+              this.selectedFile
             )
           );
           this.selectedFile = null;
           this.loadJobs(false);
           this.alert('File import job created');
-        } else if (
-          componentType === 'translation' &&
-          fileType === 'weblateTranslation' &&
-          !this.selectedLanguageCode
-        ) {
-          this.alert('Error: Language code not specified');
         } else if (
           componentType === 'translation' &&
           fileType === 'refsetToolTranslation'

@@ -118,10 +118,10 @@ export class SimplexService {
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public uploadWeblateTranslation(edition: string, refsetId: string, file: File, languageCode: string): Observable<any> {
+  public uploadWeblateTranslation(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `/api/${edition}/translations/${refsetId}/weblate?languageCode=${languageCode}`;
+    const apiUrl = `/api/${edition}/translations/${refsetId}/weblate`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
