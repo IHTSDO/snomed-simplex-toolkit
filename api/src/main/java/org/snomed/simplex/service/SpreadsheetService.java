@@ -362,7 +362,7 @@ public class SpreadsheetService {
 	}
 
 	public <T extends ComponentIntent> List<T> readComponentSpreadsheet(InputStream spreadsheetStream, List<SheetHeader> expectedHeader,
-			SheetRowToComponentIntentExtractor<T> componentIntentExtractor, long expectedContentHeadTimestamp) throws ServiceException {
+			SheetRowToComponentIntentExtractor<T> componentIntentExtractor, long expectedContentHeadTimestampOrZero) throws ServiceException {
 
 		int rowNumber = 0;
 		try {
@@ -373,7 +373,7 @@ public class SpreadsheetService {
 				for (Row cells : sheet) {
 					rowNumber++;
 					if (headerConfiguration == null) {
-						verifySheetMatchesLatestCommit(cells, expectedContentHeadTimestamp);
+						verifySheetMatchesLatestCommit(cells, expectedContentHeadTimestampOrZero);
 						headerConfiguration = getHeaderConfiguration(cells, expectedHeader);
 					} else {
 						T componentIntent = componentIntentExtractor.extract(cells, rowNumber, headerConfiguration);
@@ -390,7 +390,7 @@ public class SpreadsheetService {
 	}
 
 	private void verifySheetMatchesLatestCommit(Row headerCells, long expectedContentHeadTimestamp) throws ServiceExceptionWithStatusCode {
-		boolean timestampMatches = false;
+		boolean timestampMatches = expectedContentHeadTimestamp == 0;
 		for (Cell cell : headerCells) {
 			String stringCellValue = cell.getStringCellValue();
 			if (stringCellValue != null && stringCellValue.startsWith(SIMPLEX_BRANCH_TIMESTAMP_PREFIX)) {
