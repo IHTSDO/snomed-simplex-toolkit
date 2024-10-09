@@ -44,8 +44,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     const editionSubscription = this.uiService.getSelectedEdition().subscribe(edition => {
       if (edition) {
         this.edition = edition;
-        this.refreshEdition();
         this.issuesReport = null;
+        this.refreshEdition();
       }
     });
     this.startRefresh();
