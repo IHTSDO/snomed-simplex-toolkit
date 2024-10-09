@@ -242,7 +242,8 @@
       <th mat-header-cell *matHeaderCellDef> Records </th>
       <td mat-cell *matCellDef="let element">
         <div *ngIf="loading" class="skeleton-cell"></div>
-        <span *ngIf="!loading">{{ element.recordsTotal }}</span>
+        <span *ngIf="!loading && (element.recordsProcessed < element.recordsTotal)">{{ (element.recordsProcessed * 100) / element.recordsTotal }}%</span>
+        <span *ngIf="!loading && (element.recordsProcessed >= element.recordsTotal)">{{ element.recordsTotal }}</span>
       </td>
     </ng-container>
   
