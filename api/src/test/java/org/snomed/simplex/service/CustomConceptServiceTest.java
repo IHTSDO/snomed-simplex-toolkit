@@ -70,7 +70,6 @@ class CustomConceptServiceTest {
 		List<Concept> parentConcepts = new ArrayList<>();
 		parentConcepts.add(objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class));
 		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem))).thenReturn(parentConcepts);
-		// TODO Add languages - store in branch metadata? - get from the user up front.
 		ChangeSummary changeSummary = customConceptService.createUpdateConcepts(codeSystem, conceptIntents, List.of(Concepts.US_LANG_REFSET, patientFriendlyTerm),
 				new ContentJob(new CodeSystem(), "", null), mockSnowstormClient);
 
