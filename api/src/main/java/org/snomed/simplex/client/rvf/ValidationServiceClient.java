@@ -8,20 +8,17 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SpreadsheetService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -80,7 +77,8 @@ public class ValidationServiceClient {
 			}
 			try {
 				// Send to RVF
-				return restTemplate.postForLocation("/run-post", buildValidationRequest(codeSystem, branchPath, headTimestamp, tempFile, effectiveTime));
+				HttpEntity<MultiValueMap<String, Object>> request = buildValidationRequest(codeSystem, branchPath, headTimestamp, tempFile, effectiveTime);
+				return restTemplate.postForLocation("/run-post", request);
 			} catch (IOException e) {
 				throw new ServiceException("Failed to build validation request.", e);
 			}
@@ -120,10 +118,17 @@ public class ValidationServiceClient {
 		body.add("rf2DeltaOnly", "true");
 		body.add("effectiveTime", effectiveTime);
 
-//		String previousPackage = codeSystem.getDependencyPackage();
-//		if (previousPackage != null) {
-			body.add("previousRelease", "empty-rf2-snapshot.zip");
-//		}
+		String previousPackage = "empty-rf2-snapshot.zip";
+		CodeSystem.CodeSystemVersion latestVersion = codeSystem.getLatestVersion();
+		if (latestVersion != null) {
+			if (latestVersion.releasePackage() == null) {
+				throw new ServiceExceptionWithStatusCode("Failed to start validation. Latest release package is not set.",
+						HttpStatus.CONFLICT, JobStatus.SYSTEM_ERROR);
+			}
+			previousPackage = latestVersion.releasePackage();
+		}
+		body.add("previousRelease", previousPackage);
+
 		String dependencyPackage = codeSystem.getDependencyPackage();
 		if (dependencyPackage != null) {
 			body.add("dependencyRelease", codeSystem.getDependencyPackage());
@@ -140,10 +145,6 @@ public class ValidationServiceClient {
 		body.add("failureExportMax", "100");
 		String storageLocation = RVF_TS + "/Simplex_" + codeSystem.getShortName() + "/" + runId;
 		body.add("storageLocation", storageLocation);
-		SecurityContext context = SecurityContextHolder.getContext();
-		System.out.println(context);
-		System.out.println();
-
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.MULTIPART_FORM_DATA);
