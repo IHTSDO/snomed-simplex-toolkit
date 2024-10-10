@@ -168,6 +168,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   onFileSelected(event: Event): void {
+    this.selectedFile = null;
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length) {
       this.selectedFile = input.files[0];
