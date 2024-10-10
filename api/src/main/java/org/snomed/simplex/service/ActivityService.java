@@ -17,6 +17,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.external.ExternalFunctionJobService;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -39,7 +40,7 @@ public class ActivityService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public ActivityService(ActivityRepository repository, ActivityResourceManagerConfiguration resourceManagerConfiguration,
-			ResourceLoader resourceLoader) {
+			ResourceLoader resourceLoader, @Value("${user-activity.end-on-startup}") boolean endActivitiesOnStartup) {
 
 		this.repository = repository;
 		resourceManager = new ResourceManager(resourceManagerConfiguration, resourceLoader);
@@ -50,19 +51,23 @@ public class ActivityService {
 		repository.deleteAllByActivityType("ADD_CONTENT_APPROVAL");
 		repository.deleteAllByActivityType("START_BUILD");
 
-		// End activities that can't recover
-		List<Activity> runningActivities = repository.findActivitiesByEndDate(null);
-		List<Activity> activitiesToEnd = runningActivities.stream()
-				.filter(activity -> activity.getActivityType() != ActivityType.FINALIZE_RELEASE).toList();
-		for (Activity activity : activitiesToEnd) {
-			activity.setError(true);
-			activity.setMessage("Simplex was restarted. Please try again.");
-			activity.end();
+		if (endActivitiesOnStartup) {
+			// End activities that can't recover
+			List<Activity> runningActivities = repository.findActivitiesByEndDate(null);
+			List<Activity> activitiesToEnd = runningActivities.stream()
+					.filter(activity -> activity.getActivityType() != ActivityType.FINALIZE_RELEASE).toList();
+			for (Activity activity : activitiesToEnd) {
+				activity.setError(true);
+				activity.setMessage("Simplex was restarted. Please try again.");
+				activity.end();
+			}
+			if (!activitiesToEnd.isEmpty()) {
+				repository.saveAll(activitiesToEnd);
+			}
+			logger.info("{} activities ended with error due to restart.", activitiesToEnd.size());
+		} else {
+			logger.info("Skipping ending activities during startup.");
 		}
-		if (!activitiesToEnd.isEmpty()) {
-			repository.saveAll(activitiesToEnd);
-		}
-		logger.info("{} activities ended with error due to restart.", activitiesToEnd.size());
 	}
 
 	public org.snomed.simplex.domain.Page<Activity> findActivities(String codesystem, String componentId, PageRequest pageRequest) {
