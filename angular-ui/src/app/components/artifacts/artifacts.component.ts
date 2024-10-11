@@ -36,6 +36,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   loadingSubsets = false;
   loadingTranslations = false;
   loadingMaps = false;
+  updatingEdition = false;
   saving = false;
   private subscriptions: Subscription = new Subscription();
   languageCodes: any[] = [];
@@ -62,6 +63,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
       if (edition && url.includes('artifact')) {
         this.editionDetails = edition;
         this.edition = edition.shortName;
+        this.updatingEdition = true;
         this.loadArtifacts(edition.shortName);
         this.selectedArtifact = null;
         this.newArtifactMode = false;
@@ -116,7 +118,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   }
 
   loadConceptsArtifact(conceptId: string) {
-    this.editionDetails = null;
+    // this.editionDetails = null;
     lastValueFrom(this.simplexService.getEdition(this.edition)).then(
       (edition) => {
         this.editionDetails = edition;
@@ -134,13 +136,15 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   }    
 
   loadSubsets(edition: string) {
-    this.subsets = [];
     this.loadingSubsets = true;
     this.simplexService.getSimpleRefsets(edition)
         .pipe(takeUntil(this.cancelOngoingRequests$))
         .subscribe((subsets) => {
             this.subsets = subsets;
             this.loadingSubsets = false;
+            if (!this.loadingMaps && !this.loadingTranslations) {
+              this.updatingEdition = false;
+            }
             this.subsets.forEach(subset => {
               this.updateSelectedArtifact(subset);
             });
@@ -149,13 +153,15 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   }
 
   loadTranslations(edition: string) {
-    this.translations = [];
     this.loadingTranslations = true;
     this.simplexService.getTranslations(edition)
         .pipe(takeUntil(this.cancelOngoingRequests$))
         .subscribe((translations) => {
             this.translations = translations;
             this.loadingTranslations = false;
+            if (!this.loadingMaps && !this.loadingSubsets) {
+              this.updatingEdition = false;
+            }
             this.translations.forEach(translation => {
               this.updateSelectedArtifact(translation);
             });
@@ -164,13 +170,15 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   }
 
   loadMaps(edition: string) {
-    this.maps = [];
     this.loadingMaps = true;
     this.simplexService.getSimpleMaps(edition)
         .pipe(takeUntil(this.cancelOngoingRequests$))
         .subscribe((maps) => {
             this.maps = maps;
             this.loadingMaps = false;
+            if (!this.loadingSubsets && !this.loadingTranslations) {
+              this.updatingEdition = false;
+            }
             this.maps.forEach(map => {
               this.updateSelectedArtifact(map);
             });

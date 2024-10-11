@@ -85,20 +85,20 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   }
 
   async runClassificationAndValidation() {
-    this.alert('Requesting classification and validation');
-    this.edition.classificationStatus = 'IN_PROGRESS';
-    this.edition.validationStatus = 'IN_PROGRESS';
-    const classificationResponse = await lastValueFrom(
-      this.simplexService.startClassification(this.edition.shortName)
-    );
-    const validationResponse = await lastValueFrom(
-      this.simplexService.startValidation(this.edition.shortName)
-    );
-    this.alert('Classification and validation requested');
-    this.refreshEdition();
-    if (this.jobComponent) {
-      this.jobComponent.loadJobs(true);
-    } 
+    if (this.edition.classificationStatus === 'COMPLETE' && this.edition.validationStatus === 'COMPLETE') {
+      this.alert('Classification and validation already completed');
+      return;
+    }
+    if (this.edition.classificationStatus === 'IN_PROGRESS' || this.edition.validationStatus === 'IN_PROGRESS') {
+      this.alert('Classification and validation already in progress');
+      return;
+    }
+    if (this.edition.classificationStatus === 'STALE' || this.edition.classificationStatus === 'TODO') {
+      await this.runClassification();
+    }
+    if (this.edition.validationStatus === 'STALE' || this.edition.validationStatus === 'TODO') {
+      await this.runValidation();
+    }
   }
 
   downloadValidationResults() {
