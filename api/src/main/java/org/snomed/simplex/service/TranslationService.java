@@ -271,7 +271,7 @@ public class TranslationService {
 					&& snowstormDescription.getAcceptabilityMap().containsKey(languageRefsetId)) {
 
 				if (uploadedDescriptions.stream().noneMatch(uploadedDescription -> uploadedDescription.getTerm().equals(snowstormDescription.getTerm()))) {
-					// Description in Snowstorm does not match any of the uploaded descriptions. Make the Snowstorm description inactive.
+					// Description in Snowstorm does not match any of the uploaded descriptions. Remove the acceptability for this lang-refset
 					snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
 					anyChange = true;
 					changeSummary.incrementRemoved();// Removed from the language refset
@@ -279,7 +279,12 @@ public class TranslationService {
 
 					// Also suggest that Snowstorm deletes / inactivates this description if not used by any other lang refset
 					if (snowstormDescription.getAcceptabilityMap().isEmpty()) {
-						toRemove.add(snowstormDescription);// Snowstorm will delete or inactivate component depending on release status
+						if (snowstormDescription.isReleased()) {
+							// Send the released inactive description rather than removing to ensure the acceptability is cleared in Snowstorm
+							snowstormDescription.setActive(false);
+						} else {
+							toRemove.add(snowstormDescription);
+						}
 					}
 				}
 			}
@@ -346,7 +351,7 @@ public class TranslationService {
 			}
 		}
 
-		// Remove existing lang refset entries on inactive descriptions
+		// Remove existing lang refset entries on all inactive descriptions
 		for (Description snowstormDescription : existingDescriptions) {
 			if (snowstormDescription.getLang().equals(languageCode)
 					&& !snowstormDescription.isActive()
