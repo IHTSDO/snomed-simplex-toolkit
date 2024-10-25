@@ -251,6 +251,7 @@ public class TranslationService {
 				.replace(NON_BREAKING_SPACE_CHARACTER, " ")
 				.replace(EN_DASH, "-")
 				.replace(EM_DASH, "-");
+		fixedTerm = fixedTerm.replaceAll(" +", " ");// Replace multiple spaces with single
 		if (!fixedTerm.equals(description.getTerm())) {
 			logger.info("Fixed term '{}' > '{}'", description.getTerm(), fixedTerm);
 		}
