@@ -29,11 +29,11 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import static java.lang.Long.parseLong;
 import static java.lang.String.format;
-import static org.snomed.simplex.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
-import static org.snomed.simplex.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
+import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 import static org.snomed.simplex.client.domain.Description.Type.FSN;
 import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
 
@@ -41,6 +41,11 @@ import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
 public class TranslationService {
 
 	public static final String NON_BREAKING_SPACE_CHARACTER = " ";
+
+	public static final Pattern TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN = Pattern.compile(".[A-Z].*");
+	public static final Pattern TITLE_CASE_LOWER_CASE_SECOND_LETTER_BUT_UPPER_LATER = Pattern.compile(".[a-z].*[A-Z].*");
+	public static final Pattern UPPER_CASE_FIRST_LETTER_PATTERN = Pattern.compile("[A-Z].*");
+	public static final Pattern LOWER_CASE_FIRST_LETTER_BUT_UPPER_LATER = Pattern.compile("[a-z].*[A-Z].*");
 
 	private final List<LanguageCode> languageCodes = new ArrayList<>();
 
@@ -301,6 +306,11 @@ public class TranslationService {
 
 			descriptionChange = false;
 
+			if (uploadedDescription.getCaseSignificance() == null) {
+				Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase, existingDescriptions);
+				uploadedDescription.setCaseSignificance(caseSignificance);
+			}
+
 			if (existingDescriptionOptional.isPresent()) {
 				Description existingDescription = existingDescriptionOptional.get();
 
@@ -341,10 +351,6 @@ public class TranslationService {
 				}
 			} else {
 				// no existing match, create new
-				if (uploadedDescription.getCaseSignificance() == null) {
-					Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase, existingDescriptions);
-					uploadedDescription.setCaseSignificance(caseSignificance);
-				}
 				existingDescriptions.add(uploadedDescription);
 				anyChange = true;
 				changeSummary.incrementAdded();
@@ -464,10 +470,20 @@ public class TranslationService {
 			}
 		}
 		if (titleCaseUsed) {
-			// Ignore first character by removing it
-			term = term.substring(1);
+			if (TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN.matcher(term).matches()) {
+				return ENTIRE_TERM_CASE_SENSITIVE;
+			} else if (TITLE_CASE_LOWER_CASE_SECOND_LETTER_BUT_UPPER_LATER.matcher(term).matches()) {
+				return INITIAL_CHARACTER_CASE_INSENSITIVE;
+			}
+		} else {
+			if (UPPER_CASE_FIRST_LETTER_PATTERN.matcher(term).matches()) {
+				return ENTIRE_TERM_CASE_SENSITIVE;
+			} else if (LOWER_CASE_FIRST_LETTER_BUT_UPPER_LATER.matcher(term).matches()) {
+				return INITIAL_CHARACTER_CASE_INSENSITIVE;
+			}
+
 		}
-		return term.equals(term.toLowerCase()) ? CASE_INSENSITIVE : ENTIRE_TERM_CASE_SENSITIVE;
+		return CASE_INSENSITIVE;
 	}
 
 	private static String getFirstWord(String term) {

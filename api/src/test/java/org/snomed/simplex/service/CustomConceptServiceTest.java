@@ -1,6 +1,10 @@
 package org.snomed.simplex.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.*;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concept;
@@ -10,10 +14,6 @@ import org.snomed.simplex.domain.ConceptIntent;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -89,7 +89,7 @@ class CustomConceptServiceTest {
 						"acceptabilityMap={900000000000509007=PREFERRED}}",
 				"Description{lang='en', term='CT of left middle ear', caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', " +
 						"acceptabilityMap={900000000000509007=PREFERRED, 121000003010=ACCEPTABLE}}",
-				"Description{lang='en', term='Scan of left middle ear using CT machine', caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', " +
+				"Description{lang='en', term='Scan of left middle ear using CT machine', caseSignificance='INITIAL_CHARACTER_CASE_INSENSITIVE', " +
 						"acceptabilityMap={121000003010=PREFERRED}}"
 		);
 		assertTrue(expectedDescriptions.contains(descriptions.get(0).toString()));

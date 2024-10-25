@@ -59,16 +59,19 @@ class TranslationServiceTest {
 	@Test
 	void guessCaseSignificance() {
 		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("SNOMED CT core module (core metadata concept)", true, null));
-		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn CT", false, null));
+		assertEquals(INITIAL_CHARACTER_CASE_INSENSITIVE, service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn CT", false, null));
 		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("sinh thiết chọc hút bằng kim nhỏ nang giả tụy có hướng dẫn", false, null));
 		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", true, null));
 		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", false, null));
-		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("Neisseria meningitidis gruppe Z", true, null));
+		assertEquals(INITIAL_CHARACTER_CASE_INSENSITIVE, service.guessCaseSignificance("Neisseria meningitidis gruppe Z", true, null));
 
 		List<Description> otherDescriptions = List.of(
-				new Description(Description.Type.SYNONYM, "en", "Smith fracture", ENTIRE_TERM_CASE_SENSITIVE),
-				new Description(Description.Type.SYNONYM, "en", "Carbapenem resistant Escherichia coli", INITIAL_CHARACTER_CASE_INSENSITIVE),
+				new Description(Description.Type.SYNONYM, "en", "Smith fracture", ENTIRE_TERM_CASE_SENSITIVE)
+						.setReleased(true),
+				new Description(Description.Type.SYNONYM, "en", "Carbapenem resistant Escherichia coli", INITIAL_CHARACTER_CASE_INSENSITIVE)
+						.setReleased(true),
 				new Description(Description.Type.SYNONYM, "en", "Something fracture", CASE_INSENSITIVE)
+						.setReleased(true)
 		);
 		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("Smith thing", true, otherDescriptions),
 				"Case sensitive if first word matches another description that is case sensitive.");
@@ -76,6 +79,11 @@ class TranslationServiceTest {
 				"Case insensitive because first word does not match another description that is case sensitive");
 		assertEquals(INITIAL_CHARACTER_CASE_INSENSITIVE, service.guessCaseSignificance("Carbapenem resistant Escherichia", true, otherDescriptions),
 				"Initial character case sensitive if first word matches another description that has this case sensitivity.");
+
+		assertEquals(INITIAL_CHARACTER_CASE_INSENSITIVE, service.guessCaseSignificance("Antibody to antigen in Xg blood group system", true, null),
+				"Initial character case sensitive if second character is lower case but upper case characters after that.");
+		assertEquals(INITIAL_CHARACTER_CASE_INSENSITIVE, service.guessCaseSignificance("Closed reduction of dislocation AND application of cast", true, null),
+				"Initial character case sensitive if second character is lower case but upper case characters after that.");
 	}
 
 	@Test
@@ -106,11 +114,11 @@ class TranslationServiceTest {
 		Concept concept = updatedConcepts.get(0);
 		assertEquals("880529761000119102", concept.getConceptId());
 		assertEquals("[Description{lang='vi', term='nhiễm trùng đường hô hấp dưới do SARS-CoV-2', " +
-				"caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', acceptabilityMap={123000=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
+				"caseSignificance='INITIAL_CHARACTER_CASE_INSENSITIVE', acceptabilityMap={123000=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
 		concept = updatedConcepts.get(1);
 		assertEquals("740215071000132100", concept.getConceptId());
 		assertEquals("[Description{lang='vi', term='những thay đổi của liệu pháp miễn dịch trong bàng quang sau tiêm BCG', " +
-				"caseSignificance='ENTIRE_TERM_CASE_SENSITIVE', acceptabilityMap={123000=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
+				"caseSignificance='INITIAL_CHARACTER_CASE_INSENSITIVE', acceptabilityMap={123000=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
 		concept = updatedConcepts.get(2);
 		assertEquals("674814021000119106", concept.getConceptId());
 		assertEquals("[Description{lang='vi', term='hội chứng suy hô hấp cấp tính gây ra bởi coronavirus 2 gây hội chứng hô hấp cấp tính nặng', " +
