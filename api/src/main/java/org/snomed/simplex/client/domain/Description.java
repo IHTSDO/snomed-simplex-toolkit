@@ -148,6 +148,10 @@ public class Description extends Component {
 		this.term = term;
 		return this;
 	}
+	public Description setReleased(boolean released) {
+		super.setReleased(released);
+		return this;
+	}
 
 	public CaseSignificance getCaseSignificance() {
 		return caseSignificance;

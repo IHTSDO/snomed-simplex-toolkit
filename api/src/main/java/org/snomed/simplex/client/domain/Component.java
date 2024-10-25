@@ -33,8 +33,9 @@ public abstract class Component {
 		return released;
 	}
 
-	public void setReleased(boolean released) {
+	public Description setReleased(boolean released) {
 		this.released = released;
+		return null;
 	}
 
 	public String getModuleId() {

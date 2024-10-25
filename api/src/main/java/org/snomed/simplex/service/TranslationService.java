@@ -464,7 +464,7 @@ public class TranslationService {
 			// Doesn't make complete sense to me but there is a drools rule stating this.
 			String firstWord = getFirstWord(term);
 			for (Description otherDescription : otherDescriptions) {
-				if (getFirstWord(otherDescription.getTerm()).equals(firstWord)) {
+				if (otherDescription.isReleased() && getFirstWord(otherDescription.getTerm()).equals(firstWord)) {
 					return otherDescription.getCaseSignificance();
 				}
 			}
