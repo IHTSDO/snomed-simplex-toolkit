@@ -41,6 +41,8 @@ import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
 public class TranslationService {
 
 	public static final String NON_BREAKING_SPACE_CHARACTER = " ";
+	public static final String EN_DASH = "–";
+	public static final String EM_DASH = "—";
 
 	public static final Pattern TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN = Pattern.compile(".[A-Z].*");
 	public static final Pattern TITLE_CASE_LOWER_CASE_SECOND_LETTER_BUT_UPPER_LATER = Pattern.compile(".[a-z].*[A-Z].*");
@@ -198,7 +200,7 @@ public class TranslationService {
 		// Replace bad characters
 		for (List<Description> conceptDescriptionList : conceptDescriptions.values()) {
 			for (Description description : conceptDescriptionList) {
-				description.setTerm(description.getTerm().replace(NON_BREAKING_SPACE_CHARACTER, " "));
+				description.setTerm(replaceBadCharacters(description));
 			}
 		}
 
@@ -242,6 +244,17 @@ public class TranslationService {
 		changeSummary.setNewTotal(newActiveCount);
 		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
 		return changeSummary;
+	}
+
+	private @NotNull String replaceBadCharacters(Description description) {
+		String fixedTerm = description.getTerm()
+				.replace(NON_BREAKING_SPACE_CHARACTER, " ")
+				.replace(EN_DASH, "-")
+				.replace(EM_DASH, "-");
+		if (!fixedTerm.equals(description.getTerm())) {
+			logger.info("Fixed term '{}' > '{}'", description.getTerm(), fixedTerm);
+		}
+		return fixedTerm;
 	}
 
 	private static void validateLanguageCodes(Map<Long, List<Description>> conceptDescriptions, String languageCode) throws ServiceExceptionWithStatusCode {
@@ -469,6 +482,8 @@ public class TranslationService {
 				}
 			}
 		}
+
+
 		if (titleCaseUsed) {
 			if (TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN.matcher(term).matches()) {
 				return ENTIRE_TERM_CASE_SENSITIVE;
