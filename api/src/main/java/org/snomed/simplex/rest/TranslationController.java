@@ -108,13 +108,14 @@ public class TranslationController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob uploadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam MultipartFile file,
+			@RequestParam(required = false, defaultValue = "true") boolean ignoreCaseInImport,
 			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
-				activity, translationService::uploadTranslationAsRefsetToolArchive);
+				activity, job -> translationService.uploadTranslationAsRefsetToolArchive(job, ignoreCaseInImport));
 	}
 
 	@GetMapping(path = "language-codes")

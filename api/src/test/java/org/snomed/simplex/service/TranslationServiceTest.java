@@ -121,7 +121,7 @@ class TranslationServiceTest {
 	void testUploadRefsetAndTranslationToolWrongLanguage() throws IOException {
 		try {
 			File exportFile = ZipUtil.zipDirectoryRemovingCommentsAndBlankLines("src/test/resources/refset-translation-tool-example-export");
-			service.uploadTranslationAsRefsetToolArchive(testLangRefset, testCodeSystem, new FileInputStream(exportFile), new DummyProgressMonitor());
+			service.uploadTranslationAsRefsetToolArchive(testLangRefset, testCodeSystem, new FileInputStream(exportFile), true, new DummyProgressMonitor());
 			fail();
 		} catch (ServiceException e) {
 			assertEquals("3 of the uploaded terms have an incorrect language. Set language code to 'vi' for all terms and try again.", e.getMessage());

@@ -59,7 +59,9 @@ public class ContentProcessingJobService {
 		});
 	}
 
-	private ContentJob doQueueJob(CodeSystem codeSystem, AsyncFunction<ContentJob> function, ContentJob asyncJob, Activity activity, Runnable onCompleteRunnable) {
+	private ContentJob doQueueJob(CodeSystem codeSystem, AsyncFunction<ContentJob> function, ContentJob asyncJob, Activity activity,
+			Runnable onCompleteRunnable) {
+
 		// Add job to thread limited executor service to be run when there is capacity
 		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
 

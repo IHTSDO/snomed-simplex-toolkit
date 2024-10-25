@@ -164,16 +164,17 @@ public class TranslationService {
 		return languageCode;
 	}
 
-	public ChangeSummary uploadTranslationAsRefsetToolArchive(ContentJob contentJob) throws ServiceException {
-		return uploadTranslationAsRefsetToolArchive(contentJob.getRefsetId(), contentJob.getCodeSystemObject(), contentJob.getInputStream(), contentJob);
+	public ChangeSummary uploadTranslationAsRefsetToolArchive(ContentJob contentJob, boolean ignoreCaseInImport) throws ServiceException {
+		return uploadTranslationAsRefsetToolArchive(contentJob.getRefsetId(), contentJob.getCodeSystemObject(), contentJob.getInputStream(),
+				ignoreCaseInImport, contentJob);
 	}
 
 	public ChangeSummary uploadTranslationAsRefsetToolArchive(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
-			ProgressMonitor progressMonitor) throws ServiceException {
+			boolean ignoreCaseInImport, ProgressMonitor progressMonitor) throws ServiceException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
-			return doUploadTranslation(() -> new RefsetToolTranslationZipReader(inputStream, languageRefsetId).readUpload(),
+			return doUploadTranslation(() -> new RefsetToolTranslationZipReader(inputStream, languageRefsetId, ignoreCaseInImport).readUpload(),
 					languageRefsetId, true, codeSystem, snowstormClient, progressMonitor, changeMonitor);
 		}
 	}

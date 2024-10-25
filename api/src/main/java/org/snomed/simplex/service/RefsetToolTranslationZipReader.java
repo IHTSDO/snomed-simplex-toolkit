@@ -28,10 +28,12 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 	private final String langRefset;
+	private final boolean ignoreCaseInImport;
 
-	public RefsetToolTranslationZipReader(InputStream rf2ZipFileInputStream, String langRefset) {
+	public RefsetToolTranslationZipReader(InputStream rf2ZipFileInputStream, String langRefset, boolean ignoreCaseInImport) {
 		this.rf2ZipFileInputStream = rf2ZipFileInputStream;
 		this.langRefset = langRefset;
+		this.ignoreCaseInImport = ignoreCaseInImport;
 	}
 
 	@Override
@@ -71,8 +73,10 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 						// Strip any dialect, just keep language code
 						languageCode = languageCode.substring(0, 2);
 
+						Description.CaseSignificance caseSignificance =
+								ignoreCaseInImport ? null : Description.CaseSignificance.fromConceptId(split[8]);
 						Description description = new Description(Description.Type.fromConceptId(split[6]), languageCode, split[7],
-								Description.CaseSignificance.fromConceptId(split[8]));
+								caseSignificance);
 
 						description.setDescriptionId(split[0]);
 						conceptMap.computeIfAbsent(conceptId, key -> new ArrayList<>()).add(description);
