@@ -64,6 +64,7 @@ class TranslationServiceTest {
 		assertEquals(CASE_INSENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", true, null));
 		assertEquals(ENTIRE_TERM_CASE_SENSITIVE, service.guessCaseSignificance("Clinical finding (finding)", false, null));
 		assertEquals(INITIAL_CHARACTER_CASE_INSENSITIVE, service.guessCaseSignificance("Neisseria meningitidis gruppe Z", true, null));
+		assertEquals(INITIAL_CHARACTER_CASE_INSENSITIVE, service.guessCaseSignificance("Pětivalentní (ABCDE) vakcína proti botulotoxinu", true, null));
 
 		List<Description> otherDescriptions = List.of(
 				new Description(Description.Type.SYNONYM, "en", "Smith fracture", ENTIRE_TERM_CASE_SENSITIVE)

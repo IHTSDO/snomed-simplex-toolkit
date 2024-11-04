@@ -44,10 +44,10 @@ public class TranslationService {
 	public static final String EN_DASH = "–";
 	public static final String EM_DASH = "—";
 
-	public static final Pattern TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN = Pattern.compile(".[A-Z].*");
-	public static final Pattern TITLE_CASE_LOWER_CASE_SECOND_LETTER_BUT_UPPER_LATER = Pattern.compile(".[a-z].*[A-Z].*");
-	public static final Pattern UPPER_CASE_FIRST_LETTER_PATTERN = Pattern.compile("[A-Z].*");
-	public static final Pattern LOWER_CASE_FIRST_LETTER_BUT_UPPER_LATER = Pattern.compile("[a-z].*[A-Z].*");
+	public static final Pattern TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN = Pattern.compile(".\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
+	public static final Pattern TITLE_CASE_LOWER_CASE_SECOND_LETTER_BUT_UPPER_LATER = Pattern.compile(".\\p{Lower}.*\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
+	public static final Pattern UPPER_CASE_FIRST_LETTER_PATTERN = Pattern.compile("\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
+	public static final Pattern LOWER_CASE_FIRST_LETTER_BUT_UPPER_LATER = Pattern.compile("\\p{Lower}.*\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
 
 	private final List<LanguageCode> languageCodes = new ArrayList<>();
 
