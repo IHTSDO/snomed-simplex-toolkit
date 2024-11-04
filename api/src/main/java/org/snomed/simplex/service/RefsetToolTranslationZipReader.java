@@ -11,10 +11,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -41,6 +38,7 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 		Map<Long, List<Description>> conceptMap = new Long2ObjectLinkedOpenHashMap<>();
 		Map<Long, Description.Acceptability> descriptionAcceptabilityMap = new Long2ObjectLinkedOpenHashMap<>();
 
+		boolean acceptabilityFound = false;
 		try (ZipInputStream zipInputStream = new ZipInputStream(rf2ZipFileInputStream)) {
 			ZipEntry zipEntry;
 			// Loop through zip entries until we have read the description and lang refset files. We don't know what order they will be in within the zip.
@@ -102,6 +100,7 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 								logger.info("Bad referencedComponentId format on line {}.", lineNum);
 								continue;
 							}
+							acceptabilityFound = true;
 							long descriptionId = parseLong(split[5]);
 							descriptionAcceptabilityMap.put(descriptionId, Description.Acceptability.fromConceptId(split[6]));
 						}
@@ -110,27 +109,41 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 				}
 			}
 
-			// Merge acceptability into descriptions. Drop descriptions and concepts that has no active acceptability in the lang refset we are focused on.
-
-			Set<Long> conceptsWithNoInterestingDescriptions = new LongOpenHashSet();
-			for (Map.Entry<Long, List<Description>> conceptAndDescriptions : conceptMap.entrySet()) {
-				for (Description description : conceptAndDescriptions.getValue()) {
-					Description.Acceptability acceptability = descriptionAcceptabilityMap.get(parseLong(description.getDescriptionId()));
-					if (acceptability != null) {
-						description.setAcceptabilityMap(Map.of(langRefset, acceptability));
+			if (acceptabilityFound) {
+				// Merge acceptability into descriptions. Drop descriptions and concepts that has no active acceptability in the lang refset we are focused on.
+				Set<Long> conceptsWithNoInterestingDescriptions = new LongOpenHashSet();
+				for (Map.Entry<Long, List<Description>> conceptAndDescriptions : conceptMap.entrySet()) {
+					for (Description description : conceptAndDescriptions.getValue()) {
+						Description.Acceptability acceptability = descriptionAcceptabilityMap.get(parseLong(description.getDescriptionId()));
+						if (acceptability != null) {
+							description.setAcceptabilityMap(Map.of(langRefset, acceptability));
+						}
+						// Forget the description id from the refset tool
+						description.setDescriptionId(null);
 					}
-					// Forget the description id from the refset tool
-					description.setDescriptionId(null);
+					// Forget about descriptions with no active acceptability in this lang refset
+					conceptAndDescriptions.setValue(conceptAndDescriptions.getValue().stream()
+							.filter(description -> description.getAcceptabilityMap() != null).collect(Collectors.toList()));
+					if (conceptAndDescriptions.getValue().isEmpty()) {
+						conceptsWithNoInterestingDescriptions.add(conceptAndDescriptions.getKey());
+					}
 				}
-				// Forget about descriptions with no active acceptability in this lang refset
-				conceptAndDescriptions.setValue(conceptAndDescriptions.getValue().stream()
-						.filter(description -> description.getAcceptabilityMap() != null).collect(Collectors.toList()));
-				if (conceptAndDescriptions.getValue().isEmpty()) {
-					conceptsWithNoInterestingDescriptions.add(conceptAndDescriptions.getKey());
+				for (Long conceptsWithNoInterestingDescription : conceptsWithNoInterestingDescriptions) {
+					conceptMap.remove(conceptsWithNoInterestingDescription);
 				}
-			}
-			for (Long conceptsWithNoInterestingDescription : conceptsWithNoInterestingDescriptions) {
-				conceptMap.remove(conceptsWithNoInterestingDescription);
+			} else {
+				// No acceptability set. Assume first term of each type within each concept is preferred. The rest are acceptable.
+				logger.info("No acceptability found in Refset & Translation tool upload, setting first term preferred, others acceptable.");
+				for (Map.Entry<Long, List<Description>> conceptAndDescriptions : conceptMap.entrySet()) {
+					Set<Description.Type> typesFound = new HashSet<>();
+					for (Description description : conceptAndDescriptions.getValue()) {
+						if (typesFound.add(description.getType())) {
+							description.addAcceptability(langRefset, Description.Acceptability.PREFERRED);
+						} else {
+							description.addAcceptability(langRefset, Description.Acceptability.ACCEPTABLE);
+						}
+					}
+				}
 			}
 
 			return conceptMap;
