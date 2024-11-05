@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import jakarta.annotation.PostConstruct;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -473,17 +474,11 @@ public class TranslationService {
 		if (term.isEmpty()) {
 			return CASE_INSENSITIVE;
 		}
-		if (otherDescriptions != null) {
-			// If first word matches an existing description use case sensitivity.
-			// Doesn't make complete sense to me but there is a drools rule stating this.
-			String firstWord = getFirstWord(term);
-			for (Description otherDescription : otherDescriptions) {
-				if (otherDescription.isReleased() && getFirstWord(otherDescription.getTerm()).equals(firstWord)) {
-					return otherDescription.getCaseSignificance();
-				}
-			}
-		}
 
+		Description.CaseSignificance caseSignificanceFromOtherDescriptions = getCaseSignificanceFromOtherDescriptions(term, otherDescriptions);
+		if (caseSignificanceFromOtherDescriptions != null) {
+			return caseSignificanceFromOtherDescriptions;
+		}
 
 		if (titleCaseUsed) {
 			if (TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN.matcher(term).matches()) {
@@ -500,6 +495,20 @@ public class TranslationService {
 
 		}
 		return CASE_INSENSITIVE;
+	}
+
+	private static Description.@Nullable CaseSignificance getCaseSignificanceFromOtherDescriptions(String term, List<Description> otherDescriptions) {
+		if (otherDescriptions != null) {
+			// If first word matches an existing released description in the same concept use case sensitivity.
+			// Doesn't make complete sense to me but there is a drools rule stating this.
+			String firstWord = getFirstWord(term);
+			for (Description otherDescription : otherDescriptions) {
+				if (otherDescription.isReleased() && getFirstWord(otherDescription.getTerm()).equals(firstWord)) {
+					return otherDescription.getCaseSignificance();
+				}
+			}
+		}
+		return null;
 	}
 
 	private static String getFirstWord(String term) {

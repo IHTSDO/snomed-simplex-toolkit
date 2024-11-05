@@ -148,6 +148,8 @@ public class Description extends Component {
 		this.term = term;
 		return this;
 	}
+
+	@Override
 	public Description setReleased(boolean released) {
 		super.setReleased(released);
 		return this;
