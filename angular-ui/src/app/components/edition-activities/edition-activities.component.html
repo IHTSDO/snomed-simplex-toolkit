@@ -37,7 +37,7 @@
           <span *ngIf="element.endDate">
             {{ element.endDate - element.startDate | elapsed }}
           </span>
-          <span *ngIf="!element.endDate">
+          <span *ngIf="!element.endDate && !element.error">
             <mat-spinner [diameter]="20"></mat-spinner>
           </span>
         </span>
