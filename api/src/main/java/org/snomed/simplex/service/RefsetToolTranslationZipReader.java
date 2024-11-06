@@ -77,7 +77,9 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 								caseSignificance);
 
 						description.setDescriptionId(split[0]);
-						conceptMap.computeIfAbsent(conceptId, key -> new ArrayList<>()).add(description);
+						if (description.getType() == Description.Type.SYNONYM) {
+							conceptMap.computeIfAbsent(conceptId, key -> new ArrayList<>()).add(description);
+						}
 					}
 				} else if (zipEntryName.contains("der2_cRefset_LanguageSnapshot")) {
 					// Read lang refset file
