@@ -59,7 +59,7 @@
                             <div *ngIf="edition.editionStatus == 'AUTHORING'">
                                 <div *ngIf="issuesReport && issuesReport.errorCount">Fix errors → <span class="requirements-not-met">{{ issuesReport.errorCount }} errors were detected in the last validation</span></div>
                                 <div *ngIf="issuesReport && issuesReport.warningCount">Review warnings → <span class="warnings">{{ issuesReport.warningCount }} warnings were detected in the last validation</span></div>
-                                <div *ngIf="issuesReport && (!issuesReport.errorCount && !issuesReport.warningCount)">No errors or warnings were deteted in the last validation</div>
+                                <div *ngIf="issuesReport && (!issuesReport.errorCount && !issuesReport.warningCount)">No errors or warnings were detected in the last validation</div>
                                 <div *ngIf="!issuesReport && loadingIssues"><i>Loading validation results...</i></div>
                             </div>
                             <div *ngIf="edition.editionStatus && edition.editionStatus != 'AUTHORING'">Content editing is closed</div>
