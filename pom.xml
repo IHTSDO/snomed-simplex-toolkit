@@ -19,7 +19,7 @@
 
 	<properties>
 		<!-- BOM Overrides. Remove and reassert as needed when upgrading the BOM. -->
-		<spring.version>6.1.13</spring.version>
+		<spring.version>6.1.14</spring.version>
 		<springdoc-openapi-starter-webmvc-ui.version>2.6.0</springdoc-openapi-starter-webmvc-ui.version>
 	</properties>
 
