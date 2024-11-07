@@ -83,7 +83,11 @@ public class Activity {
 	}
 
 	public void end() {
-		endDate = new Date();
+		end(new Date());
+	}
+
+	public void end(Date endDate) {
+		this.endDate = endDate;
 	}
 
 	public String getUser() {

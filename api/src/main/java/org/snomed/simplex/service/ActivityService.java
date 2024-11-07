@@ -59,7 +59,7 @@ public class ActivityService {
 			for (Activity activity : activitiesToEnd) {
 				activity.setError(true);
 				activity.setMessage("Simplex was restarted. Please try again.");
-				activity.end();
+				activity.end(activity.getStartDate());
 			}
 			if (!activitiesToEnd.isEmpty()) {
 				repository.saveAll(activitiesToEnd);
