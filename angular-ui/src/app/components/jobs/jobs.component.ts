@@ -1,9 +1,10 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild, ElementRef } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import { Subscription, catchError, lastValueFrom, of } from 'rxjs';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { MatRadioChange } from '@angular/material/radio';
+
 @Component({
   selector: 'app-jobs',
   templateUrl: './jobs.component.html',
@@ -28,6 +29,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   @Input() artifact: any;
 
   @Output() jobCompleted = new EventEmitter<any>();
+
+  @ViewChild('fileInput') fileInput: ElementRef;
 
   jobs: any[] = [];
   skeleton: any[] = Array(2).fill({});
@@ -168,12 +171,12 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   onFileSelected(event: Event): void {
-    this.selectedFile = null;
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length) {
       this.selectedFile = input.files[0];
+    } else {
+      this.selectedFile = null;
     }
-    event.target['value'] = '';
   }
 
   downloadConceptsSpreadsheet() {
@@ -325,6 +328,11 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         }
       } catch (error) {
         console.error('File upload failed:', error);
+      } finally {
+        this.selectedFile = null;
+        if (this.fileInput) {
+          this.fileInput.nativeElement.value = '';
+        }
       }
     }
   }
