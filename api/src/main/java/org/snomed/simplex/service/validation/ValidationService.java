@@ -134,8 +134,10 @@ public class ValidationService {
 		ValidationFixList validationFixList = getValidationFixList(validationReport);
 		List<ValidationFix> automaticFixes = validationFixList.fixes().stream().filter(ValidationFix::isAutomatic).toList();
 		if (!automaticFixes.isEmpty()) {
-			logger.info("Processing {} automatic fixes for codesystem {}.", automaticFixes.size(), codeSystem);
+			logger.info("Processing {} automatic fixes for codesystem {} : {}", automaticFixes.size(), codeSystem,
+					automaticFixes.stream().map(ValidationFix::getSubtype).toList());
 			Map<Long, Set<String>> descriptionsToSetCaseSensitive = new HashMap<>();
+			Map<Long, Set<String>> descriptionsToRemove = new HashMap<>();
 			for (ValidationFix automaticFix : automaticFixes) {
 				String subtype = automaticFix.getSubtype();
 				if ("set-description-case-sensitive".equals(subtype)) {
@@ -143,15 +145,33 @@ public class ValidationService {
 						descriptionsToSetCaseSensitive.computeIfAbsent(Long.parseLong(component.conceptId()), k -> new HashSet<>())
 								.add(component.componentId());
 					}
+				} else if ("remove-fsn".equals(subtype)) {
+					for (FixComponent component : automaticFix.getComponents()) {
+						descriptionsToRemove.computeIfAbsent(Long.parseLong(component.conceptId()), k -> new HashSet<>())
+								.add(component.componentId());
+					}
 				} else {
 					supportRegister.handleSystemError(job, String.format("Unrecognised automatic fix type '%s'.", subtype));
 				}
 			}
+			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+			CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
 			if (!descriptionsToSetCaseSensitive.isEmpty()) {
-				SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-				CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
-				snowstormClient.bulkSetDescriptionCaseSensitivity(descriptionsToSetCaseSensitive,
-						Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE, codeSystemObject);
+				snowstormClient.bulkChangeDescriptions(descriptionsToSetCaseSensitive,
+						codeSystemObject, description -> {
+							if (description.getCaseSignificance() != Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE) {
+								description.setCaseSignificance(Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE);
+								return true;
+							}
+							return false;
+						}, "Fixing case sensitivity of descriptions");
+			}
+			if (!descriptionsToRemove.isEmpty()) {
+				snowstormClient.bulkChangeDescriptions(descriptionsToRemove,
+						codeSystemObject, description -> {
+							description.setRemove(true);
+							return true;
+						}, "Removing redundant FSN descriptions");
 			}
 			logger.info("Completed processing {} automatic fixes for codesystem {}.", automaticFixes.size(), codeSystem);
 		}

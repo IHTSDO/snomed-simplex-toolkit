@@ -18,6 +18,7 @@ public class Description extends Component {
 	private Map<String, Acceptability> acceptabilityMap;
 	private String inactivationIndicator;
 	private Map<String, Set<String>> associationTargets;
+	private boolean remove;
 
 	public enum Type {
 
@@ -177,6 +178,14 @@ public class Description extends Component {
 
 	public Map<String, Set<String>> getAssociationTargets() {
 		return associationTargets;
+	}
+
+	public boolean isRemove() {
+		return remove;
+	}
+
+	public void setRemove(boolean remove) {
+		this.remove = remove;
 	}
 
 	@Override
