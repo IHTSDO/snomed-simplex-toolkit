@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -47,6 +48,9 @@ public class WeblateClient {
 		ParameterizedTypeReference<WeblateResponse<WeblateProject>> responseType = new ParameterizedTypeReference<>() {};
 		ResponseEntity<WeblateResponse<WeblateProject>> response = restTemplate.exchange("/projects/", HttpMethod.GET, null, responseType);
 		WeblateResponse<WeblateProject> weblateResponse = response.getBody();
+		if (weblateResponse == null) {
+			return new ArrayList<>();
+		}
 		return weblateResponse.getResults();
 	}
 

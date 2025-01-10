@@ -1,60 +1,25 @@
 package org.snomed.simplex.weblate;
 
-import jakarta.annotation.PostConstruct;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.exceptions.ServiceException;
-import org.snomed.simplex.util.FileUtils;
-import org.snomed.simplex.weblate.domain.WeblateProject;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.UUID;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 @Service
 public class WeblateService {
 
-	private final WeblateClient weblateClient;
 	private final SnowstormClientFactory snowstormClientFactory;
 
-	public WeblateService(WeblateClient weblateClient, SnowstormClientFactory snowstormClientFactory) {
-		this.weblateClient = weblateClient;
+	public WeblateService(SnowstormClientFactory snowstormClientFactory) {
 		this.snowstormClientFactory = snowstormClientFactory;
-	}
-
-//	@PostConstruct
-	public void setup() throws ServiceException {
-		System.out.println("Setting up WeblateClient..");
-		List<WeblateProject> weblateProjects = weblateClient.listProjects();
-		System.out.println("Weblate Projects:");
-		for (WeblateProject weblateProject : weblateProjects) {
-			System.out.println("- " + weblateProject.name());
-		}
-
-		WeblateProject project = weblateClient.getProject("shared");
-		createComponent(project, "Cardiovascular findings", "<! 106063007 |Cardiovascular finding (finding)|");
-	}
-
-	public void createComponent(WeblateProject project, String title, String ecl) throws ServiceException {
-		SnowstormClient client = snowstormClientFactory.getClient();
-		Supplier<ConceptMini> conceptStream = client.getConceptStream("MAIN", ecl);
-		List<String> conceptIds = Stream.generate(conceptStream).map(ConceptMini::getConceptId).toList();
-		File tempFile = null;
-		try {
-			tempFile = File.createTempFile(UUID.randomUUID().toString(), ".txt");
-			try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-				createConceptSet("MAIN", ecl, fos);
-			}
-		} catch (IOException e) {
-			throw new ServiceException("Failed to create temp file", e);
-		} finally {
-			FileUtils.deleteOrLogWarning(tempFile);
-		}
 	}
 
 	public void createConceptSet(String branch, String valueSetEcl, OutputStream outputStream) throws ServiceException, IOException {
