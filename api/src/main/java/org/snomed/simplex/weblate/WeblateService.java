@@ -27,7 +27,7 @@ public class WeblateService {
 		this.snowstormClientFactory = snowstormClientFactory;
 	}
 
-	@PostConstruct
+//	@PostConstruct
 	public void setup() throws ServiceException {
 		System.out.println("Setting up WeblateClient..");
 		List<WeblateProject> weblateProjects = weblateClient.listProjects();
@@ -36,8 +36,8 @@ public class WeblateService {
 			System.out.println("- " + weblateProject.name());
 		}
 
-//		WeblateProject project = weblateClient.getProject("shared");
-//		createComponent(project, "Cardiovascular findings", "<! 106063007 |Cardiovascular finding (finding)|");
+		WeblateProject project = weblateClient.getProject("shared");
+		createComponent(project, "Cardiovascular findings", "<! 106063007 |Cardiovascular finding (finding)|");
 	}
 
 	public void createComponent(WeblateProject project, String title, String ecl) throws ServiceException {
