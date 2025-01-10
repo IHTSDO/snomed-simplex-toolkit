@@ -602,19 +602,7 @@ public class SnowstormClient {
 			if (!concept.isActive() && !concept.isReleased()) {
 				conceptsToDelete.add(concept);
 			} else {
-				List<Description> newDescriptionSet = new ArrayList<>();
-				for (Description description : concept.getDescriptions()) {
-					if (description.isRemove()) {
-						if (description.isReleased()) {
-							description.setActive(false);
-							newDescriptionSet.add(description);
-						}
-						// else don't retain description
-					} else {
-						newDescriptionSet.add(description);
-					}
-				}
-				concept.setDescriptions(newDescriptionSet);
+				processRemovedDescriptions(concept);
 				conceptsForBulkUpdate.add(concept);
 			}
 		}
@@ -640,27 +628,48 @@ public class SnowstormClient {
 		}
 	}
 
+	private static void processRemovedDescriptions(Concept concept) {
+		List<Description> newDescriptionSet = new ArrayList<>();
+		for (Description description : concept.getDescriptions()) {
+			if (description.isRemove()) {
+				if (description.isReleased()) {
+					description.setActive(false);
+					newDescriptionSet.add(description);
+				}
+				// else don't retain description
+			} else {
+				newDescriptionSet.add(description);
+			}
+		}
+		concept.setDescriptions(newDescriptionSet);
+	}
+
 	public void bulkChangeDescriptions(Map<Long, Set<String>> conceptDescriptionIdMap,
 			CodeSystem codeSystem, Function<Description, Boolean> processDescription, String changeForLogMessage) throws ServiceException {
 
 		List<Long> conceptIds = new ArrayList<>(conceptDescriptionIdMap.keySet());
 		for (List<Long> conceptIdBatch : Lists.partition(conceptIds, 200)) {
 			List<Concept> concepts = loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
-			Map<Long, Concept> conceptsToSave = new HashMap<>();
-			for (Concept concept : concepts) {
-				Set<String> conceptDescriptionIds = conceptDescriptionIdMap.get(concept.getConceptIdAsLong());
-				for (Description description : concept.getDescriptions()) {
-					if (conceptDescriptionIds.contains(description.getDescriptionId())) {
-						if (processDescription.apply(description)) {
-							conceptsToSave.put(concept.getConceptIdAsLong(), concept);
-						}
-					}
+			bulkChangeDescriptionBatch(conceptDescriptionIdMap, codeSystem, processDescription, changeForLogMessage, concepts);
+		}
+	}
+
+	private void bulkChangeDescriptionBatch(Map<Long, Set<String>> conceptDescriptionIdMap, CodeSystem codeSystem,
+			Function<Description, Boolean> processDescription, String changeForLogMessage, List<Concept> concepts) throws ServiceException {
+
+		Map<Long, Concept> conceptsToSave = new HashMap<>();
+		for (Concept concept : concepts) {
+			Set<String> conceptDescriptionIds = conceptDescriptionIdMap.get(concept.getConceptIdAsLong());
+			for (Description description : concept.getDescriptions()) {
+				if (conceptDescriptionIds.contains(description.getDescriptionId()) && (Boolean.TRUE.equals(processDescription.apply(description)))) {
+						conceptsToSave.put(concept.getConceptIdAsLong(), concept);
+
 				}
 			}
-			if (!conceptsToSave.isEmpty()) {
-				logger.info("{} on {} concepts.", changeForLogMessage, conceptsToSave.size());
-				createUpdateBrowserFormatConcepts(new ArrayList<>(conceptsToSave.values()), codeSystem);
-			}
+		}
+		if (!conceptsToSave.isEmpty()) {
+			logger.info("{} on {} concepts.", changeForLogMessage, conceptsToSave.size());
+			createUpdateBrowserFormatConcepts(new ArrayList<>(conceptsToSave.values()), codeSystem);
 		}
 	}
 

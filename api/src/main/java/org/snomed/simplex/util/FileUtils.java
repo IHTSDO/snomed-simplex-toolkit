@@ -8,6 +8,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 public class FileUtils {
+
+	private FileUtils() {}
+
 	public static void deleteOrLogWarning(File tempFile) {
 		if (tempFile != null && tempFile.exists()) {
 			try {
