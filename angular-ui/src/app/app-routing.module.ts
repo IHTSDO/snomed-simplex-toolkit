@@ -5,9 +5,11 @@ import { DownloadReleasesComponent } from './components/download-releases/downlo
 import { ManageCodesystemComponent } from './components/manage-codesystem/manage-codesystem.component';
 import { SelectEditionComponent } from './components/select-edition/select-edition.component';
 import { WelcomeComponent } from './components/welcome/welcome.component';
+import { AdminSettingsComponent } from './components/admin-settings/admin-settings.component';
 
 const routes: Routes = [
     { path: 'home', component: WelcomeComponent },
+    { path: 'admin', component: AdminSettingsComponent },
     { path: 'artifacts', component: ArtifactsComponent },
     { path: 'artifact/:edition?', component: ArtifactsComponent },
     { path: 'manage/:edition?', component: ManageCodesystemComponent },

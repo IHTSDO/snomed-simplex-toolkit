@@ -7,6 +7,7 @@ import { LegalAgreementService } from 'src/app/services/legal-agreement/legal-ag
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
     selector: 'app-snomed-navbar',
@@ -22,6 +23,7 @@ export class SnomedNavbarComponent implements OnInit {
 
     user: User;
     userSubscription: Subscription;
+    roles: any[] = [];
 
     branches: any;
     branchesSubscription: Subscription;
@@ -43,7 +45,8 @@ export class SnomedNavbarComponent implements OnInit {
 
     constructor(
         private authenticationService: AuthenticationService, 
-        private location: Location, 
+        private location: Location,
+        private snackBar: MatSnackBar,
         private legalAgreementService: LegalAgreementService,
         private uiConfigurationService: UiConfigurationService,
         private route: ActivatedRoute,
@@ -52,13 +55,18 @@ export class SnomedNavbarComponent implements OnInit {
         }
 
     ngOnInit() {
+        this.getRoles();
         // Listen to navigation events to capture route changes
         this.router.events.pipe(
             filter(event => event instanceof NavigationEnd)
         ).subscribe(() => {
+            const url = this.router.url;
+            // Do nothing if the current route is /admin
+            if (url === '/admin') {
+                return;
+            }
             const editionParam = this.route.firstChild.snapshot.paramMap.get('edition?');
             // Load editions if the edition parameter is defined
-            const url = this.router.url;
             if (editionParam) {
                 this.loadEditions(editionParam);
             } else if (!url.includes('/home')) {
@@ -66,6 +74,24 @@ export class SnomedNavbarComponent implements OnInit {
                 this.loadEditions(null);
             }
         });
+    }
+
+    getRoles() {
+        lastValueFrom(this.simplexService.getRoles()).then(
+          (roles) => {
+            this.roles = roles;
+          },
+          (error) => {
+            console.error(error);
+            this.loading = false;
+            this.snackBar.open('Failed to load roles', 'Dismiss', {
+              duration: 5000
+            });
+          }
+        );
+    }
+    isAdmin(): boolean {
+        return this.roles.includes('ADMIN');
     }
 
     isInHome(): boolean {
@@ -146,6 +172,10 @@ export class SnomedNavbarComponent implements OnInit {
 
     goHome() {
         this.router.navigate(['/home']);
+    }
+
+    goAdmin() {
+        this.router.navigate(['/admin']);
     }
     
 }
