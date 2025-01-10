@@ -3,7 +3,6 @@ package org.snomed.simplex.rest;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import org.snomed.simplex.domain.Page;
-import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.weblate.WeblateService;
 import org.snomed.simplex.weblate.domain.WeblateRecord;
@@ -42,7 +41,7 @@ public class WeblateComponentController {
 	@PostMapping("shared-sets/{slug}/refresh")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void refreshSharedSet(@PathVariable String slug, @RequestParam String ecl) {
-
+		// Code stub to enable UI development
 	}
 
 	@GetMapping("shared-sets/{slug}/records")
@@ -56,11 +55,13 @@ public class WeblateComponentController {
 	@PutMapping("shared-sets/{slug}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void updateSharedSet(@PathVariable String slug, @RequestBody WeblateSet weblateSet) {
+		// Code stub to enable UI development
 	}
 
 	@DeleteMapping("shared-sets/{slug}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void deleteSharedSet(@PathVariable String slug) {
+		// Code stub to enable UI development
 	}
 
 	@GetMapping(value = "/component-csv", produces = "text/csv")
