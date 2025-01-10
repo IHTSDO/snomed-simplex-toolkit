@@ -294,5 +294,30 @@ export class SimplexService {
     return this.http.get(`/api/language-codes`).pipe(catchError(this.handleError.bind(this)));
   }
 
+  // Weblate utils
+
+  public getSharedSets(): Observable<any> {
+    return this.http.get(`/api/weblate/shared-sets`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public createSharedSet(set: any): Observable<any> {
+    return this.http.post(`/api/weblate/shared-sets`, set).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public updateSharedSet(set: any): Observable<any> {
+    return this.http.put(`/api/weblate/shared-sets/${set.slug}`, set).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public deleteSharedSet(set: any): Observable<any> {
+    return this.http.delete(`/api/weblate/shared-sets/${set.slug}`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getSharedSetRecords(slug: string, offset: number, limit: number): Observable<any> {
+    return this.http.get(`/api/weblate/shared-sets/${slug}/records`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public refreshSharedSet(slug: string): Observable<any> {
+    return this.http.post(`/api/weblate/shared-sets/${slug}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
+  }
 
 }
