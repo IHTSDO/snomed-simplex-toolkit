@@ -73,6 +73,9 @@ import { EditionActivitiesComponent } from './components/edition-activities/edit
 import { ElapsedPipe } from './pipes/elapsed/elapsed.pipe';
 import { DownloadReleasesComponent } from './components/download-releases/download-releases.component';
 import { AdminSettingsComponent } from './components/admin-settings/admin-settings.component';
+import { CreateSharedSetComponent } from './components/admin-settings/create-shared-set/create-shared-set.component';
+import { CommonModule } from '@angular/common';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 // SERVICE IMPORTS
 
@@ -116,7 +119,8 @@ import { AdminSettingsComponent } from './components/admin-settings/admin-settin
         UpgradeEditionComponent,
         EditionActivitiesComponent,
         DownloadReleasesComponent,
-        AdminSettingsComponent
+        AdminSettingsComponent,
+        CreateSharedSetComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         FormsModule,
@@ -149,6 +153,8 @@ import { AdminSettingsComponent } from './components/admin-settings/admin-settin
         ModalService,
         ConceptService,
         CookieService,
+        MatDialogModule,
+        CommonModule,
         EnvServiceProvider,
         provideHttpClient(withInterceptorsFromDi()),
     ] })

@@ -301,7 +301,9 @@ export class SimplexService {
   }
 
   public createSharedSet(set: any): Observable<any> {
-    return this.http.post(`/api/weblate/shared-sets`, set).pipe(catchError(this.handleError.bind(this)));
+    const ecl = set.ecl;
+    delete set.ecl;
+    return this.http.post(`/api/weblate/shared-sets?ecl=${ecl}`, set).pipe(catchError(this.handleError.bind(this)));
   }
 
   public updateSharedSet(set: any): Observable<any> {
