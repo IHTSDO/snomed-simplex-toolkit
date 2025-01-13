@@ -1,0 +1,63 @@
+<div class="create-shared-set">
+  <form [formGroup]="sharedSetForm" (ngSubmit)="onSubmit()">
+    <!-- Shared Set Name -->
+    <mat-form-field appearance="fill" class="form-field">
+      <mat-label>Shared Set Name</mat-label>
+      <input
+        matInput
+        id="name"
+        formControlName="name"
+        placeholder="Enter shared set name"
+        required
+      />
+      <mat-error *ngIf="sharedSetForm.get('name')?.invalid && sharedSetForm.get('name')?.touched">
+        Name is required.
+      </mat-error>
+    </mat-form-field>
+
+    <!-- Slug -->
+    <mat-form-field appearance="fill" class="form-field">
+      <mat-label>Slug</mat-label>
+      <input matInput id="slug" formControlName="slug" placeholder="Enter slug" required />
+      <mat-error *ngIf="sharedSetForm.get('slug')?.invalid && sharedSetForm.get('slug')?.touched">
+        Slug is required.
+      </mat-error>
+    </mat-form-field>
+
+    <!-- ECL -->
+    <mat-form-field appearance="fill" class="form-field">
+      <mat-label>ECL</mat-label>
+      <textarea
+        matInput
+        id="ecl"
+        formControlName="ecl"
+        placeholder="Enter ECL"
+        rows="3"
+        required
+      ></textarea>
+      <mat-error *ngIf="sharedSetForm.get('ecl')?.invalid && sharedSetForm.get('ecl')?.touched">
+        ECL is required.
+      </mat-error>
+    </mat-form-field>
+
+    <div class="buttons-container">
+      <!-- Submit Button -->
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        [disabled]="sharedSetForm.invalid"
+      >
+        Create Shared Set
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        (click)="closePanel()"
+      >
+        Cancel
+      </button>
+    </div>
+  </form>
+</div>

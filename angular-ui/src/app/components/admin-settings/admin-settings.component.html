@@ -29,8 +29,27 @@
             </mat-list>
         </div>
         <div class="component-col-right">
-            <div *ngIf="selectedSet">
+            <div *ngIf="!selectedSet && mode === 'view'"  class="waiting-panel">
+                <img src="/assets/artifact.png">
+            </div>
+            <div *ngIf="mode === 'edit'">
+                <app-create-shared-set (close)="setMode('view')"></app-create-shared-set>
+            </div>
+            <div *ngIf="selectedSet && mode === 'view'">
                 <h3>Shared Set: {{ selectedSet.name }}</h3>
+                <div class="component-row">
+                    <div class="button-container">
+                        <button mat-flat-button color="primary" (click)="goArtifacts()" matTooltip="Modify shared set ECL">
+                            Edit
+                        </button>
+                        <button mat-flat-button color="primary" (click)="goArtifacts()" matTooltip="Update shared set records based on new SNOMED content">
+                            Refresh
+                        </button>
+                        <button mat-flat-button color="primary" (click)="deleteSharedset()" matTooltip="Delete shared set">
+                            Delete
+                        </button>
+                    </div>
+                </div>
                 <table mat-table [dataSource]="loadingSetRecords ? loadingData : setRecords">
                     <!-- Source Column -->
                     <ng-container matColumnDef="source">
@@ -40,7 +59,7 @@
                           {{ element.source }}
                         </ng-container>
                         <ng-template #loadingSource>
-                          <div class="skeleton-loader"></div>
+                          <div class="skeleton-cell-loader"></div>
                         </ng-template>
                       </td>
                     </ng-container>
@@ -53,7 +72,7 @@
                           {{ element.target }}
                         </ng-container>
                         <ng-template #loadingTarget>
-                          <div class="skeleton-loader"></div>
+                          <div class="skeleton-cell-loader"></div>
                         </ng-template>
                       </td>
                     </ng-container>
@@ -66,20 +85,20 @@
                           {{ element.context }}
                         </ng-container>
                         <ng-template #loadingContext>
-                          <div class="skeleton-loader"></div>
+                          <div class="skeleton-cell-loader"></div>
                         </ng-template>
                       </td>
                     </ng-container>
                   
                     <!-- Comments Column -->
                     <ng-container matColumnDef="developer_comments">
-                      <th mat-header-cell *matHeaderCellDef></th>
+                      <th mat-header-cell *matHeaderCellDef> Comments </th>
                       <td mat-cell *matCellDef="let element">
                         <ng-container *ngIf="!loadingSetRecords; else loadingComments">
                             {{ element.developer_comments }}
                         </ng-container>
                         <ng-template #loadingComments>
-                          <div class="skeleton-loader"></div>
+                          <div class="skeleton-cell-loader"></div>
                         </ng-template>
                       </td>
                     </ng-container>
@@ -90,7 +109,6 @@
                   </table>
                   
                   <div class="paginator-container">
-                    <mat-spinner [diameter]="20" *ngIf="loadingSetRecords" class="loading-spinner"></mat-spinner>
                     <mat-paginator [pageSize]="limit" [pageSizeOptions]="[5, 10, 20, 50]"
                                   (page)="onPageChange($event)">
                     </mat-paginator>
@@ -99,9 +117,14 @@
         </div>
     </div>
     <div class="component-row">
-        <button mat-flat-button color="primary" (click)="goArtifacts()">
-                Close
-        </button>
+        <div class="button-container">
+            <button mat-flat-button color="primary" (click)="setMode('edit')">
+                New Shared Set
+            </button>
+            <button mat-flat-button color="primary" (click)="goArtifacts()">
+                Close Admin Panel
+            </button>
+        </div>
     </div>
 </div>
 
