@@ -1,0 +1,18 @@
+.buttons-container {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    margin-top: 1rem;
+    gap: 10px;
+}
+  
+.create-shared-set {
+    max-width: 600px;
+    margin: 0 auto;
+  
+    .form-field {
+      width: 70%;
+      margin-bottom: 1.5rem;
+    }
+}
+  
