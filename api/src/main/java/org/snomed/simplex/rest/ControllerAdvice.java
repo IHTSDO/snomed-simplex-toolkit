@@ -96,7 +96,13 @@ public class ControllerAdvice {
 		HashMap<String, Object> result = new HashMap<>();
 		result.put("error", statusCode);
 		result.put("message", exception.getMessage());
-		logger.info("Exception with status code: {} - {}", statusCode, exception.getMessage());
+		String message = "Exception with status code: {} - {}";
+		if (statusCode == 500) {
+			logger.error(message, statusCode, exception.getMessage(), exception);
+		} else {
+			logger.info(message, statusCode, exception.getMessage());
+		}
+
 		return new ResponseEntity<>(result, HttpStatusCode.valueOf(statusCode));
 	}
 
