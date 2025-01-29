@@ -13,6 +13,8 @@ import java.util.Set;
 @JsonPropertyOrder({"name", "shortName", "branchPath", "workingBranchPath"})
 public class CodeSystem {
 
+	public static final CodeSystem SHARED = new CodeSystem("Shared", "Shared", "");
+
 	private String name;
 	private String shortName;
 	private String branchPath;

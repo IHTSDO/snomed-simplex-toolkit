@@ -49,6 +49,7 @@ public class SnowstormClient {
 	public static final String CODESYSTEM_ENDPOINT = "/codesystems/%s";
 	public static final String CODESYSTEMS_VERSIONS_ENDPOINT = "/codesystems/%s/versions";
 	public static final String BRANCH_X_ENDPOINT = "/branches/%s";
+	public static final String ROOT_CODESYSTEM = "SNOMEDCT";
 
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
