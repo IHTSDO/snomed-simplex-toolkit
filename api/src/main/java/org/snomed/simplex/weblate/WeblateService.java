@@ -61,6 +61,30 @@ public class WeblateService {
 
 		// Create Component
 		weblateClient.createComponent(COMMON_PROJECT, weblateSet, "git@github.com:kaicode/translation-tool-testing.git", gitBranch);
+		// TODO wait until component has total > 0
+		UnitSupplier unitSupplier = weblateClient.getUnitStream(COMMON_PROJECT, componentSlug);
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
+		WeblateExplanationCreator explanationCreator = new WeblateExplanationCreator();
+
+		List<WeblateUnit> batch;
+		while (!(batch = unitSupplier.getBatch(1_000)).isEmpty()) {
+			List<Long> conceptIds = batch.stream()
+					.map(WeblateUnit::getContext)
+					.map(Long::parseLong)
+					.toList();
+			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
+			Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
+			for (WeblateUnit weblateUnit : batch) {
+				String conceptId = weblateUnit.getContext();
+				Concept concept = conceptMap.get(conceptId);
+
+				String explanation = explanationCreator.getExplanation(concept);
+				weblateUnit.setExplanation(explanation);
+				weblateClient.saveUnitExplanation(weblateUnit.getId(), weblateUnit.getExplanation());
+			}
+		}
 	}
 
 	public void createConceptSet(String branch, String valueSetEcl, OutputStream outputStream) throws ServiceException, IOException {
