@@ -94,6 +94,51 @@ public class WeblateClient {
 		}
 	}
 
+	public UnitSupplier getUnitStream(String projectSlug, String componentSlug) {
+		StringBuilder query = new StringBuilder()
+				.append("project").append(":").append(projectSlug)
+				.append(" AND ")
+				.append("component").append(":").append(componentSlug)
+				.append(" AND ")
+				.append("language").append(":").append("en");
+		String url = "/units/?q=%s&format=json".formatted(query);
+
+		return new UnitSupplier() {
+
+			private WeblatePage<WeblateUnit> page;
+
+			private String nextUrl = url;
+			private Iterator<WeblateUnit> iterator;
+			@Override
+			public WeblateUnit get() throws ServiceExceptionWithStatusCode {
+
+				if (iterator != null && iterator.hasNext()) {
+					return iterator.next();
+				}
+
+				if (page == null || nextUrl != null) {
+					try {
+						ResponseEntity<WeblatePage<WeblateUnit>> response = restTemplate.exchange(url,
+								HttpMethod.GET, null, UNITS_RESPONSE_TYPE);
+
+						page = response.getBody();
+						if (page != null) {
+							nextUrl = page.next();
+							iterator = page.results().iterator();
+							return iterator.next();
+						}
+					} catch (HttpClientErrorException e) {
+						handleSharedCodeSystemError("Failed to fetch translation units.", HttpStatus.INTERNAL_SERVER_ERROR, e);
+					}
+				}
+
+				// Nothing left
+				return null;
+			}
+
+		};
+	}
+
 	private void handleSharedCodeSystemError(String message, HttpStatus httpStatus, HttpClientErrorException e) throws ServiceExceptionWithStatusCode {
 		supportRegister.handleSystemError(CodeSystem.SHARED, message, new ServiceException(message, e));
 		throw new ServiceExceptionWithStatusCode(message, httpStatus);
@@ -115,4 +160,9 @@ public class WeblateClient {
 		return weblateResponse.getResults();
 	}
 
+	public void saveUnitExplanation(String id, String explanation) {
+		Map<String, String> patchBody = new HashMap<>();
+		patchBody.put("explanation", explanation);
+		restTemplate.exchange("/units/%s/".formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody), Void.class);
+	}
 }
