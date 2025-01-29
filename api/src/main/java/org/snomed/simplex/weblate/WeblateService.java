@@ -1,9 +1,16 @@
 package org.snomed.simplex.weblate;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
-import org.snomed.simplex.client.domain.ConceptMini;
+import org.snomed.simplex.client.domain.*;
+import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.weblate.domain.WeblateSet;
+import org.snomed.simplex.weblate.domain.WeblateUnit;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedWriter;
@@ -11,15 +18,49 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Service
 public class WeblateService {
 
-	private final SnowstormClientFactory snowstormClientFactory;
+	public static final String COMMON_PROJECT = "simplex-test-project";
+	//	public static final String COMMON_PROJECT = "common";
 
-	public WeblateService(SnowstormClientFactory snowstormClientFactory) {
+	private final SnowstormClientFactory snowstormClientFactory;
+	private final WeblateClient weblateClient;
+
+	private final Logger logger = LoggerFactory.getLogger(getClass());
+
+	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClient weblateClient) {
 		this.snowstormClientFactory = snowstormClientFactory;
+		this.weblateClient = weblateClient;
+	}
+
+	public Page<WeblateSet> getSharedSets() {
+		return new Page<>(weblateClient.listComponents(COMMON_PROJECT));
+	}
+
+	public void createSharedSet(WeblateSet weblateSet) throws ServiceException {
+		String componentSlug = weblateSet.slug();
+		WeblateSet existingSet = weblateClient.getComponent(COMMON_PROJECT, componentSlug);
+		if (existingSet != null) {
+			throw new ServiceExceptionWithStatusCode("This set already exists.", HttpStatus.CONFLICT);
+		}
+
+		logger.info("Creating new component {}/{}", COMMON_PROJECT, componentSlug);
+
+		// TODO: Generate en.csv and put into GitHub.
+		//  Fields: source,target,context,developer_comments
+		// 	"Apple","Apple",735215001,"http://snomed.info/id/735215001 - Apple (substance)"
+		String gitBranch = "two";
+
+		// Create Component
+		weblateClient.createComponent(COMMON_PROJECT, weblateSet, "git@github.com:kaicode/translation-tool-testing.git", gitBranch);
 	}
 
 	public void createConceptSet(String branch, String valueSetEcl, OutputStream outputStream) throws ServiceException, IOException {
