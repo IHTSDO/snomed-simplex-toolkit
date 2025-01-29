@@ -19,6 +19,7 @@ public class Description extends Component {
 	private String inactivationIndicator;
 	private Map<String, Set<String>> associationTargets;
 	private boolean remove;
+	private int sortScore;
 
 	public enum Type {
 
@@ -83,6 +84,7 @@ public class Description extends Component {
 			return conceptId;
 		}
 	}
+
 	public Description() {
 	}
 
@@ -100,6 +102,10 @@ public class Description extends Component {
 		this.term = term;
 		this.caseSignificance = caseSignificance;
 		this.acceptabilityMap = acceptabilityMap;
+	}
+
+	public boolean isUsPreferredTerm() {
+		return getAcceptabilityMap().get(Concepts.US_LANG_REFSET) == Description.Acceptability.PREFERRED;
 	}
 
 	@Override
@@ -186,6 +192,14 @@ public class Description extends Component {
 
 	public void setRemove(boolean remove) {
 		this.remove = remove;
+	}
+
+	public int getSortScore() {
+		return sortScore;
+	}
+
+	public void setSortScore(int sortScore) {
+		this.sortScore = sortScore;
 	}
 
 	@Override
