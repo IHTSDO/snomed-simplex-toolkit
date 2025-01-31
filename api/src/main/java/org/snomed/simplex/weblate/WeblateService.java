@@ -4,10 +4,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
-import org.snomed.simplex.client.domain.*;
+import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.Concept;
+import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.service.ServiceHelper;
+import org.snomed.simplex.util.SupplierUtil;
 import org.snomed.simplex.weblate.domain.WeblateSet;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.http.HttpStatus;
@@ -18,7 +22,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -29,16 +32,18 @@ import java.util.stream.Collectors;
 public class WeblateService {
 
 	public static final String COMMON_PROJECT = "simplex-test-project";
-	//	public static final String COMMON_PROJECT = "common";
+	public static final String EN = "en";
 
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final WeblateClient weblateClient;
+	private final WeblateGitClient weblateGitClient;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClient weblateClient) {
+	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClient weblateClient, WeblateGitClient weblateGitClient) {
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClient = weblateClient;
+		this.weblateGitClient = weblateGitClient;
 	}
 
 	public Page<WeblateSet> getSharedSets() {
@@ -46,45 +51,73 @@ public class WeblateService {
 	}
 
 	public void createSharedSet(WeblateSet weblateSet) throws ServiceException {
+		String project = COMMON_PROJECT;
 		String componentSlug = weblateSet.slug();
-		WeblateSet existingSet = weblateClient.getComponent(COMMON_PROJECT, componentSlug);
+		String ecl = weblateSet.ecl();
+		ServiceHelper.requiredParameter("slug", componentSlug);
+		ServiceHelper.requiredParameter("project", project);
+		ServiceHelper.requiredParameter("ecl", ecl);
+
+		WeblateSet existingSet = weblateClient.getComponent(project, componentSlug);
 		if (existingSet != null) {
 			throw new ServiceExceptionWithStatusCode("This set already exists.", HttpStatus.CONFLICT);
 		}
 
-		logger.info("Creating new component {}/{}", COMMON_PROJECT, componentSlug);
+		logger.info("Creating new component {}/{}", project, componentSlug);
 
-		// TODO: Generate en.csv and put into GitHub.
-		//  Fields: source,target,context,developer_comments
-		// 	"Apple","Apple",735215001,"http://snomed.info/id/735215001 - Apple (substance)"
-		String gitBranch = "two";
+		// Create directory and blank en.csv file in Git
+		weblateGitClient.createBlankComponent(componentSlug);
 
-		// Create Component
-		weblateClient.createComponent(COMMON_PROJECT, weblateSet, "git@github.com:kaicode/translation-tool-testing.git", gitBranch);
-		// TODO wait until component has total > 0
-		UnitSupplier unitSupplier = weblateClient.getUnitStream(COMMON_PROJECT, componentSlug);
+		// Create Component in Weblate
+		weblateClient.createComponent(project, weblateSet, weblateGitClient.getRemoteRepo(), weblateGitClient.getRepoBranch());
 
+//		UnitSupplier unitSupplier = weblateClient.getUnitStream(project, componentSlug);
+
+		// Create units from ECL
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
-		WeblateExplanationCreator explanationCreator = new WeblateExplanationCreator();
+		logger.info("Expanding ECL {}", ecl);
+		Supplier<ConceptMini> conceptStream = snowstormClient.getConceptStream(codeSystem.getBranchPath(), ecl);
 
-		List<WeblateUnit> batch;
-		while (!(batch = unitSupplier.getBatch(1_000)).isEmpty()) {
+		List<ConceptMini> batch;
+		while (!(batch = SupplierUtil.getBatch(1_000, conceptStream)).isEmpty()) {
+			logger.info("Creating batch of {} units", batch.size());
 			List<Long> conceptIds = batch.stream()
-					.map(WeblateUnit::getContext)
+					.map(ConceptMini::getConceptId)
 					.map(Long::parseLong)
 					.toList();
 			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
 			Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
-			for (WeblateUnit weblateUnit : batch) {
-				String conceptId = weblateUnit.getContext();
+			for (ConceptMini mini : batch) {
+				String conceptId = mini.getConceptId();
 				Concept concept = conceptMap.get(conceptId);
-
-				String explanation = explanationCreator.getExplanation(concept);
-				weblateUnit.setExplanation(explanation);
-				weblateClient.saveUnitExplanation(weblateUnit.getId(), weblateUnit.getExplanation());
+				String display = mini.getPtOrFsnOrConceptId();
+				String explanation = WeblateExplanationCreator.getMarkdown(concept);
+				List<String> displayList = List.of(display);
+				WeblateUnit weblateUnit = new WeblateUnit(displayList, displayList, conceptId, explanation);
+				WeblateUnit newUnit = weblateClient.createUnit(weblateUnit, project, componentSlug, EN);
+				weblateClient.patchUnitExplanation(newUnit.getId(), weblateUnit.getExplanation());
 			}
 		}
+		logger.info("Component {}/{} created", project, componentSlug);
+
+//		List<WeblateUnit> batch;
+//		while (!(batch = unitSupplier.getBatch(1_000)).isEmpty()) {
+//			List<Long> conceptIds = batch.stream()
+//					.map(WeblateUnit::getContext)
+//					.map(Long::parseLong)
+//					.toList();
+//			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
+//			Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
+//			for (WeblateUnit weblateUnit : batch) {
+//				String conceptId = weblateUnit.getContext();
+//				Concept concept = conceptMap.get(conceptId);
+//
+//				String explanation = explanationCreator.getExplanation(concept);
+//				weblateUnit.setExplanation(explanation);
+//				weblateClient.saveUnitExplanation(weblateUnit.getId(), weblateUnit.getExplanation());
+//			}
+//		}
 	}
 
 	public void createConceptSet(String branch, String valueSetEcl, OutputStream outputStream) throws ServiceException, IOException {

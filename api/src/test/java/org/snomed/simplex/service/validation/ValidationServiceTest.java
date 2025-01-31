@@ -7,6 +7,7 @@ import org.snomed.simplex.client.rvf.ValidationReport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -16,6 +17,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+@ActiveProfiles("test")
 class ValidationServiceTest {
 
 	@Autowired

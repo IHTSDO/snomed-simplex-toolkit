@@ -8,18 +8,25 @@ public class WeblateUnit {
 	private List<String> source;
 	private List<String> target;
 	private String context;
-	private String note;
 	private String explanation;
 
 	public WeblateUnit() {
 	}
 
-	public WeblateUnit(List<String> source, List<String> target, String context, String note, String explanation) {
+	public WeblateUnit(List<String> source, List<String> target, String context, String explanation) {
 		this.source = source;
 		this.target = target;
 		this.context = context;
-		this.note = note;
 		this.explanation = explanation;
+	}
+
+	// Weblate seems to require this duplicate of source
+	public List<String> getValue() {
+		return getSource();
+	}
+
+	public String getKey() {
+		return getContext();
 	}
 
 	public String getId() {
@@ -48,14 +55,6 @@ public class WeblateUnit {
 
 	public void setContext(String context) {
 		this.context = context;
-	}
-
-	public String getNote() {
-		return note;
-	}
-
-	public void setNote(String note) {
-		this.note = note;
 	}
 
 	public String getExplanation() {
