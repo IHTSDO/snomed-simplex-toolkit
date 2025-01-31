@@ -87,6 +87,8 @@ public class CodeSystemController {
 	}
 
 	@Operation(description = """
+			`name` will have words 'Edition' and 'Extension' removed then 'Edition' added at the end.
+
 			`dependantCodeSystem` is optional, by default the International Edition is used.
 			
 			`dependantCodeSystemVersion` is optional, by default the latest version is used.
@@ -94,6 +96,11 @@ public class CodeSystemController {
 	@PostMapping
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public CodeSystem createCodeSystem(@RequestBody CreateCodeSystemRequest request) throws ServiceException {
+		// Remove "edition" or "extension" from name
+		String name = request.getName();
+		name = name.replaceAll("(?i)\\s?\\b(edition|extension)\\b\\s?", " ").trim();
+		request.setName("%s Edition".formatted(name));
+
 		return activityService.runActivity(request.getShortName(), CODE_SYSTEM, CREATE, () ->
 				codeSystemService.createCodeSystem(request)
 		);
