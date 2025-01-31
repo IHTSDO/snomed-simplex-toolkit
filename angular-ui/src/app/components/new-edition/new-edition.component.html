@@ -1,17 +1,35 @@
 <p>Create New Edition</p>
 <br><br>
+
 <form [formGroup]="form">
     <mat-form-field *ngFor="let controlName of formKeys">
         <mat-label>{{controlName}}</mat-label>
-        <input matInput formControlName="{{controlName}}">
-        <button *ngIf="form.controls[controlName]['value']" matSuffix mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')">
+        <input matInput formControlName="{{controlName}}" [maxlength]="controlName === 'name' ? 24 : null">
+        <button *ngIf="form.controls[controlName].value" 
+                matSuffix mat-icon-button 
+                aria-label="Clear" 
+                (click)="form.controls[controlName].setValue('')">
             <mat-icon>close</mat-icon>
         </button>
-        <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
+
+        <mat-error *ngIf="form.controls[controlName].hasError('required')">
+            {{controlName}} is required
+        </mat-error>
+
+        <mat-error *ngIf="controlName === 'name' && form.controls['name'].hasError('maxlength')">
+            Name cannot exceed 24 characters
+        </mat-error>
+
+        <mat-error *ngIf="controlName === 'name' && form.controls['name'].hasError('forbiddenWords')">
+            Avoid using "edition" or "extension"
+        </mat-error>
     </mat-form-field>
 </form>
-<div>
+
+<div class="button-container">
   <button mat-flat-button (click)="closePanelEvent()" *ngIf="!saving">Cancel</button>
-  <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving">Create</button>
-  <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating edition...</p>
+  <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="form.invalid">Create</button>
+  <p *ngIf="saving" class="saving">
+    <mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating edition...
+  </p>
 </div>
