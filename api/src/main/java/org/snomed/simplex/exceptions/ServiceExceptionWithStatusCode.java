@@ -8,14 +8,22 @@ public class ServiceExceptionWithStatusCode extends ServiceException {
 	private final int statusCode;
 	private final JobStatus jobStatus;
 
-	public ServiceExceptionWithStatusCode(String message, HttpStatus statusCode, JobStatus jobStatus) {
-		super(message);
+	public ServiceExceptionWithStatusCode(String message, HttpStatus statusCode, JobStatus jobStatus, Throwable cause) {
+		super(message, cause);
 		this.statusCode = statusCode.value();
 		this.jobStatus = jobStatus;
 	}
 
+	public ServiceExceptionWithStatusCode(String message, HttpStatus statusCode, JobStatus jobStatus) {
+		this(message, statusCode, jobStatus, null);
+	}
+
 	public ServiceExceptionWithStatusCode(String message, HttpStatus statusCode) {
-		this(message, statusCode, null);
+		this(message, statusCode, null, null);
+	}
+
+	public ServiceExceptionWithStatusCode(String message, HttpStatus statusCode, Throwable cause) {
+		this(message, statusCode, null, cause);
 	}
 
 	public int getStatusCode() {

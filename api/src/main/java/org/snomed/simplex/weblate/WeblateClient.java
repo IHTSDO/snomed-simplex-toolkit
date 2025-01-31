@@ -82,10 +82,11 @@ public class WeblateClient {
 		map.put("project", projectSlug);
 		map.put("vcs", "git");
 		map.put("repo", gitRepo);
+		map.put("push", gitRepo);
 		map.put("branch", gitBranch);
-		map.put("filemask", "*.csv");
-		map.put("new_base", "en.csv");
-		map.put("template", "en.csv");
+		map.put("filemask", "%s/*.csv".formatted(componentSlug));
+		map.put("new_base", "%s/en.csv".formatted(componentSlug));
+		map.put("template", "%s/en.csv".formatted(componentSlug));
 		map.put("file_format", "csv-multi-utf-8");
 		try {
 			restTemplate.exchange("/projects/%s/components/".formatted(projectSlug), HttpMethod.POST, new HttpEntity<>(map), Void.class);
@@ -160,7 +161,15 @@ public class WeblateClient {
 		return weblateResponse.getResults();
 	}
 
-	public void saveUnitExplanation(String id, String explanation) {
+	public WeblateUnit createUnit(WeblateUnit weblateUnit, String project, String component, String language) {
+		// Docs: https://docs.weblate.org/en/latest/api.html#post--api-translations-(string-project)-(string-component)-(string-language)-units-
+		String url = "/translations/%s/%s/%s/units/".formatted(project, component, language);
+		ResponseEntity<WeblateUnit> response = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(weblateUnit), WeblateUnit.class);
+		return response.getBody();
+	}
+
+	public void patchUnitExplanation(String id, String explanation) {
+		// Docs: https://docs.weblate.org/en/latest/api.html#patch--api-units-(int-id)-
 		Map<String, String> patchBody = new HashMap<>();
 		patchBody.put("explanation", explanation);
 		restTemplate.exchange("/units/%s/".formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody), Void.class);

@@ -46,8 +46,7 @@ public class WeblateComponentController {
 			@RequestParam(required = false, defaultValue = "0") int offset,
 			@RequestParam(required = false, defaultValue = "100") int limit) {
 
-		return new Page<>(List.of(new WeblateUnit(List.of("Allergy to soy protein"), List.of("Ofnæmi fyrir sojapróteini"), "782594005",
-				"http://snomed.info/id/782594005 - Allergy to soy protein (finding)", "")));
+		return new Page<>(List.of(new WeblateUnit(List.of("Allergy to soy protein"), List.of("Ofnæmi fyrir sojapróteini"), "782594005", "")));
 	}
 
 	@PutMapping("shared-sets/{slug}")
