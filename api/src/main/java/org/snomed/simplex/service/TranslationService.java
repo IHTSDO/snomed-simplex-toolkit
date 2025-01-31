@@ -6,7 +6,6 @@ import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import jakarta.annotation.PostConstruct;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -38,7 +37,6 @@ import java.util.stream.Collectors;
 import static java.lang.Long.parseLong;
 import static java.lang.String.format;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
-import static org.snomed.simplex.client.domain.Description.Type.FSN;
 import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
 
 @Service
