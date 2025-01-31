@@ -21,7 +21,7 @@
         </mat-error>
 
         <mat-error *ngIf="controlName === 'name' && form.controls['name'].hasError('forbiddenWords')">
-            Avoid using "edition" or "extension"
+            Avoid using "edition" or "extension". "Edition" will be added automatically for display purposes.
         </mat-error>
     </mat-form-field>
 </form>
