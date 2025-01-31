@@ -71,8 +71,6 @@ public class WeblateService {
 		// Create Component in Weblate
 		weblateClient.createComponent(project, weblateSet, weblateGitClient.getRemoteRepo(), weblateGitClient.getRepoBranch());
 
-//		UnitSupplier unitSupplier = weblateClient.getUnitStream(project, componentSlug);
-
 		// Create units from ECL
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
@@ -101,23 +99,32 @@ public class WeblateService {
 		}
 		logger.info("Component {}/{} created", project, componentSlug);
 
-//		List<WeblateUnit> batch;
-//		while (!(batch = unitSupplier.getBatch(1_000)).isEmpty()) {
-//			List<Long> conceptIds = batch.stream()
-//					.map(WeblateUnit::getContext)
-//					.map(Long::parseLong)
-//					.toList();
-//			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
-//			Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
-//			for (WeblateUnit weblateUnit : batch) {
-//				String conceptId = weblateUnit.getContext();
-//				Concept concept = conceptMap.get(conceptId);
-//
-//				String explanation = explanationCreator.getExplanation(concept);
-//				weblateUnit.setExplanation(explanation);
-//				weblateClient.saveUnitExplanation(weblateUnit.getId(), weblateUnit.getExplanation());
-//			}
-//		}
+
+	}
+
+	public void updateSet(CodeSystem codeSystem) throws ServiceException {
+
+		// This method is work in progress
+
+		UnitSupplier unitSupplier = weblateClient.getUnitStream("test", "test");
+
+		List<WeblateUnit> batch;
+		while (!(batch = unitSupplier.getBatch(1_000)).isEmpty()) {
+			List<Long> conceptIds = batch.stream()
+					.map(WeblateUnit::getContext)
+					.map(Long::parseLong)
+					.toList();
+			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
+			Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
+			for (WeblateUnit weblateUnit : batch) {
+				String conceptId = weblateUnit.getContext();
+				Concept concept = conceptMap.get(conceptId);
+
+				String explanation = WeblateExplanationCreator.getMarkdown(concept);
+				weblateUnit.setExplanation(explanation);
+			}
+		}
 	}
 
 	public void createConceptSet(String branch, String valueSetEcl, OutputStream outputStream) throws ServiceException, IOException {
