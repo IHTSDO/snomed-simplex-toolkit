@@ -17,6 +17,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
 import java.io.File;
@@ -32,6 +33,7 @@ import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 
 @SpringBootTest
 @ContextConfiguration(classes = TestConfig.class)
+@ActiveProfiles("test")
 class TranslationServiceTest {
 
 	@Autowired

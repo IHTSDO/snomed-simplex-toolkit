@@ -567,11 +567,11 @@ public class SnowstormClient {
 						return null;
 					}
 					items = page.getItems();
+					itemOffset = 0;
 					if (items.isEmpty()) {
 						return null;
 					}
 					searchAfter = page.getSearchAfter();
-					itemOffset = 0;
 				}
 				return items.get(itemOffset++);
 			}
