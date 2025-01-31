@@ -21,3 +21,10 @@ mat-form-field {
   align-items: center;
   margin-top: 10px;
 }
+
+.button-container {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 10px;
+}
