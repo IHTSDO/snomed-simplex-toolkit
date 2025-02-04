@@ -64,13 +64,17 @@ public class WeblateGitClient {
 				}
 			}
 
-			File componentDir = new File(repoDir, slug);
-			if (componentDir.exists()) {
-				throw new ServiceExceptionWithStatusCode("Component with this slug already exists.", HttpStatus.BAD_REQUEST);
-			}
-
 			// Open local repository
 			try (Git git = Git.open(repoDir)) {
+
+				git.fetch();
+				git.pull();
+
+				File componentDir = new File(repoDir, slug);
+				if (componentDir.exists()) {
+					throw new ServiceExceptionWithStatusCode("Component with this slug already exists.", HttpStatus.BAD_REQUEST);
+				}
+
 				if (!componentDir.mkdir()) {
 					throw new ServiceExceptionWithStatusCode("Failed to create new directory for component.", HttpStatus.INTERNAL_SERVER_ERROR);
 				}
