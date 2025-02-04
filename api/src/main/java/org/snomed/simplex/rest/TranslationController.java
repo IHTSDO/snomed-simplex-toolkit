@@ -7,6 +7,7 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
@@ -17,6 +18,8 @@ import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.TranslationService;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.service.job.JobType;
+import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +38,17 @@ import java.util.List;
 @RequestMapping("api")
 public class TranslationController {
 
+	public static final AsyncJob DUMMY_COMPLETE = new AsyncJob(null, null) {
+		@Override
+		public JobType getJobType() {
+			return JobType.REFSET_CHANGE;
+		}
+
+		@Override
+		public JobStatus getStatus() {
+			return JobStatus.COMPLETE;
+		}
+	};
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final TranslationService translationService;
 	private final ContentProcessingJobService jobService;
@@ -88,6 +102,30 @@ public class TranslationController {
 //		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 //		translationService.downloadTranslationAsSpreadsheet(refsetId, theCodeSystem, response.getOutputStream());
 //	}
+
+	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-components")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public List<WeblateComponent> listWeblateComponent(@PathVariable String codeSystem, @PathVariable String refsetId) {
+		return List.of(new WeblateComponent("Allergies", "allergies", "common", ""));
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-components")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob addWeblateComponent(@PathVariable String codeSystem, @PathVariable String refsetId, @RequestParam String weblateComponentSlug) {
+		return DUMMY_COMPLETE;
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-components/{weblateComponentSlug}/synchronise")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob synchroniseWeblateComponent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String weblateComponentSlug) {
+		return DUMMY_COMPLETE;
+	}
+
+	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-components/{weblateComponentSlug}")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob deleteWeblateComponent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String weblateComponentSlug) {
+		return DUMMY_COMPLETE;
+	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
