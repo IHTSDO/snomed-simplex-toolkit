@@ -149,8 +149,7 @@ public class WeblateClient {
 				.append("component").append(":").append(componentSlug)
 				.append(" AND ")
 				.append("language").append(":").append("en");
-		String url = "/units/?q=%s&format=json".formatted(query);
-		return url;
+		return "/units/?q=%s&format=json".formatted(query);
 	}
 
 	private void handleSharedCodeSystemError(String message, HttpStatus httpStatus, HttpClientErrorException e) throws ServiceExceptionWithStatusCode {
