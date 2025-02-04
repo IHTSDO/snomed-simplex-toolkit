@@ -1,5 +1,6 @@
 package org.snomed.simplex.weblate;
 
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -95,15 +96,15 @@ public class WeblateClient {
 			handleSharedCodeSystemError("Failed to create translation component. %s".formatted(e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 	}
+	public WeblatePage<WeblateUnit> getUnitPage(String projectSlug, String componentSlug) {
+		String url = getUnitQuery(projectSlug, componentSlug);
+		ResponseEntity<WeblatePage<WeblateUnit>> response = restTemplate.exchange(url,
+				HttpMethod.GET, null, UNITS_RESPONSE_TYPE);
+		return response.getBody();
+	}
 
 	public UnitSupplier getUnitStream(String projectSlug, String componentSlug) {
-		StringBuilder query = new StringBuilder()
-				.append("project").append(":").append(projectSlug)
-				.append(" AND ")
-				.append("component").append(":").append(componentSlug)
-				.append(" AND ")
-				.append("language").append(":").append("en");
-		String url = "/units/?q=%s&format=json".formatted(query);
+		String url = getUnitQuery(projectSlug, componentSlug);
 
 		return new UnitSupplier() {
 
@@ -139,6 +140,17 @@ public class WeblateClient {
 			}
 
 		};
+	}
+
+	private static @NotNull String getUnitQuery(String projectSlug, String componentSlug) {
+		StringBuilder query = new StringBuilder()
+				.append("project").append(":").append(projectSlug)
+				.append(" AND ")
+				.append("component").append(":").append(componentSlug)
+				.append(" AND ")
+				.append("language").append(":").append("en");
+		String url = "/units/?q=%s&format=json".formatted(query);
+		return url;
 	}
 
 	private void handleSharedCodeSystemError(String message, HttpStatus httpStatus, HttpClientErrorException e) throws ServiceExceptionWithStatusCode {
