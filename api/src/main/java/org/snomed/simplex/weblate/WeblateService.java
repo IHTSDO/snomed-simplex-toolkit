@@ -14,6 +14,7 @@ import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.util.SupplierUtil;
 import org.snomed.simplex.weblate.domain.WeblateSet;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -31,9 +32,10 @@ import java.util.stream.Collectors;
 @Service
 public class WeblateService {
 
-	public static final String COMMON_PROJECT = "simplex-test-project";
 	public static final String EN = "en";
 
+	@Value("${weblate.common.project}")
+	public String commonProject;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final WeblateClient weblateClient;
 	private final WeblateGitClient weblateGitClient;
@@ -47,11 +49,11 @@ public class WeblateService {
 	}
 
 	public Page<WeblateSet> getSharedSets() {
-		return new Page<>(weblateClient.listComponents(COMMON_PROJECT));
+		return new Page<>(weblateClient.listComponents(commonProject));
 	}
 
 	public void createSharedSet(WeblateSet weblateSet) throws ServiceException {
-		String project = COMMON_PROJECT;
+		String project = commonProject;
 		String componentSlug = weblateSet.slug();
 		String ecl = weblateSet.ecl();
 		ServiceHelper.requiredParameter("slug", componentSlug);
@@ -78,6 +80,7 @@ public class WeblateService {
 		Supplier<ConceptMini> conceptStream = snowstormClient.getConceptStream(codeSystem.getBranchPath(), ecl);
 
 		List<ConceptMini> batch;
+		long added = 0;
 		while (!(batch = SupplierUtil.getBatch(1_000, conceptStream)).isEmpty()) {
 			logger.info("Creating batch of {} units", batch.size());
 			List<Long> conceptIds = batch.stream()
@@ -95,11 +98,15 @@ public class WeblateService {
 				WeblateUnit weblateUnit = new WeblateUnit(displayList, displayList, conceptId, explanation);
 				WeblateUnit newUnit = weblateClient.createUnit(weblateUnit, project, componentSlug, EN);
 				weblateClient.patchUnitExplanation(newUnit.getId(), weblateUnit.getExplanation());
+				added++;
 			}
 		}
-		logger.info("Component {}/{} created", project, componentSlug);
 
+		if (added == 0) {
+			logger.warn("No concepts matched {}/{}", project, componentSlug);
+		}
 
+		logger.info("Component {}/{} created with {} units", project, componentSlug, added);
 	}
 
 	public void updateSet(CodeSystem codeSystem) throws ServiceException {
