@@ -12,6 +12,11 @@ public class Page<T> {
 	public Page() {
 	}
 
+	public Page(List<T> items, Long total) {
+		this.items = items;
+		this.total = total;
+	}
+
 	public Page(List<T> allItems) {
 		offset = 0L;
 		total = (long) allItems.size();

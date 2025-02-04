@@ -12,6 +12,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.util.SupplierUtil;
+import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateSet;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.beans.factory.annotation.Value;
@@ -158,5 +159,10 @@ public class WeblateService {
 				writer.newLine();
 			}
 		}
+	}
+
+	public Page<WeblateUnit> getSharedSetRecords(String slug) {
+		WeblatePage<WeblateUnit> unitPage = weblateClient.getUnitPage(commonProject, slug);
+		return new Page<>(unitPage.results(), (long) unitPage.count());
 	}
 }
