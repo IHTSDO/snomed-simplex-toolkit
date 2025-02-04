@@ -9,7 +9,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateProject;
-import org.snomed.simplex.weblate.domain.WeblateSet;
+import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -25,7 +25,7 @@ import java.util.*;
 @Service
 public class WeblateClient {
 
-	public static final ParameterizedTypeReference<WeblateSet> SET_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
+	public static final ParameterizedTypeReference<WeblateComponent> SET_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<WeblatePage<WeblateUnit>> UNITS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 
 	private final RestTemplate restTemplate;
@@ -53,19 +53,19 @@ public class WeblateClient {
 				.build();
 	}
 
-	public List<WeblateSet> listComponents(String projectSlug) {
-		ParameterizedTypeReference<WeblateResponse<WeblateSet>> responseType = new ParameterizedTypeReference<>() {};
-		ResponseEntity<WeblateResponse<WeblateSet>> response = restTemplate.exchange("/projects/%s/components/".formatted(projectSlug), HttpMethod.GET, null, responseType);
-		WeblateResponse<WeblateSet> weblateResponse = response.getBody();
+	public List<WeblateComponent> listComponents(String projectSlug) {
+		ParameterizedTypeReference<WeblateResponse<WeblateComponent>> responseType = new ParameterizedTypeReference<>() {};
+		ResponseEntity<WeblateResponse<WeblateComponent>> response = restTemplate.exchange("/projects/%s/components/".formatted(projectSlug), HttpMethod.GET, null, responseType);
+		WeblateResponse<WeblateComponent> weblateResponse = response.getBody();
 		if (weblateResponse == null) {
 			return new ArrayList<>();
 		}
 		return weblateResponse.getResults();
 	}
 
-	public WeblateSet getComponent(String projectSlug, String componentSlug) {
+	public WeblateComponent getComponent(String projectSlug, String componentSlug) {
 		try {
-			ResponseEntity<WeblateSet> response = restTemplate.exchange("/projects/%s/components/%s".formatted(projectSlug, componentSlug),
+			ResponseEntity<WeblateComponent> response = restTemplate.exchange("/projects/%s/components/%s".formatted(projectSlug, componentSlug),
 					HttpMethod.GET, null, SET_RESPONSE_TYPE);
 			return response.getBody();
 		} catch (HttpClientErrorException.NotFound e) {
@@ -73,12 +73,12 @@ public class WeblateClient {
 		}
 	}
 
-	public void createComponent(String projectSlug, WeblateSet weblateSet, String gitRepo, String gitBranch) throws ServiceExceptionWithStatusCode {
-		String componentSlug = weblateSet.slug();
+	public void createComponent(String projectSlug, WeblateComponent weblateComponent, String gitRepo, String gitBranch) throws ServiceExceptionWithStatusCode {
+		String componentSlug = weblateComponent.slug();
 
 		// Create Weblate component based on English file in Git repo.
 		Map<String, String> map = new HashMap<>();
-		map.put("name", weblateSet.name());
+		map.put("name", weblateComponent.name());
 		map.put("slug", componentSlug);
 		map.put("project", projectSlug);
 		map.put("vcs", "git");
