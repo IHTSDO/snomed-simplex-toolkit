@@ -5,7 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.weblate.WeblateService;
-import org.snomed.simplex.weblate.domain.WeblateSet;
+import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -23,24 +23,24 @@ public class WeblateComponentController {
 		this.weblateService = weblateService;
 	}
 
-	@GetMapping("shared-sets")
-	public Page<WeblateSet> getSharedSets() {
+	@GetMapping("shared-components")
+	public Page<WeblateComponent> getSharedSets() {
 		return weblateService.getSharedSets();
 	}
 
-	@PostMapping("shared-sets")
+	@PostMapping("shared-components")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void createSharedSet(@RequestBody WeblateSet weblateSet) throws ServiceException {
-		weblateService.createSharedSet(weblateSet);
+	public void createSharedSet(@RequestBody WeblateComponent weblateComponent) throws ServiceException {
+		weblateService.createSharedSet(weblateComponent);
 	}
 
-	@PostMapping("shared-sets/{slug}/refresh")
+	@PostMapping("shared-components/{slug}/refresh")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void refreshSharedSet(@PathVariable String slug, @RequestParam String ecl) {
 		// Code stub to enable UI development
 	}
 
-	@GetMapping("shared-sets/{slug}/records")
+	@GetMapping("shared-components/{slug}/records")
 	public Page<WeblateUnit> getSharedSetRecords(@PathVariable String slug,
 			@RequestParam(required = false, defaultValue = "0") int offset,
 			@RequestParam(required = false, defaultValue = "100") int limit) {
@@ -48,13 +48,13 @@ public class WeblateComponentController {
 		return weblateService.getSharedSetRecords(slug);
 	}
 
-	@PutMapping("shared-sets/{slug}")
+	@PutMapping("shared-components/{slug}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void updateSharedSet(@PathVariable String slug, @RequestBody WeblateSet weblateSet) {
+	public void updateSharedSet(@PathVariable String slug, @RequestBody WeblateComponent weblateComponent) {
 		// Code stub to enable UI development
 	}
 
-	@DeleteMapping("shared-sets/{slug}")
+	@DeleteMapping("shared-components/{slug}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void deleteSharedSet(@PathVariable String slug) {
 		// Code stub to enable UI development
