@@ -88,6 +88,7 @@ public class WeblateClient {
 		map.put("new_base", "%s/en.csv".formatted(componentSlug));
 		map.put("template", "%s/en.csv".formatted(componentSlug));
 		map.put("file_format", "csv-multi-utf-8");
+		map.put("disable_autoshare", "true");
 		try {
 			restTemplate.exchange("/projects/%s/components/".formatted(projectSlug), HttpMethod.POST, new HttpEntity<>(map), Void.class);
 		} catch (HttpClientErrorException e) {
