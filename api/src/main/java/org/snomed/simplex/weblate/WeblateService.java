@@ -13,7 +13,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.util.SupplierUtil;
 import org.snomed.simplex.weblate.domain.WeblatePage;
-import org.snomed.simplex.weblate.domain.WeblateSet;
+import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -49,19 +49,19 @@ public class WeblateService {
 		this.weblateGitClient = weblateGitClient;
 	}
 
-	public Page<WeblateSet> getSharedSets() {
+	public Page<WeblateComponent> getSharedSets() {
 		return new Page<>(weblateClient.listComponents(commonProject));
 	}
 
-	public void createSharedSet(WeblateSet weblateSet) throws ServiceException {
+	public void createSharedSet(WeblateComponent weblateComponent) throws ServiceException {
 		String project = commonProject;
-		String componentSlug = weblateSet.slug();
-		String ecl = weblateSet.ecl();
+		String componentSlug = weblateComponent.slug();
+		String ecl = weblateComponent.ecl();
 		ServiceHelper.requiredParameter("slug", componentSlug);
 		ServiceHelper.requiredParameter("project", project);
 		ServiceHelper.requiredParameter("ecl", ecl);
 
-		WeblateSet existingSet = weblateClient.getComponent(project, componentSlug);
+		WeblateComponent existingSet = weblateClient.getComponent(project, componentSlug);
 		if (existingSet != null) {
 			throw new ServiceExceptionWithStatusCode("This set already exists.", HttpStatus.CONFLICT);
 		}
@@ -72,7 +72,7 @@ public class WeblateService {
 		weblateGitClient.createBlankComponent(componentSlug);
 
 		// Create Component in Weblate
-		weblateClient.createComponent(project, weblateSet, weblateGitClient.getRemoteRepo(), weblateGitClient.getRepoBranch());
+		weblateClient.createComponent(project, weblateComponent, weblateGitClient.getRemoteRepo(), weblateGitClient.getRepoBranch());
 
 		// Create units from ECL
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
