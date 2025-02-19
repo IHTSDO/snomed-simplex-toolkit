@@ -24,7 +24,7 @@ public class WeblateComponentController {
 	}
 
 	@GetMapping("shared-components")
-	public Page<WeblateComponent> getSharedSets() {
+	public Page<WeblateComponent> getSharedSets() throws ServiceException {
 		return weblateService.getSharedSets();
 	}
 
@@ -43,7 +43,7 @@ public class WeblateComponentController {
 	@GetMapping("shared-components/{slug}/records")
 	public Page<WeblateUnit> getSharedSetRecords(@PathVariable String slug,
 			@RequestParam(required = false, defaultValue = "0") int offset,
-			@RequestParam(required = false, defaultValue = "100") int limit) {
+			@RequestParam(required = false, defaultValue = "100") int limit) throws ServiceException {
 
 		return weblateService.getSharedSetRecords(slug);
 	}
