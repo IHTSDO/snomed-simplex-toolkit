@@ -8,11 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.ExecutionException;
@@ -36,7 +34,7 @@ public class SnowstormClientFactory {
 
 	public SnowstormClient getClient() throws ServiceException {
 		try {
-			String authenticationToken = getAuthenticationToken();
+			String authenticationToken = SecurityUtil.getAuthenticationToken();
 			if (authenticationToken == null || authenticationToken.isEmpty()) {
 				throw new ServiceExceptionWithStatusCode("Authentication token is missing. Unable to process request.", HttpStatus.FORBIDDEN);
 			}
@@ -46,14 +44,4 @@ public class SnowstormClientFactory {
 		}
 	}
 
-	private String getAuthenticationToken() {
-		SecurityContext securityContext = SecurityContextHolder.getContext();
-		if (securityContext != null) {
-			Authentication authentication = securityContext.getAuthentication();
-			if (authentication != null) {
-				return (String) authentication.getCredentials();
-			}
-		}
-		return null;
-	}
 }
