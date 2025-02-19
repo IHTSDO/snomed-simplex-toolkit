@@ -38,19 +38,19 @@ public class WeblateService {
 	@Value("${weblate.common.project}")
 	public String commonProject;
 	private final SnowstormClientFactory snowstormClientFactory;
-	private final WeblateClient weblateClient;
+	private final WeblateClientFactory weblateClientFactory;
 	private final WeblateGitClient weblateGitClient;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClient weblateClient, WeblateGitClient weblateGitClient) {
+	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory, WeblateGitClient weblateGitClient) {
 		this.snowstormClientFactory = snowstormClientFactory;
-		this.weblateClient = weblateClient;
+		this.weblateClientFactory = weblateClientFactory;
 		this.weblateGitClient = weblateGitClient;
 	}
 
-	public Page<WeblateComponent> getSharedSets() {
-		return new Page<>(weblateClient.listComponents(commonProject));
+	public Page<WeblateComponent> getSharedSets() throws ServiceException {
+		return new Page<>(weblateClientFactory.getClient().listComponents(commonProject));
 	}
 
 	public void createSharedSet(WeblateComponent weblateComponent) throws ServiceException {
@@ -61,6 +61,7 @@ public class WeblateService {
 		ServiceHelper.requiredParameter("project", project);
 		ServiceHelper.requiredParameter("ecl", ecl);
 
+		WeblateClient weblateClient = weblateClientFactory.getClient();
 		WeblateComponent existingSet = weblateClient.getComponent(project, componentSlug);
 		if (existingSet != null) {
 			throw new ServiceExceptionWithStatusCode("This set already exists.", HttpStatus.CONFLICT);
@@ -114,7 +115,7 @@ public class WeblateService {
 
 		// This method is work in progress
 
-		UnitSupplier unitSupplier = weblateClient.getUnitStream("test", "test");
+		UnitSupplier unitSupplier = weblateClientFactory.getClient().getUnitStream("test", "test");
 
 		List<WeblateUnit> batch;
 		while (!(batch = unitSupplier.getBatch(1_000)).isEmpty()) {
@@ -161,7 +162,8 @@ public class WeblateService {
 		}
 	}
 
-	public Page<WeblateUnit> getSharedSetRecords(String slug) {
+	public Page<WeblateUnit> getSharedSetRecords(String slug) throws ServiceException {
+		WeblateClient weblateClient = weblateClientFactory.getClient();
 		WeblatePage<WeblateUnit> unitPage = weblateClient.getUnitPage(commonProject, slug);
 		return new Page<>(unitPage.results(), (long) unitPage.count());
 	}

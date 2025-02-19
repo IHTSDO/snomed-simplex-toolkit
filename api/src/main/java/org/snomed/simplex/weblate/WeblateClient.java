@@ -1,28 +1,24 @@
 package org.snomed.simplex.weblate;
 
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SupportRegister;
+import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateProject;
-import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.stereotype.Service;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 
-@Service
 public class WeblateClient {
 
 	public static final ParameterizedTypeReference<WeblateComponent> SET_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
@@ -31,31 +27,14 @@ public class WeblateClient {
 	private final RestTemplate restTemplate;
 	private final SupportRegister supportRegister;
 
-	private final Logger logger = LoggerFactory.getLogger(getClass());
-
-	public WeblateClient(@Value("${weblate.url}") String url,
-			@Value("${weblate.authToken}") String authToken, SupportRegister supportRegister) {
-
+	protected WeblateClient(RestTemplate restTemplate, SupportRegister supportRegister) {
+		this.restTemplate = restTemplate;
 		this.supportRegister = supportRegister;
-
-		if (authToken == null || authToken.isEmpty()) {
-			logger.warn("Weblate authToken is empty");
-		}
-
-		restTemplate = new RestTemplateBuilder()
-				.rootUri(url)
-				.interceptors((request, body, execution) -> {
-					request.getHeaders().add("Authorization", "Token " + authToken);
-					request.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-					return execution.execute(request, body);
-				})
-				.messageConverters(new MappingJackson2HttpMessageConverter())
-				.build();
 	}
 
 	public List<WeblateComponent> listComponents(String projectSlug) {
 		ParameterizedTypeReference<WeblateResponse<WeblateComponent>> responseType = new ParameterizedTypeReference<>() {};
-		ResponseEntity<WeblateResponse<WeblateComponent>> response = restTemplate.exchange("/projects/%s/components/".formatted(projectSlug), HttpMethod.GET, null, responseType);
+		ResponseEntity<WeblateResponse<WeblateComponent>> response = restTemplate.exchange("/projects/%s/components/?format=json".formatted(projectSlug), HttpMethod.GET, null, responseType);
 		WeblateResponse<WeblateComponent> weblateResponse = response.getBody();
 		if (weblateResponse == null) {
 			return new ArrayList<>();
