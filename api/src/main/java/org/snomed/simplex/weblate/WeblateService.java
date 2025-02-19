@@ -50,7 +50,9 @@ public class WeblateService {
 	}
 
 	public Page<WeblateComponent> getSharedSets() throws ServiceException {
-		return new Page<>(weblateClientFactory.getClient().listComponents(commonProject));
+		List<WeblateComponent> components = weblateClientFactory.getClient().listComponents(commonProject);
+		components = components.stream().filter(c -> !c.slug().equals("glossary")).toList();
+		return new Page<>(components);
 	}
 
 	public void createSharedSet(WeblateComponent weblateComponent) throws ServiceException {
