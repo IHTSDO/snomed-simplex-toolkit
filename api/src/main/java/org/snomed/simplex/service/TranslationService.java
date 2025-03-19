@@ -224,7 +224,7 @@ public class TranslationService {
 			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
 			List<Concept> conceptsToUpdate = new ArrayList<>();
 			for (Concept concept : concepts) {
-				List<Description> uploadedDescriptions = conceptDescriptions.get(parseLong(concept.getConceptId()));
+				List<Description> uploadedDescriptions = new ArrayList<>(conceptDescriptions.get(parseLong(concept.getConceptId())));
 				boolean anyChange = updateConceptDescriptions(concept.getConceptId(), concept.getDescriptions(), uploadedDescriptions,
 						languageCode, languageRefsetId, translationTermsUseTitleCase,
 						changeMonitor, changeSummary);

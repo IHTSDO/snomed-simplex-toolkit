@@ -61,6 +61,13 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 				assumeAcceptability(conceptMap);
 			}
 
+			// Clear description ids, we will use Snowstorm to assign SCTIDs.
+			for (List<Description> descriptions : conceptMap.values()) {
+				for (Description description : descriptions) {
+					description.setDescriptionId(null);
+				}
+			}
+
 			return conceptMap;
 		} catch (IOException e) {
 			throw new ServiceException("Failed to read zip file.", e);

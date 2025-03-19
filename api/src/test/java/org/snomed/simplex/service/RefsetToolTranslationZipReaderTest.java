@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class RefsetToolTranslationZipReaderTest {
 
@@ -31,6 +32,7 @@ class RefsetToolTranslationZipReaderTest {
 			assertEquals("akut viral bronkit", description.getTerm());
 			assertEquals(Description.Type.SYNONYM, description.getType());
 			assertEquals(Description.Acceptability.PREFERRED, description.getAcceptabilityMap().get(langRefset));
+			assertNull(description.getDescriptionId());
 		}
 
 	}
