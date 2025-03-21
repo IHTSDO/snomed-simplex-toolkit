@@ -169,4 +169,10 @@ public class WeblateService {
 		WeblatePage<WeblateUnit> unitPage = weblateClient.getUnitPage(commonProject, slug);
 		return new Page<>(unitPage.results(), (long) unitPage.count());
 	}
+
+	public void deleteSharedSet(String slug) throws ServiceException {
+		WeblateClient weblateClient = weblateClientFactory.getClient();
+		weblateClient.deleteComponent(commonProject, slug);
+		// Will need to delete from git too.
+	}
 }
