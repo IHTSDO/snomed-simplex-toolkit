@@ -165,4 +165,8 @@ public class WeblateClient {
 		patchBody.put("explanation", explanation);
 		restTemplate.exchange("/units/%s/".formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody), Void.class);
 	}
+
+	public void deleteComponent(String project, String slug) {
+		restTemplate.delete("/components/%s/%s/".formatted(project, slug));
+	}
 }

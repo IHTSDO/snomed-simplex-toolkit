@@ -56,8 +56,8 @@ public class WeblateComponentController {
 
 	@DeleteMapping("shared-components/{slug}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void deleteSharedSet(@PathVariable String slug) {
-		// Code stub to enable UI development
+	public void deleteSharedSet(@PathVariable String slug) throws ServiceException {
+		weblateService.deleteSharedSet(slug);
 	}
 
 	@GetMapping(value = "/component-csv", produces = "text/csv")
