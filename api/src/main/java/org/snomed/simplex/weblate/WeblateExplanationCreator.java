@@ -42,7 +42,7 @@ public class WeblateExplanationCreator {
 				"""
 						#### Concept Details
 						
-						| Descriptions |  | Attributes |  |
+						| Descriptions |  | Parents and Attributes |  |
 						| :------------- | --- | ------------: | :--- |
 						""");
 		int row = 0;
