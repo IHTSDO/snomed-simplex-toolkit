@@ -31,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.lang.Long.parseLong;
 import static java.lang.String.format;
@@ -276,8 +277,12 @@ public class TranslationService {
 		boolean anyChange = false;
 		existingDescriptions.sort(Comparator.comparing(Description::isActive).reversed());
 
+		// Underscore term used to delete redundant terms
+		uploadedDescriptions = uploadedDescriptions.stream().filter(description -> !description.getTerm().equals("_"))
+				.collect(Collectors.toList());
+
 		// If an English lang refset has selected acceptable terms but no PT, use the US PT.
-		if ("en".equals(languageCode) && getPt(uploadedDescriptions, languageRefsetId) == null) {
+		if (!uploadedDescriptions.isEmpty() && "en".equals(languageCode) && getPt(uploadedDescriptions, languageRefsetId) == null) {
 			Description usPT = getPt(existingDescriptions, Concepts.US_LANG_REFSET);
 			if (usPT != null) {
 				uploadedDescriptions.add(usPT);

@@ -91,7 +91,7 @@ public class TranslationController {
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob uploadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId,
+	public AsyncJob uploadTranslationFromWeblate(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam MultipartFile file,
 			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase,
 			@RequestParam(defaultValue = "false") boolean overwriteExistingCaseSignificance,
@@ -106,7 +106,7 @@ public class TranslationController {
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob uploadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId,
+	public AsyncJob uploadTranslationFromRefsetAndTranslationTool(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam MultipartFile file,
 			@RequestParam(required = false, defaultValue = "true") boolean ignoreCaseInImport,
 			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {
