@@ -39,7 +39,7 @@ public abstract class AsyncJob {
 	}
 
 	public String getCodeSystem() {
-		return codeSystem.getShortName();
+		return codeSystem != null ? codeSystem.getShortName() : null;
 	}
 
 	@JsonIgnore
