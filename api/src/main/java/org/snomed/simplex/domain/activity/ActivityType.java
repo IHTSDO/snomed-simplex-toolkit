@@ -8,7 +8,9 @@ public enum ActivityType {
 	APPROVE_CONTENT("Approve content"),
 	START_MAINTENANCE("Start maintenance"),
 	UPGRADE("Upgrade"), CLASSIFY("Classify"), VALIDATE("Validate"), AUTOMATIC_FIX("Automatic Fix"),
-	UPDATE_CONFIGURATION("Update configuration"), BUILD_RELEASE("Build release"), FINALIZE_RELEASE("Finalize release");
+	UPDATE_CONFIGURATION("Update configuration"), BUILD_RELEASE("Build release"), FINALIZE_RELEASE("Finalize release"),
+
+	TRANSLATION_SET_CREATE("Create translation set");
 
 	private final String display;
 
