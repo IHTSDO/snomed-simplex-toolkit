@@ -45,16 +45,20 @@ public class ContentProcessingJobService {
 
 		activity.setComponentId(refsetId);
 		ContentJob asyncJob = new ContentJob(codeSystem, display, refsetId);
-		File tempFile = File.createTempFile("user-temp-file_" + asyncJob.getId(), "txt");
-		try (FileOutputStream out = new FileOutputStream(tempFile)) {
-			StreamUtils.copy(jobInputStream, out);
+		File tempFile = null;
+		if (jobInputStream != null) {
+			tempFile = File.createTempFile("user-temp-file_" + asyncJob.getId(), "txt");
+			try (FileOutputStream out = new FileOutputStream(tempFile)) {
+				StreamUtils.copy(jobInputStream, out);
+			}
+			asyncJob.setInputFileCopy(tempFile);
+			asyncJob.setInputFileOriginalName(originalFilename);
 		}
-		asyncJob.setInputFileCopy(tempFile);
-		asyncJob.setInputFileOriginalName(originalFilename);
 
+		final File tempFileFinal = tempFile;
 		return doQueueJob(codeSystem, function, asyncJob, activity, () -> {
-			if (!tempFile.delete()) {
-				logger.info("Failed to delete temp file {}", tempFile.getAbsoluteFile());
+			if (tempFileFinal != null && !tempFileFinal.delete()) {
+				logger.info("Failed to delete temp file {}", tempFileFinal.getAbsoluteFile());
 			}
 		});
 	}
