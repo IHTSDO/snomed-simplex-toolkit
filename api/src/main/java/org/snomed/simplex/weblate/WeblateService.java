@@ -11,6 +11,7 @@ import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
+import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.util.SupplierUtil;
 import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateComponent;
@@ -55,7 +56,7 @@ public class WeblateService {
 		return new Page<>(components);
 	}
 
-	public void createSharedSet(WeblateComponent weblateComponent) throws ServiceException {
+	public ChangeSummary createSharedSet(WeblateComponent weblateComponent) throws ServiceException {
 		String project = commonProject;
 		String componentSlug = weblateComponent.slug();
 		String ecl = weblateComponent.ecl();
@@ -84,7 +85,7 @@ public class WeblateService {
 		Supplier<ConceptMini> conceptStream = snowstormClient.getConceptStream(codeSystem.getBranchPath(), ecl);
 
 		List<ConceptMini> batch;
-		long added = 0;
+		int added = 0;
 		while (!(batch = SupplierUtil.getBatch(1_000, conceptStream)).isEmpty()) {
 			logger.info("Creating batch of {} units", batch.size());
 			List<Long> conceptIds = batch.stream()
@@ -111,6 +112,7 @@ public class WeblateService {
 		}
 
 		logger.info("Component {}/{} created with {} units", project, componentSlug, added);
+		return new ChangeSummary(added, 0, 0, added);
 	}
 
 	public void updateSet(CodeSystem codeSystem) throws ServiceException {

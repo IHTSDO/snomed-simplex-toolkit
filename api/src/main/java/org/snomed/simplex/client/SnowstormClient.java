@@ -318,9 +318,13 @@ public class SnowstormClient {
 	}
 
 	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter) throws ServiceException {
+		return getConcepts(ecl, codeSystem, moduleFilter, 10_000);
+	}
+
+	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter, int limit) throws ServiceException {
 		try {
-			String url = format("/%s/concepts?ecl=%s%s&limit=10000", codeSystem.getWorkingBranchPath(), ecl,
-					moduleFilter != null ? String.format("&module=%s", moduleFilter) : "");
+			String url = format("/%s/concepts?ecl=%s%s&limit=%s", codeSystem.getWorkingBranchPath(), ecl,
+					moduleFilter != null ? String.format("&module=%s", moduleFilter) : "", limit);
 			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(url, HttpMethod.GET, null, responseTypeConceptMiniPage);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {

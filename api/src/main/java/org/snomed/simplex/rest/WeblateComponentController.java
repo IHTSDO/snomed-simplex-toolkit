@@ -2,8 +2,15 @@ package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import org.snomed.simplex.client.SnowstormClient;
+import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.Page;
+import org.snomed.simplex.domain.activity.Activity;
+import org.snomed.simplex.domain.activity.ActivityType;
+import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.weblate.WeblateService;
 import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
@@ -18,9 +25,14 @@ import java.io.IOException;
 public class WeblateComponentController {
 
 	private final WeblateService weblateService;
+	private final ContentProcessingJobService jobService;
+	private final SnowstormClientFactory snowstormClientFactory;
 
-	public WeblateComponentController(WeblateService weblateService) {
+	public WeblateComponentController(WeblateService weblateService, ContentProcessingJobService jobService,
+			SnowstormClientFactory snowstormClientFactory) {
 		this.weblateService = weblateService;
+		this.jobService = jobService;
+		this.snowstormClientFactory = snowstormClientFactory;
 	}
 
 	@GetMapping("shared-components")
@@ -30,8 +42,11 @@ public class WeblateComponentController {
 
 	@PostMapping("shared-components")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void createSharedSet(@RequestBody WeblateComponent weblateComponent) throws ServiceException {
-		weblateService.createSharedSet(weblateComponent);
+	public void createSharedSet(@RequestBody WeblateComponent weblateComponent) throws ServiceException, IOException {
+		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
+		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.TRANSLATION_SET_CREATE);
+		jobService.queueContentJob(rootCodeSystem, "Create shared set %s".formatted(weblateComponent.name()), null, null, null, activity,
+				asyncJob -> weblateService.createSharedSet(weblateComponent));
 	}
 
 	@PostMapping("shared-components/{slug}/refresh")
