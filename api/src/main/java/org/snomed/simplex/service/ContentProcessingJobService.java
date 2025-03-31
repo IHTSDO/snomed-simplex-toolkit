@@ -102,7 +102,7 @@ public class ContentProcessingJobService {
 		if (e instanceof ServiceExceptionWithStatusCode errorWithCode && errorWithCode.getJobStatus() != null) {
 			asyncJob.setStatus(errorWithCode.getJobStatus());
 		} else {
-			if (asyncJob.getStatus() == null) {
+			if (asyncJob.getStatus() == null || asyncJob.getStatus() == JobStatus.IN_PROGRESS) {
 				asyncJob.setStatus(JobStatus.SYSTEM_ERROR);
 			}
 		}

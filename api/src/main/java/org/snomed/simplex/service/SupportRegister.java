@@ -39,11 +39,13 @@ public class SupportRegister {
 		String stackTrace = getStackTrace(exception);
 		supportLog.error("Support Issue|System|CodeSystem:{}| Job:{},{}| MESSAGE:{}| STACK_TRACE:{}", job.getCodeSystem(), job.getId(),
 				job.getDisplay(), errorMessage, stackTrace);
+		supportLog.info("Stack trace", exception);
 	}
 
 	public void handleSystemError(CodeSystem codeSystem, String errorMessage, ServiceException exception) {
 		String stackTrace = getStackTrace(exception);
 		supportLog.error("Support Issue|System|CodeSystem:{}| MESSAGE:{}| STACK_TRACE:{}", codeSystem.getShortName(), errorMessage, stackTrace);
+		supportLog.info("Stack trace", exception);
 	}
 
 	private String getStackTrace(ServiceException exception) {
