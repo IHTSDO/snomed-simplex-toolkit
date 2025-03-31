@@ -1,0 +1,182 @@
+# dev-simplex Weblate install
+
+# Install Python 3.12
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python3.12 python3.12-venv python3.12-dev -y
+
+# Install required libraries
+sudo apt install -y \
+   libxml2-dev libxslt-dev libfreetype6-dev libjpeg-dev libz-dev libyaml-dev \
+   libffi-dev libcairo-dev gir1.2-pango-1.0 gir1.2-rsvg-2.0 libgirepository1.0-dev \
+   libacl1-dev liblz4-dev libzstd-dev libxxhash-dev libssl-dev libpq-dev libjpeg-dev build-essential \
+   python3-gdbm python3.12-dev git default-libmysqlclient-dev
+
+sudo apt install -y \
+   libldap2-dev libldap-common libsasl2-dev \
+   libxmlsec1-dev gettext
+
+# Install nginx and python runner
+# sudo apt install -y nginx uwsgi uwsgi-plugin-python3
+
+
+# Install Redis version 7
+# https://redis.io/docs/latest/operate/oss_and_stack/install/
+sudo apt-get install lsb-release curl gpg
+curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+sudo chmod 644 /usr/share/keyrings/redis-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+sudo apt-get update
+sudo apt-get install -y redis
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+sudo systemctl status redis-server
+
+# Install MySQL
+sudo apt install -y mysql-server
+sudo mysql_secure_installation
+
+# Install git 2.28 or newer
+sudo add-apt-repository ppa:git-core/ppa
+sudo apt update
+sudo apt install git
+
+
+sudo su
+# curl -LsSf https://astral.sh/uv/install.sh | sh
+bash
+mkdir /opt/weblate/weblate-env
+python3.12 -m venv weblate-env
+cd /opt/weblate/weblate-env
+. bin/activate
+pip install --upgrade pip
+pip install mysqlclient
+pip install "weblate[all]"==5.9.2
+pip install gunicorn
+
+# Run command to create new secret key (used for weblate cookies)
+# Copy value into new settings file...
+weblate-generate-secret-key
+
+cp lib/python3.12/site-packages/weblate/settings_example.py lib/python3.8/site-packages/weblate/settings.py
+vim lib/python3.12/site-packages/weblate/settings.py
+SECRET_KEY = "NEW SECRET KEY HERE"
+SITE_DOMAIN = "dev-simplex.ihtsdotools.org"
+ENABLE_HTTPS = True
+        "ENGINE": "django.db.backends.mysql",
+DATA_DIR = "/opt/weblate/data"
+DEBUG = False
+ADMINS = (
+    ("Kai Kewley", "kke@ihtsdo.org"),
+)
+SERVER_EMAIL = "noreply@ihtsdo.org"
+DEFAULT_FROM_EMAIL = "noreply@ihtsdo.org"
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://dev-simplex.ihtsdotools.org",
+]
+
+Directly after:
+    "weblate.accounts.middleware.AuthenticationMiddleware",
+Add:
+    "django.contrib.auth.middleware.RemoteUserMiddleware",
+
+REGISTRATION_OPEN = False
+
+AUTHENTICATION_BACKENDS: tuple[str, ...] = (
+    "django.contrib.auth.backends.RemoteUserBackend",
+    "weblate.accounts.auth.WeblateUserBackend",
+)
+# REMOTE_USER_HEADER = "HTTP_X_AUTH_USERNAME"
+ACCOUNT_AUTO_SIGNUP = True
+
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "100/day",
+        "user": "500000/hour",
+    },
+
+
+weblate collectstatic
+chown -R weblate:weblate /opt/weblate
+
+# For quick dev
+cd /opt/weblate/weblate-env
+. bin/activate
+lib/python3.12/site-packages/weblate/examples/celery start
+weblate runserver
+
+
+# Create python webapp config
+cp lib/python3.12/site-packages/weblate/examples/weblate.uwsgi.ini weblate.wsgi
+vim weblate.wsgi
+socket        = 127.0.0.1:8095
+wsgi-file     = /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/wsgi.py
+virtualenv = /opt/weblate/weblate-env
+
+# Manual test gunicorn works.
+gunicorn --bind 0.0.0.0:8000 --chdir /opt/weblate weblate.wsgi
+# should boot okay. cancel
+
+
+# Service setup (not working)
+Create /etc/systemd/system/gunicorn.socket
+----
+[Unit]
+Description=gunicorn socket
+
+[Socket]
+ListenStream=/run/gunicorn.sock
+
+[Install]
+WantedBy=sockets.target
+---
+
+Create /etc/systemd/system/gunicorn.service
+---
+[Unit]
+Description=gunicorn daemon
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+User=weblate
+Group=weblate
+WorkingDirectory=/opt/weblate/weblate-env/
+Environment="DJANGO_SETTINGS_MODULE=weblate.settings"
+ExecStart=/opt/weblate/weblate-env/bin/gunicorn \
+    --preload \
+    --timeout 3600 \
+    --graceful-timeout 3600 \
+    --worker-class=gthread \
+    --workers=2 \
+    --threads=16 \
+    --bind unix:/run/gunicorn.sock \
+    weblate.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+---
+
+sudo useradd -r -s /bin/false weblate
+sudo groupadd weblate
+sudo chown -R weblate:weblate /opt/weblate
+
+
+sudo systemctl start gunicorn
+sudo systemctl enable gunicorn
+
+
+use /manage/ssh/ to take Public RSA SSH key and add to github repo with write access.
+
+
+
+
+TODO: run weblate under weblate user
+
+
+# Upgrade
+sudo systemctl restart gunicorn
+
+
