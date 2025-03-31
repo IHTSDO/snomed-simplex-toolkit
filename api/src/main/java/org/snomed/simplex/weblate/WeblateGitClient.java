@@ -4,9 +4,11 @@ import com.google.common.base.Strings;
 import com.google.common.io.Files;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.transport.*;
+import org.eclipse.jgit.transport.PushResult;
+import org.eclipse.jgit.transport.RemoteRefUpdate;
+import org.eclipse.jgit.transport.SshTransport;
+import org.eclipse.jgit.transport.Transport;
 import org.eclipse.jgit.transport.sshd.JGitKeyCache;
-import org.eclipse.jgit.transport.sshd.KeyPasswordProvider;
 import org.eclipse.jgit.transport.sshd.SshdSessionFactoryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,8 +20,6 @@ import org.testcontainers.shaded.com.google.common.collect.Lists;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 @Service
 public class WeblateGitClient {
