@@ -1,0 +1,254 @@
+.main-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* align-items: center; */
+    margin: 20px 0;
+    padding: 1rem;
+}
+
+.component-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    max-height: calc(100vh - 190px);
+}
+
+.centered-component-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  max-height: calc(100vh - 190px - 2rem);
+  gap: 1rem;
+  margin-top: 2rem;
+}
+    
+.component-col {
+    flex: 1;
+    margin: 0 10px;
+}
+    
+.component-col-left {
+    flex: 2;
+    margin: 0 10px;
+}
+.component-col-right {
+    flex: 3;
+    margin: 0 10px;
+    padding-bottom: 20px;
+}
+
+.skeleton-loader {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: transparent; /* Set background to transparent */
+    animation: shimmer 0.5s infinite linear; /* Speed up the animation */
+  }
+  
+.skeleton-text {
+    height: 20px;
+    margin: 10px 0;
+    background-color: #eee;
+    border-radius: 4px; /* Rounded corners for each row */
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+.selected {
+  background-color: rgba(147, 197, 231, 0.993);
+}
+
+.hoverable-item:hover {
+  background-color: rgba(0, 0, 0, 0.1); /* Light gray background on hover */
+  cursor: pointer;
+}
+
+.button-container {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 1rem;
+  gap: 10px;
+}
+
+.centered-button-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 1rem;
+  gap: 10px;
+}
+
+    
+#components-list {
+  max-height: calc(100vh - 240px);
+  overflow-y: auto;
+  margin-bottom: 2rem;
+}
+
+#members-list {
+  max-height: 250px;
+  overflow-y: auto;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+    
+#details {
+    max-height: calc(100vh - 240px);
+    overflow-y: auto;
+    }
+    
+    .align-right {
+    text-align: right;
+    }
+    
+    .details-field-name {
+    font-size: 1.5rem;
+    }
+    
+    .details-field-value{
+    font-size: 1.5rem;
+    font-style: italic;
+    }
+    
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+    }
+    
+    mat-form-field {
+      width: 60%;
+      margin-bottom: 16px;
+    }
+    
+    .saving {
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+    }
+    
+    .pill {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px; // Gives it the "pill" shape
+      font-size: 0.9rem;   // Adjust as needed
+      text-align: center;
+      margin-right: 5px;   // Spacing if next to list items
+      vertical-align: middle;
+      font-weight: bold;
+    
+      &-green {
+        background-color: #4CAF50; // Adjust to your preferred green
+        color: #FFFFFF;            // Adjust text color if needed
+      }
+    
+      &-yellow {
+        background-color: #FFEB3B; // Adjust to your preferred yellow
+        color: #333333;            // Adjust text color if needed
+      }
+    
+      &-blue {
+        background-color: #2196F3; // Adjust to your preferred blue
+        color: #FFFFFF;            // Adjust text color if needed
+      }
+    
+      &-purple {
+        background-color: #f321f3; // Adjust to your preferred blue
+        color: #FFFFFF;            // Adjust text color if needed
+      }
+    }
+    
+    h4 {
+      margin-top: 2rem;
+    }
+    
+    mat-list-item:not(:last-child) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1); // Change the rgba values for different shades
+    }
+    
+    .home-message {
+      font-size: 2rem;
+      font-weight: lighter;
+      font-style: italic;
+    }
+    
+    .artifact-info {
+      font-style: italic;
+      font-weight: lighter;
+      margin-left: 1rem;
+    }
+    
+    /* Flex container */
+    .title-container {
+      display: flex;
+      justify-content: space-between; /* This will space out the children */
+    }
+    
+    /* Left column */
+    .title-left-column {
+      align-self: flex-start; /* Aligns to the start of the flex container */
+      flex: 0 0 auto; /* This ensures the column does not grow or shrink */
+    }
+    
+    /* Right column */
+    .title-right-column {
+      align-self: flex-end; /* Aligns to the end of the flex container */
+      flex: 0 0 auto; /* This ensures the column does not grow or shrink */
+    }
+
+    .skeleton-cell-loader {
+      height: 16px;
+      width: 100%;
+      background-color: #e0e0e0;
+      border-radius: 4px;
+      background-image: linear-gradient(
+        to right,
+        #e0e0e0 0%,
+        #f5f5f5 50%,
+        #e0e0e0 100%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 0.5s infinite linear; /* Speed up the animation */
+    }
+    
+    @keyframes shimmer {
+      0% {
+        background-position: -100% 0;
+      }
+      100% {
+        background-position: 100% 0;
+      }
+    }
+
+    .waiting-panel {
+      display: flex;
+      height: 60vh;
+      width: 100%;
+      justify-content: center;
+      align-items: center;
+      align-content: center;
+      flex-grow: 1;
+      opacity: 0.2;
+    }
+
+    .details-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      align-content: center;
+      flex-grow: 1;
+    }
+
+    .sk-width {
+      width: 70%;
+    }
+
+    .large-text {
+      font-size: large;
+    }
