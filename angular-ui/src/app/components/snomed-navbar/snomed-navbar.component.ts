@@ -164,7 +164,8 @@ export class SnomedNavbarComponent implements OnInit {
                          currentRoute.includes('artifact/') ? ['artifact', edition] :                 
                          currentRoute.includes('manage/') ? ['manage', edition] :
                          currentRoute.includes('info/') ? ['info', edition] :
-                         currentRoute.includes('releases/') ? ['releases', edition] : ['artifact', edition];
+                         currentRoute.includes('releases/') ? ['releases', edition] :
+                         currentRoute.includes('translation-sets/') ? ['translation-sets', edition] : ['artifact', edition];
     
         // Navigate to the new route while keeping the current path structure
         this.router.navigate(newRoute);

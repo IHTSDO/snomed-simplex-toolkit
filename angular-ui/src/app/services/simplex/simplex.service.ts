@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, lastValueFrom, of, throwError } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { catchError, delay, switchMap } from 'rxjs/operators';
 import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
 
 @Injectable({
@@ -320,6 +320,46 @@ export class SimplexService {
 
   public refreshSharedSet(slug: string): Observable<any> {
     return this.http.post(`/api/weblate/shared-components/${slug}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getLabelSets(edition: string): Observable<any> {
+    const mockLabelSets = [
+      { id:'1', name: 'Top 1000 clinical findings', length: 1000 },
+      { id:'2', name: 'Nursing procedures', length: 145 },
+      { id:'3', name: 'Substances for allergies', length: 200 }
+    ];
+    return of(mockLabelSets).pipe(delay(1000)); // 1 second delay
+
+    // return this.http.get(`/api/${edition}/label-sets`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getLabelSetDetails(edition: string, labelSetId: string): Observable<any> {
+    const mockLabelSetDetails = [
+      { id:'1', languageRefset: {code: '298137102', display: 'Danish language'}, labguageCode: 'da', progress: 75, ecl: '<< 12345678900 |Clinical findings|' },
+      { id:'2', languageRefset: {code: '298137102', display: 'Danish language'}, labguageCode: 'da', progress: 50, ecl: '<< 98754896502 |Nursing procedures|' },
+      { id:'3', languageRefset: {code: '298137102', display: 'Danish language'}, labguageCode: 'da', progress: 25, ecl: '<< 34534535301 |Substances|' }
+    ];
+    const detail = mockLabelSetDetails.find(set => set.id === labelSetId);
+    return of(detail).pipe(delay(1000)); // 1 second delay
+
+    // return this.http.get(`/api/${edition}/label-sets`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  getLabelSetMembers(edition: string, labelSetId: string, offset?: number, limit?: number): Observable<any> {
+    if (!offset) offset = 0;
+    if (!limit) limit = 10;
+    const allMockMembers = Array.from({ length: 50 }, (_, i) => ({
+      code: `CODE-${i + 1}`,
+      display: `Concept Name ${i + 1}`
+    }));
+  
+    // Apply pagination
+    const paginated = allMockMembers.slice(offset, offset + limit);
+  
+    // Simulate a slight delay like a real HTTP call
+    return of(paginated).pipe(delay(500));
+    // const url = `/api/${edition}/label-sets/${labelSetId}/members?offset=${offset}&limit=${limit}`;
+    // return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
   }
 
 }

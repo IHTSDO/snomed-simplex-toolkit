@@ -76,6 +76,7 @@ import { AdminSettingsComponent } from './components/admin-settings/admin-settin
 import { CreateSharedSetComponent } from './components/admin-settings/create-shared-set/create-shared-set.component';
 import { CommonModule } from '@angular/common';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { TranslationSetComponent } from './components/translation-set/translation-set.component';
 
 // SERVICE IMPORTS
 
@@ -120,7 +121,8 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
         EditionActivitiesComponent,
         DownloadReleasesComponent,
         AdminSettingsComponent,
-        CreateSharedSetComponent
+        CreateSharedSetComponent,
+        TranslationSetComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         FormsModule,
