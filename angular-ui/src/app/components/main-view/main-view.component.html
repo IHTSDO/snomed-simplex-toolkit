@@ -13,6 +13,12 @@
                   <span class="nav-item-name">Manage Edition</span>
                 </span>
               </mat-list-item>
+              <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'translation-sets'}" (click)="navigateTo('translation-sets')">
+                <span class="nav-item">
+                  <mat-icon mat-list-icon>view_list</mat-icon>
+                  <span class="nav-item-name">Translation Sets</span>
+                </span>
+              </mat-list-item>
               <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'releases'}" (click)="navigateTo('releases')">
                 <span class="nav-item">
                   <mat-icon mat-list-icon>library_books</mat-icon>
