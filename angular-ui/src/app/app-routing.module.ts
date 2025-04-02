@@ -6,6 +6,7 @@ import { ManageCodesystemComponent } from './components/manage-codesystem/manage
 import { SelectEditionComponent } from './components/select-edition/select-edition.component';
 import { WelcomeComponent } from './components/welcome/welcome.component';
 import { AdminSettingsComponent } from './components/admin-settings/admin-settings.component';
+import { TranslationSetComponent } from './components/translation-set/translation-set.component';
 
 const routes: Routes = [
     { path: 'home', component: WelcomeComponent },
@@ -15,6 +16,7 @@ const routes: Routes = [
     { path: 'manage/:edition?', component: ManageCodesystemComponent },
     { path: 'info/:edition?', component: SelectEditionComponent },
     { path: 'releases/:edition?', component: DownloadReleasesComponent },
+    { path: 'translation-sets/:edition?', component: TranslationSetComponent },
     { path: '', redirectTo: '/home', pathMatch: 'full' }
 ];
   

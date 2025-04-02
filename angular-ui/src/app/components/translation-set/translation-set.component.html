@@ -1,0 +1,112 @@
+<div class="main-container" *ngIf="!selectedEdition">
+    <div class="waiting">
+        Waiting for edition information
+        <mat-spinner [diameter]="20"></mat-spinner>
+    </div>
+</div>
+<div class="main-container" *ngIf="selectedEdition">
+    <div class="component-row">
+        <div class="component-col-left">
+            <h2>Translation Sets</h2>
+            <mat-list id="components-list">
+                <div *ngIf="loadingSets || loading">
+                    <!-- Repeat this block for as many skeleton items as you want -->
+                    <div class="skeleton-loader">
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <!-- <div class="skeleton-button"></div> -->
+                    </div>
+                </div>
+                <!-- Actual List Items -->
+                <ng-container *ngIf="(!loadingSets && !loading)">
+                    <mat-list-item class="hoverable-item" matRipple *ngFor="let set of labelSets"
+                    (click)="selectSet(set)"
+                    [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
+                        {{ set.name }} 
+                        <span class="pill pill-purple">{{ set.id }} </span>
+                        <span class="artifact-info">{{ set.length }} records</span>
+                    </mat-list-item>
+                    <div class="button-container">
+                        <button mat-flat-button color="primary" (click)="setMode('create')">
+                            Create new set
+                        </button>
+                    </div>
+                </ng-container>
+            </mat-list>
+        </div>
+        <div class="component-col-right">
+            <div *ngIf="!selectedLabelSet"  class="waiting-panel">
+                <img src="/assets/artifact.png">
+            </div>
+            <div *ngIf="selectedLabelSet" class="details-panel">
+                <h2>Set: {{ selectedLabelSet.name }}</h2>
+                <br><br>
+                <div>
+                    <button mat-flat-button color="primary">
+                        Open Translation Set in Weblate
+                    </button>
+                </div>
+                <div class="centered-component-row">
+                    <!-- Repeat this block for as many skeleton items as you want -->
+                    <div class="skeleton-loader sk-width" *ngIf="loadingLabelSetDetails || !selectedLabelSetDetails">
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text"></div>
+                    </div>
+                    <div *ngIf="!loadingLabelSetDetails && selectedLabelSetDetails" class="centered-component-row large-text">
+                        <div>Language Refset:  {{ selectedLabelSetDetails.languageRefset?.code }} - {{ selectedLabelSetDetails.languageRefset?.display }}</div>
+                        <div>Language Code: {{ selectedLabelSetDetails.languageCode }}</div>
+                        <div>Size: {{ selectedLabelSet.length }} records</div>
+                        <div>Progress: {{ selectedLabelSetDetails.progress }}% completed</div>
+                        <div>Type: ECL: {{ selectedLabelSetDetails.ecl }}</div>
+                    </div>
+                    <div class="centered-component-row">
+                        <h3>Label Set Members</h3>
+                        <mat-list id="members-list" class="sk-width">
+                            <div *ngIf="loadingLabelSetMembers || loadingLabelSetDetails">
+                                <!-- Repeat this block for as many skeleton items as you want -->
+                                <div class="skeleton-loader">
+                                    <div class="skeleton-text"></div>
+                                    <div class="skeleton-text"></div>
+                                    <div class="skeleton-text"></div>
+                                    <div class="skeleton-text"></div>
+                                    <div class="skeleton-text"></div>
+                                    <div class="skeleton-text"></div>
+                                    <!-- <div class="skeleton-button"></div> -->
+                                </div>
+                            </div>
+                            <!-- Actual List Items -->
+                            <ng-container *ngIf="(!loadingLabelSetMembers && !loadingLabelSetDetails)">
+                                <mat-list-item class="hoverable-item" matRipple *ngFor="let member of selectedLabelSetMembers">
+                                    {{ member.display }} - {{ member.code }} 
+                                </mat-list-item>
+                            </ng-container>
+                        </mat-list>
+                    </div>
+                    <div class="centered-button-container">
+                        <button mat-flat-button color="primary">
+                            Push to Weblate
+                        </button>
+                        <button mat-flat-button color="primary">
+                            Pull from Weblate
+                        </button>
+                        <button mat-flat-button color="primary">
+                            Assign Set to Users
+                        </button>
+                        <button mat-flat-button color="primary">
+                            Edit Set
+                        </button>
+                        <button mat-flat-button color="warn">
+                            Delete Set
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
