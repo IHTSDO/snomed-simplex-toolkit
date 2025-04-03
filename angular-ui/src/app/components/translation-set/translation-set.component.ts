@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom, Subscription } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
@@ -21,9 +22,16 @@ export class TranslationSetComponent {
   selectedLabelSetDetails: any;
   selectedLabelSetMembers: any[] = [];
   mode = 'view';
+  saving = false;
   
+  form: FormGroup = this.fb.group({
+      id: ['', Validators.required],
+      name: ['', Validators.required],
+      ecl: ['', Validators.required]
+  });
 
-  constructor(  private simplexService: SimplexService,
+  constructor(  private fb: FormBuilder,
+                private simplexService: SimplexService,
                 private snackBar: MatSnackBar,
                 private uiConfigurationService: UiConfigurationService,
                 private changeDetectorRef: ChangeDetectorRef) {}
@@ -58,6 +66,16 @@ export class TranslationSetComponent {
           this.loading = false;
         }
       );
+  }
+
+  get formKeys(): string[] {
+    return Object.keys(this.form.controls);
+  }
+
+  submit() {
+    console.log('Form submitted:', this.form.value);
+    this.form.reset();
+    this.mode = 'view';
   }
 
   getLabelSets() {
