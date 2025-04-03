@@ -127,6 +127,12 @@ public class CustomConceptService {
 					if (concept == null) {
 						throw new ServiceException(format("Concept with code '%s' on row %s could not be found.", conceptCode, intent.getRowNumber()));
 					}
+					if (concept.getRelationships() == null) {
+						concept.setRelationships(new ArrayList<>());
+					}
+					if (concept.getClassAxioms() == null) {
+						concept.setClassAxioms(new ArrayList<>());
+					}
 					if (!concept.getModuleId().equals(defaultModule)) {
 						throw new ServiceException(format("Concept with code '%s' on row %s is from a different module and can not be modified using this function.",
 								conceptCode, intent.getRowNumber()));
@@ -145,6 +151,7 @@ public class CustomConceptService {
 							// Reactivate concept
 							concept.setActive(true);
 							concept.getClassAxioms().forEach(axiom -> axiom.setActive(true));
+							concept.getRelationships().forEach(rel -> rel.setActive(true));
 							changed = true;
 							changeSummary.incrementUpdated();
 						}
