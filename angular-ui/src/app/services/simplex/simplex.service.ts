@@ -335,9 +335,9 @@ export class SimplexService {
 
   public getLabelSetDetails(edition: string, labelSetId: string): Observable<any> {
     const mockLabelSetDetails = [
-      { id:'1', languageRefset: {code: '298137102', display: 'Danish language'}, labguageCode: 'da', progress: 75, ecl: '<< 12345678900 |Clinical findings|' },
-      { id:'2', languageRefset: {code: '298137102', display: 'Danish language'}, labguageCode: 'da', progress: 50, ecl: '<< 98754896502 |Nursing procedures|' },
-      { id:'3', languageRefset: {code: '298137102', display: 'Danish language'}, labguageCode: 'da', progress: 25, ecl: '<< 34534535301 |Substances|' }
+      { id:'1', languageRefset: {code: '298137102', display: 'Danish language'}, languageCode: 'da', progress: 75, ecl: '<< 12345678900 |Clinical findings|' },
+      { id:'2', languageRefset: {code: '298137102', display: 'Danish language'}, languageCode: 'da', progress: 50, ecl: '<< 98754896502 |Nursing procedures|' },
+      { id:'3', languageRefset: {code: '298137102', display: 'Danish language'}, languageCode: 'da', progress: 25, ecl: '<< 34534535301 |Substances|' }
     ];
     const detail = mockLabelSetDetails.find(set => set.id === labelSetId);
     return of(detail).pipe(delay(1000)); // 1 second delay
