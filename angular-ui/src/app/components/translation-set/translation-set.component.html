@@ -38,7 +38,7 @@
                 </ng-container>
             </mat-list>
         </div>
-        <div class="component-col-right">
+        <div class="component-col-right" *ngIf="mode == 'view'">
             <div *ngIf="!selectedLabelSet"  class="waiting-panel">
                 <img src="/assets/artifact.png">
             </div>
@@ -66,7 +66,7 @@
                         <div>Type: ECL: {{ selectedLabelSetDetails.ecl }}</div>
                     </div>
                     <div class="centered-component-row">
-                        <h3>Label Set Members</h3>
+                        <h3>Translation Set Members</h3>
                         <mat-list id="members-list" class="sk-width">
                             <div *ngIf="loadingLabelSetMembers || loadingLabelSetDetails">
                                 <!-- Repeat this block for as many skeleton items as you want -->
@@ -106,6 +106,29 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div class="component-col-right" *ngIf="mode == 'create'">
+            <h4>New Translation Set</h4>
+            <br><br>
+            <form [formGroup]="form" (keydown.enter)="$event.preventDefault(); submit()">
+                <mat-form-field *ngFor="let controlName of formKeys">
+                    <mat-label>{{controlName | camelToTitle}}</mat-label>
+
+                    <input matInput formControlName="{{controlName}}">
+                    <button *ngIf="form.controls[controlName]['value']" matSuffix 
+                        mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
+                        [disabled]= "form.get(controlName).disabled">
+                        <mat-icon>close</mat-icon>
+                    </button>
+
+                    <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
+                </mat-form-field>
+            </form>
+            <div>
+                <button mat-flat-button (click)="mode = 'view'" *ngIf="!saving">Cancel</button>
+                <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="form.invalid">Create</button>
+                <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating set...</p>
             </div>
         </div>
     </div>
