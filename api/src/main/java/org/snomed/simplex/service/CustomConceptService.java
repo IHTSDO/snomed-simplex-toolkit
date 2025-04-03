@@ -140,6 +140,14 @@ public class CustomConceptService {
 							changeSummary.incrementRemoved();
 						}
 					} else {
+						// Intent is active
+						if (!concept.isActive()) {
+							// Reactivate concept
+							concept.setActive(true);
+							concept.getClassAxioms().forEach(axiom -> axiom.setActive(true));
+							changed = true;
+							changeSummary.incrementUpdated();
+						}
 						boolean relationshipAlreadyCorrect = false;
 						if (concept.getClassAxioms().size() == 1) {
 							Axiom axiom = concept.getClassAxioms().get(0);
