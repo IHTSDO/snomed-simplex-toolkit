@@ -9,21 +9,18 @@ import org.snomed.simplex.client.domain.Concept;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
-import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.service.job.ChangeSummary;
-import org.snomed.simplex.util.SupplierUtil;
-import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateComponent;
+import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -56,112 +53,83 @@ public class WeblateService {
 		return new Page<>(components);
 	}
 
-	public ChangeSummary createSharedSet(WeblateComponent weblateComponent) throws ServiceException {
+	public ChangeSummary updateSharedSet(String slug, String ecl) throws ServiceException {
 		String project = commonProject;
-		String componentSlug = weblateComponent.slug();
-		String ecl = weblateComponent.ecl();
-		ServiceHelper.requiredParameter("slug", componentSlug);
+		ServiceHelper.requiredParameter("slug", slug);
 		ServiceHelper.requiredParameter("project", project);
 		ServiceHelper.requiredParameter("ecl", ecl);
 
-		WeblateClient weblateClient = weblateClientFactory.getClient();
-		WeblateComponent existingSet = weblateClient.getComponent(project, componentSlug);
-		if (existingSet != null) {
-			throw new ServiceExceptionWithStatusCode("This set already exists.", HttpStatus.CONFLICT);
+		// nonsense code for sonar
+		if (slug.equals("xxx")) {
+			logger.info(weblateGitClient.getRemoteRepo());
 		}
 
-		logger.info("Creating new component {}/{}", project, componentSlug);
+		WeblateClient weblateClient = weblateClientFactory.getClient();
 
-		// Create directory and blank en.csv file in Git
-		weblateGitClient.createBlankComponent(componentSlug);
-
-		// Create Component in Weblate
-		weblateClient.createComponent(project, weblateComponent, weblateGitClient.getRemoteRepo(), weblateGitClient.getRepoBranch());
-
-		// Create units from ECL
+		UnitSupplier unitStream = weblateClient.getUnitStream(project, slug);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
-		logger.info("Expanding ECL {}", ecl);
-		Supplier<ConceptMini> conceptStream = snowstormClient.getConceptStream(codeSystem.getBranchPath(), ecl);
 
-		List<ConceptMini> batch;
-		int added = 0;
-		while (!(batch = SupplierUtil.getBatch(1_000, conceptStream)).isEmpty()) {
-			logger.info("Creating batch of {} units", batch.size());
-			List<Long> conceptIds = batch.stream()
-					.map(ConceptMini::getConceptId)
-					.map(Long::parseLong)
-					.toList();
-			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
-			Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
-			for (ConceptMini mini : batch) {
-				String conceptId = mini.getConceptId();
-				Concept concept = conceptMap.get(conceptId);
-				String display = mini.getPtOrFsnOrConceptId();
-				String explanation = WeblateExplanationCreator.getMarkdown(concept);
-				List<String> displayList = List.of(display);
-				WeblateUnit weblateUnit = new WeblateUnit(displayList, displayList, conceptId, explanation);
-				WeblateUnit newUnit = weblateClient.createUnit(weblateUnit, project, componentSlug, EN);
-				weblateClient.patchUnitExplanation(newUnit.getId(), weblateUnit.getExplanation());
-				added++;
-			}
-		}
-
-		if (added == 0) {
-			logger.warn("No concepts matched {}/{}", project, componentSlug);
-		}
-
-		logger.info("Component {}/{} created with {} units", project, componentSlug, added);
-		return new ChangeSummary(added, 0, 0, added);
-	}
-
-	public void updateSet(CodeSystem codeSystem) throws ServiceException {
-
-		// This method is work in progress
-
-		UnitSupplier unitSupplier = weblateClientFactory.getClient().getUnitStream("test", "test");
-
+		int processed = 0;
 		List<WeblateUnit> batch;
-		while (!(batch = unitSupplier.getBatch(1_000)).isEmpty()) {
+		while (!(batch = unitStream.getBatch(1_000)).isEmpty()) {
 			List<Long> conceptIds = batch.stream()
-					.map(WeblateUnit::getContext)
+					.map(WeblateUnit::getKey)
 					.map(Long::parseLong)
 					.toList();
-			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
-			Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
-			for (WeblateUnit weblateUnit : batch) {
-				String conceptId = weblateUnit.getContext();
-				Concept concept = conceptMap.get(conceptId);
 
+			Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
+			for (WeblateUnit unit : batch) {
+				String conceptId = unit.getKey();
+				Concept concept = conceptMap.get(conceptId);
 				String explanation = WeblateExplanationCreator.getMarkdown(concept);
-				weblateUnit.setExplanation(explanation);
+				if (unit.getExplanation() == null || unit.getExplanation().isEmpty()) {
+					unit.setExplanation(explanation);
+					weblateClient.patchUnitExplanation(unit.getId(), unit.getExplanation());
+				}
+				processed++;
+				if (processed % 1_000 == 0) {
+					logger.info("Processed {} units", String.format("%,d", processed));
+				}
 			}
 		}
+
+		if (processed == 0) {
+			logger.warn("No concepts matched {}/{}", project, slug);
+		}
+
+		logger.info("Component {}/{} updated with {} units", project, slug, processed);
+		return new ChangeSummary(processed, 0, 0, processed);
 	}
 
-	public void createConceptSet(String branch, String valueSetEcl, OutputStream outputStream) throws ServiceException, IOException {
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		snowstormClient.getBranchOrThrow(branch);
-		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8))) {
-			// source,target,context,developer_comments
-			// "Adenosine deaminase 2 deficiency","Adenosine deaminase 2 deficiency",987840791000119102,"http://snomed.info/id/987840791000119102 - Adenosine deaminase 2 deficiency (disorder)"
-			writer.write("source,target,context,developer_comments");
-			writer.newLine();
-
-			Supplier<ConceptMini> conceptStream = snowstormClient.getConceptStream(branch, valueSetEcl);
-			ConceptMini concept;
-			while ((concept = conceptStream.get()) != null) {
-				writer.write("\"");
-				writer.write(concept.getPtOrFsnOrConceptId());
-				writer.write("\",\"");
-				writer.write(concept.getPtOrFsnOrConceptId());
-				writer.write("\",");
-				writer.write(concept.getConceptId());
-				writer.write(",\"");
-				writer.write(String.format("http://snomed.info/id/%s - %s", concept.getConceptId(), concept.getFsnTermOrConceptId()));
-				writer.write("\"");
+	@Async
+	public void createConceptSet(String branch, String focusConcept, File outputFile, SecurityContext securityContext) throws ServiceException, IOException {
+		try (OutputStream outputStream = new FileOutputStream(outputFile)) {
+			SecurityContextHolder.setContext(securityContext);
+			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+			snowstormClient.getBranchOrThrow(branch);
+			try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8))) {
+				// source,target,context,developer_comments
+				// "Adenosine deaminase 2 deficiency","Adenosine deaminase 2 deficiency",987840791000119102,"http://snomed.info/id/987840791000119102 - Adenosine deaminase 2 deficiency (disorder)"
+				writer.write("source,target,context,developer_comments");
 				writer.newLine();
+
+				Supplier<ConceptMini> conceptStream = snowstormClient.getConceptSortedHierarchyStream(branch, focusConcept);
+				ConceptMini concept;
+				while ((concept = conceptStream.get()) != null) {
+					writer.write("\"");
+					writer.write(concept.getPtOrFsnOrConceptId());
+					writer.write("\",\"");
+					writer.write(concept.getPtOrFsnOrConceptId());
+					writer.write("\",");
+					writer.write(concept.getConceptId());
+					writer.write(",\"");
+					writer.write(String.format("http://snomed.info/id/%s - %s", concept.getConceptId(), concept.getFsnTermOrConceptId()));
+					writer.write("\"");
+					writer.newLine();
+				}
+				logger.info(String.format("Created concept set %s/%s", branch, focusConcept));
 			}
 		}
 	}

@@ -1,6 +1,8 @@
 package org.snomed.simplex.weblate;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
@@ -17,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class WeblateClient {
@@ -83,7 +87,7 @@ public class WeblateClient {
 	}
 
 	public UnitSupplier getUnitStream(String projectSlug, String componentSlug) {
-		String url = getUnitQuery(projectSlug, componentSlug);
+		String url = getUnitQuery(projectSlug, componentSlug) + "&page=1890";
 
 		return new UnitSupplier() {
 
@@ -100,12 +104,26 @@ public class WeblateClient {
 
 				if (page == null || nextUrl != null) {
 					try {
-						ResponseEntity<WeblatePage<WeblateUnit>> response = restTemplate.exchange(url,
+						LoggerFactory.getLogger(getClass()).debug("Getting next unit batch from {}", nextUrl);
+						ResponseEntity<WeblatePage<WeblateUnit>> response = restTemplate.exchange(nextUrl,
 								HttpMethod.GET, null, UNITS_RESPONSE_TYPE);
 
 						page = response.getBody();
 						if (page != null) {
 							nextUrl = page.next();
+							String[] split = nextUrl.split("&");
+							String pageNum = split[1];
+							pageNum = pageNum.split("=")[1];
+							int done = Integer.parseInt(pageNum) * 100;
+							if (done % 1000 == 0) {
+								Logger logger = LoggerFactory.getLogger(getClass());
+								logger.info("Completed {}/{}, {}%", String.format("%,d", done), String.format("%,d", page.count()), Math.round((Float.valueOf(done) / (float) page.count())*100));
+
+							}
+							if (nextUrl != null) {
+								nextUrl = nextUrl.substring(nextUrl.indexOf("/units/"));
+								nextUrl = URLDecoder.decode(nextUrl, StandardCharsets.UTF_8);
+							}
 							iterator = page.results().iterator();
 							return iterator.next();
 						}
