@@ -10,9 +10,9 @@ public interface UnitSupplier {
 
 	WeblateUnit get() throws ServiceExceptionWithStatusCode;
 
-	default List<WeblateUnit> getBatch(int i) throws ServiceExceptionWithStatusCode {
+	default List<WeblateUnit> getBatch(int batchSize) throws ServiceExceptionWithStatusCode {
 		List<WeblateUnit> batch = new ArrayList<>();
-		for (int j = 0; j < i; j++) {
+		for (int j = 0; j < batchSize; j++) {
 			WeblateUnit unit = get();
 			if (unit == null) {
 				break;

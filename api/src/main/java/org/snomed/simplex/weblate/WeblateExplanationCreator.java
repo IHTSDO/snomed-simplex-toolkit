@@ -1,6 +1,7 @@
 package org.snomed.simplex.weblate;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
 import org.snomed.simplex.client.domain.*;
 
 import java.util.ArrayList;
@@ -29,10 +30,7 @@ public class WeblateExplanationCreator {
 				.filter(d -> d.getType() == FSN)
 				.filter(d -> d.getAcceptabilityMap().get(Concepts.US_LANG_REFSET) == Description.Acceptability.PREFERRED)
 				.findFirst().orElse(new Description());
-		Description pt = activeDescriptions.stream()
-				.filter(d -> d.getType() == SYNONYM)
-				.filter(d -> d.getAcceptabilityMap().get(Concepts.US_LANG_REFSET) == Description.Acceptability.PREFERRED)
-				.findFirst().orElse(new Description());
+		Description pt = getPreferredTerm(activeDescriptions);
 		List<Description> synonyms = activeDescriptions.stream()
 				.filter(d -> d.getType() == SYNONYM)
 				.filter(d -> d.getAcceptabilityMap().get(Concepts.US_LANG_REFSET) == Description.Acceptability.ACCEPTABLE)
@@ -58,6 +56,14 @@ public class WeblateExplanationCreator {
 		}
 		builder.append("[View concept](http://snomed.info/id/").append(concept.getConceptId()).append(")");
 		return builder.toString();
+	}
+
+	public static @NotNull Description getPreferredTerm(List<Description> activeDescriptions) {
+		Description pt = activeDescriptions.stream()
+				.filter(d -> d.getType() == SYNONYM)
+				.filter(d -> d.getAcceptabilityMap().get(Concepts.US_LANG_REFSET) == Description.Acceptability.PREFERRED)
+				.findFirst().orElse(new Description());
+		return pt;
 	}
 
 	private static void appendRow(StringBuilder builder, String type, String term, List<Pair<String, ConceptMini>> attributes, int row) {
