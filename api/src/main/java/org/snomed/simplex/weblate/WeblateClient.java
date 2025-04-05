@@ -111,16 +111,17 @@ public class WeblateClient {
 						page = response.getBody();
 						if (page != null) {
 							nextUrl = page.next();
-							String[] split = nextUrl.split("&");
-							String pageNum = split[1];
-							pageNum = pageNum.split("=")[1];
-							int done = Integer.parseInt(pageNum) * 100;
-							if (done % 1000 == 0) {
-								Logger logger = LoggerFactory.getLogger(getClass());
-								logger.info("Completed {}/{}, {}%", String.format("%,d", done), String.format("%,d", page.count()), Math.round((Float.valueOf(done) / (float) page.count())*100));
-
-							}
 							if (nextUrl != null) {
+								String[] split = nextUrl.split("&");
+								String pageNum = split[1];
+								pageNum = pageNum.split("=")[1];
+								int done = Integer.parseInt(pageNum) * 100;
+								if (done % 1000 == 0) {
+									Logger logger = LoggerFactory.getLogger(getClass());
+									int percentComplete = Math.round(((float) done / page.count()) * 100);
+									logger.info("Completed {}/{}, {}%", String.format("%,d", done), String.format("%,d", page.count()), percentComplete);
+
+								}
 								nextUrl = nextUrl.substring(nextUrl.indexOf("/units/"));
 								nextUrl = URLDecoder.decode(nextUrl, StandardCharsets.UTF_8);
 							}
