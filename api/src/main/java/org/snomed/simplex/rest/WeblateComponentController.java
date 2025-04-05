@@ -2,6 +2,7 @@ package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -15,9 +16,11 @@ import org.snomed.simplex.weblate.WeblateService;
 import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
+import java.io.*;
+import java.util.UUID;
 
 @RestController
 @Tag(name = "Weblate Translation Management")
@@ -42,17 +45,16 @@ public class WeblateComponentController {
 
 	@PostMapping("shared-components")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void createSharedSet(@RequestBody WeblateComponent weblateComponent) throws ServiceException, IOException {
-		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
-		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.TRANSLATION_SET_CREATE);
-		jobService.queueContentJob(rootCodeSystem, "Create shared set %s".formatted(weblateComponent.name()), null, null, null, activity,
-				asyncJob -> weblateService.createSharedSet(weblateComponent));
+	public void createSharedSet(@RequestBody WeblateComponent weblateComponent) {
 	}
 
 	@PostMapping("shared-components/{slug}/refresh")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void refreshSharedSet(@PathVariable String slug, @RequestParam String ecl) {
-		// Code stub to enable UI development
+	public void refreshSharedSet(@PathVariable String slug, @RequestParam String ecl) throws ServiceException, IOException {
+		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
+		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.TRANSLATION_SET_CREATE);
+		jobService.queueContentJob(rootCodeSystem, "Update shared set %s".formatted(slug), null, null, null, activity,
+				asyncJob -> weblateService.updateSharedSet(slug, ecl));
 	}
 
 	@GetMapping("shared-components/{slug}/records")
@@ -66,7 +68,7 @@ public class WeblateComponentController {
 	@PutMapping("shared-components/{slug}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void updateSharedSet(@PathVariable String slug, @RequestBody WeblateComponent weblateComponent) {
-		// Code stub to enable UI development
+//		weblateService.createConceptSet(branch, focusConcept, outputFile, SecurityContextHolder.getContext());
 	}
 
 	@DeleteMapping("shared-components/{slug}")
@@ -76,11 +78,15 @@ public class WeblateComponentController {
 	}
 
 	@GetMapping(value = "/component-csv", produces = "text/csv")
-	public void createCollection(@RequestParam String branch, @RequestParam String valueSetEcl,
+	public void createCollection(@RequestParam String branch, @RequestParam String focusConcept,
 								 HttpServletResponse response) throws ServiceException, IOException {
 
 		response.setContentType("text/csv");
-		weblateService.createConceptSet(branch, valueSetEcl, response.getOutputStream());
+		File folder = new File("weblate-components");
+		folder.mkdirs();
+		File outputFile = new File(folder, UUID.randomUUID() + ".csv");
+		LoggerFactory.getLogger(getClass()).info("Created temporary file " + outputFile.getAbsolutePath());
+		weblateService.createConceptSet(branch, focusConcept, outputFile, SecurityContextHolder.getContext());
 	}
 
 }
