@@ -550,14 +550,14 @@ public class SnowstormClient {
 	public Supplier<ConceptMini> getConceptSortedHierarchyStream(String branch, String focusConcept) {
 		return new Supplier<>() {
 
-			private Stack<List<ConceptMini>> stack = null;
+			private Deque<List<ConceptMini>> stack = null;
 			private final Set<Long> coveredConcepts = new LongOpenHashSet();
 
 			@Override
 			public ConceptMini get() {
 				if (stack == null) {
 					// Create stack with just focus concept
-					stack = new Stack<>();
+					stack = new ArrayDeque<>();
 					List<ConceptMini> conceptList = getConceptList(branch, focusConcept);
 					stack.push(conceptList);
 				}
@@ -592,7 +592,7 @@ public class SnowstormClient {
 				return nextConcept;
 			}
 
-			private ConceptMini getNextConceptFromStack(Stack<List<ConceptMini>> stack) {
+			private ConceptMini getNextConceptFromStack(Deque<List<ConceptMini>> stack) {
 					List<ConceptMini> deepestList = null;
 					while (!stack.isEmpty() && (deepestList = stack.peek()) != null && deepestList.isEmpty()) {
 						stack.pop();
