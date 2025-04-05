@@ -43,11 +43,6 @@ public class WeblateComponentController {
 		return weblateService.getSharedSets();
 	}
 
-	@PostMapping("shared-components")
-	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void createSharedSet(@RequestBody WeblateComponent weblateComponent) {
-	}
-
 	@PostMapping("shared-components/{slug}/refresh")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void refreshSharedSet(@PathVariable String slug, @RequestParam String ecl) throws ServiceException, IOException {
@@ -68,7 +63,7 @@ public class WeblateComponentController {
 	@PutMapping("shared-components/{slug}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void updateSharedSet(@PathVariable String slug, @RequestBody WeblateComponent weblateComponent) {
-//		weblateService.createConceptSet(branch, focusConcept, outputFile, SecurityContextHolder.getContext());
+		// not written yet
 	}
 
 	@DeleteMapping("shared-components/{slug}")
@@ -85,7 +80,7 @@ public class WeblateComponentController {
 		File folder = new File("weblate-components");
 		folder.mkdirs();
 		File outputFile = new File(folder, UUID.randomUUID() + ".csv");
-		LoggerFactory.getLogger(getClass()).info("Created temporary file " + outputFile.getAbsolutePath());
+		LoggerFactory.getLogger(getClass()).info("Created temporary file {}", outputFile.getAbsolutePath());
 		weblateService.createConceptSet(branch, focusConcept, outputFile, SecurityContextHolder.getContext());
 	}
 
