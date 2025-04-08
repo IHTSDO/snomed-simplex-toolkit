@@ -1,0 +1,3110 @@
+{
+  "conceptId": "348315009",
+  "descendantCount": 0,
+  "fsn": {
+    "term": "Product containing precisely caffeine 65 milligram and paracetamol 500 milligram/1 each conventional release oral tablet (clinical drug)",
+    "lang": "en"
+  },
+  "pt": {
+    "term": "Caffeine 65 mg and paracetamol 500 mg oral tablet",
+    "lang": "en"
+  },
+  "active": true,
+  "effectiveTime": "20180731",
+  "released": true,
+  "releasedEffectiveTime": 20180731,
+  "moduleId": "900000000000207008",
+  "definitionStatus": "FULLY_DEFINED",
+  "descriptions": [
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "descriptionId": "3567483018",
+      "term": "Product containing only acetaminophen 500 mg and caffeine 65 mg/1 each oral tablet",
+      "conceptId": "348315009",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {},
+      "type": "SYNONYM",
+      "lang": "en",
+      "inactivationIndicator": "NONCONFORMANCE_TO_EDITORIAL_POLICY",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20180731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180131,
+      "descriptionId": "3469859018",
+      "term": "Product containing acetaminophen 500 mg and caffeine 65 mg/1 each oral tablet",
+      "conceptId": "348315009",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {},
+      "type": "SYNONYM",
+      "lang": "en",
+      "inactivationIndicator": "ERRONEOUS",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20180131"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "descriptionId": "3501029010",
+      "term": "Paracetamol 500 mg and caffeine 65 mg oral tablet",
+      "conceptId": "348315009",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {},
+      "type": "SYNONYM",
+      "lang": "en",
+      "inactivationIndicator": "NONCONFORMANCE_TO_EDITORIAL_POLICY",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20180731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "descriptionId": "1194033012",
+      "term": "Paracetamol+caffeine 500mg/65mg tablet (product)",
+      "conceptId": "348315009",
+      "typeId": "900000000000003001",
+      "acceptabilityMap": {},
+      "type": "FSN",
+      "lang": "en",
+      "inactivationIndicator": "NONCONFORMANCE_TO_EDITORIAL_POLICY",
+      "caseSignificance": "INITIAL_CHARACTER_CASE_INSENSITIVE",
+      "effectiveTime": "20170731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "descriptionId": "471339019",
+      "term": "Paracetamol+caffeine 500mg/65mg tablet",
+      "conceptId": "348315009",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {},
+      "type": "SYNONYM",
+      "lang": "en",
+      "inactivationIndicator": "NONCONFORMANCE_TO_EDITORIAL_POLICY",
+      "caseSignificance": "INITIAL_CHARACTER_CASE_INSENSITIVE",
+      "effectiveTime": "20170731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "descriptionId": "3567484012",
+      "term": "Product containing only paracetamol 500 mg and caffeine 65 mg/1 each oral tablet",
+      "conceptId": "348315009",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {},
+      "type": "SYNONYM",
+      "lang": "en",
+      "inactivationIndicator": "NONCONFORMANCE_TO_EDITORIAL_POLICY",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20180731"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "descriptionId": "3501030017",
+      "term": "Acetaminophen 500 mg and caffeine 65 mg oral tablet",
+      "conceptId": "348315009",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {
+        "900000000000509007": "PREFERRED",
+        "900000000000508004": "ACCEPTABLE"
+      },
+      "type": "SYNONYM",
+      "lang": "en",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20170731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "descriptionId": "3567485013",
+      "term": "Product containing only paracetamol 500 mg and caffeine 65 mg/1 each oral tablet (clinical drug)",
+      "conceptId": "348315009",
+      "typeId": "900000000000003001",
+      "acceptabilityMap": {},
+      "type": "FSN",
+      "lang": "en",
+      "inactivationIndicator": "NONCONFORMANCE_TO_EDITORIAL_POLICY",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20180731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20020731,
+      "descriptionId": "725412011",
+      "term": "Paracetamol+caffeine 500mg/65mg tablet (substance)",
+      "conceptId": "348315009",
+      "typeId": "900000000000003001",
+      "acceptabilityMap": {},
+      "type": "FSN",
+      "lang": "en",
+      "caseSignificance": "INITIAL_CHARACTER_CASE_INSENSITIVE",
+      "effectiveTime": "20020731"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180131,
+      "descriptionId": "3469860011",
+      "term": "Product containing paracetamol 500 mg and caffeine 65 mg/1 each oral tablet",
+      "conceptId": "348315009",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {},
+      "type": "SYNONYM",
+      "lang": "en",
+      "inactivationIndicator": "ERRONEOUS",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20180131"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180131,
+      "descriptionId": "3484785015",
+      "term": "Product containing paracetamol 500 mg and caffeine 65 mg/1 each oral tablet (clinical drug)",
+      "conceptId": "348315009",
+      "typeId": "900000000000003001",
+      "acceptabilityMap": {},
+      "type": "FSN",
+      "lang": "en",
+      "inactivationIndicator": "ERRONEOUS",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20180131"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190131,
+      "descriptionId": "3681631016",
+      "term": "Product containing precisely caffeine 65 milligram and paracetamol 500 milligram/1 each conventional release oral tablet",
+      "conceptId": "348315009",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {},
+      "type": "SYNONYM",
+      "lang": "en",
+      "inactivationIndicator": "NONCONFORMANCE_TO_EDITORIAL_POLICY",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20190131"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "descriptionId": "3681630015",
+      "term": "Product containing precisely caffeine 65 milligram and paracetamol 500 milligram/1 each conventional release oral tablet (clinical drug)",
+      "conceptId": "348315009",
+      "typeId": "900000000000003001",
+      "acceptabilityMap": {
+        "900000000000509007": "PREFERRED",
+        "900000000000508004": "PREFERRED"
+      },
+      "type": "FSN",
+      "lang": "en",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20180731"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "descriptionId": "3681632011",
+      "term": "Caffeine 65 mg and paracetamol 500 mg oral tablet",
+      "conceptId": "348315009",
+      "typeId": "900000000000013009",
+      "acceptabilityMap": {
+        "900000000000509007": "ACCEPTABLE",
+        "900000000000508004": "PREFERRED"
+      },
+      "type": "SYNONYM",
+      "lang": "en",
+      "caseSignificance": "CASE_INSENSITIVE",
+      "effectiveTime": "20180731"
+    }
+  ],
+  "annotations": [],
+  "classAxioms": [
+    {
+      "axiomId": "fee2b488-589c-482f-9f7c-18c818f8d4a5",
+      "moduleId": "900000000000207008",
+      "active": true,
+      "released": true,
+      "definitionStatusId": "900000000000073002",
+      "relationships": [
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "763158003",
+          "typeId": "116680003",
+          "type": {
+            "conceptId": "116680003",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Is a (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Is a",
+              "lang": "en"
+            },
+            "id": "116680003"
+          },
+          "target": {
+            "conceptId": "763158003",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Medicinal product (product)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Medicinal product",
+              "lang": "en"
+            },
+            "id": "763158003"
+          },
+          "groupId": 0,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "421026006",
+          "typeId": "411116001",
+          "type": {
+            "conceptId": "411116001",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has manufactured dose form (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has manufactured dose form",
+              "lang": "en"
+            },
+            "id": "411116001"
+          },
+          "target": {
+            "conceptId": "421026006",
+            "active": true,
+            "definitionStatus": "FULLY_DEFINED",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Conventional release oral tablet (dose form)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Oral tablet",
+              "lang": "en"
+            },
+            "id": "421026006"
+          },
+          "groupId": 0,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "732936001",
+          "typeId": "763032000",
+          "type": {
+            "conceptId": "763032000",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has unit of presentation (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has unit of presentation",
+              "lang": "en"
+            },
+            "id": "763032000"
+          },
+          "target": {
+            "conceptId": "732936001",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Tablet (unit of presentation)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Tablet",
+              "lang": "en"
+            },
+            "id": "732936001"
+          },
+          "groupId": 0,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "concreteValue": {
+            "dataType": "INTEGER",
+            "value": "2",
+            "valueWithPrefix": "#2"
+          },
+          "typeId": "1142139005",
+          "type": {
+            "conceptId": "1142139005",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Count of base of active ingredient (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Count of base of active ingredient",
+              "lang": "en"
+            },
+            "id": "1142139005"
+          },
+          "groupId": 0,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "255641001",
+          "typeId": "762949000",
+          "type": {
+            "conceptId": "762949000",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has precise active ingredient (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has precise active ingredient",
+              "lang": "en"
+            },
+            "id": "762949000"
+          },
+          "target": {
+            "conceptId": "255641001",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Caffeine (substance)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Caffeine",
+              "lang": "en"
+            },
+            "id": "255641001"
+          },
+          "groupId": 1,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "255641001",
+          "typeId": "732943007",
+          "type": {
+            "conceptId": "732943007",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has basis of strength substance (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has BoSS",
+              "lang": "en"
+            },
+            "id": "732943007"
+          },
+          "target": {
+            "conceptId": "255641001",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Caffeine (substance)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Caffeine",
+              "lang": "en"
+            },
+            "id": "255641001"
+          },
+          "groupId": 1,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "concreteValue": {
+            "dataType": "DECIMAL",
+            "value": "65",
+            "valueWithPrefix": "#65"
+          },
+          "typeId": "1142135004",
+          "type": {
+            "conceptId": "1142135004",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has presentation strength numerator value (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has presentation strength numerator value",
+              "lang": "en"
+            },
+            "id": "1142135004"
+          },
+          "groupId": 1,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "258684004",
+          "typeId": "732945000",
+          "type": {
+            "conceptId": "732945000",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has presentation strength numerator unit (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has presentation strength numerator unit",
+              "lang": "en"
+            },
+            "id": "732945000"
+          },
+          "target": {
+            "conceptId": "258684004",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "milligram (qualifier value)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "mg",
+              "lang": "en"
+            },
+            "id": "258684004"
+          },
+          "groupId": 1,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "concreteValue": {
+            "dataType": "DECIMAL",
+            "value": "1",
+            "valueWithPrefix": "#1"
+          },
+          "typeId": "1142136003",
+          "type": {
+            "conceptId": "1142136003",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has presentation strength denominator value (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has presentation strength denominator value",
+              "lang": "en"
+            },
+            "id": "1142136003"
+          },
+          "groupId": 1,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "732936001",
+          "typeId": "732947008",
+          "type": {
+            "conceptId": "732947008",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has presentation strength denominator unit (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has presentation strength denominator unit",
+              "lang": "en"
+            },
+            "id": "732947008"
+          },
+          "target": {
+            "conceptId": "732936001",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Tablet (unit of presentation)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Tablet",
+              "lang": "en"
+            },
+            "id": "732936001"
+          },
+          "groupId": 1,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "387517004",
+          "typeId": "762949000",
+          "type": {
+            "conceptId": "762949000",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has precise active ingredient (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has precise active ingredient",
+              "lang": "en"
+            },
+            "id": "762949000"
+          },
+          "target": {
+            "conceptId": "387517004",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Paracetamol (substance)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Paracetamol",
+              "lang": "en"
+            },
+            "id": "387517004"
+          },
+          "groupId": 2,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "387517004",
+          "typeId": "732943007",
+          "type": {
+            "conceptId": "732943007",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has basis of strength substance (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has BoSS",
+              "lang": "en"
+            },
+            "id": "732943007"
+          },
+          "target": {
+            "conceptId": "387517004",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Paracetamol (substance)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Paracetamol",
+              "lang": "en"
+            },
+            "id": "387517004"
+          },
+          "groupId": 2,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "concreteValue": {
+            "dataType": "DECIMAL",
+            "value": "500",
+            "valueWithPrefix": "#500"
+          },
+          "typeId": "1142135004",
+          "type": {
+            "conceptId": "1142135004",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has presentation strength numerator value (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has presentation strength numerator value",
+              "lang": "en"
+            },
+            "id": "1142135004"
+          },
+          "groupId": 2,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "258684004",
+          "typeId": "732945000",
+          "type": {
+            "conceptId": "732945000",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has presentation strength numerator unit (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has presentation strength numerator unit",
+              "lang": "en"
+            },
+            "id": "732945000"
+          },
+          "target": {
+            "conceptId": "258684004",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "milligram (qualifier value)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "mg",
+              "lang": "en"
+            },
+            "id": "258684004"
+          },
+          "groupId": 2,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "concreteValue": {
+            "dataType": "DECIMAL",
+            "value": "1",
+            "valueWithPrefix": "#1"
+          },
+          "typeId": "1142136003",
+          "type": {
+            "conceptId": "1142136003",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has presentation strength denominator value (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has presentation strength denominator value",
+              "lang": "en"
+            },
+            "id": "1142136003"
+          },
+          "groupId": 2,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        },
+        {
+          "active": true,
+          "moduleId": "900000000000207008",
+          "released": false,
+          "sourceId": "348315009",
+          "destinationId": "732936001",
+          "typeId": "732947008",
+          "type": {
+            "conceptId": "732947008",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000012004",
+            "fsn": {
+              "term": "Has presentation strength denominator unit (attribute)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Has presentation strength denominator unit",
+              "lang": "en"
+            },
+            "id": "732947008"
+          },
+          "target": {
+            "conceptId": "732936001",
+            "active": true,
+            "definitionStatus": "PRIMITIVE",
+            "moduleId": "900000000000207008",
+            "fsn": {
+              "term": "Tablet (unit of presentation)",
+              "lang": "en"
+            },
+            "pt": {
+              "term": "Tablet",
+              "lang": "en"
+            },
+            "id": "732936001"
+          },
+          "groupId": 2,
+          "modifier": "EXISTENTIAL",
+          "characteristicType": "STATED_RELATIONSHIP"
+        }
+      ],
+      "id": "fee2b488-589c-482f-9f7c-18c818f8d4a5",
+      "definitionStatus": "FULLY_DEFINED",
+      "effectiveTime": 20210731
+    }
+  ],
+  "gciAxioms": [],
+  "relationships": [
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190131,
+      "relationshipId": "10715520029",
+      "sourceId": "348315009",
+      "destinationId": "778591001",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "778591001",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Product containing only caffeine and paracetamol in oral dose form (medicinal product form)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine and paracetamol only product in oral dose form",
+          "lang": "en"
+        },
+        "id": "778591001"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20190131",
+      "id": "10715520029"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20070731,
+      "relationshipId": "3194834027",
+      "sourceId": "348315009",
+      "destinationId": "421026006",
+      "typeId": "411116001",
+      "type": {
+        "conceptId": "411116001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has manufactured dose form (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has manufactured dose form",
+          "lang": "en"
+        },
+        "id": "411116001"
+      },
+      "target": {
+        "conceptId": "421026006",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Conventional release oral tablet (dose form)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Oral tablet",
+          "lang": "en"
+        },
+        "id": "421026006"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20070731",
+      "id": "3194834027"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "relationshipId": "9424019020",
+      "sourceId": "348315009",
+      "destinationId": "732936001",
+      "typeId": "763032000",
+      "type": {
+        "conceptId": "763032000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has unit of presentation (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has unit of presentation",
+          "lang": "en"
+        },
+        "id": "763032000"
+      },
+      "target": {
+        "conceptId": "732936001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Tablet (unit of presentation)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Tablet",
+          "lang": "en"
+        },
+        "id": "732936001"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20180731",
+      "id": "9424019020"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "13842161027",
+      "sourceId": "348315009",
+      "concreteValue": {
+        "dataType": "INTEGER",
+        "value": "2",
+        "valueWithPrefix": "#2"
+      },
+      "typeId": "1142139005",
+      "type": {
+        "conceptId": "1142139005",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Count of base of active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Count of base of active ingredient",
+          "lang": "en"
+        },
+        "id": "1142139005"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "13842161027"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "relationshipId": "9429578028",
+      "sourceId": "348315009",
+      "destinationId": "255641001",
+      "typeId": "762949000",
+      "type": {
+        "conceptId": "762949000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has precise active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has precise active ingredient",
+          "lang": "en"
+        },
+        "id": "762949000"
+      },
+      "target": {
+        "conceptId": "255641001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Caffeine (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine",
+          "lang": "en"
+        },
+        "id": "255641001"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20180731",
+      "id": "9429578028"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "relationshipId": "7075525024",
+      "sourceId": "348315009",
+      "destinationId": "255641001",
+      "typeId": "732943007",
+      "type": {
+        "conceptId": "732943007",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has basis of strength substance (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has BoSS",
+          "lang": "en"
+        },
+        "id": "732943007"
+      },
+      "target": {
+        "conceptId": "255641001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Caffeine (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine",
+          "lang": "en"
+        },
+        "id": "255641001"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20170731",
+      "id": "7075525024"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "13842158028",
+      "sourceId": "348315009",
+      "concreteValue": {
+        "dataType": "DECIMAL",
+        "value": "65",
+        "valueWithPrefix": "#65"
+      },
+      "typeId": "1142135004",
+      "type": {
+        "conceptId": "1142135004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator value",
+          "lang": "en"
+        },
+        "id": "1142135004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "13842158028"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "relationshipId": "7055338027",
+      "sourceId": "348315009",
+      "destinationId": "258684004",
+      "typeId": "732945000",
+      "type": {
+        "conceptId": "732945000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator unit (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator unit",
+          "lang": "en"
+        },
+        "id": "732945000"
+      },
+      "target": {
+        "conceptId": "258684004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "milligram (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "mg",
+          "lang": "en"
+        },
+        "id": "258684004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20170731",
+      "id": "7055338027"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "13842160026",
+      "sourceId": "348315009",
+      "concreteValue": {
+        "dataType": "DECIMAL",
+        "value": "1",
+        "valueWithPrefix": "#1"
+      },
+      "typeId": "1142136003",
+      "type": {
+        "conceptId": "1142136003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator value",
+          "lang": "en"
+        },
+        "id": "1142136003"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "13842160026"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "relationshipId": "7055340021",
+      "sourceId": "348315009",
+      "destinationId": "732936001",
+      "typeId": "732947008",
+      "type": {
+        "conceptId": "732947008",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator unit (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator unit",
+          "lang": "en"
+        },
+        "id": "732947008"
+      },
+      "target": {
+        "conceptId": "732936001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Tablet (unit of presentation)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Tablet",
+          "lang": "en"
+        },
+        "id": "732936001"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20170731",
+      "id": "7055340021"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "relationshipId": "9429579020",
+      "sourceId": "348315009",
+      "destinationId": "387517004",
+      "typeId": "762949000",
+      "type": {
+        "conceptId": "762949000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has precise active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has precise active ingredient",
+          "lang": "en"
+        },
+        "id": "762949000"
+      },
+      "target": {
+        "conceptId": "387517004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Paracetamol (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Paracetamol",
+          "lang": "en"
+        },
+        "id": "387517004"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20180731",
+      "id": "9429579020"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "relationshipId": "7075528021",
+      "sourceId": "348315009",
+      "destinationId": "387517004",
+      "typeId": "732943007",
+      "type": {
+        "conceptId": "732943007",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has basis of strength substance (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has BoSS",
+          "lang": "en"
+        },
+        "id": "732943007"
+      },
+      "target": {
+        "conceptId": "387517004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Paracetamol (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Paracetamol",
+          "lang": "en"
+        },
+        "id": "387517004"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20170731",
+      "id": "7075528021"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "13842157022",
+      "sourceId": "348315009",
+      "concreteValue": {
+        "dataType": "DECIMAL",
+        "value": "500",
+        "valueWithPrefix": "#500"
+      },
+      "typeId": "1142135004",
+      "type": {
+        "conceptId": "1142135004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator value",
+          "lang": "en"
+        },
+        "id": "1142135004"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "13842157022"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "relationshipId": "7055344028",
+      "sourceId": "348315009",
+      "destinationId": "258684004",
+      "typeId": "732945000",
+      "type": {
+        "conceptId": "732945000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator unit (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator unit",
+          "lang": "en"
+        },
+        "id": "732945000"
+      },
+      "target": {
+        "conceptId": "258684004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "milligram (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "mg",
+          "lang": "en"
+        },
+        "id": "258684004"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20170731",
+      "id": "7055344028"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "13842159020",
+      "sourceId": "348315009",
+      "concreteValue": {
+        "dataType": "DECIMAL",
+        "value": "1",
+        "valueWithPrefix": "#1"
+      },
+      "typeId": "1142136003",
+      "type": {
+        "conceptId": "1142136003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator value",
+          "lang": "en"
+        },
+        "id": "1142136003"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "13842159020"
+    },
+    {
+      "active": true,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "relationshipId": "7055346026",
+      "sourceId": "348315009",
+      "destinationId": "732936001",
+      "typeId": "732947008",
+      "type": {
+        "conceptId": "732947008",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator unit (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator unit",
+          "lang": "en"
+        },
+        "id": "732947008"
+      },
+      "target": {
+        "conceptId": "732936001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Tablet (unit of presentation)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Tablet",
+          "lang": "en"
+        },
+        "id": "732936001"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20170731",
+      "id": "7055346026"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "9394810029",
+      "sourceId": "348315009",
+      "destinationId": "763158003",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "763158003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Medicinal product (product)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Medicinal product",
+          "lang": "en"
+        },
+        "id": "763158003"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "9394810029"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190131,
+      "relationshipId": "154759029",
+      "sourceId": "348315009",
+      "destinationId": "350309002",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "350309002",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Product containing caffeine and paracetamol (medicinal product)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine- and paracetamol-containing product",
+          "lang": "en"
+        },
+        "id": "350309002"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20190131",
+      "id": "154759029"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "relationshipId": "3967549024",
+      "sourceId": "348315009",
+      "destinationId": "350309002",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "350309002",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Product containing caffeine and paracetamol (medicinal product)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine- and paracetamol-containing product",
+          "lang": "en"
+        },
+        "id": "350309002"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20180731",
+      "id": "3967549024"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190131,
+      "relationshipId": "3265777023",
+      "sourceId": "348315009",
+      "destinationId": "386753007",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "386753007",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Product containing caffeine in oral dose form (medicinal product form)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine-containing product in oral dose form",
+          "lang": "en"
+        },
+        "id": "386753007"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20190131",
+      "id": "3265777023"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190131,
+      "relationshipId": "3491490029",
+      "sourceId": "348315009",
+      "destinationId": "437876006",
+      "typeId": "116680003",
+      "type": {
+        "conceptId": "116680003",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Is a (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Is a",
+          "lang": "en"
+        },
+        "id": "116680003"
+      },
+      "target": {
+        "conceptId": "437876006",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Product containing paracetamol in oral dose form (medicinal product form)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Paracetamol-containing product in oral dose form",
+          "lang": "en"
+        },
+        "id": "437876006"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20190131",
+      "id": "3491490029"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "4332221026",
+      "sourceId": "348315009",
+      "destinationId": "421026006",
+      "typeId": "411116001",
+      "type": {
+        "conceptId": "411116001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has manufactured dose form (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has manufactured dose form",
+          "lang": "en"
+        },
+        "id": "411116001"
+      },
+      "target": {
+        "conceptId": "421026006",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Conventional release oral tablet (dose form)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Oral tablet",
+          "lang": "en"
+        },
+        "id": "421026006"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "4332221026"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20070731,
+      "relationshipId": "2726834027",
+      "sourceId": "348315009",
+      "destinationId": "385055001",
+      "typeId": "411116001",
+      "type": {
+        "conceptId": "411116001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has manufactured dose form (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has manufactured dose form",
+          "lang": "en"
+        },
+        "id": "411116001"
+      },
+      "target": {
+        "conceptId": "385055001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Tablet (basic dose form)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Tablet",
+          "lang": "en"
+        },
+        "id": "385055001"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20070731",
+      "id": "2726834027"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "9394809023",
+      "sourceId": "348315009",
+      "destinationId": "732936001",
+      "typeId": "763032000",
+      "type": {
+        "conceptId": "763032000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has unit of presentation (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has unit of presentation",
+          "lang": "en"
+        },
+        "id": "763032000"
+      },
+      "target": {
+        "conceptId": "732936001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Tablet (unit of presentation)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Tablet",
+          "lang": "en"
+        },
+        "id": "732936001"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "9394809023"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "9464605020",
+      "sourceId": "348315009",
+      "destinationId": "19338005",
+      "typeId": "766952006",
+      "type": {
+        "conceptId": "766952006",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Count of base of active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Count of base of active ingredient",
+          "lang": "en"
+        },
+        "id": "766952006"
+      },
+      "target": {
+        "conceptId": "19338005",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "2 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "2",
+          "lang": "en"
+        },
+        "id": "19338005"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "9464605020"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "9462118028",
+      "sourceId": "348315009",
+      "destinationId": "19338005",
+      "typeId": "766952006",
+      "type": {
+        "conceptId": "766952006",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Count of base of active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Count of base of active ingredient",
+          "lang": "en"
+        },
+        "id": "766952006"
+      },
+      "target": {
+        "conceptId": "19338005",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "2 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "2",
+          "lang": "en"
+        },
+        "id": "19338005"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "9462118028"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "relationshipId": "2862950023",
+      "sourceId": "348315009",
+      "destinationId": "255641001",
+      "typeId": "127489000",
+      "type": {
+        "conceptId": "127489000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has active ingredient",
+          "lang": "en"
+        },
+        "id": "127489000"
+      },
+      "target": {
+        "conceptId": "255641001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Caffeine (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine",
+          "lang": "en"
+        },
+        "id": "255641001"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20170731",
+      "id": "2862950023"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20040731,
+      "relationshipId": "1995048028",
+      "sourceId": "348315009",
+      "destinationId": "373216001",
+      "typeId": "127489000",
+      "type": {
+        "conceptId": "127489000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has active ingredient",
+          "lang": "en"
+        },
+        "id": "127489000"
+      },
+      "target": {
+        "conceptId": "373216001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Non-opioid analgesic (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Non-opioid analgesic",
+          "lang": "en"
+        },
+        "id": "373216001"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20040731",
+      "id": "1995048028"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20170731,
+      "relationshipId": "2263438023",
+      "sourceId": "348315009",
+      "destinationId": "387517004",
+      "typeId": "127489000",
+      "type": {
+        "conceptId": "127489000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has active ingredient",
+          "lang": "en"
+        },
+        "id": "127489000"
+      },
+      "target": {
+        "conceptId": "387517004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Paracetamol (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Paracetamol",
+          "lang": "en"
+        },
+        "id": "387517004"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20170731",
+      "id": "2263438023"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20060731,
+      "relationshipId": "2862951022",
+      "sourceId": "348315009",
+      "destinationId": "373692009",
+      "typeId": "127489000",
+      "type": {
+        "conceptId": "127489000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has active ingredient",
+          "lang": "en"
+        },
+        "id": "127489000"
+      },
+      "target": {
+        "conceptId": "373692009",
+        "active": true,
+        "definitionStatus": "FULLY_DEFINED",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Substance with phosphodiesterase inhibitor mechanism of action (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Phosphodiesterase inhibitor",
+          "lang": "en"
+        },
+        "id": "373692009"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20060731",
+      "id": "2862951022"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20060731,
+      "relationshipId": "2862949023",
+      "sourceId": "348315009",
+      "destinationId": "46843002",
+      "typeId": "127489000",
+      "type": {
+        "conceptId": "127489000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has active ingredient",
+          "lang": "en"
+        },
+        "id": "127489000"
+      },
+      "target": {
+        "conceptId": "46843002",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Xanthine (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Xanthine",
+          "lang": "en"
+        },
+        "id": "46843002"
+      },
+      "groupId": 0,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20060731",
+      "id": "2862949023"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "relationshipId": "7075524023",
+      "sourceId": "348315009",
+      "destinationId": "255641001",
+      "typeId": "127489000",
+      "type": {
+        "conceptId": "127489000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has active ingredient",
+          "lang": "en"
+        },
+        "id": "127489000"
+      },
+      "target": {
+        "conceptId": "255641001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Caffeine (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine",
+          "lang": "en"
+        },
+        "id": "255641001"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20180731",
+      "id": "7075524023"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "relationshipId": "7026581021",
+      "sourceId": "348315009",
+      "destinationId": "387517004",
+      "typeId": "127489000",
+      "type": {
+        "conceptId": "127489000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has active ingredient",
+          "lang": "en"
+        },
+        "id": "127489000"
+      },
+      "target": {
+        "conceptId": "387517004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Paracetamol (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Paracetamol",
+          "lang": "en"
+        },
+        "id": "387517004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20180731",
+      "id": "7026581021"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "9394812021",
+      "sourceId": "348315009",
+      "destinationId": "387517004",
+      "typeId": "762949000",
+      "type": {
+        "conceptId": "762949000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has precise active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has precise active ingredient",
+          "lang": "en"
+        },
+        "id": "762949000"
+      },
+      "target": {
+        "conceptId": "387517004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Paracetamol (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Paracetamol",
+          "lang": "en"
+        },
+        "id": "387517004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "9394812021"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026582025",
+      "sourceId": "348315009",
+      "destinationId": "387517004",
+      "typeId": "732943007",
+      "type": {
+        "conceptId": "732943007",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has basis of strength substance (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has BoSS",
+          "lang": "en"
+        },
+        "id": "732943007"
+      },
+      "target": {
+        "conceptId": "387517004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Paracetamol (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Paracetamol",
+          "lang": "en"
+        },
+        "id": "387517004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026582025"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026583024",
+      "sourceId": "348315009",
+      "destinationId": "732775002",
+      "typeId": "732944001",
+      "type": {
+        "conceptId": "732944001",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator value",
+          "lang": "en"
+        },
+        "id": "732944001"
+      },
+      "target": {
+        "conceptId": "732775002",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "500 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "500",
+          "lang": "en"
+        },
+        "id": "732775002"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026583024"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "7075526020",
+      "sourceId": "348315009",
+      "destinationId": "264695004",
+      "typeId": "732944001",
+      "type": {
+        "conceptId": "732944001",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator value",
+          "lang": "en"
+        },
+        "id": "732944001"
+      },
+      "target": {
+        "conceptId": "264695004",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "65 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "65",
+          "lang": "en"
+        },
+        "id": "264695004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "7075526020"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026584029",
+      "sourceId": "348315009",
+      "destinationId": "258684004",
+      "typeId": "732945000",
+      "type": {
+        "conceptId": "732945000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator unit (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator unit",
+          "lang": "en"
+        },
+        "id": "732945000"
+      },
+      "target": {
+        "conceptId": "258684004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "milligram (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "mg",
+          "lang": "en"
+        },
+        "id": "258684004"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026584029"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "7055339024",
+      "sourceId": "348315009",
+      "destinationId": "38112003",
+      "typeId": "732946004",
+      "type": {
+        "conceptId": "732946004",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator value",
+          "lang": "en"
+        },
+        "id": "732946004"
+      },
+      "target": {
+        "conceptId": "38112003",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "1 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "1",
+          "lang": "en"
+        },
+        "id": "38112003"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "7055339024"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026585028",
+      "sourceId": "348315009",
+      "destinationId": "38112003",
+      "typeId": "732946004",
+      "type": {
+        "conceptId": "732946004",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator value",
+          "lang": "en"
+        },
+        "id": "732946004"
+      },
+      "target": {
+        "conceptId": "38112003",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "1 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "1",
+          "lang": "en"
+        },
+        "id": "38112003"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026585028"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026586027",
+      "sourceId": "348315009",
+      "destinationId": "732936001",
+      "typeId": "732947008",
+      "type": {
+        "conceptId": "732947008",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator unit (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator unit",
+          "lang": "en"
+        },
+        "id": "732947008"
+      },
+      "target": {
+        "conceptId": "732936001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Tablet (unit of presentation)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Tablet",
+          "lang": "en"
+        },
+        "id": "732936001"
+      },
+      "groupId": 1,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026586027"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "relationshipId": "7026587020",
+      "sourceId": "348315009",
+      "destinationId": "255641001",
+      "typeId": "127489000",
+      "type": {
+        "conceptId": "127489000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has active ingredient",
+          "lang": "en"
+        },
+        "id": "127489000"
+      },
+      "target": {
+        "conceptId": "255641001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Caffeine (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine",
+          "lang": "en"
+        },
+        "id": "255641001"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20180731",
+      "id": "7026587020"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20180731,
+      "relationshipId": "7075527027",
+      "sourceId": "348315009",
+      "destinationId": "387517004",
+      "typeId": "127489000",
+      "type": {
+        "conceptId": "127489000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has active ingredient",
+          "lang": "en"
+        },
+        "id": "127489000"
+      },
+      "target": {
+        "conceptId": "387517004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Paracetamol (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Paracetamol",
+          "lang": "en"
+        },
+        "id": "387517004"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20180731",
+      "id": "7075527027"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "9394811025",
+      "sourceId": "348315009",
+      "destinationId": "255641001",
+      "typeId": "762949000",
+      "type": {
+        "conceptId": "762949000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has precise active ingredient (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has precise active ingredient",
+          "lang": "en"
+        },
+        "id": "762949000"
+      },
+      "target": {
+        "conceptId": "255641001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Caffeine (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine",
+          "lang": "en"
+        },
+        "id": "255641001"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "9394811025"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026588026",
+      "sourceId": "348315009",
+      "destinationId": "255641001",
+      "typeId": "732943007",
+      "type": {
+        "conceptId": "732943007",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has basis of strength substance (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has BoSS",
+          "lang": "en"
+        },
+        "id": "732943007"
+      },
+      "target": {
+        "conceptId": "255641001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Caffeine (substance)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Caffeine",
+          "lang": "en"
+        },
+        "id": "255641001"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026588026"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "7075529029",
+      "sourceId": "348315009",
+      "destinationId": "732775002",
+      "typeId": "732944001",
+      "type": {
+        "conceptId": "732944001",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator value",
+          "lang": "en"
+        },
+        "id": "732944001"
+      },
+      "target": {
+        "conceptId": "732775002",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "500 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "500",
+          "lang": "en"
+        },
+        "id": "732775002"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "7075529029"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026589023",
+      "sourceId": "348315009",
+      "destinationId": "264695004",
+      "typeId": "732944001",
+      "type": {
+        "conceptId": "732944001",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator value",
+          "lang": "en"
+        },
+        "id": "732944001"
+      },
+      "target": {
+        "conceptId": "264695004",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "65 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "65",
+          "lang": "en"
+        },
+        "id": "264695004"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026589023"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026590025",
+      "sourceId": "348315009",
+      "destinationId": "258684004",
+      "typeId": "732945000",
+      "type": {
+        "conceptId": "732945000",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength numerator unit (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength numerator unit",
+          "lang": "en"
+        },
+        "id": "732945000"
+      },
+      "target": {
+        "conceptId": "258684004",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "milligram (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "mg",
+          "lang": "en"
+        },
+        "id": "258684004"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026590025"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20210731,
+      "relationshipId": "7055345027",
+      "sourceId": "348315009",
+      "destinationId": "38112003",
+      "typeId": "732946004",
+      "type": {
+        "conceptId": "732946004",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator value",
+          "lang": "en"
+        },
+        "id": "732946004"
+      },
+      "target": {
+        "conceptId": "38112003",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "1 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "1",
+          "lang": "en"
+        },
+        "id": "38112003"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "INFERRED_RELATIONSHIP",
+      "effectiveTime": "20210731",
+      "id": "7055345027"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026591026",
+      "sourceId": "348315009",
+      "destinationId": "38112003",
+      "typeId": "732946004",
+      "type": {
+        "conceptId": "732946004",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator value (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator value",
+          "lang": "en"
+        },
+        "id": "732946004"
+      },
+      "target": {
+        "conceptId": "38112003",
+        "active": false,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "1 (qualifier value)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "1",
+          "lang": "en"
+        },
+        "id": "38112003"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026591026"
+    },
+    {
+      "active": false,
+      "moduleId": "900000000000207008",
+      "released": true,
+      "releasedEffectiveTime": 20190731,
+      "relationshipId": "7026592022",
+      "sourceId": "348315009",
+      "destinationId": "732936001",
+      "typeId": "732947008",
+      "type": {
+        "conceptId": "732947008",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000012004",
+        "fsn": {
+          "term": "Has presentation strength denominator unit (attribute)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Has presentation strength denominator unit",
+          "lang": "en"
+        },
+        "id": "732947008"
+      },
+      "target": {
+        "conceptId": "732936001",
+        "active": true,
+        "definitionStatus": "PRIMITIVE",
+        "moduleId": "900000000000207008",
+        "fsn": {
+          "term": "Tablet (unit of presentation)",
+          "lang": "en"
+        },
+        "pt": {
+          "term": "Tablet",
+          "lang": "en"
+        },
+        "id": "732936001"
+      },
+      "groupId": 2,
+      "modifier": "EXISTENTIAL",
+      "characteristicType": "STATED_RELATIONSHIP",
+      "effectiveTime": "20190731",
+      "id": "7026592022"
+    }
+  ],
+  "alternateIdentifiers": [],
+  "validationResults": []
+}

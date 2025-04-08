@@ -15,13 +15,23 @@ public class WeblateExplanationCreator {
 	}
 
 	public static String getMarkdown(Concept concept) {
-		List<Pair<String, ConceptMini>> attributes = new ArrayList<>();
+		List<Pair<String, String>> relationships = new ArrayList<>();
 		for (Relationship relationship : concept.getRelationships().stream().filter(Relationship::isActive).toList()) {
+			String typeTerm;
 			if (relationship.getTypeId().equals(Concepts.IS_A)) {
-				attributes.add(Pair.of("Parent", relationship.getTarget()));
+				typeTerm = "Parent";
 			} else {
-				attributes.add(Pair.of(relationship.getType().getPt().getTerm(), relationship.getTarget()));
+				typeTerm = relationship.getType().getPt().getTerm();
 			}
+			String valueString;
+			ConcreteValue concreteValue = relationship.getConcreteValue();
+			if (concreteValue != null) {
+				valueString = concreteValue.getValue();
+			} else {
+				ConceptMini target = relationship.getTarget();
+				valueString = "%s [open](http://snomed.info/id/%s)".formatted(target.getFsn().getTerm(), target.getConceptId());
+			}
+			relationships.add(Pair.of(typeTerm, valueString));
 		}
 
 		List<Description> activeDescriptions = concept.getDescriptions().stream().filter(Component::isActive).toList();
@@ -46,32 +56,31 @@ public class WeblateExplanationCreator {
 						| :------------- | --- | ------------: | :--- |
 						""");
 		int row = 0;
-		appendRow(builder, "_FSN_: ", fsn.getTerm(), attributes, row++);
-		appendRow(builder, "_PT_: ", pt.getTerm(), attributes, row++);
+		appendRow(builder, "_FSN_: ", fsn.getTerm(), relationships, row++);
+		appendRow(builder, "_PT_: ", pt.getTerm(), relationships, row++);
 		// Add any synonyms
 		for (Description synonym : synonyms) {
-			appendRow(builder, "", synonym.getTerm(), attributes, row++);
+			appendRow(builder, "", synonym.getTerm(), relationships, row++);
 		}
-		// Add any remaining attributes
-		while (row < attributes.size()) {
-			appendRow(builder, "", "", attributes, row++);
+		// Add any remaining relationships
+		while (row < relationships.size()) {
+			appendRow(builder, "", "", relationships, row++);
 		}
 		builder.append("[View concept](http://snomed.info/id/").append(concept.getConceptId()).append(")");
 		return builder.toString();
 	}
 
-	private static void appendRow(StringBuilder builder, String type, String term, List<Pair<String, ConceptMini>> attributes, int row) {
+	private static void appendRow(StringBuilder builder, String type, String term, List<Pair<String, String>> relationships, int row) {
 		builder.append("| ");
 		if (!term.isEmpty()) {
 			builder.append(type).append(term);
 		}
 		builder.append(" |  | ");
-		if (attributes.size() > row) {
-			Pair<String, ConceptMini> attribute = attributes.get(row);
+		if (relationships.size() > row) {
+			Pair<String, String> attribute = relationships.get(row);
 			builder.append("_").append(attribute.getLeft()).append("_ →");
 			builder.append(" |  ");
-			ConceptMini target = attribute.getRight();
-			builder.append(target.getFsn().getTerm()).append(" [open](http://snomed.info/id/").append(target.getConceptId()).append(")");
+			builder.append(attribute.getRight());
 		}
 		builder.append(" |\n");
 	}
