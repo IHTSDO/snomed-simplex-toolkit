@@ -53,7 +53,7 @@ public class WeblateService {
 		return new Page<>(components);
 	}
 
-	public ChangeSummary updateSharedSet(String slug, String ecl) throws ServiceException {
+	public ChangeSummary updateSharedSet(String slug, String ecl, int startPage) throws ServiceException {
 		String project = commonProject;
 		ServiceHelper.requiredParameter("slug", slug);
 		ServiceHelper.requiredParameter("project", project);
@@ -66,7 +66,7 @@ public class WeblateService {
 
 		WeblateClient weblateClient = weblateClientFactory.getClient();
 
-		UnitSupplier unitStream = weblateClient.getUnitStream(project, slug);
+		UnitSupplier unitStream = weblateClient.getUnitStream(project, slug, startPage);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
 
