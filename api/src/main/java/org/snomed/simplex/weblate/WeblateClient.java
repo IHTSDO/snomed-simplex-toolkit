@@ -86,8 +86,8 @@ public class WeblateClient {
 		return response.getBody();
 	}
 
-	public UnitSupplier getUnitStream(String projectSlug, String componentSlug) {
-		String url = getUnitQuery(projectSlug, componentSlug) + "&page=1890";
+	public UnitSupplier getUnitStream(String projectSlug, String componentSlug, int startPage) {
+		String url = "%s&page=%s".formatted(getUnitQuery(projectSlug, componentSlug), startPage);
 
 		return new UnitSupplier() {
 
