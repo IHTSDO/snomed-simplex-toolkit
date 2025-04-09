@@ -1,0 +1,7 @@
+# Edit the file /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/trans/models/unit.py
+# Find the nearby_keys function
+# Add a return statement on the first line of the method
+# This disables the nearby / similar keys tab that is completely useless and has a huge (2 seconds) performance hit.
+
+    def nearby_keys(self, count: int) -> Iterable[Unit]:
+        return []
