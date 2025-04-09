@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
@@ -17,6 +18,8 @@ import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.springframework.stereotype.Service;
+
+import java.util.Map;
 
 import static org.snomed.simplex.service.CodeSystemService.*;
 
@@ -78,6 +81,7 @@ public class PublishReleaseJobService extends ExternalFunctionJobService<Void> {
 					String effectiveTime = build.configuration().getEffectiveTime();
 					String releasePackageFilename = releaseServiceClient.getReleasePackageFilename(buildUrl);
 					snowstormClient.setVersionReleasePackage(codeSystem, effectiveTime, releasePackageFilename);
+					snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(Branch.PREVIOUS_PACKAGE_METADATA_KEY, releasePackageFilename));
 
 					Activity finaliseActivity = activityService.findLatestByCodeSystemAndActivityType(codeSystemShortName, ActivityType.FINALIZE_RELEASE);
 					if (finaliseActivity != null) {
