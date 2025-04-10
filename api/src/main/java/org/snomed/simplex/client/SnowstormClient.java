@@ -404,12 +404,14 @@ public class SnowstormClient {
 
 	public void deleteRefsetMembers(List<RefsetMember> membersToDelete, CodeSystem codeSystem) throws ServiceException {
 		List<String> memberIds = membersToDelete.stream().map(RefsetMember::getMemberId).collect(Collectors.toList());
-		Map<String, List<String>> bulkDeleteRequest = new HashMap<>();
-		bulkDeleteRequest.put("memberIds", memberIds);
-		try {
-			restTemplate.exchange(format("/%s/members", codeSystem.getWorkingBranchPath()), HttpMethod.DELETE, new HttpEntity<>(bulkDeleteRequest), Void.class);
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "bulk delete refset members");
+		for (List<String> batch : Iterables.partition(memberIds, 1_000)) {
+			Map<String, List<String>> bulkDeleteRequest = new HashMap<>();
+			bulkDeleteRequest.put("memberIds", batch);
+			try {
+				restTemplate.exchange(format("/%s/members", codeSystem.getWorkingBranchPath()), HttpMethod.DELETE, new HttpEntity<>(bulkDeleteRequest), Void.class);
+			} catch (HttpStatusCodeException e) {
+				throw getServiceException(e, "bulk delete refset members");
+			}
 		}
 	}
 
