@@ -2,6 +2,7 @@ package org.snomed.simplex.service;
 
 import org.snomed.simplex.domain.RefsetMemberIntent;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.util.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,7 +23,7 @@ public class RefsetToolSubsetReader implements SubsetUploadProvider {
 	public List<RefsetMemberIntent> readUpload() throws ServiceException {
 		List<RefsetMemberIntent> members = new ArrayList<>();
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-			String header = reader.readLine();
+			String header = FileUtils.removeUTF8BOM(reader.readLine());
 			if (header == null || !header.startsWith("id\teffectiveTime\tactive\tmoduleId\trefsetId\treferencedComponentId")) {
 				throw new ServiceException("Input file does not match the expected format. Header line is incorrect.");
 			}

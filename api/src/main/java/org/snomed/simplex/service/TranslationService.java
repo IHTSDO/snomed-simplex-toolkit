@@ -22,6 +22,7 @@ import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -429,6 +430,7 @@ public class TranslationService {
 			if (header == null) {
 				header = "";
 			}
+			header = FileUtils.removeUTF8BOM(header);
 			header = header.replace("\"", "");
 			if (!header.equals("source,target,context,developer_comments")) {
 				throw new ServiceException(format("Unrecognised CSV header '%s'", header));

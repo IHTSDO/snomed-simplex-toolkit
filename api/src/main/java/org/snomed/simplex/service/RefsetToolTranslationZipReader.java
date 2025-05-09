@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.Description;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.util.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -77,7 +78,7 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 	private void readDescriptions(ZipInputStream zipInputStream, String zipEntryName, Map<Long, List<Description>> conceptMap) throws IOException, ServiceException {
 		// Read description file
 		BufferedReader descriptionReader = new BufferedReader(new InputStreamReader(zipInputStream));
-		String header = descriptionReader.readLine();
+		String header = FileUtils.removeUTF8BOM(descriptionReader.readLine());
 		if (!header.equals("id\teffectiveTime\tactive\tmoduleId\tconceptId\tlanguageCode\ttypeId\tterm\tcaseSignificanceId")) {
 			throw new ServiceException(format("Unrecognised header in Description file '%s' within zip file.", zipEntryName));
 		}
@@ -112,7 +113,7 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 	private boolean readAcceptability(ZipInputStream zipInputStream, String zipEntryName, Map<Long, Description.Acceptability> descriptionAcceptabilityMap) throws IOException, ServiceException {
 		// Read lang refset file
 		BufferedReader langRefsetReader = new BufferedReader(new InputStreamReader(zipInputStream));
-		String header = langRefsetReader.readLine();
+		String header = FileUtils.removeUTF8BOM(langRefsetReader.readLine());
 		if (!header.equals("id\teffectiveTime\tactive\tmoduleId\trefsetId\treferencedComponentId\tacceptabilityId")) {
 			throw new ServiceException(format("Unrecognised header in Language Refset file '%s' within zip file.", zipEntryName));
 		}
