@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.domain.SnowstormUpgradeJob;
@@ -19,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
+import java.util.Map;
 
 import static org.snomed.simplex.service.CodeSystemService.publishingStatusCheck;
 import static org.snomed.simplex.service.CodeSystemService.setEditionStatus;
@@ -26,6 +28,7 @@ import static org.snomed.simplex.service.CodeSystemService.setEditionStatus;
 @Service
 public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgradeRequest> {
 
+	public static final String UPGRADE_TMP_PREVIOUS_DEPENDENCY_PACKAGE = "upgrade.temp.previousDependencyPackage";
 	private final SnowstormClientFactory snowstormClientFactory;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -51,7 +54,7 @@ public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgr
 
 		// Upgrade version check
 		if (upgradeRequest.newDependantVersion() <= codeSystem.getDependantVersionEffectiveTime()) {
-			throw new ServiceExceptionWithStatusCode("The upgrade version much be newer than the current version.", HttpStatus.CONFLICT,
+			throw new ServiceExceptionWithStatusCode("The upgrade version must be newer than the current version.", HttpStatus.CONFLICT,
 					JobStatus.USER_CONTENT_ERROR);
 		}
 
@@ -59,6 +62,10 @@ public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgr
 		// Disable daily-build to prevent content rollback during upgrade
 		codeSystem.setDailyBuildAvailable(false);
 		snowstormClient.updateCodeSystem(codeSystem);
+        if (codeSystem.getLatestVersion() != null) {
+			// Store the dependencyPackage as the new previousDependencyPackage for later
+			snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(UPGRADE_TMP_PREVIOUS_DEPENDENCY_PACKAGE, codeSystem.getDependencyPackage()));
+        }
 		URI upgradeJobLocation = snowstormClient.createUpgradeJob(codeSystem, upgradeRequest);
 		logger.info("Created upgrade job. Codesystem:{}, Snowstorm Job:{}", codeSystem.getShortName(), upgradeJobLocation);
 		job.setLink(upgradeJobLocation.toString());
@@ -76,6 +83,14 @@ public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgr
 			SnowstormUpgradeJob.Status status = upgradeJob.getStatus();
 			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(job.getCodeSystem());
 			if (status == SnowstormUpgradeJob.Status.COMPLETED) {
+				if (codeSystem.getLatestVersion() != null) {
+					// Set new previousDependencyPackage
+					Branch branchObject = codeSystem.getBranchObject();
+					Map<String, Object> metadata = branchObject.getMetadata();
+					String newPreviousDependencyPackage = (String) metadata.remove(UPGRADE_TMP_PREVIOUS_DEPENDENCY_PACKAGE);
+					metadata.put(Branch.PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY, newPreviousDependencyPackage);
+					snowstormClient.saveAllBranchMetadata(codeSystem.getBranchPath(), metadata);
+				}
 				codeSystem.setDailyBuildAvailable(true);
 				snowstormClient.updateCodeSystem(codeSystem);
 				setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
