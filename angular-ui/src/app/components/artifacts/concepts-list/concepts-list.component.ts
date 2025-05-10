@@ -14,6 +14,7 @@ export class ConceptsListComponent implements OnChanges {
 
   @Input() edition: string;
 
+  editionDetails: any;
   displayedColumns: string[] = ['conceptId', 'term', 'active', 'action'];
   concepts: any[] = [];
   loading = false;
