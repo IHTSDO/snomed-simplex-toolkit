@@ -403,7 +403,7 @@ public class SnowstormClient {
 	}
 
 	public void deleteRefsetMembers(List<RefsetMember> membersToDelete, CodeSystem codeSystem) throws ServiceException {
-		List<String> memberIds = membersToDelete.stream().map(RefsetMember::getMemberId).collect(Collectors.toList());
+		List<String> memberIds = membersToDelete.stream().map(RefsetMember::getMemberId).toList();
 		for (List<String> batch : Iterables.partition(memberIds, 1_000)) {
 			Map<String, List<String>> bulkDeleteRequest = new HashMap<>();
 			bulkDeleteRequest.put("memberIds", batch);

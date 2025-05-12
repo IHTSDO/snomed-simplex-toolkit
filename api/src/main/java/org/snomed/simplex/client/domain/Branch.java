@@ -49,14 +49,13 @@ public class Branch {
 			if (key.startsWith("internal.")) {
 				String keyPart = key.substring("internal.".length());
 				Object thing = metadata.get("internal");
-				if (thing instanceof Map) {
-					Map<?, ?> map = (Map<?, ?>) thing;
-					return (String) map.get(keyPart);
+				if (thing instanceof Map<?, ?> map) {
+                    return (String) map.get(keyPart);
 				}
 			} else {
 				Object defaultModule = metadata.get(key);
-				if (defaultModule instanceof String) {
-					return (String) defaultModule;
+				if (defaultModule instanceof String defaultModuleString) {
+					return defaultModuleString;
 				}
 			}
 		}
