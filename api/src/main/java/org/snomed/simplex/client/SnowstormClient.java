@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.logging.log4j.util.Strings;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.*;
@@ -30,6 +31,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -604,29 +606,13 @@ public class SnowstormClient {
 			if (!concept.isActive() && !concept.isReleased()) {
 				conceptsToDelete.add(concept);
 			} else {
-				List<Description> newDescriptionSet = new ArrayList<>();
-				for (Description description : concept.getDescriptions()) {
-					if (description.isRemove()) {
-						if (description.isReleased()) {
-							description.setActive(false);
-							newDescriptionSet.add(description);
-						}
-						// else don't retain description
-					} else {
-						newDescriptionSet.add(description);
-					}
-				}
-				concept.setDescriptions(newDescriptionSet);
+                concept.setDescriptions(getNewDescriptionSet(concept));
 				conceptsForBulkUpdate.add(concept);
 			}
 		}
 
 		String branchPath = codeSystem.getWorkingBranchPath();
-		for (Concept conceptToDelete : conceptsToDelete) {
-			String conceptId = conceptToDelete.getConceptId();
-			logger.info("Deleting concept {} on {}", conceptId, branchPath);
-			restTemplate.delete(format(CONCEPT_ENDPOINT, branchPath, conceptId));
-		}
+		deleteConcepts(conceptsToDelete, branchPath);
 
 		// Start an async bulk update job
 		if (!conceptsForBulkUpdate.isEmpty()) {
@@ -642,27 +628,57 @@ public class SnowstormClient {
 		}
 	}
 
+	private void deleteConcepts(List<Concept> conceptsToDelete, String branchPath) {
+		for (Concept conceptToDelete : conceptsToDelete) {
+			String conceptId = conceptToDelete.getConceptId();
+			logger.info("Deleting concept {} on {}", conceptId, branchPath);
+			restTemplate.delete(format(CONCEPT_ENDPOINT, branchPath, conceptId));
+		}
+	}
+
+	private static @NotNull List<Description> getNewDescriptionSet(Concept concept) {
+		List<Description> newDescriptionSet = new ArrayList<>();
+		for (Description description : concept.getDescriptions()) {
+			if (description.isRemove()) {
+				if (description.isReleased()) {
+					description.setActive(false);
+					newDescriptionSet.add(description);
+				}
+				// else don't retain description
+			} else {
+				newDescriptionSet.add(description);
+			}
+		}
+		return newDescriptionSet;
+	}
+
 	public void bulkChangeDescriptions(Map<Long, Set<String>> conceptDescriptionIdMap,
-			CodeSystem codeSystem, Function<Description, Boolean> processDescription, String changeForLogMessage) throws ServiceException {
+			CodeSystem codeSystem, Predicate<Description> processDescription, String changeForLogMessage) throws ServiceException {
 
 		List<Long> conceptIds = new ArrayList<>(conceptDescriptionIdMap.keySet());
 		for (List<Long> conceptIdBatch : Lists.partition(conceptIds, 200)) {
 			List<Concept> concepts = loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
-			Map<Long, Concept> conceptsToSave = new HashMap<>();
-			for (Concept concept : concepts) {
-				Set<String> conceptDescriptionIds = conceptDescriptionIdMap.get(concept.getConceptIdAsLong());
-				for (Description description : concept.getDescriptions()) {
-					if (conceptDescriptionIds.contains(description.getDescriptionId())) {
-						if (processDescription.apply(description)) {
-							conceptsToSave.put(concept.getConceptIdAsLong(), concept);
-						}
-					}
+			bulkChangeDescriptionBatch(conceptDescriptionIdMap, codeSystem, processDescription, changeForLogMessage, concepts);
+		}
+	}
+
+	private void bulkChangeDescriptionBatch(Map<Long, Set<String>> conceptDescriptionIdMap, CodeSystem codeSystem,
+			Predicate<Description> processDescription, String changeForLogMessage,
+			List<Concept> concepts) throws ServiceException {
+
+		Map<Long, Concept> conceptsToSave = new HashMap<>();
+		for (Concept concept : concepts) {
+			Set<String> conceptDescriptionIds = conceptDescriptionIdMap.get(concept.getConceptIdAsLong());
+			for (Description description : concept.getDescriptions()) {
+				if (conceptDescriptionIds.contains(description.getDescriptionId())
+						&& processDescription.test(description)) {
+					conceptsToSave.put(concept.getConceptIdAsLong(), concept);
 				}
 			}
-			if (!conceptsToSave.isEmpty()) {
-				logger.info("{} on {} concepts.", changeForLogMessage, conceptsToSave.size());
-				createUpdateBrowserFormatConcepts(new ArrayList<>(conceptsToSave.values()), codeSystem);
-			}
+		}
+		if (!conceptsToSave.isEmpty()) {
+			logger.info("{} on {} concepts.", changeForLogMessage, conceptsToSave.size());
+			createUpdateBrowserFormatConcepts(new ArrayList<>(conceptsToSave.values()), codeSystem);
 		}
 	}
 

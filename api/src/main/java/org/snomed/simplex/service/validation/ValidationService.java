@@ -136,44 +136,54 @@ public class ValidationService {
 		if (!automaticFixes.isEmpty()) {
 			logger.info("Processing {} automatic fixes for codesystem {} : {}", automaticFixes.size(), codeSystem,
 					automaticFixes.stream().map(ValidationFix::getSubtype).toList());
-			Map<Long, Set<String>> descriptionsToSetCaseSensitive = new HashMap<>();
-			Map<Long, Set<String>> descriptionsToRemove = new HashMap<>();
+
+			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+			CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
+
 			for (ValidationFix automaticFix : automaticFixes) {
 				String subtype = automaticFix.getSubtype();
 				if ("set-description-case-sensitive".equals(subtype)) {
-					for (FixComponent component : automaticFix.getComponents()) {
-						descriptionsToSetCaseSensitive.computeIfAbsent(Long.parseLong(component.conceptId()), k -> new HashSet<>())
-								.add(component.componentId());
-					}
+					processAutomaticFixCaseSensitive(automaticFix, snowstormClient, codeSystemObject);
 				} else if ("remove-fsn".equals(subtype)) {
-					for (FixComponent component : automaticFix.getComponents()) {
-						descriptionsToRemove.computeIfAbsent(Long.parseLong(component.conceptId()), k -> new HashSet<>())
-								.add(component.componentId());
-					}
+					processAutomaticFixRemoveFSN(automaticFix, snowstormClient, codeSystemObject);
 				} else {
 					supportRegister.handleSystemError(job, String.format("Unrecognised automatic fix type '%s'.", subtype));
 				}
 			}
-			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-			CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
-			if (!descriptionsToSetCaseSensitive.isEmpty()) {
-				snowstormClient.bulkChangeDescriptions(descriptionsToSetCaseSensitive,
-						codeSystemObject, description -> {
-							if (description.getCaseSignificance() != Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE) {
-								description.setCaseSignificance(Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE);
-								return true;
-							}
-							return false;
-						}, "Fixing case sensitivity of descriptions");
-			}
-			if (!descriptionsToRemove.isEmpty()) {
-				snowstormClient.bulkChangeDescriptions(descriptionsToRemove,
-						codeSystemObject, description -> {
-							description.setRemove(true);
-							return true;
-						}, "Removing redundant FSN descriptions");
-			}
 			logger.info("Completed processing {} automatic fixes for codesystem {}.", automaticFixes.size(), codeSystem);
+		}
+	}
+
+	private static void processAutomaticFixCaseSensitive(ValidationFix automaticFix, SnowstormClient snowstormClient, CodeSystem codeSystemObject) throws ServiceException {
+		Map<Long, Set<String>> descriptionsToSetCaseSensitive = new HashMap<>();
+		for (FixComponent component : automaticFix.getComponents()) {
+			descriptionsToSetCaseSensitive.computeIfAbsent(Long.parseLong(component.conceptId()), k -> new HashSet<>())
+					.add(component.componentId());
+		}
+		if (!descriptionsToSetCaseSensitive.isEmpty()) {
+			snowstormClient.bulkChangeDescriptions(descriptionsToSetCaseSensitive,
+					codeSystemObject, description -> {
+						if (description.getCaseSignificance() != Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE) {
+							description.setCaseSignificance(Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE);
+							return true;
+						}
+						return false;
+					}, "Fixing case sensitivity of descriptions");
+		}
+	}
+
+	private static void processAutomaticFixRemoveFSN(ValidationFix automaticFix, SnowstormClient snowstormClient, CodeSystem codeSystemObject) throws ServiceException {
+		Map<Long, Set<String>> descriptionsToRemove = new HashMap<>();
+		for (FixComponent component : automaticFix.getComponents()) {
+			descriptionsToRemove.computeIfAbsent(Long.parseLong(component.conceptId()), k -> new HashSet<>())
+					.add(component.componentId());
+		}
+		if (!descriptionsToRemove.isEmpty()) {
+			snowstormClient.bulkChangeDescriptions(descriptionsToRemove,
+					codeSystemObject, description -> {
+						description.setRemove(true);
+						return true;
+					}, "Removing redundant FSN descriptions");
 		}
 	}
 }
