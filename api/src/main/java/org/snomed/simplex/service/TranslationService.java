@@ -326,10 +326,8 @@ public class TranslationService {
 
 			descriptionChange = false;
 
-			if (uploadedDescription.getCaseSignificance() == null) {
-				Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase, existingDescriptions);
-				uploadedDescription.setCaseSignificance(caseSignificance);
-			}
+			Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase, existingDescriptions);
+			uploadedDescription.setCaseSignificance(caseSignificance);
 
 			if (existingDescriptionOptional.isPresent()) {
 				Description existingDescription = existingDescriptionOptional.get();
