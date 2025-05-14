@@ -49,8 +49,7 @@ public class TranslationService {
 
 	public static final Pattern TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN = Pattern.compile(".\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
 	public static final Pattern TITLE_CASE_LOWER_CASE_SECOND_LETTER_BUT_UPPER_LATER = Pattern.compile(".\\p{Lower}.*\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
-	public static final Pattern UPPER_CASE_FIRST_LETTER_PATTERN = Pattern.compile("\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
-	public static final Pattern LOWER_CASE_FIRST_LETTER_BUT_UPPER_LATER = Pattern.compile("\\p{Lower}.*\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
+	public static final Pattern UPPER_CASE_ANY_LETTER_PATTERN = Pattern.compile(".*\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
 
 	private final List<LanguageCode> languageCodes = new ArrayList<>();
 
@@ -494,12 +493,9 @@ public class TranslationService {
 				return INITIAL_CHARACTER_CASE_INSENSITIVE;
 			}
 		} else {
-			if (UPPER_CASE_FIRST_LETTER_PATTERN.matcher(term).matches()) {
+			if (UPPER_CASE_ANY_LETTER_PATTERN.matcher(term).matches()) {
 				return ENTIRE_TERM_CASE_SENSITIVE;
-			} else if (LOWER_CASE_FIRST_LETTER_BUT_UPPER_LATER.matcher(term).matches()) {
-				return INITIAL_CHARACTER_CASE_INSENSITIVE;
 			}
-
 		}
 		return CASE_INSENSITIVE;
 	}
