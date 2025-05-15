@@ -1,8 +1,6 @@
 package org.snomed.simplex.weblate;
 
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
@@ -19,9 +17,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class WeblateClient {
 
@@ -87,60 +86,10 @@ public class WeblateClient {
 	}
 
 	public UnitSupplier getUnitStream(String projectSlug, String componentSlug, int startPage) {
-		String url = "%s&page=%s".formatted(getUnitQuery(projectSlug, componentSlug), startPage);
-
-		return new UnitSupplier() {
-
-			private WeblatePage<WeblateUnit> page;
-
-			private String nextUrl = url;
-			private Iterator<WeblateUnit> iterator;
-			@Override
-			public WeblateUnit get() throws ServiceExceptionWithStatusCode {
-
-				if (iterator != null && iterator.hasNext()) {
-					return iterator.next();
-				}
-
-				if (page == null || nextUrl != null) {
-					try {
-						LoggerFactory.getLogger(getClass()).debug("Getting next unit batch from {}", nextUrl);
-						ResponseEntity<WeblatePage<WeblateUnit>> response = restTemplate.exchange(nextUrl,
-								HttpMethod.GET, null, UNITS_RESPONSE_TYPE);
-
-						page = response.getBody();
-						if (page != null) {
-							nextUrl = page.next();
-							if (nextUrl != null) {
-								String[] split = nextUrl.split("&");
-								String pageNum = split[1];
-								pageNum = pageNum.split("=")[1];
-								int done = Integer.parseInt(pageNum) * 100;
-								if (done % 1000 == 0) {
-									Logger logger = LoggerFactory.getLogger(getClass());
-									int percentComplete = Math.round(((float) done / page.count()) * 100);
-									logger.info("Completed {}/{}, {}%", String.format("%,d", done), String.format("%,d", page.count()), percentComplete);
-
-								}
-								nextUrl = nextUrl.substring(nextUrl.indexOf("/units/"));
-								nextUrl = URLDecoder.decode(nextUrl, StandardCharsets.UTF_8);
-							}
-							iterator = page.results().iterator();
-							return iterator.next();
-						}
-					} catch (HttpClientErrorException e) {
-						handleSharedCodeSystemError("Failed to fetch translation units.", HttpStatus.INTERNAL_SERVER_ERROR, e);
-					}
-				}
-
-				// Nothing left
-				return null;
-			}
-
-		};
+		return new WeblateUnitStream(projectSlug, componentSlug, startPage, this);
 	}
 
-	private static @NotNull String getUnitQuery(String projectSlug, String componentSlug) {
+	protected static @NotNull String getUnitQuery(String projectSlug, String componentSlug) {
 		StringBuilder query = new StringBuilder()
 				.append("project").append(":").append(projectSlug)
 				.append(" AND ")
@@ -150,7 +99,7 @@ public class WeblateClient {
 		return "/units/?q=%s&format=json".formatted(query);
 	}
 
-	private void handleSharedCodeSystemError(String message, HttpStatus httpStatus, HttpClientErrorException e) throws ServiceExceptionWithStatusCode {
+	protected void handleSharedCodeSystemError(String message, HttpStatus httpStatus, HttpClientErrorException e) throws ServiceExceptionWithStatusCode {
 		supportRegister.handleSystemError(CodeSystem.SHARED, message, new ServiceException(message, e));
 		throw new ServiceExceptionWithStatusCode(message, httpStatus);
 	}
@@ -187,5 +136,9 @@ public class WeblateClient {
 
 	public void deleteComponent(String project, String slug) {
 		restTemplate.delete("/components/%s/%s/".formatted(project, slug));
+	}
+
+	protected RestTemplate getRestTemplate() {
+		return restTemplate;
 	}
 }

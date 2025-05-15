@@ -92,17 +92,6 @@ public class TranslationController {
 		});
 	}
 
-//	@GetMapping(path = "{codeSystem}/translations/{refsetId}/spreadsheet", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-//  @PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-//	public void downloadTranslationSpreadsheet(@PathVariable String codeSystem, @PathVariable String refsetId, HttpServletResponse response) throws ServiceException, IOException {
-//		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-//		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-//		ConceptMini refset = snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-//		String filename = "Translation_" + normaliseFilename(refset.getPt().getTerm()) + ".xlsx";
-//		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-//		translationService.downloadTranslationAsSpreadsheet(refsetId, theCodeSystem, response.getOutputStream());
-//	}
-
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-components")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<WeblateComponent> listWeblateComponent(@PathVariable String codeSystem, @PathVariable String refsetId) {
