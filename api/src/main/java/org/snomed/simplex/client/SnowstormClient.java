@@ -3,7 +3,6 @@ package org.snomed.simplex.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.apache.logging.log4j.util.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -18,7 +17,10 @@ import org.snomed.simplex.service.StreamUtils;
 import org.snomed.simplex.util.CollectionUtils;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -548,64 +550,10 @@ public class SnowstormClient {
 	}
 
 	public Supplier<ConceptMini> getConceptSortedHierarchyStream(String branch, String focusConcept) {
-		return new Supplier<>() {
-
-			private Deque<List<ConceptMini>> stack = null;
-			private final Set<Long> coveredConcepts = new LongOpenHashSet();
-
-			@Override
-			public ConceptMini get() {
-				if (stack == null) {
-					// Create stack with just focus concept
-					stack = new ArrayDeque<>();
-					List<ConceptMini> conceptList = getConceptList(branch, focusConcept);
-					stack.push(conceptList);
-				}
-
-				ConceptMini nextConcept;
-				do {
-					nextConcept = getNextConceptFromStack(stack);
-					if (nextConcept == null) {
-						return null;
-					}
-				} while(coveredConcepts.contains(Long.parseLong(nextConcept.getConceptId())));
-
-				// Load children of this concept and add to list
-				Supplier<ConceptMini> children = getConceptStream(branch, "<!" + nextConcept.getConceptId());
-				List<ConceptMini> childrenList = new ArrayList<>();
-				ConceptMini child;
-				while ((child = children.get()) != null) {
-					childrenList.add(child);
-				}
-				if (!childrenList.isEmpty()) {
-					childrenList.sort(Comparator.comparing(c -> c.getPtOrFsnOrConceptId().toLowerCase()));
-					stack.push(childrenList);
-				}
-
-				coveredConcepts.add(Long.parseLong(nextConcept.getConceptId()));
-
-				if (coveredConcepts.size() % 1_000 == 0) {
-					logger.info("Fetched {} concepts", coveredConcepts.size());
-				}
-
-				// Return this concept
-				return nextConcept;
-			}
-
-			private ConceptMini getNextConceptFromStack(Deque<List<ConceptMini>> stack) {
-					List<ConceptMini> deepestList = null;
-					while (!stack.isEmpty() && (deepestList = stack.peek()) != null && deepestList.isEmpty()) {
-						stack.pop();
-					}
-					if (deepestList == null || deepestList.isEmpty()) {
-						return null;
-					}
-					return deepestList.remove(0);
-			}
-		};
+		return new ConceptSortedHierarchyStream(branch, focusConcept, this);
 	}
 
-	private List<ConceptMini> getConceptList(String branch, String ecl) {
+	protected List<ConceptMini> getConceptList(String branch, String ecl) {
 		List<ConceptMini> list = new ArrayList<>();
 		Supplier<ConceptMini> conceptStream = getConceptStream(branch, ecl);
 		ConceptMini mini;
