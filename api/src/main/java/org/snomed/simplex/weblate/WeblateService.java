@@ -129,7 +129,7 @@ public class WeblateService {
 					writer.write("\"");
 					writer.newLine();
 				}
-				logger.info(String.format("Created concept set %s/%s", branch, focusConcept));
+				logger.info("Created concept set {}/{}", branch, focusConcept);
 			}
 		}
 	}

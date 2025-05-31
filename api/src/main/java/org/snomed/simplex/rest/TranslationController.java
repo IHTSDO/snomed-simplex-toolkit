@@ -19,7 +19,8 @@ import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.TranslationService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.JobType;
-import org.snomed.simplex.weblate.domain.WeblateComponent;
+import org.snomed.simplex.weblate.WeblateSetService;
+import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
@@ -53,14 +54,16 @@ public class TranslationController {
 	private final TranslationService translationService;
 	private final ContentProcessingJobService jobService;
 	private final ActivityService activityService;
+	private final WeblateSetService weblateSetService;
 
 	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, ContentProcessingJobService jobService,
-			ActivityService activityService) {
+			ActivityService activityService, WeblateSetService weblateSetService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
 		this.jobService = jobService;
 		this.activityService = activityService;
+		this.weblateSetService = weblateSetService;
 	}
 
 	@GetMapping("{codeSystem}/translations")
@@ -92,44 +95,48 @@ public class TranslationController {
 		});
 	}
 
-	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-components")
+	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public List<WeblateComponent> listWeblateComponent(@PathVariable String codeSystem, @PathVariable String refsetId) {
-		return List.of(new WeblateComponent("Allergies", "allergies", "common", ""));
+	public List<WeblateTranslationSet> listWeblateSets(@PathVariable String codeSystem, @PathVariable String refsetId) {
+		return weblateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-components")
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob addWeblateComponent(@PathVariable String codeSystem, @PathVariable String refsetId, @RequestParam String weblateComponentSlug) {
+	public WeblateTranslationSet createWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@RequestBody WeblateTranslationSet set) throws ServiceException {
+
+		set.setCodesystem(codeSystem);
+		set.setRefset(refsetId);
+		return weblateSetService.createSet(set);
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/synchronise")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob synchroniseWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String weblateComponentSlug) {
 		return DUMMY_COMPLETE;
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-components/{weblateComponentSlug}/synchronise")
+	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{weblateComponentSlug}")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob synchroniseWeblateComponent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String weblateComponentSlug) {
+	public AsyncJob deleteWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String weblateComponentSlug) {
 		return DUMMY_COMPLETE;
 	}
 
-	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-components/{weblateComponentSlug}")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob deleteWeblateComponent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String weblateComponentSlug) {
-		return DUMMY_COMPLETE;
-	}
-
-	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob uploadTranslationFromWeblate(@PathVariable String codeSystem, @PathVariable String refsetId,
-			@RequestParam MultipartFile file,
-			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase,
-			@RequestParam(defaultValue = "false") boolean overwriteExistingCaseSignificance,
-			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {
-
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
-		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
-				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(translationTermsUseTitleCase, asyncJob));
-	}
+//	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
+//	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+//	public AsyncJob uploadTranslationFromWeblate(@PathVariable String codeSystem, @PathVariable String refsetId,
+//			@RequestParam MultipartFile file,
+//			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase,
+//			@RequestParam(defaultValue = "false") boolean overwriteExistingCaseSignificance,
+//			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {
+//
+//		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+//		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+//		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
+//		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
+//				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(translationTermsUseTitleCase, asyncJob));
+//	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
