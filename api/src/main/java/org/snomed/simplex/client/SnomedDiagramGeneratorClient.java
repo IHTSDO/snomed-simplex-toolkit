@@ -21,7 +21,7 @@ public class SnomedDiagramGeneratorClient {
 
     private static final Logger logger = LoggerFactory.getLogger(SnomedDiagramGeneratorClient.class);
     private static final String DIAGRAM_ENDPOINT = "/diagram";
-    private static final String DIAGRAMS_DIR = "diagrams";
+    private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
 
     private final RestTemplate restTemplate;
 
@@ -40,10 +40,6 @@ public class SnomedDiagramGeneratorClient {
      */
     public boolean saveDiagram(String conceptId, Object conceptData) {
         try {
-            // Create diagrams directory if it doesn't exist
-            Path diagramsPath = Paths.get(DIAGRAMS_DIR);
-            Files.createDirectories(diagramsPath);
-
             // Make POST request to diagram generation server
             ResponseEntity<Resource> response = restTemplate.exchange(
                     DIAGRAM_ENDPOINT,
@@ -53,8 +49,8 @@ public class SnomedDiagramGeneratorClient {
             );
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                // Save the response as PNG file
-                File outputFile = new File(diagramsPath.toFile(), conceptId + ".png");
+                // Save the response as PNG file in temp directory
+                File outputFile = new File(TEMP_DIR, conceptId + ".png");
                 try (FileOutputStream fos = new FileOutputStream(outputFile)) {
                     response.getBody().getInputStream().transferTo(fos);
                 }
