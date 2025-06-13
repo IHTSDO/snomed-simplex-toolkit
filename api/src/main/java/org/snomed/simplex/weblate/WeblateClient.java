@@ -1,6 +1,8 @@
 package org.snomed.simplex.weblate;
 
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
@@ -10,29 +12,42 @@ import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateProject;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.*;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class WeblateClient {
+	private static final Logger logger = LoggerFactory.getLogger(WeblateClient.class);
+	private final RestTemplate restTemplate;
+	private final SupportRegister supportRegister;
 
 	public static final ParameterizedTypeReference<WeblateComponent> SET_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<WeblatePage<WeblateUnit>> UNITS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 
-	private final RestTemplate restTemplate;
-	private final SupportRegister supportRegister;
-
 	protected WeblateClient(RestTemplate restTemplate, SupportRegister supportRegister) {
 		this.restTemplate = restTemplate;
 		this.supportRegister = supportRegister;
+	}
+
+	protected RestTemplate getRestTemplate() {
+		return restTemplate;
+	}
+
+	private HttpHeaders createHeaders() {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		headers.set("Accept", "application/json");
+		return headers;
 	}
 
 	public List<WeblateComponent> listComponents(String projectSlug) {
@@ -138,7 +153,129 @@ public class WeblateClient {
 		restTemplate.delete("/components/%s/%s/".formatted(project, slug));
 	}
 
-	protected RestTemplate getRestTemplate() {
-		return restTemplate;
+	/**
+	 * Creates a new screenshot in Weblate for a specific unit.
+	 *
+	 * @param projectSlug The project slug
+	 * @param componentSlug The component slug
+	 * @param unitId The unit ID (checksum) to associate with the screenshot
+	 * @param imageFile The image file to upload
+	 * @return The created screenshot data if successful, null otherwise
+	 * @throws ServiceException if there's an error during the process
+	 */
+	public Map<String, Object> createScreenshot(String projectSlug, String componentSlug, String unitId, File imageFile) throws ServiceException {
+		try {
+			// First, get the unit details to ensure we have the correct numeric ID
+			ResponseEntity<Map<String, Object>> unitResponse = restTemplate.exchange(
+				"/units/%s/".formatted(unitId),
+				HttpMethod.GET,
+				null,
+				new ParameterizedTypeReference<>() {}
+			);
+			
+			if (unitResponse.getStatusCode() != HttpStatus.OK || unitResponse.getBody() == null) {
+				throw new ServiceException("Failed to get unit details");
+			}
+			
+			Integer numericUnitId = (Integer) unitResponse.getBody().get("id");
+			if (numericUnitId == null) {
+				throw new ServiceException("Could not get numeric unit ID");
+			}
+			
+			// Create multipart request for screenshot upload
+			MultipartBodyBuilder builder = new MultipartBodyBuilder();
+			builder.part("image", new FileSystemResource(imageFile), MediaType.IMAGE_PNG);
+			builder.part("name", "SNOMED CT Diagram for unit " + unitId);
+			builder.part("project_slug", projectSlug);
+			builder.part("component_slug", componentSlug);
+			builder.part("language_code", "en");
+			builder.part("units", List.of(numericUnitId));
+			
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+			
+			// Create the screenshot
+			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+				"/screenshots/",
+				HttpMethod.POST,
+				new HttpEntity<>(builder.build(), headers),
+				new ParameterizedTypeReference<>() {}
+			);
+			
+			if (response.getStatusCode() != HttpStatus.OK && response.getStatusCode() != HttpStatus.CREATED) {
+				throw new ServiceException("Failed to create screenshot");
+			}
+			
+			Map<String, Object> screenshot = response.getBody();
+			if (screenshot == null) {
+				throw new ServiceException("No response body received");
+			}
+			
+			// Verify the unit was associated
+			if (!screenshot.containsKey("units") || ((List<?>) screenshot.get("units")).isEmpty()) {
+				// Try to associate the unit after creation
+				String screenshotUrl = (String) screenshot.get("url");
+				String screenshotId = screenshotUrl.substring(screenshotUrl.lastIndexOf('/') + 1);
+				
+				Map<String, Object> associateData = new HashMap<>();
+				associateData.put("unit_id", numericUnitId);
+				
+				ResponseEntity<Map<String, Object>> associateResponse = restTemplate.exchange(
+					"/screenshots/%s/units/".formatted(screenshotId),
+					HttpMethod.POST,
+					new HttpEntity<>(associateData),
+					new ParameterizedTypeReference<>() {}
+				);
+				
+				if (associateResponse.getStatusCode() != HttpStatus.OK && associateResponse.getStatusCode() != HttpStatus.CREATED) {
+					throw new ServiceException("Failed to associate unit with screenshot");
+				}
+				
+				screenshot = associateResponse.getBody();
+			}
+			
+			return screenshot;
+			
+		} catch (HttpClientErrorException e) {
+			throw new ServiceException("Error creating screenshot: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Find a Weblate unit by its concept ID.
+	 *
+	 * @param projectSlug The project slug
+	 * @param componentSlug The component slug
+	 * @param conceptId The concept ID to search for
+	 * @return The WeblateUnit if found, null otherwise
+	 */
+	public WeblateUnit getUnitForConceptId(String projectSlug, String componentSlug, String conceptId) {
+		try {
+			String url = "/units/";
+			MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+			params.add("project", projectSlug);
+			params.add("component", componentSlug);
+			params.add("q", "context:=" + conceptId);
+
+			ResponseEntity<WeblatePage<WeblateUnit>> response = restTemplate.exchange(
+				url,
+				HttpMethod.GET,
+				new HttpEntity<>(createHeaders()),
+				UNITS_RESPONSE_TYPE,
+				params
+			);
+
+			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+				List<WeblateUnit> results = response.getBody().results();
+				if (!results.isEmpty()) {
+					return results.get(0);
+				}
+			}
+			logger.warn("No unit found for concept ID {} in project {} component {}", conceptId, projectSlug, componentSlug);
+			return null;
+		} catch (Exception e) {
+			logger.error("Error finding unit for concept ID {}: {}", conceptId, e.getMessage());
+			return null;
+		}
 	}
 }
