@@ -1,5 +1,6 @@
 package org.snomed.simplex;
 
+import org.snomed.simplex.client.SnomedDiagramGeneratorClient;
 import org.snomed.simplex.config.ApplicationConfig;
 import org.snomed.simplex.service.test.TestActivityRepository;
 import org.snomed.simplex.service.test.TestWeblateSetRepository;
@@ -30,5 +31,10 @@ public class TestConfig extends ApplicationConfig {
 	@Bean
 	public TestWeblateSetRepository weblateSetRepository() {
 		return new TestWeblateSetRepository();
+	}
+
+	@Bean
+	public SnomedDiagramGeneratorClient snomedDiagramGeneratorClient() {
+		return new SnomedDiagramGeneratorClient("http://localhost:8082/");
 	}
 }
