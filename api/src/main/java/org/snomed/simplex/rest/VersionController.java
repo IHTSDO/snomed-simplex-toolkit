@@ -22,9 +22,9 @@ public class VersionController {
 	@Operation(summary = "Software build version and timestamp.")
 	@RequestMapping(value = "/version", method = RequestMethod.GET, produces = "application/json")
 	public BuildVersion getBuildInformation() {
-	    if (buildProperties == null) {
+		if (buildProperties == null) {
 			return new BuildVersion("Dev", null);
-        }
+		}
 		return new BuildVersion(buildProperties.getVersion(), buildProperties.getTime().toString());
 	}
 

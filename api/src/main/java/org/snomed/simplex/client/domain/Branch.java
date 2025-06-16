@@ -50,7 +50,7 @@ public class Branch {
 				String keyPart = key.substring("internal.".length());
 				Object thing = metadata.get("internal");
 				if (thing instanceof Map<?, ?> map) {
-                    return (String) map.get(keyPart);
+					return (String) map.get(keyPart);
 				}
 			} else {
 				Object defaultModule = metadata.get(key);

@@ -150,7 +150,7 @@ public class SnowstormClient {
 		}
 		codeSystem.setSimplexWorkingBranch(workingBranches.get(codeSystem.getShortName()));
 		codeSystem.setNamespace(branch.getMetadataValue(Branch.DEFAULT_NAMESPACE_METADATA_KEY));
-        codeSystem.setClassified("true".equals(branch.getMetadataValue(Branch.CLASSIFIED_METADATA_KEY)));
+		codeSystem.setClassified("true".equals(branch.getMetadataValue(Branch.CLASSIFIED_METADATA_KEY)));
 		codeSystem.setShowCustomConcepts("true".equals(branch.getMetadataValue(Branch.SHOW_CUSTOM_CONCEPTS)));
 		codeSystem.setDependencyPackage(branch.getMetadataValue(Branch.DEPENDENCY_PACKAGE_METADATA_KEY));
 		codeSystem.setPreviousPackage(branch.getMetadataValue(Branch.PREVIOUS_PACKAGE_METADATA_KEY));
@@ -629,7 +629,7 @@ public class SnowstormClient {
 			if (!concept.isActive() && !concept.isReleased()) {
 				conceptsToDelete.add(concept);
 			} else {
-                concept.setDescriptions(getNewDescriptionSet(concept));
+				concept.setDescriptions(getNewDescriptionSet(concept));
 				conceptsForBulkUpdate.add(concept);
 			}
 		}

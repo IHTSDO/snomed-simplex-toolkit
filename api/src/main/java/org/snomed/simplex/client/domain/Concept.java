@@ -70,8 +70,8 @@ public class Concept extends Component {
 	}
 
 	private Optional<Description> getEnFSN() {
-        return descriptions.stream().filter(description -> description.isActive() && description.getType() == FSN &&
-                description.getLang().equals("en")).findFirst();
+		return descriptions.stream().filter(description -> description.isActive() && description.getType() == FSN &&
+				description.getLang().equals("en")).findFirst();
 	}
 
 	public boolean isDefined() {

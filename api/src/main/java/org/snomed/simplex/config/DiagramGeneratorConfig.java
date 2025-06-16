@@ -8,11 +8,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class DiagramGeneratorConfig {
 
-    @Value("${diagram-generator.url}")
-    private String diagramGeneratorUrl;
+	@Value("${diagram-generator.url}")
+	private String diagramGeneratorUrl;
 
-    @Bean
-    public SnomedDiagramGeneratorClient snomedDiagramGeneratorClient() {
-        return new SnomedDiagramGeneratorClient(diagramGeneratorUrl);
-    }
+	@Bean
+	public SnomedDiagramGeneratorClient snomedDiagramGeneratorClient() {
+		return new SnomedDiagramGeneratorClient(diagramGeneratorUrl);
+	}
 } 

@@ -200,7 +200,7 @@ public class SpreadsheetService {
 		AtomicInteger rowOffset = new AtomicInteger(0);
 		Row headerRow = sheet.createRow(rowOffset.getAndIncrement());
 		int columnOffset = 0;
-        for (Pair<String, Integer> headerColumn : List.of(Pair.of("Rule Type", 60_000), Pair.of("Concept Code", 30_00), Pair.of("Additional Detail", 65_000))) {
+		for (Pair<String, Integer> headerColumn : List.of(Pair.of("Rule Type", 60_000), Pair.of("Concept Code", 30_00), Pair.of("Additional Detail", 65_000))) {
 			Cell cell = headerRow.createCell(columnOffset);
 			XSSFRichTextString textString = new XSSFRichTextString(headerColumn.getLeft());
 			textString.applyFont(BOLD_FONT);
@@ -224,8 +224,8 @@ public class SpreadsheetService {
 		rowOffset.getAndIncrement();
 		rowOffset.getAndIncrement();
 
-        addValidationFailures(testResult.assertionsFailed(), true, rowOffset, sheet, cellStyle);
-        addValidationFailures(testResult.assertionsWarning(), false, rowOffset, sheet, cellStyle);
+		addValidationFailures(testResult.assertionsFailed(), true, rowOffset, sheet, cellStyle);
+		addValidationFailures(testResult.assertionsWarning(), false, rowOffset, sheet, cellStyle);
 
 		// Example:
 		// Report Timestamp: Feb 7, 2024, 5:50:04 PM (UTC), Identifier: 1707327746182

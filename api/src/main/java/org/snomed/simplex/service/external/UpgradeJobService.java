@@ -62,10 +62,10 @@ public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgr
 		// Disable daily-build to prevent content rollback during upgrade
 		codeSystem.setDailyBuildAvailable(false);
 		snowstormClient.updateCodeSystem(codeSystem);
-        if (codeSystem.getLatestVersion() != null) {
+		if (codeSystem.getLatestVersion() != null) {
 			// Store the dependencyPackage as the new previousDependencyPackage for later
 			snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(UPGRADE_TMP_PREVIOUS_DEPENDENCY_PACKAGE, codeSystem.getDependencyPackage()));
-        }
+		}
 		URI upgradeJobLocation = snowstormClient.createUpgradeJob(codeSystem, upgradeRequest);
 		logger.info("Created upgrade job. Codesystem:{}, Snowstorm Job:{}", codeSystem.getShortName(), upgradeJobLocation);
 		job.setLink(upgradeJobLocation.toString());
