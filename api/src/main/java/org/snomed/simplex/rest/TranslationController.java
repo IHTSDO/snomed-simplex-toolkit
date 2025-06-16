@@ -29,7 +29,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
@@ -113,7 +112,7 @@ public class TranslationController {
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/synchronise")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob synchroniseWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String weblateComponentSlug) {
+	public AsyncJob synchroniseWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) {
 		return DUMMY_COMPLETE;
 	}
 
@@ -123,27 +122,24 @@ public class TranslationController {
 		return DUMMY_COMPLETE;
 	}
 
-//	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
-//	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-//	public AsyncJob uploadTranslationFromWeblate(@PathVariable String codeSystem, @PathVariable String refsetId,
-//			@RequestParam MultipartFile file,
-//			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase,
-//			@RequestParam(defaultValue = "false") boolean overwriteExistingCaseSignificance,
-//			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {
-//
-//		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-//		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-//		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
-//		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
-//				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(translationTermsUseTitleCase, asyncJob));
-//	}
+	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob uploadTranslationFromWeblate(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@RequestParam MultipartFile file,
+			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase) throws ServiceException, IOException {
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
+		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
+				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(translationTermsUseTitleCase, asyncJob));
+	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob uploadTranslationFromRefsetAndTranslationTool(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam MultipartFile file,
-			@RequestParam(required = false, defaultValue = "true") boolean ignoreCaseInImport,
-			UriComponentsBuilder uriComponentBuilder) throws ServiceException, IOException {
+			@RequestParam(required = false, defaultValue = "true") boolean ignoreCaseInImport) throws ServiceException, IOException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
