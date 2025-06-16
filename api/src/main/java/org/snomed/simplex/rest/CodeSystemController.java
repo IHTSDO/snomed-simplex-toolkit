@@ -120,7 +120,7 @@ public class CodeSystemController {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		codeSystemService.addClassificationStatus(theCodeSystem);
-        if (theCodeSystem.isClassified()) {
+		if (theCodeSystem.isClassified()) {
 			throw new ServiceException("This codesystem is already classified.");
 		} else if (theCodeSystem.getClassificationStatus() == CodeSystemClassificationStatus.IN_PROGRESS) {
 			throw new ServiceException("Classification is already in progress.");
