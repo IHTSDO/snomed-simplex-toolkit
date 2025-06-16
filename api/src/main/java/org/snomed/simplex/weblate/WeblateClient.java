@@ -203,7 +203,7 @@ public class WeblateClient {
 			);
 			
 			if (response.getStatusCode() != HttpStatus.OK && response.getStatusCode() != HttpStatus.CREATED) {
-				throw new ServiceException("Failed to create screenshot");
+				throw new ServiceException("Failed to upload screenshot");
 			}
 			
 			Map<String, Object> screenshot = response.getBody();
