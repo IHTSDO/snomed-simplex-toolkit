@@ -36,44 +36,6 @@ public class WeblateDiagramService {
 	}
 	
 	/**
-	 * Updates a screenshot for a specific concept.
-	 *
-	 * @param conceptId       The ID of the concept to update
-	 * @param snowstormClient The Snowstorm client instance
-	 * @param codeSystem      The code system to use
-	 * @return local file with screenshot
-	 * @throws ServiceException if there's an error during the update process
-	 */
-	public File updateScreenshot(String conceptId, SnowstormClient snowstormClient, CodeSystem codeSystem) throws ServiceException {
-		try {
-			// Get concept data from Snowstorm
-			Long conceptIdLong = Long.parseLong(conceptId);
-			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(List.of(conceptIdLong), codeSystem);
-			if (concepts.isEmpty()) {
-				throw new ServiceException("Concept %s not found in Snowstorm".formatted(conceptId));
-			}
-			
-			// Generate and save diagram
-			return diagramClient.generateAndSaveLocalDiagram(conceptId, concepts.get(0));
-		} catch (NumberFormatException e) {
-			logger.error("Invalid concept ID format: {}", conceptId);
-			throw new ServiceExceptionWithStatusCode("Invalid concept ID format", HttpStatus.BAD_REQUEST, e);
-		}
-	}
-
-	private void cleanupDiagramFile(File diagramFile) {
-		if (diagramFile != null) {
-			Path diagramPath = diagramFile.toPath();
-			try {
-				Files.deleteIfExists(diagramPath);
-				logger.debug("Cleaned up diagram file: {}", diagramPath);
-			} catch (IOException e) {
-				logger.warn("Failed to delete diagram file {}: {}", diagramPath, e.getMessage());
-			}
-		}
-	}
-
-	/**
 	 * Creates a screenshot in Weblate for a specific concept.
 	 *
 	 * @param conceptId The ID of the concept
@@ -101,7 +63,7 @@ public class WeblateDiagramService {
 			}
 
 			// Create screenshot in Weblate
-			Map<String, Object> screenshot = weblateClient.createScreenshot(conceptId, projectSlug, componentSlug,
+			Map<String, Object> screenshot = weblateClient.uploadAndAssociateScreenshot(conceptId, projectSlug, componentSlug,
 					unit.getId(), diagramFile);
 
 			if (screenshot == null) {
@@ -114,6 +76,32 @@ public class WeblateDiagramService {
 			throw new ServiceException("Error creating Weblate screenshot for concept %s".formatted(conceptId), e);
 		} finally {
 			cleanupDiagramFile(diagramFile);
+		}
+	}
+
+	/**
+	 * Updates a screenshot for a specific concept.
+	 *
+	 * @param conceptId       The ID of the concept to update
+	 * @param snowstormClient The Snowstorm client instance
+	 * @param codeSystem      The code system to use
+	 * @return local file with screenshot
+	 * @throws ServiceException if there's an error during the update process
+	 */
+	private File updateScreenshot(String conceptId, SnowstormClient snowstormClient, CodeSystem codeSystem) throws ServiceException {
+		try {
+			// Get concept data from Snowstorm
+			Long conceptIdLong = Long.parseLong(conceptId);
+			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(List.of(conceptIdLong), codeSystem);
+			if (concepts.isEmpty()) {
+				throw new ServiceException("Concept %s not found in Snowstorm".formatted(conceptId));
+			}
+
+			// Generate and save diagram
+			return diagramClient.generateAndSaveLocalDiagram(conceptId, concepts.get(0));
+		} catch (NumberFormatException e) {
+			logger.error("Invalid concept ID format: {}", conceptId);
+			throw new ServiceExceptionWithStatusCode("Invalid concept ID format", HttpStatus.BAD_REQUEST, e);
 		}
 	}
 
@@ -167,7 +155,9 @@ public class WeblateDiagramService {
 		}
 	}
 
-	private void processUnit(String projectSlug, String componentSlug, SnomedDiagramGeneratorClient diagramClient, WeblateClient weblateClient, WeblateUnit unit, Concept concept, Map<String, Map<String, Object>> results) {
+	private void processUnit(String projectSlug, String componentSlug, SnomedDiagramGeneratorClient diagramClient,
+			WeblateClient weblateClient, WeblateUnit unit, Concept concept, Map<String, Map<String, Object>> results) {
+
 		File diagramFile = null;
 		String conceptId = concept.getConceptId();
 		try {
@@ -176,7 +166,7 @@ public class WeblateDiagramService {
 			diagramFile = diagramClient.generateAndSaveLocalDiagram(conceptId, concept);
 
 			// Create screenshot in Weblate
-			Map<String, Object> screenshot = weblateClient.createScreenshot(conceptId, projectSlug, componentSlug,
+			Map<String, Object> screenshot = weblateClient.uploadAndAssociateScreenshot(conceptId, projectSlug, componentSlug,
 				unit.getId(), diagramFile);
 
 			if (screenshot != null) {
@@ -200,11 +190,11 @@ public class WeblateDiagramService {
 	 * @param componentSlug The Weblate component slug
 	 * @param snowstormClient The Snowstorm client instance
 	 * @param codeSystem The code system to use
-	 * @return The number of screenshots successfully created
 	 * @throws ServiceException if there's an error during the process
 	 */
-	public int updateAll(String projectSlug, String componentSlug, SnowstormClient snowstormClient,
+	public void updateAll(String projectSlug, String componentSlug, SnowstormClient snowstormClient,
 			CodeSystem codeSystem) throws ServiceException {
+
 		try {
 			int processed = 0;
 			int successful = 0;
@@ -254,11 +244,21 @@ public class WeblateDiagramService {
 						String.format("%,d", processed),
 						String.format("%,d", successful));
 			}
-			
-			return successful;
-
 		} catch (Exception e) {
 			throw new ServiceException("Failed to update all screenshots", e);
 		}
 	}
+
+	private void cleanupDiagramFile(File diagramFile) {
+		if (diagramFile != null) {
+			Path diagramPath = diagramFile.toPath();
+			try {
+				Files.deleteIfExists(diagramPath);
+				logger.debug("Cleaned up diagram file: {}", diagramPath);
+			} catch (IOException e) {
+				logger.warn("Failed to delete diagram file {}: {}", diagramPath, e.getMessage());
+			}
+		}
+	}
+
 } 

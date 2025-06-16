@@ -12,11 +12,9 @@ import java.util.Optional;
 @Service
 public class WeblateSetService {
 
-	private final WeblateService weblateService;
 	private final WeblateSetRepository weblateSetRepository;
 
-	public WeblateSetService(WeblateService weblateService, WeblateSetRepository weblateSetRepository) {
-		this.weblateService = weblateService;
+	public WeblateSetService(WeblateSetRepository weblateSetRepository) {
 		this.weblateSetRepository = weblateSetRepository;
 	}
 
