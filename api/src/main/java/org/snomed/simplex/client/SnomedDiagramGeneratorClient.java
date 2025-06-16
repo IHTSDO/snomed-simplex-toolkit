@@ -2,11 +2,13 @@ package org.snomed.simplex.client;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
@@ -17,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+@Service
 public class SnomedDiagramGeneratorClient {
 
 	private static final Logger logger = LoggerFactory.getLogger(SnomedDiagramGeneratorClient.class);
@@ -25,7 +28,7 @@ public class SnomedDiagramGeneratorClient {
 
 	private final RestTemplate restTemplate;
 
-	public SnomedDiagramGeneratorClient(String serverUrl) {
+	public SnomedDiagramGeneratorClient(@Value("${diagram-generator.url}") String serverUrl) {
 		this.restTemplate = new RestTemplateBuilder()
 				.rootUri(serverUrl)
 				.build();

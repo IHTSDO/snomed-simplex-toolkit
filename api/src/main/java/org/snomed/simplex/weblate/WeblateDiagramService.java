@@ -1,4 +1,4 @@
-package org.snomed.simplex.util;
+package org.snomed.simplex.weblate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,9 +7,9 @@ import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concept;
 import org.snomed.simplex.client.SnomedDiagramGeneratorClient;
 import org.snomed.simplex.exceptions.ServiceException;
-import org.snomed.simplex.weblate.WeblateClient;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.snomed.simplex.weblate.domain.WeblatePage;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,16 +19,18 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Utility class for updating screenshots in the system.
- */
-public class ScreenshotUpdater {
+@Service
+public class WeblateDiagramService {
 	
-	private static final Logger logger = LoggerFactory.getLogger(ScreenshotUpdater.class);
+	private static final Logger logger = LoggerFactory.getLogger(WeblateDiagramService.class);
 	private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
-	
-	public ScreenshotUpdater() {
+	private final SnomedDiagramGeneratorClient diagramClient;
+	private final WeblateClientFactory weblateClientFactory;
+
+	public WeblateDiagramService(SnomedDiagramGeneratorClient diagramClient, WeblateClientFactory weblateClientFactory) {
 		// No configuration needed anymore
+		this.diagramClient = diagramClient;
+		this.weblateClientFactory = weblateClientFactory;
 	}
 	
 	/**
@@ -36,13 +38,11 @@ public class ScreenshotUpdater {
 	 *
 	 * @param conceptId The ID of the concept to update
 	 * @param snowstormClient The Snowstorm client instance
-	 * @param diagramClient The diagram generator client instance
 	 * @param codeSystem The code system to use
 	 * @return true if the screenshot was updated successfully, false otherwise
 	 * @throws ServiceException if there's an error during the update process
 	 */
-	public boolean updateScreenshot(String conceptId, SnowstormClient snowstormClient, 
-			SnomedDiagramGeneratorClient diagramClient, CodeSystem codeSystem) throws ServiceException {
+	public boolean updateScreenshot(String conceptId, SnowstormClient snowstormClient, CodeSystem codeSystem) throws ServiceException {
 		try {
 			// Get concept data from Snowstorm
 			Long conceptIdLong = Long.parseLong(conceptId);
@@ -87,19 +87,18 @@ public class ScreenshotUpdater {
 	 * @param projectSlug The Weblate project slug
 	 * @param componentSlug The Weblate component slug
 	 * @param snowstormClient The Snowstorm client instance
-	 * @param diagramClient The diagram generator client instance
 	 * @param weblateClient The Weblate client instance
 	 * @param codeSystem The code system to use
 	 * @return The created screenshot data if successful, null otherwise
 	 * @throws ServiceException if there's an error during the process
 	 */
 	public Map<String, Object> createWeblateScreenshot(String conceptId, String projectSlug, String componentSlug,
-			SnowstormClient snowstormClient, SnomedDiagramGeneratorClient diagramClient, 
+			SnowstormClient snowstormClient,
 			WeblateClient weblateClient, CodeSystem codeSystem) throws ServiceException {
 		Path diagramPath = null;
 		try {
 			// First generate the diagram
-			boolean diagramSuccess = updateScreenshot(conceptId, snowstormClient, diagramClient, codeSystem);
+			boolean diagramSuccess = updateScreenshot(conceptId, snowstormClient, codeSystem);
 			if (!diagramSuccess) {
 				logger.error("Failed to generate diagram for concept {}", conceptId);
 				return null;
@@ -247,15 +246,12 @@ public class ScreenshotUpdater {
 	 * @param projectSlug The Weblate project slug
 	 * @param componentSlug The Weblate component slug
 	 * @param snowstormClient The Snowstorm client instance
-	 * @param diagramClient The diagram generator client instance
-	 * @param weblateClient The Weblate client instance
 	 * @param codeSystem The code system to use
 	 * @return The number of screenshots successfully created
 	 * @throws ServiceException if there's an error during the process
 	 */
-	public int updateAll(String projectSlug, String componentSlug,
-			SnowstormClient snowstormClient, SnomedDiagramGeneratorClient diagramClient,
-			WeblateClient weblateClient, CodeSystem codeSystem) throws ServiceException {
+	public int updateAll(String projectSlug, String componentSlug, SnowstormClient snowstormClient,
+			CodeSystem codeSystem) throws ServiceException {
 		try {
 			int processed = 0;
 			int successful = 0;
@@ -265,6 +261,8 @@ public class ScreenshotUpdater {
 			// Create screenshots directory if it doesn't exist
 			Path screenshotsPath = Paths.get(TEMP_DIR);
 			Files.createDirectories(screenshotsPath);
+
+			WeblateClient weblateClient = weblateClientFactory.getClient();
 
 			// Get initial page to get total count
 			WeblatePage<WeblateUnit> initialPage = weblateClient.getUnitPage(projectSlug, componentSlug);

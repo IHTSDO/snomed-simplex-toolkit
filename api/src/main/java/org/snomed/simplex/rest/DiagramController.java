@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
-import org.snomed.simplex.client.SnomedDiagramGeneratorClient;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
@@ -12,8 +11,7 @@ import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.job.AsyncJob;
-import org.snomed.simplex.util.ScreenshotUpdater;
-import org.snomed.simplex.weblate.WeblateClient;
+import org.snomed.simplex.weblate.WeblateDiagramService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,24 +22,14 @@ import java.io.IOException;
 @RequestMapping("api")
 public class DiagramController {
 
-	private final SnowstormClientFactory snowstormClientFactory;
-	private final ContentProcessingJobService jobService;
-	private final ScreenshotUpdater screenshotUpdater;
-	private final SnomedDiagramGeneratorClient diagramClient;
-	private final WeblateClient weblateClient;
+    private final WeblateDiagramService weblateDiagramService;
+    private final SnowstormClientFactory snowstormClientFactory;
+    private final ContentProcessingJobService jobService;
 
-	public DiagramController(
-			SnowstormClientFactory snowstormClientFactory,
-			ContentProcessingJobService jobService,
-			ScreenshotUpdater screenshotUpdater,
-			SnomedDiagramGeneratorClient diagramClient,
-			WeblateClient weblateClient) {
-		super();
+	public DiagramController(WeblateDiagramService weblateDiagramService, SnowstormClientFactory snowstormClientFactory, ContentProcessingJobService jobService) {
+		this.weblateDiagramService = weblateDiagramService;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.jobService = jobService;
-		this.screenshotUpdater = screenshotUpdater;
-		this.diagramClient = diagramClient;
-		this.weblateClient = weblateClient;
 	}
 
 	@PostMapping("{codeSystem}/diagrams/{conceptId}/update")
@@ -63,7 +51,7 @@ public class DiagramController {
 			conceptId,
 			activity,
 			job -> {
-				screenshotUpdater.updateScreenshot(conceptId, snowstormClient, diagramClient, theCodeSystem);
+                weblateDiagramService.updateScreenshot(conceptId, snowstormClient, theCodeSystem);
 				return null;
 			}
 		);
@@ -89,9 +77,9 @@ public class DiagramController {
 			null,
 			activity,
 			job -> {
-				screenshotUpdater.updateAll(projectSlug, componentSlug, snowstormClient, diagramClient, weblateClient, theCodeSystem);
+                weblateDiagramService.updateAll(projectSlug, componentSlug, snowstormClient, theCodeSystem);
 				return null;
 			}
 		);
 	}
-} 
+}
