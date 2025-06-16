@@ -66,8 +66,8 @@ public class Concept extends Component {
 
 	@JsonIgnore
 	public String getEnSemanticTag() {
-		Optional<Description> fsn = getEnFSN();
-		String term = fsn.orElse(new Description().setTerm("Finding (finding)")).getTerm();
+		Optional<Description> enFSN = getEnFSN();
+		String term = enFSN.orElse(new Description().setTerm("Finding (finding)")).getTerm();
 		return term.substring(term.lastIndexOf("("));
 	}
 

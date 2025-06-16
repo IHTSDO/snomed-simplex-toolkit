@@ -149,7 +149,7 @@ public class WeblateClient {
 	 * @return The created screenshot data if successful, null otherwise
 	 * @throws ServiceException if there's an error during the process
 	 */
-	public Map<String, Object> createScreenshot(String conceptId, String projectSlug, String componentSlug,
+	public Map<String, Object> uploadAndAssociateScreenshot(String conceptId, String projectSlug, String componentSlug,
 			String unitId, File imageFile) throws ServiceException {
 
 		try {
