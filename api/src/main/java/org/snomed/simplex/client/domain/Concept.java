@@ -14,6 +14,8 @@ public class Concept extends Component {
 	public static final String PRIMITIVE = "PRIMITIVE";
 
 	private String conceptId;
+	private DescriptionMini pt;
+	private DescriptionMini fsn;
 	private String definitionStatus;
 	private List<Description> descriptions;
 	private List<Axiom> classAxioms;
@@ -96,6 +98,22 @@ public class Concept extends Component {
 	public Concept setConceptId(String conceptId) {
 		this.conceptId = conceptId;
 		return this;
+	}
+
+	public DescriptionMini getPt() {
+		return pt;
+	}
+
+	public void setPt(DescriptionMini pt) {
+		this.pt = pt;
+	}
+
+	public DescriptionMini getFsn() {
+		return fsn;
+	}
+
+	public void setFsn(DescriptionMini fsn) {
+		this.fsn = fsn;
 	}
 
 	public String getDefinitionStatus() {

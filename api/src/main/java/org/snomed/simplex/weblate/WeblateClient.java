@@ -17,14 +17,10 @@ import org.springframework.http.*;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class WeblateClient {
 	private static final Logger logger = LoggerFactory.getLogger(WeblateClient.class);
@@ -33,21 +29,11 @@ public class WeblateClient {
 
 	public static final ParameterizedTypeReference<WeblateComponent> SET_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<WeblatePage<WeblateUnit>> UNITS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
+	public static final ParameterizedTypeReference<Map<String, Object>> PARAMETERIZED_TYPE_REFERENCE_MAP = new ParameterizedTypeReference<>() {};
 
 	protected WeblateClient(RestTemplate restTemplate, SupportRegister supportRegister) {
 		this.restTemplate = restTemplate;
 		this.supportRegister = supportRegister;
-	}
-
-	protected RestTemplate getRestTemplate() {
-		return restTemplate;
-	}
-
-	private HttpHeaders createHeaders() {
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		headers.set("Accept", "application/json");
-		return headers;
 	}
 
 	public List<WeblateComponent> listComponents(String projectSlug) {
@@ -163,14 +149,16 @@ public class WeblateClient {
 	 * @return The created screenshot data if successful, null otherwise
 	 * @throws ServiceException if there's an error during the process
 	 */
-	public Map<String, Object> createScreenshot(String projectSlug, String componentSlug, String unitId, File imageFile) throws ServiceException {
+	public Map<String, Object> createScreenshot(String conceptId, String projectSlug, String componentSlug,
+			String unitId, File imageFile) throws ServiceException {
+
 		try {
 			// First, get the unit details to ensure we have the correct numeric ID
 			ResponseEntity<Map<String, Object>> unitResponse = restTemplate.exchange(
 				"/units/%s/".formatted(unitId),
 				HttpMethod.GET,
 				null,
-				new ParameterizedTypeReference<>() {}
+					PARAMETERIZED_TYPE_REFERENCE_MAP
 			);
 			
 			if (unitResponse.getStatusCode() != HttpStatus.OK || unitResponse.getBody() == null) {
@@ -181,61 +169,54 @@ public class WeblateClient {
 			if (numericUnitId == null) {
 				throw new ServiceException("Could not get numeric unit ID");
 			}
-			
+
 			// Create multipart request for screenshot upload
 			MultipartBodyBuilder builder = new MultipartBodyBuilder();
-			builder.part("image", new FileSystemResource(imageFile), MediaType.IMAGE_PNG);
-			builder.part("name", "SNOMED CT Diagram for unit " + unitId);
+			builder.part("name", "concept_%s".formatted(conceptId));
 			builder.part("project_slug", projectSlug);
 			builder.part("component_slug", componentSlug);
 			builder.part("language_code", "en");
-			builder.part("units", List.of(numericUnitId));
-			
-			HttpHeaders headers = new HttpHeaders();
-			headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-			
+			builder.part("image", new FileSystemResource(imageFile), MediaType.IMAGE_PNG);
+
 			// Create the screenshot
 			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-				"/screenshots/",
-				HttpMethod.POST,
-				new HttpEntity<>(builder.build(), headers),
-				new ParameterizedTypeReference<>() {}
+					"/screenshots/",
+					HttpMethod.POST,
+					new HttpEntity<>(builder.build(), getFormHeaders()),
+					PARAMETERIZED_TYPE_REFERENCE_MAP
 			);
-			
+
 			if (response.getStatusCode() != HttpStatus.OK && response.getStatusCode() != HttpStatus.CREATED) {
 				throw new ServiceException("Failed to upload screenshot");
 			}
-			
+
 			Map<String, Object> screenshot = response.getBody();
 			if (screenshot == null) {
 				throw new ServiceException("No response body received");
 			}
-			
-			// Verify the unit was associated
-			if (!screenshot.containsKey("units") || ((List<?>) screenshot.get("units")).isEmpty()) {
-				// Try to associate the unit after creation
-				String screenshotUrl = (String) screenshot.get("url");
-				String screenshotId = screenshotUrl.substring(screenshotUrl.lastIndexOf('/') + 1);
-				
-				Map<String, Object> associateData = new HashMap<>();
-				associateData.put("unit_id", numericUnitId);
-				
-				ResponseEntity<Map<String, Object>> associateResponse = restTemplate.exchange(
+
+			// Associate the unit
+			String screenshotUrl = (String) screenshot.get("url");
+			String screenshotId = screenshotUrl.substring(screenshotUrl.lastIndexOf("screenshots/") + 12).replace("/", "");
+
+			builder = new MultipartBodyBuilder();
+			builder.part("unit_id", numericUnitId);
+
+			ResponseEntity<Map<String, Object>> associateResponse = restTemplate.exchange(
 					"/screenshots/%s/units/".formatted(screenshotId),
 					HttpMethod.POST,
-					new HttpEntity<>(associateData),
-					new ParameterizedTypeReference<>() {}
-				);
-				
-				if (associateResponse.getStatusCode() != HttpStatus.OK && associateResponse.getStatusCode() != HttpStatus.CREATED) {
-					throw new ServiceException("Failed to associate unit with screenshot");
-				}
-				
-				screenshot = associateResponse.getBody();
+					new HttpEntity<>(builder.build(), getFormHeaders()),
+					PARAMETERIZED_TYPE_REFERENCE_MAP
+			);
+
+			if (associateResponse.getStatusCode() != HttpStatus.OK && associateResponse.getStatusCode() != HttpStatus.CREATED) {
+				throw new ServiceException("Failed to associate unit with screenshot");
 			}
-			
+
+			screenshot = associateResponse.getBody();
+
 			return screenshot;
-			
+
 		} catch (HttpClientErrorException e) {
 			throw new ServiceException("Error creating screenshot: " + e.getMessage(), e);
 		}
@@ -251,18 +232,19 @@ public class WeblateClient {
 	 */
 	public WeblateUnit getUnitForConceptId(String projectSlug, String componentSlug, String conceptId) {
 		try {
-			String url = "/units/";
-			MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-			params.add("project", projectSlug);
-			params.add("component", componentSlug);
-			params.add("q", "context:=" + conceptId);
+			String url = UriComponentsBuilder.fromPath("/units/")
+					.queryParam("project", projectSlug)
+					.queryParam("component", componentSlug)
+					.queryParam("q", "context:=" + conceptId)
+					.queryParam("format", "json")
+					.build()
+					.toUriString();
 
 			ResponseEntity<WeblatePage<WeblateUnit>> response = restTemplate.exchange(
 				url,
 				HttpMethod.GET,
-				new HttpEntity<>(createHeaders()),
-				UNITS_RESPONSE_TYPE,
-				params
+				new HttpEntity<>(getJsonHeaders()),
+				UNITS_RESPONSE_TYPE
 			);
 
 			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
@@ -274,8 +256,28 @@ public class WeblateClient {
 			logger.warn("No unit found for concept ID {} in project {} component {}", conceptId, projectSlug, componentSlug);
 			return null;
 		} catch (Exception e) {
-			logger.error("Error finding unit for concept ID {}: {}", conceptId, e.getMessage());
+			logger.error("Error finding unit for concept ID {}: {}", conceptId, e.getMessage(), e);
 			return null;
 		}
 	}
+
+	protected RestTemplate getRestTemplate() {
+		return restTemplate;
+	}
+
+	private HttpHeaders getJsonHeaders() {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+		headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+		return headers;
+	}
+
+	private HttpHeaders getFormHeaders() {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+		headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+		return headers;
+	}
+
+
 }

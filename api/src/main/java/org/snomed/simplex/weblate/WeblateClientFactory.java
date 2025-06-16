@@ -9,8 +9,6 @@ import org.snomed.simplex.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -47,12 +45,8 @@ public class WeblateClientFactory {
 		RestTemplate restTemplate = new RestTemplateBuilder()
 				.rootUri(url)
 				.defaultHeader("Cookie", authenticationToken)
-				.interceptors((request, body, execution) -> {
-					request.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-					return execution.execute(request, body);
-				})
-				.messageConverters(new MappingJackson2HttpMessageConverter())
 				.build();
+
 		return new WeblateClient(restTemplate, supportRegister);
 	}
 }

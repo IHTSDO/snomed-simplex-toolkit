@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.Map;
 
 @RestController
 @Tag(name = "Diagram", description = "Endpoints for managing SNOMED CT concept diagrams")
@@ -35,26 +36,14 @@ public class DiagramController {
 	@PostMapping("{codeSystem}/diagrams/{conceptId}/update")
 	@Operation(summary = "Update diagram for a single concept")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob updateSingleDiagram(
+	public Map<String, Object> updateSingleDiagram(
 			@PathVariable String codeSystem,
-			@PathVariable String conceptId) throws ServiceException, IOException {
+			@PathVariable String conceptId) throws ServiceException {
 		
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		Activity activity = new Activity(codeSystem, ComponentType.CUSTOM_CONCEPTS, ActivityType.UPDATE);
-		
-		return jobService.queueContentJob(
-			theCodeSystem,
-			"Update diagram for concept " + conceptId,
-			null,
-			null,
-			conceptId,
-			activity,
-			job -> {
-                weblateDiagramService.updateScreenshot(conceptId, snowstormClient, theCodeSystem);
-				return null;
-			}
-		);
+		return weblateDiagramService.createWeblateScreenshot(conceptId, "common", "snomedct",
+				snowstormClient, theCodeSystem);
 	}
 
 	@PostMapping("{codeSystem}/diagrams/update-all")
