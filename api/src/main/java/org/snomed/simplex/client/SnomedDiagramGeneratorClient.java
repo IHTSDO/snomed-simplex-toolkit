@@ -7,9 +7,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
@@ -43,10 +41,13 @@ public class SnomedDiagramGeneratorClient {
 	public File generateAndSaveLocalDiagram(String conceptId, Concept conceptData) throws ServiceException {
 		try {
 			// Make POST request to diagram generation server
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			HttpEntity<Concept> requestEntity = new HttpEntity<>(conceptData, headers);
 			ResponseEntity<Resource> response = restTemplate.exchange(
 					DIAGRAM_ENDPOINT,
 					HttpMethod.POST,
-					new HttpEntity<>(conceptData),
+					requestEntity,
 					Resource.class
 			);
 
@@ -63,7 +64,7 @@ public class SnomedDiagramGeneratorClient {
 			}
 			return outputFile;
 		} catch (RestClientResponseException e) {
-			throw new ServiceException("Failed to fetch diagram for concept %s".formatted(conceptId));
+			throw new ServiceException("Failed to fetch diagram for concept %s".formatted(conceptId), e);
 		} catch (IOException e) {
 			throw new ServiceException("Failed to save local copy of diagram for concept %s".formatted(conceptId));
 		}

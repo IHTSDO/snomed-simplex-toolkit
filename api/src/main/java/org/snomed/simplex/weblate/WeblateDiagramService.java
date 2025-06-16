@@ -80,14 +80,14 @@ public class WeblateDiagramService {
 	 * @param projectSlug The Weblate project slug
 	 * @param componentSlug The Weblate component slug
 	 * @param snowstormClient The Snowstorm client instance
-	 * @param weblateClient The Weblate client instance
 	 * @param codeSystem The code system to use
 	 * @return The created screenshot data if successful
 	 * @throws ServiceException if there's an error during the process
 	 */
 	public Map<String, Object> createWeblateScreenshot(String conceptId, String projectSlug, String componentSlug,
-			SnowstormClient snowstormClient,
-			WeblateClient weblateClient, CodeSystem codeSystem) throws ServiceException {
+			SnowstormClient snowstormClient, CodeSystem codeSystem) throws ServiceException {
+
+		WeblateClient weblateClient = weblateClientFactory.getClient();
 
 		// First generate the diagram
 		File diagramFile = updateScreenshot(conceptId, snowstormClient, codeSystem);
@@ -101,12 +101,8 @@ public class WeblateDiagramService {
 			}
 
 			// Create screenshot in Weblate
-			Map<String, Object> screenshot = weblateClient.createScreenshot(
-				projectSlug,
-				componentSlug,
-				unit.getId(),
-				diagramFile
-			);
+			Map<String, Object> screenshot = weblateClient.createScreenshot(conceptId, projectSlug, componentSlug,
+					unit.getId(), diagramFile);
 
 			if (screenshot == null) {
 				logger.error("Failed to create screenshot in Weblate for concept {}", conceptId);
@@ -115,7 +111,7 @@ public class WeblateDiagramService {
 			logger.info("Successfully created screenshot in Weblate for concept {}", conceptId);
 			return screenshot;
 		} catch (Exception e) {
-			throw new ServiceException("\"Error creating Weblate screenshot for concept %s".formatted(conceptId), e);
+			throw new ServiceException("Error creating Weblate screenshot for concept %s".formatted(conceptId), e);
 		} finally {
 			cleanupDiagramFile(diagramFile);
 		}
@@ -180,12 +176,8 @@ public class WeblateDiagramService {
 			diagramFile = diagramClient.generateAndSaveLocalDiagram(conceptId, concept);
 
 			// Create screenshot in Weblate
-			Map<String, Object> screenshot = weblateClient.createScreenshot(
-					projectSlug,
-					componentSlug,
-				unit.getId(),
-				diagramFile
-			);
+			Map<String, Object> screenshot = weblateClient.createScreenshot(conceptId, projectSlug, componentSlug,
+				unit.getId(), diagramFile);
 
 			if (screenshot != null) {
 				results.put(conceptId, screenshot);
