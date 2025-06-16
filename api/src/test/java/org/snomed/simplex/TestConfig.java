@@ -33,8 +33,4 @@ public class TestConfig extends ApplicationConfig {
 		return new TestWeblateSetRepository();
 	}
 
-	@Bean
-	public SnomedDiagramGeneratorClient snomedDiagramGeneratorClient() {
-		return new SnomedDiagramGeneratorClient("http://localhost:8082/");
-	}
 }
