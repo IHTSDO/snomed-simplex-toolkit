@@ -12,6 +12,7 @@ import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SpreadsheetService;
+import org.snomed.simplex.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -53,6 +54,12 @@ public class ValidationServiceClient {
 								   @Autowired SpreadsheetService spreadsheetService) {
 		this.restTemplate = new RestTemplateBuilder()
 				.rootUri(rvfUrl)
+				.interceptors((request, body, execution) -> {
+					// Add authentication token to RVF request
+					String authenticationToken = SecurityUtil.getAuthenticationToken();
+					request.getHeaders().add("Cookie", authenticationToken);
+					return execution.execute(request, body);
+				})
 				.messageConverters(new MappingJackson2HttpMessageConverter(), new FormHttpMessageConverter(), new ByteArrayHttpMessageConverter())
 				.additionalRequestCustomizers(request -> request.getHeaders().add("Cookie", getAuthenticationToken()))
 				.build();
