@@ -2,14 +2,15 @@ package org.snomed.simplex.weblate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.SnomedDiagramGeneratorClient;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concept;
-import org.snomed.simplex.client.SnomedDiagramGeneratorClient;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
-import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.snomed.simplex.weblate.domain.WeblatePage;
+import org.snomed.simplex.weblate.domain.WeblateUnit;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -18,7 +19,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,11 +33,14 @@ public class WeblateDiagramService {
 	private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
 	private final SnomedDiagramGeneratorClient diagramClient;
 	private final WeblateClientFactory weblateClientFactory;
+	private final int concurrentUploads;
 
-	public WeblateDiagramService(SnomedDiagramGeneratorClient diagramClient, WeblateClientFactory weblateClientFactory) {
+	public WeblateDiagramService(SnomedDiagramGeneratorClient diagramClient, WeblateClientFactory weblateClientFactory,
+			@Value("${diagram-generator.concurrent-uploads}") int concurrentUploads) {
 		// No configuration needed anymore
 		this.diagramClient = diagramClient;
 		this.weblateClientFactory = weblateClientFactory;
+		this.concurrentUploads = concurrentUploads;
 	}
 	
 	/**
@@ -135,7 +143,10 @@ public class WeblateDiagramService {
 				.collect(Collectors.toMap(Concept::getConceptId, concept -> concept));
 
 			// Create a map to store results
-			Map<String, Map<String, Object>> results = new HashMap<>();
+			Map<String, Map<String, Object>> results = new ConcurrentHashMap<>();
+
+			ExecutorService executor = Executors.newFixedThreadPool(concurrentUploads);
+			List<Future<Void>> futures = new ArrayList<>();
 
 			// Process each unit
 			for (WeblateUnit unit : units) {
@@ -145,13 +156,30 @@ public class WeblateDiagramService {
 					logger.error("Concept {} not found in Snowstorm", conceptId);
 					continue;
 				}
-				processUnit(projectSlug, componentSlug, diagramClient, weblateClient, unit, concept, results);
+				futures.add(executor.submit(() -> {
+					processUnit(projectSlug, componentSlug, diagramClient, weblateClient, unit, concept, results);
+					return null;
+				}));
 			}
 
+			// Wait for all tasks to complete
+			waitForAllFutures(futures);
 			return results;
-
 		} catch (Exception e) {
+			if (e.getClass().isAssignableFrom(InterruptedException.class)) {
+				Thread.currentThread().interrupt();
+			}
 			throw new ServiceException("Error creating Weblate screenshots for batch", e);
+		}
+	}
+
+	private static void waitForAllFutures(List<Future<Void>> futures) throws InterruptedException {
+		try {
+			for (Future<Void> future : futures) {
+				future.get();
+			}
+		} catch (ExecutionException e) {
+			logger.error("Error processing unit: {}", e.getMessage());
 		}
 	}
 
