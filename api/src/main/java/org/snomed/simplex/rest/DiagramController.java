@@ -52,7 +52,8 @@ public class DiagramController {
 	public AsyncJob updateAllDiagrams(
 			@PathVariable String codeSystem,
 			@RequestParam String projectSlug,
-			@RequestParam String componentSlug) throws ServiceException, IOException {
+			@RequestParam String componentSlug,
+			@RequestParam(required = false) String lastCompletedConcept) throws ServiceException, IOException {
 		
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
@@ -66,7 +67,7 @@ public class DiagramController {
 			null,
 			activity,
 			job -> {
-                weblateDiagramService.updateAll(projectSlug, componentSlug, snowstormClient, theCodeSystem);
+                weblateDiagramService.updateAll(projectSlug, componentSlug, snowstormClient, theCodeSystem, lastCompletedConcept);
 				return null;
 			}
 		);

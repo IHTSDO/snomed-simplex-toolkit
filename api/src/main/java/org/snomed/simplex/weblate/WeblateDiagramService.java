@@ -19,10 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -116,20 +113,19 @@ public class WeblateDiagramService {
 	/**
 	 * Creates screenshots in Weblate for a batch of units efficiently.
 	 *
-	 * @param units The list of Weblate units to process
-	 * @param projectSlug The Weblate project slug
-	 * @param componentSlug The Weblate component slug
-	 * @param snowstormClient The Snowstorm client instance
-	 * @param diagramClient The diagram generator client instance
-	 * @param weblateClient The Weblate client instance
-	 * @param codeSystem The code system to use
+	 * @param units                The list of Weblate units to process
+	 * @param projectSlug          The Weblate project slug
+	 * @param componentSlug        The Weblate component slug
+	 * @param snowstormClient      The Snowstorm client instance
+	 * @param diagramClient        The diagram generator client instance
+	 * @param codeSystem           The code system to use
+	 * @param lastCompletedConcept Optional parameter to resume a run, the last completed concept on the last run
 	 * @return A map of concept IDs to their created screenshot data
 	 * @throws ServiceException if there's an error during the process
 	 */
 	public Map<String, Map<String, Object>> createWeblateScreenshotsForBatch(List<WeblateUnit> units, 
-			String projectSlug, String componentSlug, SnowstormClient snowstormClient, 
-			SnomedDiagramGeneratorClient diagramClient, WeblateClient weblateClient, 
-			CodeSystem codeSystem) throws ServiceException {
+			String projectSlug, String componentSlug, SnowstormClient snowstormClient,
+			SnomedDiagramGeneratorClient diagramClient,	CodeSystem codeSystem, String lastCompletedConcept) throws ServiceException {
 		try {
 			// Extract concept IDs from units
 			List<Long> conceptIds = units.stream()
@@ -137,18 +133,29 @@ public class WeblateDiagramService {
 				.map(Long::parseLong)
 				.toList();
 
+			// Create a map to store results
+			Map<String, Map<String, Object>> results = new ConcurrentHashMap<>();
+
+			if (lastCompletedConcept != null) {
+				if (conceptIds.contains(Long.parseLong(lastCompletedConcept))) {
+					// Skip all concepts up to and including the last completed concept
+					conceptIds = conceptIds.subList(conceptIds.indexOf(Long.parseLong(lastCompletedConcept)), conceptIds.size());
+				} else {
+					return results;
+				}
+			}
+
 			// Get all concept data in a single call
 			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
 			Map<String, Concept> conceptMap = concepts.stream()
 				.collect(Collectors.toMap(Concept::getConceptId, concept -> concept));
 
-			// Create a map to store results
-			Map<String, Map<String, Object>> results = new ConcurrentHashMap<>();
 
 			ExecutorService executor = Executors.newFixedThreadPool(concurrentUploads);
 			List<Future<Void>> futures = new ArrayList<>();
 
 			// Process each unit
+			WeblateClient weblateClient = weblateClientFactory.getClient();
 			for (WeblateUnit unit : units) {
 				String conceptId = unit.getContext();
 				Concept concept = conceptMap.get(conceptId);
@@ -214,14 +221,15 @@ public class WeblateDiagramService {
 	/**
 	 * Updates screenshots for all concepts in a Weblate component.
 	 *
-	 * @param projectSlug The Weblate project slug
-	 * @param componentSlug The Weblate component slug
-	 * @param snowstormClient The Snowstorm client instance
-	 * @param codeSystem The code system to use
+	 * @param projectSlug          The Weblate project slug
+	 * @param componentSlug        The Weblate component slug
+	 * @param snowstormClient      The Snowstorm client instance
+	 * @param codeSystem           The code system to use
+	 * @param lastCompletedConcept Optional parameter to resume a run, the last completed concept on the last run
 	 * @throws ServiceException if there's an error during the process
 	 */
 	public void updateAll(String projectSlug, String componentSlug, SnowstormClient snowstormClient,
-			CodeSystem codeSystem) throws ServiceException {
+			CodeSystem codeSystem, String lastCompletedConcept) throws ServiceException {
 
 		try {
 			int processed = 0;
@@ -249,10 +257,11 @@ public class WeblateDiagramService {
 				}
 
 				// Process the batch efficiently
-				Map<String, Map<String, Object>> batchResults = createWeblateScreenshotsForBatch(
-					batch, projectSlug, componentSlug,
-					snowstormClient, diagramClient, weblateClient, codeSystem
-				);
+				Map<String, Map<String, Object>> batchResults = createWeblateScreenshotsForBatch(batch,
+						projectSlug, componentSlug, snowstormClient, diagramClient, codeSystem, lastCompletedConcept);
+				if (!batchResults.isEmpty()) {
+					lastCompletedConcept = null;
+				}
 
 				processed += batch.size();
 				successful += batchResults.size();
