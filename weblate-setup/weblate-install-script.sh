@@ -109,3 +109,7 @@ sudo systemctl status gunicorn
 # Deploy Nginx config
 sudo cp files/nginx.conf /etc/nginx/conf.d/weblate.conf
 sudo nginx -s reload
+
+
+# Additional libraries required for the SNOMED Diagram API
+sudo apt install -y libgbm1 libx11-xcb1 libxkbcommon0
