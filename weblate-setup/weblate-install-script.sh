@@ -100,16 +100,25 @@ weblate migrate
 exit
 
 # Service setup
-sudo cp files/gunicorn.socket /etc/systemd/system/gunicorn.socket
-sudo cp files/gunicorn.service /etc/systemd/system/gunicorn.service
+cd /opt/weblate_setup_files
+sudo cp gunicorn.socket /etc/systemd/system/gunicorn.socket
+sudo cp gunicorn.service /etc/systemd/system/gunicorn.service
 sudo systemctl start gunicorn
 sudo systemctl enable gunicorn
 sudo systemctl status gunicorn
 
 # Deploy Nginx config
-sudo cp files/nginx.conf /etc/nginx/conf.d/weblate.conf
+sudo cp nginx.conf /etc/nginx/conf.d/weblate.conf
 sudo nginx -s reload
 
+
+# Setup Celery workers
+sudo cp celery-weblate.service /etc/systemd/system/celery-weblate.service
+sudo cp celery-weblate /etc/default/celery-weblate
+sudo mkdir /var/log/celery
+sudo cp celery-logrotate /etc/logrotate.d/celery
+sudo systemctl enable celery-weblate
+sudo systemctl start celery-weblate
 
 # Additional libraries required for the SNOMED Diagram API
 sudo apt install -y libgbm1 libx11-xcb1 libxkbcommon0

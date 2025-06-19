@@ -1,0 +1,11 @@
+# Copyright © Michal Čihař <michal@weblate.org>
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+/var/log/celery/*.log {
+        weekly
+        missingok
+        rotate 12
+        compress
+        notifempty
+}
