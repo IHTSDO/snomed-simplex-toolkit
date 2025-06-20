@@ -210,6 +210,8 @@ TEMPLATES = [
     }
 ]
 
+# Limit version control systems to just git
+VCS_BACKENDS = ("weblate.vcs.git.GitRepository",)
 
 # GitHub username and token for sending pull requests.
 # Please see the documentation for more details.

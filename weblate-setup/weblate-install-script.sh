@@ -46,7 +46,7 @@ sudo systemctl status redis-server
 sudo add-apt-repository -y --remove ppa:git-core/ppa || true
 sudo add-apt-repository -y ppa:git-core/ppa
 sudo apt update
-sudo apt install -y git
+sudo apt install -y git git-review
 
 # Create the weblate user
 sudo adduser --disabled-password --gecos "" weblate
@@ -74,7 +74,7 @@ exit
 cd /opt/weblate_setup_files
 . settings_vars.sh
 envsubst < settings.template > settings.py
-mv settings.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/settings.py
+sudo mv settings.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/settings.py
 
 # Disable CSRF in Django to enable Simplex integration
 sudo cp django-middleware-csrf.py /opt/weblate/weblate-env/lib/python3.12/site-packages/django/middleware/csrf.py

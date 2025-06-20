@@ -14,7 +14,7 @@ Weblate deployment is automated via script. The `files` directory contains a tem
 3. Copy the whole `weblate_setup_files` to the deployment server as `/opt/weblate_setup_files`.
 
  
-4. Copy the script `weblate-install-script.sh` to any directory on the deployment server and run it. 
+4. Copy the script `weblate-install-script.sh` to any directory on the deployment server and run it. At the moment running the scripts manually line by line works better than running the whole thing. Some improvements could be made around switching users and virtual environments.
 
 The script installs the required software, and then uses the extra setup files to configure and customise Weblate.
 
