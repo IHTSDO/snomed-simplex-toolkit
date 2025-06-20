@@ -6,16 +6,28 @@ set -e
 
 NEW_WEBLATE_VERSION="5.12.1"
 
+# Take secret key out of existing settings file
+grep SECRET_KEY /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/settings.py | cut -d'"' -f2 | sudo tee /opt/weblate/weblate-env/secret-key.txt
+
+# Enter virtual environment
+cd /opt/weblate/weblate-env/
+sudo su weblate
+. bin/activate
+
+# Upgrade Weblate python packages
+pip install --upgrade pip
 pip install weblate[postgres,amazon,google,openai]==${NEW_WEBLATE_VERSION}
 
-# Take secret key out of existing settings file
-grep SECRET_KEY /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/settings.py | cut -d'"' -f2 > /opt/weblate/weblate-env/secret-key.txt
+# Exit virtual environment
+exit
+
 
 # Deploy customised weblate setup files
 cd /opt/weblate_setup_files
 . settings_vars.sh
 envsubst < settings.template > settings.py
-mv settings.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/settings.py
+sudo mv settings.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/settings.py
+sudo rm -rf /opt/weblate/weblate-env/secret-key.txt
 
 # Disable CSRF in Django to enable Simplex integration
 sudo cp django-middleware-csrf.py /opt/weblate/weblate-env/lib/python3.12/site-packages/django/middleware/csrf.py
@@ -26,6 +38,10 @@ sudo cp meta-css.html /opt/weblate/weblate-env/lib/python3.12/site-packages/webl
 sudo cp unit.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/trans/models/unit.py
 sudo chown -R weblate:weblate /opt/weblate
 
+# Restart gunicorn web server
+sudo systemctl start gunicorn
+
+# Enter virtual environment
 cd /opt/weblate/weblate-env/
 sudo su weblate
 . bin/activate
@@ -35,9 +51,6 @@ weblate migrate --noinput
 
 # Cache web static files
 weblate collectstatic --noinput --clear
-
-# Compress JavaScript and CSS files
-weblate compress
 
 # Verify setup
 weblate check --deploy
