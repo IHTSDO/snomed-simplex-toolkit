@@ -53,3 +53,29 @@ Make a note of the generated password.
 ## Complete Git Repository Setup
 Login to Simplex with an account that has Weblate super-user status.
 Access the Weblate management page at URL /manage/. In the **SSH keys** page take the "Public RSA SSH key" and add that to the github repo with write access, using deploy keys section or other method.
+
+---
+## Weblate Upgrade
+Weblate upgrade will require code changes. The Weblate files in the `files` directory that have been modified in this repository need to be updated using the source git repo, but modifications need to be kept.
+The upgrade script should be modified to set the new version.
+
+The deployment of the upgrade can be done via script. 
+
+1. Copy the `files` directory on your local machine and name the copy `weblate_setup_files`.
+
+
+2. Within that directory edit `settings_vars.sh` adding the Admin user name and email, DB configuration and hosting domain names.
+
+
+3. Copy the whole `weblate_setup_files` to the deployment server as `/opt/weblate_setup_files`.
+
+
+4. Copy the script `weblate-upgrade-script.sh` to any directory on the deployment server and run it.
+
+The script upgrades weblate, and then uses the extra setup files to configure and customise the new version of Weblate.
+
+You should now have an upgraded version of Weblate deployed and running under the Gunicorn service.  
+Confirm that it's running using:
+```
+sudo systemctl status gunicorn
+```
