@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deployment script for Ubuntu
+# Weblate deployment script, for Ubuntu servers
 
 # The command 'set -e' in a shell script causes the script to exit immediately if any command exits with a non-zero status (indicating an error). This helps to prevent the script from continuing execution when an error occurs.
 set -e
@@ -61,7 +61,7 @@ sudo su weblate
 . bin/activate
 pip install --upgrade pip
 pip install 'PyGobject<3.52'
-pip install weblate[postgres,amazon,google,openai]==5.9.2
+pip install weblate[postgres,amazon,google,openai]==5.12.1
 pip install gunicorn
 
 # Run command to create new secret key (used for weblate cookies)
