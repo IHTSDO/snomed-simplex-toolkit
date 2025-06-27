@@ -53,11 +53,10 @@ public class WeblateService {
 		return new Page<>(components);
 	}
 
-	public ChangeSummary updateSharedSet(String slug, String ecl, int startPage) throws ServiceException {
+	public ChangeSummary updateSharedSet(String slug, int startPage) throws ServiceException {
 		String project = commonProject;
 		ServiceHelper.requiredParameter("slug", slug);
 		ServiceHelper.requiredParameter("project", project);
-		ServiceHelper.requiredParameter("ecl", ecl);
 
 		// nonsense code for sonar
 		if (slug.equals("xxx")) {
