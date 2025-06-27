@@ -45,11 +45,11 @@ public class WeblateComponentController {
 
 	@PostMapping("shared-components/{slug}/refresh")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void refreshSharedSet(@PathVariable String slug, @RequestParam String ecl, @RequestParam(required = false, defaultValue = "1") int startPage) throws ServiceException, IOException {
+	public void refreshSharedSet(@PathVariable String slug, @RequestParam(required = false, defaultValue = "1") int startPage) throws ServiceException, IOException {
 		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
 		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.TRANSLATION_SET_CREATE);
 		jobService.queueContentJob(rootCodeSystem, "Update shared set %s".formatted(slug), null, null, null, activity,
-				asyncJob -> weblateService.updateSharedSet(slug, ecl, startPage));
+				asyncJob -> weblateService.updateSharedSet(slug, startPage));
 	}
 
 	@GetMapping("shared-components/{slug}/records")
