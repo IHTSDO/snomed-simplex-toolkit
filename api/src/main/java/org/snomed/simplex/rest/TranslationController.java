@@ -110,9 +110,9 @@ public class TranslationController {
 		return weblateSetService.createSet(set);
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/synchronise")
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/pull-content")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob synchroniseWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) {
+	public AsyncJob pullWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) {
 		return DUMMY_COMPLETE;
 	}
 
