@@ -74,7 +74,7 @@ public class WeblateClient {
 		map.put("file_format", "csv-multi-utf-8");
 		map.put("disable_autoshare", "true");
 		try {
-			restTemplate.exchange("/projects/%s/components/".formatted(projectSlug), HttpMethod.POST, new HttpEntity<>(map), Void.class);
+			restTemplate.exchange("/projects/%s/components/".formatted(projectSlug), HttpMethod.POST, new HttpEntity<>(map, getJsonHeaders()), Void.class);
 		} catch (HttpClientErrorException e) {
 			handleSharedCodeSystemError("Failed to create translation component. %s".formatted(e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
@@ -124,7 +124,7 @@ public class WeblateClient {
 	public WeblateUnit createUnit(WeblateUnit weblateUnit, String project, String component, String language) {
 		// Docs: https://docs.weblate.org/en/latest/api.html#post--api-translations-(string-project)-(string-component)-(string-language)-units-
 		String url = "/translations/%s/%s/%s/units/".formatted(project, component, language);
-		ResponseEntity<WeblateUnit> response = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(weblateUnit), WeblateUnit.class);
+		ResponseEntity<WeblateUnit> response = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(weblateUnit, getJsonHeaders()), WeblateUnit.class);
 		return response.getBody();
 	}
 
@@ -132,7 +132,7 @@ public class WeblateClient {
 		// Docs: https://docs.weblate.org/en/latest/api.html#patch--api-units-(int-id)-
 		Map<String, String> patchBody = new HashMap<>();
 		patchBody.put("explanation", explanation);
-		restTemplate.exchange("/units/%s/".formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody), Void.class);
+		restTemplate.exchange("/units/%s/".formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody, getJsonHeaders()), Void.class);
 	}
 
 	public void deleteComponent(String project, String slug) {
