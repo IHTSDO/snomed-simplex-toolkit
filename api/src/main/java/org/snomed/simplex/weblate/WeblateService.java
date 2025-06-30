@@ -1,5 +1,6 @@
 package org.snomed.simplex.weblate;
 
+import org.apache.hc.core5.concurrent.DefaultThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -9,7 +10,9 @@ import org.snomed.simplex.client.domain.Concept;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
+import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblatePage;
@@ -24,6 +27,8 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -38,13 +43,19 @@ public class WeblateService {
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final WeblateClientFactory weblateClientFactory;
 	private final WeblateGitClient weblateGitClient;
+	private final ExecutorService addLanguageExecutorService;
+	private final SupportRegister supportRegister;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory, WeblateGitClient weblateGitClient) {
+	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory, WeblateGitClient weblateGitClient,
+			SupportRegister supportRegister) {
+
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClientFactory = weblateClientFactory;
 		this.weblateGitClient = weblateGitClient;
+		this.supportRegister = supportRegister;
+		addLanguageExecutorService = Executors.newFixedThreadPool(1, new DefaultThreadFactory("Weblate-add-language-thread"));
 	}
 
 	public Page<WeblateComponent> getSharedSets() throws ServiceException {
@@ -143,5 +154,30 @@ public class WeblateService {
 		WeblateClient weblateClient = weblateClientFactory.getClient();
 		weblateClient.deleteComponent(commonProject, slug);
 		// Will need to delete from git too.
+	}
+
+	public void initialiseLanguageAndTranslationAsync(ConceptMini langRefset, String languageCodeWithRefset) throws ServiceExceptionWithStatusCode {
+		addLanguageExecutorService.submit(() ->{
+			try {
+				WeblateClient weblateClient = weblateClientFactory.getClient();
+
+				// LanguageCode format = lang-refsetid, example fr-100000100
+				if (!weblateClient.isLanguageExists(languageCodeWithRefset)) {
+					logger.info("Language {} does not exist in Weblate, creating...", languageCodeWithRefset);
+					String refsetTerm = langRefset.getPtOrFsnOrConceptId();
+					String leftToRight = "ltr";
+					// This request is quick because it's not creating any terms.
+					weblateClient.createLanguage(languageCodeWithRefset, refsetTerm, leftToRight);
+				}
+
+				if (!weblateClient.isTranslationExistsSearchByLanguageRefset(languageCodeWithRefset)) {
+					logger.info("Translation {} does not exist in Weblate, creating...", languageCodeWithRefset);
+					// This request takes a long time because it's creating a new translation of the terms.
+					weblateClient.createTranslation(languageCodeWithRefset);
+				}
+			} catch (ServiceExceptionWithStatusCode e) {
+				supportRegister.handleSystemError(CodeSystem.SHARED, "Failed to add Weblate language.", e);
+			}
+		});
 	}
 }
