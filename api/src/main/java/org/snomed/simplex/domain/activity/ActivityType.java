@@ -10,6 +10,7 @@ public enum ActivityType {
 	UPGRADE("Upgrade"), CLASSIFY("Classify"), VALIDATE("Validate"), AUTOMATIC_FIX("Automatic Fix"),
 	UPDATE_CONFIGURATION("Update configuration"), BUILD_RELEASE("Build release"), FINALIZE_RELEASE("Finalize release"),
 
+	WEBLATE_LANGUAGE_INITIALISATION("Initialise Weblate language"),
 	TRANSLATION_SET_CREATE("Create translation set");
 
 	private final String display;

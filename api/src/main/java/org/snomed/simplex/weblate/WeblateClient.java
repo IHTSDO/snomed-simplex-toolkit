@@ -11,10 +11,14 @@ import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateProject;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
+import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequest;
+import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequestPlural;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.*;
 import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -160,11 +164,11 @@ public class WeblateClient {
 				null,
 					PARAMETERIZED_TYPE_REFERENCE_MAP
 			);
-			
+
 			if (unitResponse.getStatusCode() != HttpStatus.OK || unitResponse.getBody() == null) {
 				throw new ServiceException("Failed to get unit details");
 			}
-			
+
 			Integer numericUnitId = (Integer) unitResponse.getBody().get("id");
 			if (numericUnitId == null) {
 				throw new ServiceException("Could not get numeric unit ID");
@@ -261,6 +265,60 @@ public class WeblateClient {
 		}
 	}
 
+	public boolean isLanguageExists(String languageCode) {
+		try {
+			restTemplate.getForEntity("/languages/%s/".formatted(languageCode), String.class);
+			return true;
+		} catch (HttpClientErrorException.NotFound e) {
+			return false;
+		}
+	}
+
+	public void createLanguage(String languageCodeWithRefset, String languageName, String direction) throws ServiceExceptionWithStatusCode {
+		try {
+			// Step 2: Prepare Form Data
+			WeblateAddLanguageRequest addLanguageRequest = new WeblateAddLanguageRequest(languageCodeWithRefset, languageName,
+					direction, 0, new WeblateAddLanguageRequestPlural(2, "n != 1"));
+
+			// Step 4: Execute the Request
+			restTemplate.exchange("/languages/", HttpMethod.POST, new HttpEntity<>(addLanguageRequest, getJsonHeaders()), String.class);
+
+		} catch (HttpClientErrorException e) {
+			throw new ServiceExceptionWithStatusCode(("Failed to create new language. " +
+					"Weblate status code:%s").formatted(e.getStatusCode().value()), HttpStatus.INTERNAL_SERVER_ERROR, e);
+		}
+	}
+
+	public boolean isTranslationExistsSearchByLanguageRefset(String languageCodeWithRefsetId) {
+		try {
+			restTemplate.getForEntity("/translations/common/snomedct/%s/".formatted(languageCodeWithRefsetId), String.class);
+			return true;
+		} catch (HttpClientErrorException.NotFound e) {
+			return false;
+		}
+	}
+
+	public void createTranslation(String languageCode) {
+		Map<String, String> requestBody = new HashMap<>();
+		requestBody.put("language_code", languageCode);
+		restTemplate.postForEntity("/components/common/snomedct/translations/", new HttpEntity<>(requestBody, getJsonHeaders()), String.class);
+	}
+
+	public Map<String, Object> getLanguageStatistics(String languageCode) {
+		try {
+			String url = "/languages/%s/statistics/?format=json".formatted(languageCode);
+			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+					url,
+					HttpMethod.GET,
+					null,
+					PARAMETERIZED_TYPE_REFERENCE_MAP
+			);
+			return response.getBody();
+		} catch (HttpClientErrorException.NotFound e) {
+			return null;
+		}
+	}
+
 	protected RestTemplate getRestTemplate() {
 		return restTemplate;
 	}
@@ -278,6 +336,4 @@ public class WeblateClient {
 		headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 		return headers;
 	}
-
-
 }

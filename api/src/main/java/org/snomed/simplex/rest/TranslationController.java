@@ -17,6 +17,8 @@ import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.TranslationService;
+import org.snomed.simplex.service.external.WeblateLanguageInitialisationJobService;
+import org.snomed.simplex.service.external.WeblateLanguageInitialisationRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.JobType;
 import org.snomed.simplex.weblate.WeblateSetService;
@@ -54,15 +56,17 @@ public class TranslationController {
 	private final ContentProcessingJobService jobService;
 	private final ActivityService activityService;
 	private final WeblateSetService weblateSetService;
+	private final WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService;
 
 	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, ContentProcessingJobService jobService,
-			ActivityService activityService, WeblateSetService weblateSetService) {
+			ActivityService activityService, WeblateSetService weblateSetService, WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
 		this.jobService = jobService;
 		this.activityService = activityService;
 		this.weblateSetService = weblateSetService;
+		this.weblateLanguageInitialisationJobService = weblateLanguageInitialisationJobService;
 	}
 
 	@GetMapping("{codeSystem}/translations")
@@ -92,6 +96,19 @@ public class TranslationController {
 			translationService.deleteTranslationAndMembers(refsetId, theCodeSystem);
 			return null;
 		});
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-setup")
+	@Operation(summary = "Setup a language refset for weblate translation.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob initialiseInWeblate(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+
+		WeblateLanguageInitialisationRequest request = new WeblateLanguageInitialisationRequest(refsetId);
+		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, ActivityType.WEBLATE_LANGUAGE_INITIALISATION, weblateLanguageInitialisationJobService, request);
 	}
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set")
