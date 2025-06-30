@@ -31,7 +31,7 @@ SITE_URL = "{}://{}".format("https" if ENABLE_HTTPS else "http", SITE_DOMAIN)
 # Django settings for Weblate project.
 #
 
-DEBUG = True
+DEBUG = False
 
 ADMINS = (
     (${ADMINS}),
@@ -956,6 +956,10 @@ DATABASE_BACKUP = "plain"
 
 # Enable auto updating
 AUTO_UPDATE = False
+
+# Translation sync chunk size for memory optimization
+# This controls how many units are processed at once during translation synchronization.
+TRANSLATION_SYNC_CHUNK_SIZE = 5000
 
 # PGP commits signing
 WEBLATE_GPG_IDENTITY = None

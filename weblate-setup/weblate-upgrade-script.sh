@@ -41,7 +41,7 @@ sudo cp translation.py /opt/weblate/weblate-env/lib/python3.12/site-packages/web
 sudo chown -R weblate:weblate /opt/weblate
 
 # Restart gunicorn web server
-sudo systemctl start gunicorn
+sudo systemctl restart gunicorn
 
 # Enter virtual environment
 cd /opt/weblate/weblate-env/
