@@ -32,7 +32,7 @@ public class SnowstormClientFactory {
 		logger.info("Snowstorm URL set as '{}'", snowstormUrl);
 	}
 
-	public SnowstormClient getClient() throws ServiceException {
+	public SnowstormClient getClient() throws ServiceExceptionWithStatusCode {
 		try {
 			String authenticationToken = SecurityUtil.getAuthenticationToken();
 			if (authenticationToken == null || authenticationToken.isEmpty()) {
@@ -40,7 +40,7 @@ public class SnowstormClientFactory {
 			}
 			return clientCache.get(authenticationToken, () -> new SnowstormClient(snowstormUrl, authenticationToken, objectMapper));
 		} catch (ExecutionException e) {
-			throw new ServiceException("Failed to create Snowstorm client", e);
+			throw new ServiceExceptionWithStatusCode("Failed to create Snowstorm client", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 	}
 
