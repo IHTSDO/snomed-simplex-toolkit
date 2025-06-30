@@ -3,14 +3,15 @@ package org.snomed.simplex.client.domain;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import org.apache.logging.log4j.util.Strings;
-import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-@JsonPropertyOrder({"name", "shortName", "branchPath", "workingBranchPath"})
+@JsonPropertyOrder({"name", "shortName", "branchPath", "workingBranchPath", "translationLanguages"})
 public class CodeSystem {
 
 	public static final CodeSystem SHARED = new CodeSystem("Shared", "Shared", "");
@@ -108,9 +109,9 @@ public class CodeSystem {
 	}
 
 	@JsonIgnore
-	public String getDefaultModuleOrThrow() throws ServiceException {
+	public String getDefaultModuleOrThrow() throws ServiceExceptionWithStatusCode {
 		if (defaultModule == null) {
-			throw new ServiceException("No default module set for this code system.");
+			throw new ServiceExceptionWithStatusCode("No default module set for this code system.", HttpStatus.CONFLICT);
 		}
 		return defaultModule;
 	}
@@ -251,7 +252,6 @@ public class CodeSystem {
 		this.editionStatus = editionStatus;
 	}
 
-	@JsonIgnore
 	public Map<String, String> getTranslationLanguages() {
 		return translationLanguages;
 	}

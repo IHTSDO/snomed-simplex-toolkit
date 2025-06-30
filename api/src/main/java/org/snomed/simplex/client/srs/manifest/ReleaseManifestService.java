@@ -13,6 +13,7 @@ import org.snomed.simplex.client.srs.manifest.domain.ReleaseManifestFolder;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.HTTPClientException;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.stereotype.Service;
@@ -104,7 +105,7 @@ public class ReleaseManifestService {
 	}
 
 	private ReleaseManifestFolder addRefsets(ReleaseContext releaseContext, ReleaseManifestFolder snapshotFolder, Map<String, ConceptMini> refsets,
-			String formattedName, Set<String> refsetsWithMissingExportConfiguration) throws HTTPClientException {
+			String formattedName, Set<String> refsetsWithMissingExportConfiguration) throws ServiceExceptionWithStatusCode {
 
 		ReleaseManifestFolder refsetFolder = snapshotFolder.getOrAddFolder("Refset");
 		for (ConceptMini refset : refsets.values()) {
@@ -115,7 +116,7 @@ public class ReleaseManifestService {
 
 	@SuppressWarnings("unchecked")
 	private void addRefset(ReleaseContext releaseContext, ReleaseManifestFolder snapshotFolder, String formattedName,
-			Set<String> refsetsWithMissingExportConfiguration, ConceptMini refset, ReleaseManifestFolder refsetFolder) throws HTTPClientException {
+			Set<String> refsetsWithMissingExportConfiguration, ConceptMini refset, ReleaseManifestFolder refsetFolder) throws ServiceExceptionWithStatusCode {
 
 		SnowstormClient snowstormClient = releaseContext.snowstormClient();
 		CodeSystem codeSystem = releaseContext.codeSystem();
@@ -167,7 +168,7 @@ public class ReleaseManifestService {
 		return Collections.emptyMap();
 	}
 
-	private static String getLangRefsetLanguageCode(CodeSystem codeSystem, SnowstormClient snowstormClient, ConceptMini refset) throws HTTPClientException {
+	private static String getLangRefsetLanguageCode(CodeSystem codeSystem, SnowstormClient snowstormClient, ConceptMini refset) throws ServiceExceptionWithStatusCode {
 		String languageCode = "-en";
 		Page<RefsetMember> refsetMembers = snowstormClient.getRefsetMembers(refset.getConceptId(), codeSystem, true, 5, null);
 		if (refsetMembers.getTotal() > 0) {

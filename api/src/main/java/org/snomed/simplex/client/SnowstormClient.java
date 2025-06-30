@@ -123,21 +123,24 @@ public class SnowstormClient {
 		}
 	}
 
-	public CodeSystem getCodeSystemOrThrow(String codesystemShortName) throws ServiceException {
+	public CodeSystem getCodeSystemOrThrow(String codesystemShortName) throws ServiceExceptionWithStatusCode {
+		ServiceExceptionWithStatusCode notFoundException = new ServiceExceptionWithStatusCode(format("Code System not found %s", codesystemShortName), HttpStatus.NOT_FOUND);
 		try {
 			ResponseEntity<CodeSystem> response = restTemplate.getForEntity(format(CODESYSTEM_ENDPOINT, codesystemShortName), CodeSystem.class);
 			CodeSystem codeSystem = response.getBody();
 			if (codeSystem == null) {
-				throw new ServiceException(format("Code System not found %s", codesystemShortName));
+				throw notFoundException;
 			}
 			addCodeSystemBranchInfo(codeSystem);
 			return codeSystem;
+		} catch (HttpClientErrorException.NotFound e) {
+			throw notFoundException;
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "load code system");
 		}
 	}
 
-	private void addCodeSystemBranchInfo(CodeSystem codeSystem) throws ServiceException {
+	private void addCodeSystemBranchInfo(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		String branchPath = codeSystem.getBranchPath();
 		Branch branch = getBranchOrThrow(branchPath);
 		codeSystem.setBranchObject(branch);
@@ -181,7 +184,7 @@ public class SnowstormClient {
 		return EditionStatus.valueOf(editionStatus);
 	}
 
-	public Branch getBranchOrThrow(String branchPath) throws ServiceException {
+	public Branch getBranchOrThrow(String branchPath) throws ServiceExceptionWithStatusCode {
 		try {
 			ResponseEntity<Branch> branchResponse = restTemplate.getForEntity(format(BRANCH_X_ENDPOINT, branchPath), Branch.class);
 			Branch branch = branchResponse.getBody();
@@ -217,7 +220,7 @@ public class SnowstormClient {
 	}
 
 	public CodeSystem createCodeSystem(String name, String shortName, String namespace,
-			CodeSystem dependantCodeSystem, Integer dependantCodeSystemVersion) throws HTTPClientException {
+			CodeSystem dependantCodeSystem, Integer dependantCodeSystemVersion) throws ServiceExceptionWithStatusCode {
 
 		String branchPath = String.format("%s/%s", dependantCodeSystem.getBranchPath(), shortName);
 		try {
@@ -286,7 +289,7 @@ public class SnowstormClient {
 		return refset;
 	}
 
-	public ConceptMini getRefset(String refsetId, CodeSystem codeSystem) throws ServiceException {
+	public ConceptMini getRefset(String refsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		List<ConceptMini> refsets = getRefsets(refsetId, codeSystem);
 		if (!refsets.isEmpty()) {
 			return refsets.get(0);
@@ -294,7 +297,7 @@ public class SnowstormClient {
 		return null;
 	}
 
-	public List<ConceptMini> getRefsets(String refsetEcl, CodeSystem codeSystem) throws ServiceException {
+	public List<ConceptMini> getRefsets(String refsetEcl, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		// Get refset concepts from code system branch and module
 		Map<String, ConceptMini> refsetConceptMap = getConcepts(refsetEcl, codeSystem, codeSystem.getDefaultModuleOrThrow()).getItems().stream()
 				.collect(Collectors.toMap(ConceptMini::getConceptId, Function.identity()));
@@ -321,11 +324,11 @@ public class SnowstormClient {
 		return refsetConcepts;
 	}
 
-	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter) throws ServiceException {
+	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter) throws ServiceExceptionWithStatusCode {
 		return getConcepts(ecl, codeSystem, moduleFilter, 10_000);
 	}
 
-	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter, int limit) throws ServiceException {
+	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter, int limit) throws ServiceExceptionWithStatusCode {
 		try {
 			String url = format("/%s/concepts?ecl=%s%s&limit=%s", codeSystem.getWorkingBranchPath(), ecl,
 					moduleFilter != null ? String.format("&module=%s", moduleFilter) : "", limit);
@@ -337,7 +340,7 @@ public class SnowstormClient {
 	}
 
 	public Page<RefsetMember> getRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly,
-			int limit, String searchAfter) throws HTTPClientException {
+			int limit, String searchAfter) throws ServiceExceptionWithStatusCode {
 
 		try {
 			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&limit=%s%s&searchAfter=%s",
@@ -413,7 +416,7 @@ public class SnowstormClient {
 		}
 	}
 
-	public void deleteRefsetMembers(List<RefsetMember> membersToDelete, CodeSystem codeSystem) throws ServiceException {
+	public void deleteRefsetMembers(List<RefsetMember> membersToDelete, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		List<String> memberIds = membersToDelete.stream().map(RefsetMember::getMemberId).toList();
 		for (List<String> batch : Iterables.partition(memberIds, 1_000)) {
 			Map<String, List<String>> bulkDeleteRequest = new HashMap<>();
@@ -426,12 +429,12 @@ public class SnowstormClient {
 		}
 	}
 
-	public Concept createSimpleMetadataConcept(String parentConceptId, String preferredTerm, String tag, CodeSystem codeSystem) throws HTTPClientException {
+	public Concept createSimpleMetadataConcept(String parentConceptId, String preferredTerm, String tag, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		Concept concept = newSimpleMetadataConceptWithoutSave(parentConceptId, preferredTerm, tag);
 		return createConcept(concept, codeSystem);
 	}
 
-	public Concept createConcept(Concept concept, CodeSystem codeSystem) throws HTTPClientException {
+	public Concept createConcept(Concept concept, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		try {
 			ResponseEntity<Concept> response = restTemplate.exchange(format("/browser/%s/concepts", codeSystem.getWorkingBranchPath()), HttpMethod.POST, new HttpEntity<>(concept), Concept.class);
 			return response.getBody();
@@ -453,7 +456,7 @@ public class SnowstormClient {
 		restTemplate.delete(format(CONCEPT_ENDPOINT, codeSystem.getWorkingBranchPath(), conceptId));
 	}
 
-	public Concept updateConcept(Concept concept, CodeSystem codeSystem) throws HTTPClientException {
+	public Concept updateConcept(Concept concept, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		try {
 			ResponseEntity<Concept> response = restTemplate.exchange(format("/browser/%s/concepts/%s", codeSystem.getWorkingBranchPath(), concept.getConceptId()),
 					HttpMethod.PUT, new HttpEntity<>(concept), Concept.class);
@@ -463,7 +466,7 @@ public class SnowstormClient {
 		}
 	}
 
-	public List<Long> getConceptIds(Collection<String> conceptIds, CodeSystem codeSystem) throws ServiceException {
+	public List<Long> getConceptIds(Collection<String> conceptIds, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		if (conceptIds.isEmpty()) {
 			return new ArrayList<>();
 		}
@@ -492,8 +495,8 @@ public class SnowstormClient {
 		}
 	}
 
-	private HTTPClientException getServiceException(HttpStatusCodeException e, String action) {
-		return new HTTPClientException(format("Failed to %s", action), e);
+	private ServiceExceptionWithStatusCode getServiceException(HttpStatusCodeException e, String action) {
+		return new ServiceExceptionWithStatusCode(format("Failed to %s", action), HttpStatus.resolve(e.getStatusCode().value()), e);
 	}
 
 	public void exportRF2(OutputStream outputStream, String snowstormExportType, CodeSystem codeSystem, String transientEffectiveTime) throws ServiceException {

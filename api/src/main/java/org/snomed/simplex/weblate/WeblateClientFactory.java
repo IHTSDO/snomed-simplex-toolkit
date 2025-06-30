@@ -29,7 +29,7 @@ public class WeblateClientFactory {
 		this.supportRegister = supportRegister;
 	}
 
-	public WeblateClient getClient() throws ServiceException {
+	public WeblateClient getClient() throws ServiceExceptionWithStatusCode {
 		try {
 			String authenticationToken = SecurityUtil.getAuthenticationToken();
 			if (authenticationToken == null || authenticationToken.isEmpty()) {
@@ -37,7 +37,7 @@ public class WeblateClientFactory {
 			}
 			return clientCache.get(authenticationToken, () -> newClient(authenticationToken));
 		} catch (ExecutionException e) {
-			throw new ServiceException("Failed to create Snowstorm client", e);
+			throw new ServiceExceptionWithStatusCode("Failed to create Snowstorm client", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 	}
 
