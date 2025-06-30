@@ -27,8 +27,10 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -156,8 +158,12 @@ public class WeblateService {
 		// Will need to delete from git too.
 	}
 
-	public void initialiseLanguageAndTranslationAsync(ConceptMini langRefset, String languageCodeWithRefset) throws ServiceExceptionWithStatusCode {
+	public void initialiseLanguageAndTranslationAsync(ConceptMini langRefset, String languageCodeWithRefset, Consumer<ServiceException> errorCallback) {
+
+		SecurityContext securityContext = SecurityContextHolder.getContext();
+
 		addLanguageExecutorService.submit(() ->{
+			SecurityContextHolder.setContext(securityContext);
 			try {
 				WeblateClient weblateClient = weblateClientFactory.getClient();
 
@@ -177,6 +183,7 @@ public class WeblateService {
 				}
 			} catch (ServiceExceptionWithStatusCode e) {
 				supportRegister.handleSystemError(CodeSystem.SHARED, "Failed to add Weblate language.", e);
+				errorCallback.accept(e);
 			}
 		});
 	}

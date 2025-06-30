@@ -6,6 +6,8 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
+import org.snomed.simplex.domain.JobStatus;
+import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ActivityService;
@@ -18,7 +20,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class WeblateLanguageInitialisationJobService extends ExternalFunctionJobService<WeblateLanguageInitialisationRequest> {
@@ -26,6 +30,7 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final WeblateClientFactory weblateClientFactory;
 	private final WeblateService weblateService;
+	private final Map<String, String> createLanguageErrors;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -40,6 +45,7 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClientFactory = weblateClientFactory;
 		this.weblateService = weblateService;
+		createLanguageErrors = new ConcurrentHashMap<>();
 	}
 
 	@Override
@@ -61,7 +67,8 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 
 		// Initialize the language and translation in Weblate
 		String languageCodeWithRefset = "%s-%s".formatted(languageCode, request.refsetId());
-		weblateService.initialiseLanguageAndTranslationAsync(refset, languageCodeWithRefset);
+		weblateService.initialiseLanguageAndTranslationAsync(refset, languageCodeWithRefset, serviceException ->
+			createLanguageErrors.put(languageCodeWithRefset, serviceException.getMessage()));
 
 		// Return the language code with refset ID for monitoring
 		logger.info("Started Weblate language initialization. Language:{}, refsetId:{}, jobId:{}",
@@ -73,6 +80,17 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 	@Override
 	protected boolean doMonitorProgress(ExternalServiceJob job, String languageCodeWithRefset) {
 		SecurityContextHolder.setContext(job.getSecurityContext());
+
+		String creationError = createLanguageErrors.get(languageCodeWithRefset);
+		if (creationError != null) {
+			String errorMessage = "Failed to create language: %s".formatted(creationError);
+			job.setErrorMessage(errorMessage);
+			job.setStatus(JobStatus.SYSTEM_ERROR);
+			Activity activity = job.getActivity();
+			activity.setMessage(errorMessage);
+			activity.setError(true);
+			return true;
+		}
 
 		try {
 			WeblateClient weblateClient = weblateClientFactory.getClient();
