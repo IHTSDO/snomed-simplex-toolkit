@@ -2,7 +2,6 @@ package org.snomed.simplex.weblate;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.util.SecurityUtil;
