@@ -12,7 +12,9 @@ import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CreateTranslationRequest;
+import org.snomed.simplex.rest.pojos.CreateWeblateTranslationSet;
 import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
@@ -23,6 +25,7 @@ import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.JobType;
 import org.snomed.simplex.weblate.WeblateSetService;
 import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
@@ -118,12 +121,30 @@ public class TranslationController {
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set")
+	@Operation(summary = "Create a new Weblate translation set for a language refset.",
+			description = "Creates a new translation set in Weblate. The 'label' parameter must be a lowercase URL-friendly string using characters [a-z0-9_-]. The 'name' parameter is the human-readable display name for the translation set.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public WeblateTranslationSet createWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId,
-			@RequestBody WeblateTranslationSet set) throws ServiceException {
+			@RequestBody CreateWeblateTranslationSet createRequest) throws ServiceException {
 
-		set.setCodesystem(codeSystem);
-		set.setRefset(refsetId);
+		String label = createRequest.getLabel();
+
+		// Validate that label is all lowercase and URL compatible
+		if (label == null || label.trim().isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("Label parameter cannot be null or empty.", HttpStatus.BAD_REQUEST);
+		}
+
+		if (!label.equals(label.toLowerCase())) {
+			throw new ServiceExceptionWithStatusCode("Label parameter must be all lowercase.", HttpStatus.BAD_REQUEST);
+		}
+
+		// Check for URL compatibility - only allow lowercase letters, numbers, hyphens, and underscores
+		if (!label.matches("^[a-z0-9_-]+$")) {
+			throw new ServiceExceptionWithStatusCode("Label parameter must contain only lowercase letters, numbers, hyphens, and underscores.", HttpStatus.BAD_REQUEST);
+		}
+
+		WeblateTranslationSet set = new WeblateTranslationSet(codeSystem, refsetId, createRequest.getName(), label, createRequest.getEcl(), createRequest.getBranchPath());
+
 		return weblateSetService.createSet(set);
 	}
 

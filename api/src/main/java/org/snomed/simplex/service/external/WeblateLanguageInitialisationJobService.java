@@ -95,7 +95,7 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 			WeblateClient weblateClient = weblateClientFactory.getClient();
 			Map<String, Object> statistics = weblateClient.getLanguageStatistics(languageCodeWithRefset);
 
-			if (statistics != null) {
+			if (!statistics.isEmpty()) {
 				Object totalObj = statistics.get("total");
 
 				if (totalObj instanceof Integer total) {

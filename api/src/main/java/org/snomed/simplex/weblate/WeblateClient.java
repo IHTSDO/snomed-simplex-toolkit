@@ -7,10 +7,7 @@ import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SupportRegister;
-import org.snomed.simplex.weblate.domain.WeblateComponent;
-import org.snomed.simplex.weblate.domain.WeblatePage;
-import org.snomed.simplex.weblate.domain.WeblateProject;
-import org.snomed.simplex.weblate.domain.WeblateUnit;
+import org.snomed.simplex.weblate.domain.*;
 import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequest;
 import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequestPlural;
 import org.springframework.core.ParameterizedTypeReference;
@@ -25,12 +22,16 @@ import java.io.File;
 import java.util.*;
 
 public class WeblateClient {
+	public static final String COMMON_PROJECT = "common";
+	public static final String SNOMEDCT_COMPONENT = "snomedct";
+	public static final String UNITS_URL = "/units/%s/";
 	private static final Logger logger = LoggerFactory.getLogger(WeblateClient.class);
 	private final RestTemplate restTemplate;
 	private final SupportRegister supportRegister;
 
 	public static final ParameterizedTypeReference<WeblateComponent> SET_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<WeblatePage<WeblateUnit>> UNITS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
+	public static final ParameterizedTypeReference<WeblatePage<WeblateLabel>> LABELS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<Map<String, Object>> PARAMETERIZED_TYPE_REFERENCE_MAP = new ParameterizedTypeReference<>() {};
 
 	protected WeblateClient(RestTemplate restTemplate, SupportRegister supportRegister) {
@@ -134,7 +135,14 @@ public class WeblateClient {
 		// Docs: https://docs.weblate.org/en/latest/api.html#patch--api-units-(int-id)-
 		Map<String, String> patchBody = new HashMap<>();
 		patchBody.put("explanation", explanation);
-		restTemplate.exchange("/units/%s/".formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody, getJsonHeaders()), Void.class);
+		restTemplate.exchange(UNITS_URL.formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody, getJsonHeaders()), Void.class);
+	}
+
+	public void patchUnitLabels(String id, List<WeblateLabel> labels) {
+		// Docs: https://docs.weblate.org/en/latest/api.html#patch--api-units-(int-id)-
+		Map<String, Object> patchBody = new HashMap<>();
+		patchBody.put("labels", labels.stream().map(WeblateLabel::id).toList());
+		restTemplate.exchange(UNITS_URL.formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody, getJsonHeaders()), Void.class);
 	}
 
 	public void deleteComponent(String project, String slug) {
@@ -157,7 +165,7 @@ public class WeblateClient {
 		try {
 			// First, get the unit details to ensure we have the correct numeric ID
 			ResponseEntity<Map<String, Object>> unitResponse = restTemplate.exchange(
-				"/units/%s/".formatted(unitId),
+				UNITS_URL.formatted(unitId),
 				HttpMethod.GET,
 				null,
 					PARAMETERIZED_TYPE_REFERENCE_MAP
@@ -237,7 +245,7 @@ public class WeblateClient {
 			String url = UriComponentsBuilder.fromPath("/units/")
 					.queryParam("project", projectSlug)
 					.queryParam("component", componentSlug)
-					.queryParam("q", "context:=" + conceptId)
+					.queryParam("q", "context:=%s and language:=en".formatted(conceptId))
 					.queryParam("format", "json")
 					.build()
 					.toUriString();
@@ -313,6 +321,36 @@ public class WeblateClient {
 			);
 			return response.getBody();
 		} catch (HttpClientErrorException.NotFound e) {
+			return Collections.emptyMap();
+		}
+	}
+
+	public WeblateLabel getCreateLabel(String project, String label) {
+		try {
+			String url = "/projects/%s/labels/?format=json".formatted(project);
+			WeblateLabel existing = getLabel(label, url);
+			if (existing != null) return existing;
+
+			WeblateLabel newLabel = new WeblateLabel(null, label, "", "blue");
+			restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(newLabel, getJsonHeaders()), Void.class);
+			return getLabel(label, url);
+		} catch (HttpClientErrorException e) {
+			return null;
+		}
+	}
+
+	private WeblateLabel getLabel(String label, String url) {
+		ResponseEntity<WeblatePage<WeblateLabel>> response = restTemplate.exchange(
+			url,
+			HttpMethod.GET,
+			null,
+			LABELS_RESPONSE_TYPE
+		);
+		WeblatePage<WeblateLabel> page = response.getBody();
+		if (page != null) {
+			Optional<WeblateLabel> existing = page.results().stream().filter(result -> result.name().equals(label)).findFirst();
+			return existing.orElse(null);
+		} else {
 			return null;
 		}
 	}
