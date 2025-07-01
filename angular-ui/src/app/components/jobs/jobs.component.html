@@ -1,20 +1,54 @@
 <div *ngIf="refsetId != 'external'">
     <h4>How to edit this artifact?</h4>
     <br>
-    <p>Select source:</p>
-    <div class="row">
-        <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
-          <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
-            {{ type.viewValue }}
-          </mat-radio-button>
-        </mat-radio-group>
-      </div>
+    
+    <!-- Integrated options for translation artifacts -->
+    <div *ngIf="artifact?.type === 'translation' && shouldShowEditingOptions()">
+        <!-- First row: Link to Weblate -->
+        <div *ngIf="!isWeblateLinked()" class="step-row">
+            • Link to Weblate
+            <button mat-flat-button color="primary" (click)="linkToWeblate()">
+                Link
+            </button>
+        </div>
+        
+        <!-- Second row: Or upload content -->
+        <div *ngIf="!isWeblateLinked()" class="step-row">
+            • Or upload content
+        </div>
+        
+        <!-- Select source radio buttons -->
+        <div class="row">
+            <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
+              <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
+                {{ type.viewValue }}
+              </mat-radio-button>
+            </mat-radio-group>
+          </div>
+    </div>
+    
+    <!-- Show radio buttons for non-translation artifacts -->
+    <div *ngIf="artifact?.type !== 'translation' && shouldShowEditingOptions()">
+        <p>Select source:</p>
+        <div class="row">
+            <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
+              <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
+                {{ type.viewValue }}
+              </mat-radio-button>
+            </mat-radio-group>
+          </div>
+    </div>
+    
+    <!-- Message when there's an active REFSET_CHANGE job -->
+    <div *ngIf="hasActiveRefsetChangeJob()" class="job-in-progress-message">
+        <p>Editing is temporarily disabled while a refset change job is in progress. Please wait for the job to complete.</p>
+    </div>
 </div>
 <div *ngIf="refsetId == 'external'">
     <h4>Jobs</h4>
 </div>
 
-<div *ngIf="selectedFileType == 'conceptsSpreadsheet'">
+<div *ngIf="selectedFileType == 'conceptsSpreadsheet' && shouldShowEditingOptions()">
     <div class="step-row">
         <span class="step-number">1</span>
         Download existing concepts as a spreadsheet
@@ -45,7 +79,7 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'refsetToolTranslation'">
+<div *ngIf="selectedFileType == 'refsetToolTranslation' && shouldShowEditingOptions()">
     <div class="step-row">
         <span class="step-number">1</span>
         Edit translations in the Refset & Translation Tool
@@ -74,7 +108,7 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'weblateTranslation'">
+<div *ngIf="selectedFileType == 'weblateTranslation' && shouldShowEditingOptions()">
     <div class="step-row">
         <span class="step-number">1</span>
         Edit translations in Weblate
@@ -103,7 +137,7 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'mapSpreadsheet'">
+<div *ngIf="selectedFileType == 'mapSpreadsheet' && shouldShowEditingOptions()">
     <div class="step-row">
         <span class="step-number">1</span>
         Edit maps in Snap2Snomed
@@ -143,7 +177,7 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'refsetSpreadsheet'">
+<div *ngIf="selectedFileType == 'refsetSpreadsheet' && shouldShowEditingOptions()">
     <div class="step-row">
         <span class="step-number">1</span>
         Download spreadsheet with current content in the Refset
@@ -174,7 +208,7 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'refsetToolSubset'">
+<div *ngIf="selectedFileType == 'refsetToolSubset' && shouldShowEditingOptions()">
     <div class="step-row">
         <span class="step-number">1</span>
         Edit the refset in the Refset & Translation Tool
