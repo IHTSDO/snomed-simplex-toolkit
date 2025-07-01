@@ -170,11 +170,6 @@ public class WeblateDiagramService {
 				final Concept finalConcept = concept;
 				futures.add(executor.submit(() -> {
 					processUnit(projectSlug, componentSlug, diagramClient, weblateClient, finalUnit, finalConcept, results);
-					synchronized (processedCodes) {
-						if (!processedCodes.add(finalConcept.getConceptId())) {
-							logger.warn("Diagram for concept {} procressed more than once.", finalConcept.getConceptId());
-						}
-					}
 					return null;
 				}));
 			}
@@ -231,7 +226,6 @@ public class WeblateDiagramService {
 		}
 	}
 
-	private final Set<String> processedCodes = new HashSet<>();
 	private boolean updateAllRunning = false;
 
 	/**
@@ -263,7 +257,6 @@ public class WeblateDiagramService {
 			Files.createDirectories(screenshotsPath);
 
 			WeblateClient weblateClient = weblateClientFactory.getClient();
-			processedCodes.clear();
 
 			// Get initial page to get total count
 			WeblatePage<WeblateUnit> initialPage = weblateClient.getUnitPage(projectSlug, componentSlug);
