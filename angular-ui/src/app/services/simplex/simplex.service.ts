@@ -322,6 +322,10 @@ export class SimplexService {
     return this.http.post(`/api/weblate/shared-components/${slug}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public linkTranslationToWeblate(edition: string, refsetId: string): Observable<any> {
+    return this.http.post(`/api/${edition}/translations/${refsetId}/weblate-setup`, {}).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getLabelSets(edition: string): Observable<any> {
     const mockLabelSets = [
       { id:'1', name: 'Top 1000 clinical findings', length: 1000 },

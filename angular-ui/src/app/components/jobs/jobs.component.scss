@@ -134,3 +134,22 @@ mat-form-field:last-child {
         opacity: 0.3;
     }
   }
+
+  .info-text {
+    font-size: 0.9rem;
+    color: #666;
+    font-style: italic;
+    margin-top: 0.5rem;
+    margin-left: 3.5rem; /* Align with the step content */
+  }
+
+
+
+  .job-in-progress-message {
+    margin: 2rem 0;
+    padding: 1rem;
+    border: 1px solid #ff9800;
+    border-radius: 8px;
+    background-color: #fff3e0;
+    color: #e65100;
+  }

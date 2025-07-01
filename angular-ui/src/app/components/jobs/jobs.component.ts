@@ -365,4 +365,40 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     this.selectedFile = null;
   }
 
+  linkToWeblate() {
+    if (this.artifact && this.artifact.type === 'translation' && this.edition) {
+      this.simplexService.linkTranslationToWeblate(this.edition, this.artifact.conceptId).subscribe(
+        (response) => {
+          this.snackBar.open('Successfully linked to Weblate', 'Dismiss', {
+            duration: 5000,
+          });
+          // Refresh the artifact data to get the updated weblateSlug
+          this.jobCompleted.emit(response);
+        },
+        (error) => {
+          console.error('Failed to link to Weblate:', error);
+          this.snackBar.open('Failed to link to Weblate', 'Dismiss', {
+            duration: 5000,
+          });
+        }
+      );
+    }
+  }
+
+  isWeblateLinked(): boolean {
+    return this.artifact && this.artifact.type === 'translation' && this.artifact.weblateSlug;
+  }
+
+  hasActiveRefsetChangeJob(): boolean {
+    return this.jobs.some(job => job.jobType === 'REFSET_CHANGE' && job.status === 'IN_PROGRESS');
+  }
+
+  shouldShowEditingOptions(): boolean {
+    // Don't show editing options if there's an active REFSET_CHANGE job
+    if (this.hasActiveRefsetChangeJob()) {
+      return false;
+    }
+    return true;
+  }
+
 }
