@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class WeblateDiagramService {
-	
+
 	private static final Logger logger = LoggerFactory.getLogger(WeblateDiagramService.class);
 	private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
 	private final SnomedDiagramGeneratorClient diagramClient;
@@ -39,7 +39,7 @@ public class WeblateDiagramService {
 		this.weblateClientFactory = weblateClientFactory;
 		this.concurrentUploads = concurrentUploads;
 	}
-	
+
 	/**
 	 * Creates a screenshot in Weblate for a specific concept.
 	 *
@@ -123,9 +123,12 @@ public class WeblateDiagramService {
 	 * @return A map of concept IDs to their created screenshot data
 	 * @throws ServiceException if there's an error during the process
 	 */
-	public Map<String, Map<String, Object>> createWeblateScreenshotsForBatch(List<WeblateUnit> units, 
+	public Map<String, Map<String, Object>> createWeblateScreenshotsForBatch(List<WeblateUnit> units,
 			String projectSlug, String componentSlug, SnowstormClient snowstormClient,
 			SnomedDiagramGeneratorClient diagramClient,	CodeSystem codeSystem, String lastCompletedConcept) throws ServiceException {
+
+		ExecutorService executor = Executors.newFixedThreadPool(concurrentUploads);
+
 		try {
 			// Extract concept IDs from units
 			List<Long> conceptIds = units.stream()
@@ -151,7 +154,6 @@ public class WeblateDiagramService {
 				.collect(Collectors.toMap(Concept::getConceptId, concept -> concept));
 
 
-			ExecutorService executor = Executors.newFixedThreadPool(concurrentUploads);
 			List<Future<Void>> futures = new ArrayList<>();
 
 			// Process each unit
@@ -163,20 +165,31 @@ public class WeblateDiagramService {
 					logger.error("Concept {} not found in Snowstorm", conceptId);
 					continue;
 				}
+
+				final WeblateUnit finalUnit = unit;
+				final Concept finalConcept = concept;
 				futures.add(executor.submit(() -> {
-					processUnit(projectSlug, componentSlug, diagramClient, weblateClient, unit, concept, results);
+					processUnit(projectSlug, componentSlug, diagramClient, weblateClient, finalUnit, finalConcept, results);
+					synchronized (processedCodes) {
+						if (!processedCodes.add(finalConcept.getConceptId())) {
+							logger.warn("Diagram for concept {} procressed more than once.", finalConcept.getConceptId());
+						}
+					}
 					return null;
 				}));
 			}
 
 			// Wait for all tasks to complete
 			waitForAllFutures(futures);
+
 			return results;
 		} catch (Exception e) {
 			if (e.getClass().isAssignableFrom(InterruptedException.class)) {
 				Thread.currentThread().interrupt();
 			}
 			throw new ServiceException("Error creating Weblate screenshots for batch", e);
+		} finally {
+			executor.shutdown();
 		}
 	}
 
@@ -218,6 +231,9 @@ public class WeblateDiagramService {
 		}
 	}
 
+	private final Set<String> processedCodes = new HashSet<>();
+	private boolean updateAllRunning = false;
+
 	/**
 	 * Updates screenshots for all concepts in a Weblate component.
 	 *
@@ -231,7 +247,12 @@ public class WeblateDiagramService {
 	public void updateAll(String projectSlug, String componentSlug, SnowstormClient snowstormClient,
 			CodeSystem codeSystem, String lastCompletedConcept) throws ServiceException {
 
+		if (updateAllRunning) {
+			throw new ServiceExceptionWithStatusCode("Update all diagrams is already running.", HttpStatus.CONFLICT);
+		}
+
 		try {
+			updateAllRunning = true;
 			int processed = 0;
 			int successful = 0;
 			int startPage = 1;
@@ -242,16 +263,18 @@ public class WeblateDiagramService {
 			Files.createDirectories(screenshotsPath);
 
 			WeblateClient weblateClient = weblateClientFactory.getClient();
+			processedCodes.clear();
 
 			// Get initial page to get total count
 			WeblatePage<WeblateUnit> initialPage = weblateClient.getUnitPage(projectSlug, componentSlug);
 			int totalCount = initialPage.count();
 
+
 			while (true) {
 				// Get a batch of units from Weblate
 				List<WeblateUnit> batch = weblateClient.getUnitStream(projectSlug, componentSlug, startPage)
 						.getBatch(batchSize);
-				
+
 				if (batch.isEmpty()) {
 					break;
 				}
@@ -283,6 +306,8 @@ public class WeblateDiagramService {
 			}
 		} catch (Exception e) {
 			throw new ServiceException("Failed to update all screenshots", e);
+		} finally {
+			updateAllRunning = false;
 		}
 	}
 
@@ -298,4 +323,4 @@ public class WeblateDiagramService {
 		}
 	}
 
-} 
+}
