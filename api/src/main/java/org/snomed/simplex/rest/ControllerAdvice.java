@@ -101,6 +101,7 @@ public class ControllerAdvice {
 			logger.error(message, statusCode, exception.getMessage(), exception);
 		} else {
 			logger.info(message, statusCode, exception.getMessage());
+			logger.debug(message, statusCode, exception.getMessage(), exception);
 		}
 
 		return new ResponseEntity<>(result, HttpStatusCode.valueOf(statusCode));

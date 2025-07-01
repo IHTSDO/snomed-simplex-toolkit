@@ -585,8 +585,38 @@ public class SnowstormClient {
 
 					String url = format("/%s/concepts/search", branch);
 					ResponseEntity<Page<ConceptMini>> pageResponse = restTemplate.exchange(url,
-							HttpMethod.POST, new HttpEntity<>(searchRequest), listOfConceptMinisType);
+						HttpMethod.POST, new HttpEntity<>(searchRequest), listOfConceptMinisType);
 					Page<ConceptMini> page = pageResponse.getBody();
+					if (page == null) {
+						return null;
+					}
+					items = page.getItems();
+					itemOffset = 0;
+					if (items.isEmpty()) {
+						return null;
+					}
+					searchAfter = page.getSearchAfter();
+				}
+				return items.get(itemOffset++);
+			}
+		};
+	}
+
+	public Supplier<String> getConceptIdStream(String branch, String ecl) {
+		return new Supplier<>() {
+
+			private List<String> items;
+			private int itemOffset = 0;
+			private String searchAfter = "";
+
+			private final ParameterizedTypeReference<Page<String>> listOfConceptIdsType = new ParameterizedTypeReference<>() {};
+
+			@Override
+			public String get() {
+				if (items == null || itemOffset == items.size()) {
+					String url = format("/%s/concepts?ecl=%s&form=inferred&returnIdOnly=true&limit=%s&searchAfter=%s", branch, ecl, 10_000, searchAfter);
+					ResponseEntity<Page<String>> pageResponse = restTemplate.exchange(url, HttpMethod.GET, null, listOfConceptIdsType);
+					Page<String> page = pageResponse.getBody();
 					if (page == null) {
 						return null;
 					}

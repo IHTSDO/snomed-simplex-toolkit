@@ -20,6 +20,9 @@ public final class WeblateTranslationSet {
 	private String refset;
 
 	@Field(type = FieldType.Keyword)
+	private String languageCode;
+
+	@Field(type = FieldType.Keyword)
 	private final String name;
 
 	@Field(type = FieldType.Text)
@@ -28,12 +31,22 @@ public final class WeblateTranslationSet {
 	@Field(type = FieldType.Text)
 	private final String ecl;
 
-	public WeblateTranslationSet(String codesystem, String refset, String name, String label, String ecl) {
+	@Field(type = FieldType.Text)
+	private final String branchPath;
+
+	private TranslationSetStatus status;
+
+	public WeblateTranslationSet(String codesystem, String refset, String name, String label, String ecl, String branchPath) {
 		this.codesystem = codesystem;
 		this.refset = refset;
 		this.name = name;
 		this.label = label;
 		this.ecl = ecl;
+		this.branchPath = branchPath;
+	}
+
+	public String getId() {
+		return id;
 	}
 
 	public String getCodesystem() {
@@ -62,6 +75,18 @@ public final class WeblateTranslationSet {
 
 	public String getEcl() {
 		return ecl;
+	}
+
+	public String getBranchPath() {
+		return branchPath;
+	}
+
+	public void setStatus(TranslationSetStatus status) {
+		this.status = status;
+	}
+
+	public TranslationSetStatus getStatus() {
+		return status;
 	}
 
 	@Override

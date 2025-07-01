@@ -9,6 +9,7 @@ public class WeblateUnit {
 	private List<String> target;
 	private String context;
 	private String explanation;
+	private List<WeblateLabel> labels;
 
 	public WeblateUnit() {
 	}
@@ -63,6 +64,14 @@ public class WeblateUnit {
 
 	public void setExplanation(String explanation) {
 		this.explanation = explanation;
+	}
+
+	public List<WeblateLabel> getLabels() {
+		return labels;
+	}
+
+	public void setLabels(List<WeblateLabel> labels) {
+		this.labels = labels;
 	}
 
 	@Override

@@ -11,6 +11,7 @@ import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.weblate.WeblateClient;
 import org.snomed.simplex.weblate.WeblateDiagramService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ import java.util.Map;
 @RequestMapping("api")
 public class DiagramController {
 
-    private final WeblateDiagramService weblateDiagramService;
+	private final WeblateDiagramService weblateDiagramService;
     private final SnowstormClientFactory snowstormClientFactory;
     private final ContentProcessingJobService jobService;
 
@@ -39,10 +40,10 @@ public class DiagramController {
 	public Map<String, Object> updateSingleDiagram(
 			@PathVariable String codeSystem,
 			@PathVariable String conceptId) throws ServiceException {
-		
+
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		return weblateDiagramService.createWeblateScreenshot(conceptId, "common", "snomedct",
+		return weblateDiagramService.createWeblateScreenshot(conceptId, WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT,
 				snowstormClient, theCodeSystem);
 	}
 
@@ -54,11 +55,11 @@ public class DiagramController {
 			@RequestParam String projectSlug,
 			@RequestParam String componentSlug,
 			@RequestParam(required = false) String lastCompletedConcept) throws ServiceException, IOException {
-		
+
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.CUSTOM_CONCEPTS, ActivityType.UPDATE);
-		
+
 		return jobService.queueContentJob(
 			theCodeSystem,
 			"Update all diagrams for project " + projectSlug + " component " + componentSlug,
