@@ -34,31 +34,26 @@ public class DiagramController {
 		this.jobService = jobService;
 	}
 
-	@PostMapping("{codeSystem}/diagrams/{conceptId}/update")
+	@PostMapping("diagrams/{conceptId}/update")
 	@Operation(summary = "Update diagram for a single concept")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public Map<String, Object> updateSingleDiagram(
-			@PathVariable String codeSystem,
-			@PathVariable String conceptId) throws ServiceException {
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public Map<String, Object> updateSingleDiagram(@PathVariable String conceptId) throws ServiceException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
 		return weblateDiagramService.createWeblateScreenshot(conceptId, WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT,
 				snowstormClient, theCodeSystem);
 	}
 
-	@PostMapping("{codeSystem}/diagrams/update-all")
+	@PostMapping("diagrams/update-all")
 	@Operation(summary = "Update diagrams for all concepts in a Weblate component")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob updateAllDiagrams(
-			@PathVariable String codeSystem,
-			@RequestParam String projectSlug,
-			@RequestParam String componentSlug,
-			@RequestParam(required = false) String lastCompletedConcept) throws ServiceException, IOException {
-
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public AsyncJob updateAllDiagrams(@RequestParam(required = false) String lastCompletedConcept) throws ServiceException, IOException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		Activity activity = new Activity(codeSystem, ComponentType.CUSTOM_CONCEPTS, ActivityType.UPDATE);
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
+		Activity activity = new Activity(SnowstormClient.ROOT_CODESYSTEM, ComponentType.CUSTOM_CONCEPTS, ActivityType.UPDATE);
+		String projectSlug = WeblateClient.COMMON_PROJECT;
+		String componentSlug = WeblateClient.SNOMEDCT_COMPONENT;
 
 		return jobService.queueContentJob(
 			theCodeSystem,
