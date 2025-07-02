@@ -100,7 +100,7 @@ public class WeblateClient {
 				.append("component").append(":").append(componentSlug)
 				.append(" AND ")
 				.append("language").append(":").append("en");
-		return "/units/?q=%s&format=json".formatted(query);
+		return "/units/?q=%s&sort_by=id&format=json".formatted(query);
 	}
 
 	protected void handleSharedCodeSystemError(String message, HttpStatus httpStatus, HttpClientErrorException e) throws ServiceExceptionWithStatusCode {
