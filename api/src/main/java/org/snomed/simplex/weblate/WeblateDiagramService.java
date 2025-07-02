@@ -1,5 +1,6 @@
 package org.snomed.simplex.weblate;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnomedDiagramGeneratorClient;
@@ -262,15 +263,23 @@ public class WeblateDiagramService {
 			WeblatePage<WeblateUnit> initialPage = weblateClient.getUnitPage(projectSlug, componentSlug);
 			int totalCount = initialPage.count();
 
+			UnitSupplier unitStream = weblateClient.getUnitStream(projectSlug, componentSlug, startPage);
+			Set<Long> processedConceptIds = new LongOpenHashSet();
 
 			while (true) {
 				// Get a batch of units from Weblate
-				List<WeblateUnit> batch = weblateClient.getUnitStream(projectSlug, componentSlug, startPage)
-						.getBatch(batchSize);
+				List<WeblateUnit> batch = unitStream.getBatch(batchSize);
 
 				if (batch.isEmpty()) {
 					break;
 				}
+
+				List<Long> alreadyProcessedConcepts = batch.stream().map(WeblateUnit::getContext).map(Long::parseLong).filter(processedConceptIds::contains).toList();
+				if (!alreadyProcessedConcepts.isEmpty()) {
+					logger.warn("Skipping {} already processed diagrams starting with {}", alreadyProcessedConcepts.size(), alreadyProcessedConcepts.get(0));
+					batch = batch.stream().filter(unit -> !processedConceptIds.contains(Long.parseLong(unit.getContext()))).toList();
+				}
+				processedConceptIds.addAll(batch.stream().map(WeblateUnit::getContext).map(Long::parseLong).toList());
 
 				// Process the batch efficiently
 				Map<String, Map<String, Object>> batchResults = createWeblateScreenshotsForBatch(batch,

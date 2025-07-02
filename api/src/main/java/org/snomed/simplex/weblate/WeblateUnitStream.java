@@ -38,7 +38,7 @@ public class WeblateUnitStream implements UnitSupplier {
 
 		if (page == null || nextUrl != null) {
 			try {
-				LoggerFactory.getLogger(getClass()).debug("Getting next unit batch from {}", nextUrl);
+				LoggerFactory.getLogger(getClass()).info("Getting next unit batch from {}", nextUrl);
 				ResponseEntity<WeblatePage<WeblateUnit>> response = weblateClient.getRestTemplate().exchange(nextUrl,
 						HttpMethod.GET, null, UNITS_RESPONSE_TYPE);
 
