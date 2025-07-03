@@ -8,6 +8,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.weblate.domain.*;
+import org.snomed.simplex.weblate.pojo.BulkAddLabelRequest;
 import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequest;
 import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequestPlural;
 import org.springframework.core.ParameterizedTypeReference;
@@ -143,6 +144,17 @@ public class WeblateClient {
 		Map<String, Object> patchBody = new HashMap<>();
 		patchBody.put("labels", labels.stream().map(WeblateLabel::id).toList());
 		restTemplate.exchange(UNITS_URL.formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody, getJsonHeaders()), Void.class);
+	}
+
+	public void bulkAddLabels(String projectSlug, Integer labelId, List<String> contextIds) throws ServiceExceptionWithStatusCode {
+		// This is a custom Weblate endpoint
+		String url = "/units/bulk_add_label/";
+		try {
+			BulkAddLabelRequest request = new BulkAddLabelRequest(projectSlug, labelId, contextIds);
+			restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(request, getJsonHeaders()), Void.class);
+		} catch (HttpClientErrorException e) {
+			throw new ServiceExceptionWithStatusCode("Error bulk assigning label: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	public void deleteComponent(String project, String slug) {

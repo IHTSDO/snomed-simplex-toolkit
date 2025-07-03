@@ -8,10 +8,10 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
+import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.weblate.domain.TranslationSetStatus;
 import org.snomed.simplex.weblate.domain.WeblateLabel;
 import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
-import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jms.annotation.JmsListener;
@@ -35,19 +35,21 @@ public class WeblateSetService {
 
 	private final JmsTemplate jmsTemplate;
 	private final String jmsQueuePrefix;
+	private final int labelBatchSize;
 
 	private final Map<String, SecurityContext> translationSetUserIdToUserContextMap;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public WeblateSetService(WeblateSetRepository weblateSetRepository, WeblateClientFactory weblateClientFactory, SnowstormClientFactory snowstormClientFactory,
-			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix) {
+			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix, @Value("${weblate.label.batch-size}") int labelBatchSize) {
 
 		this.weblateSetRepository = weblateSetRepository;
 		this.weblateClientFactory = weblateClientFactory;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.jmsTemplate = jmsTemplate;
 		this.jmsQueuePrefix = jmsQueuePrefix;
+		this.labelBatchSize = labelBatchSize;
 		translationSetUserIdToUserContextMap = new HashMap<>();
 	}
 
@@ -107,6 +109,7 @@ public class WeblateSetService {
 
 		WeblateTranslationSet translationSet = optional.get();
 		logger.info("Processing translation set: {}/{}/{}", translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
+		TimerUtil timerUtil = new TimerUtil("Adding label %s".formatted(translationSet.getLabel()));
 
 		try {
 			SecurityContextHolder.setContext(translationSetUserIdToUserContextMap.get(username));
@@ -126,13 +129,18 @@ public class WeblateSetService {
 
 			WeblateLabel weblateLabel = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, label);
 
+			List<String> codes = new ArrayList<>();
 			while ((code = conceptIdStream.get()) != null) {
-				WeblateUnit unit = weblateClient.getUnitForConceptId(WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT, code);
-				List<WeblateLabel> labels = new ArrayList<>(unit.getLabels());
-				labels.add(weblateLabel);
-				logger.info("Adding label:{} to unit id:{} concept:{}", label, unit.getId(), unit.getContext());
-				weblateClient.patchUnitLabels(unit.getId(), labels);
+				codes.add(code);
+				if (codes.size() == labelBatchSize) {
+					bulkAddLabelsToBatch(label, codes, weblateClient, weblateLabel);
+					timerUtil.checkpoint("Completed batch");
+				}
 			}
+			if (!codes.isEmpty()) {
+				bulkAddLabelsToBatch(label, codes, weblateClient, weblateLabel);
+			}
+			timerUtil.finish();
 
 			translationSet.setStatus(TranslationSetStatus.COMPLETED);
 			weblateSetRepository.save(translationSet);
@@ -150,5 +158,12 @@ public class WeblateSetService {
 		} finally {
 			SecurityContextHolder.clearContext();
 		}
+	}
+
+	private void bulkAddLabelsToBatch(String label, List<String> codes, WeblateClient weblateClient, WeblateLabel weblateLabel) throws ServiceExceptionWithStatusCode {
+		logger.info("Adding batch of label:{} to {} units", label, codes.size());
+		weblateClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, weblateLabel.id(), codes);
+		logger.info("Added label batch");
+		codes.clear();
 	}
 }
