@@ -81,6 +81,8 @@ sudo cp django-middleware-csrf.py /opt/weblate/weblate-env/lib/python3.12/site-p
 sudo cp djando-custommiddleware.py /opt/weblate/weblate-env/lib/python3.12/site-packages/django/contrib/auth/custommiddleware.py
 sudo cp simplex.css /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/static/styles/simplex.css
 sudo cp meta-css.html /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/templates/snippets/meta-css.html
+# Add custom API endpoints for faster bulk processing
+sudo cp views.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/api/views.py
 # Disable nearby_keys as performance enhancement. (Weblate attempts to find similar SCTID, which is not useful).
 sudo cp unit.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/trans/models/unit.py
 # Optimised version of translation file processing to use less memory when processing huge files
