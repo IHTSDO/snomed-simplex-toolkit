@@ -158,6 +158,14 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
         .pipe(takeUntil(this.cancelOngoingRequests$))
         .subscribe((translations) => {
             this.translations = translations;
+            
+            // TEMPORARY TEST CODE - REMOVE WHEN BACKEND PROVIDES weblateSlug DATA
+            // Set weblateSlug for second translation if multiple translations exist
+            if (this.translations.length > 1) {
+              this.translations[1].weblateSlug = '/test';
+            }
+            // END TEMPORARY TEST CODE
+            
             this.loadingTranslations = false;
             if (!this.loadingMaps && !this.loadingSubsets) {
               this.updatingEdition = false;

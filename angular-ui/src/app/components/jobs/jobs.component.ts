@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild, ElementRef } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SimplexService } from '../../services/simplex/simplex.service';
+import { ModalService } from '../../services/modal/modal.service';
 import { Subscription, catchError, lastValueFrom, of } from 'rxjs';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { MatRadioChange } from '@angular/material/radio';
@@ -85,7 +86,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   constructor(
     private simplexService: SimplexService,
     private changeDetectorRef: ChangeDetectorRef,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private modalService: ModalService
   ) {}
 
   ngOnInit() {
@@ -345,11 +347,20 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   filterFileTypes() {
     if (this.artifact && this.artifact.type) {
-      this.filteredFileTypes = this.fileTypes.filter((type) =>
-        type.artifactTypes.includes(this.artifact.type)
-      );
-      if (this.filteredFileTypes.length === 1) {
-        this.selectedFileType = this.filteredFileTypes[0].value;
+      // If translation is linked to Weblate, only show weblateTranslation option
+      if (this.artifact.type === 'translation' && this.isWeblateLinked()) {
+        this.filteredFileTypes = this.fileTypes.filter((type) =>
+          type.value === 'weblateTranslation'
+        );
+        this.selectedFileType = 'weblateTranslation';
+      } else {
+        // Normal filtering for all other cases
+        this.filteredFileTypes = this.fileTypes.filter((type) =>
+          type.artifactTypes.includes(this.artifact.type)
+        );
+        if (this.filteredFileTypes.length === 1) {
+          this.selectedFileType = this.filteredFileTypes[0].value;
+        }
       }
     }
   }
@@ -366,6 +377,17 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   linkToWeblate() {
+    // Show confirmation dialog instead of directly linking
+    this.modalService.open('weblate-confirmation-modal');
+  }
+
+  closeWeblateConfirmation() {
+    this.modalService.close('weblate-confirmation-modal');
+  }
+
+  confirmLinkToWeblate() {
+    this.modalService.close('weblate-confirmation-modal');
+    
     if (this.artifact && this.artifact.type === 'translation' && this.edition) {
       this.simplexService.linkTranslationToWeblate(this.edition, this.artifact.conceptId).subscribe(
         (response) => {

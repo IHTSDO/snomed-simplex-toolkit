@@ -7,6 +7,8 @@ app-modal {
 
     div.modal-dialog {
         z-index: 1000;
+        max-width: 420px;
+        margin: 2rem auto;
 
         &.modal-xxl {
             max-width: 90vw;
@@ -14,11 +16,17 @@ app-modal {
 
         div.modal-content {
             border-radius: 0.7rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            background: #fff;
+            color: #222;
+            border: 1.5px solid #e0e0e0;
 
             div.modal-header {
                 background-color: $bootstrap-black;
                 border-top-left-radius: 0.5rem;
                 border-top-right-radius: 0.5rem;
+                padding: 1.2rem 1.5rem 1rem 1.5rem;
+                color: #fff;
 
                 h3 {
                     color: $white;
@@ -45,9 +53,19 @@ app-modal {
             }
 
             div.modal-body {
-                font-size: 1.5rem;
+                font-size: 1.15rem;
                 max-height: 80vh;
                 overflow: auto;
+                padding: 1.5rem 2rem 1rem 2rem;
+                line-height: 1.7;
+                color: #222;
+                
+                ul, p, li {
+                  color: #222;
+                }
+                p, ul {
+                  margin-bottom: 1.1em;
+                }
 
                 input, textarea {
                     cursor: text;
@@ -76,30 +94,67 @@ app-modal {
                 overflow: hidden;
                 border-bottom-left-radius: 0.5rem;
                 border-bottom-right-radius: 0.5rem;
-
+                padding: 1.2rem 1.5rem 1.2rem 1.5rem;
+                display: flex;
+                justify-content: center;
+                gap: 2.5rem;
+                
                 button {
-                    font-size: 1.4rem;
-                    font-weight: 300;
-                    color: $bootstrap-dark;
-
-                    &.accept {
-                        color: $white;
-                        background-color: $fruit-salad;
-
-                        &:hover {
-                            background-color: darken($fruit-salad, 10%);
-                        }
-                    }
-
-                    &.reject {
-                        color: $white;
-                        background-color: $mandy;
-
-                        &:hover {
-                            background-color: darken($mandy, 10%);
-                        }
-                    }
+                    font-size: 1.1rem;
+                    font-weight: 400;
+                    min-width: 120px;
+                    padding: 0.7rem 1.2rem;
+                    border-radius: 4px;
+                    border: 1.5px solid transparent;
+                    transition: background 0.2s, color 0.2s, border 0.2s;
                 }
+                button + button {
+                    margin-left: 2.5rem;
+                }
+                button[color="primary"] {
+                    background: #1976d2;
+                    color: #fff;
+                    border-color: #1976d2;
+                }
+                button[color="primary"]:hover {
+                    background: #1251a3;
+                    border-color: #1251a3;
+                }
+                button:not([color="primary"]) {
+                    background: #f5f5f5;
+                    color: #222;
+                    border: 1.5px solid #bbb;
+                }
+                button:not([color="primary"]):hover {
+                    background: #e0e0e0;
+                    color: #111;
+                    border: 1.5px solid #888;
+                }
+            }
+
+            /* Absolute close button in top-right corner */
+            .modal-close-absolute {
+                position: absolute;
+                top: 0.7rem;
+                right: 0.7rem;
+                z-index: 10;
+                background: #fff;
+                border: 1.5px solid #bbb;
+                border-radius: 50%;
+                width: 2.2rem;
+                height: 2.2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.5rem;
+                color: #333;
+                cursor: pointer;
+                transition: background 0.2s, border 0.2s, color 0.2s;
+            }
+            .modal-close-absolute:hover {
+                background: #f5f5f5;
+                border-color: #888;
+                color: #1976d2;
             }
         }
     }

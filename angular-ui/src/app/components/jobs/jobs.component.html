@@ -1,30 +1,27 @@
 <div *ngIf="refsetId != 'external'">
     <h4>How to edit this artifact?</h4>
     <br>
-    
     <!-- Integrated options for translation artifacts -->
     <div *ngIf="artifact?.type === 'translation' && shouldShowEditingOptions()">
-        <!-- First row: Link to Weblate -->
-        <div *ngIf="!isWeblateLinked()" class="step-row">
-            • Link to Weblate
-            <button mat-flat-button color="primary" (click)="linkToWeblate()">
-                Link
-            </button>
-        </div>
+        <h5 *ngIf="!isWeblateLinked()">Upload content or <a href="javascript:void(0)" (click)="linkToWeblate()">link to Weblate</a></h5>
+        <h5 *ngIf="isWeblateLinked()">Upload weblate content (linked as {{ artifact.weblateSlug }} )</h5>
         
-        <!-- Second row: Or upload content -->
-        <div *ngIf="!isWeblateLinked()" class="step-row">
-            • Or upload content
-        </div>
-        
-        <!-- Select source radio buttons -->
-        <div class="row">
+        <!-- Only show radio buttons if not Weblate linked -->
+        <div class="row" *ngIf="!isWeblateLinked()">
             <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
               <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
                 {{ type.viewValue }}
               </mat-radio-button>
             </mat-radio-group>
-          </div>
+        </div>
+        <!-- If Weblate linked, always show the Weblate steps -->
+        <div *ngIf="isWeblateLinked()">
+            <ng-container *ngTemplateOutlet="weblateSteps"></ng-container>
+        </div>
+        <!-- If user selects Weblate Translation in a non-linked translation, show the steps -->
+        <div *ngIf="selectedFileType == 'weblateTranslation' && !isWeblateLinked() && shouldShowEditingOptions()">
+            <ng-container *ngTemplateOutlet="weblateSteps"></ng-container>
+        </div>
     </div>
     
     <!-- Show radio buttons for non-translation artifacts -->
@@ -92,35 +89,6 @@
     <div class="step-row">
         <span class="step-number">3</span>
         Upload a new version of the exported package as a zip file
-        <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
-        <div class="file-selection">
-            <!-- Button that triggers the hidden file input -->
-            <button mat-flat-button color="primary" (click)="fileInput.click()">Choose File</button>
-            
-            <!-- Display selected file's name with some left margin for spacing -->
-            <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
-        </div>
-        <div class="upload-btn">
-            <button mat-flat-button color="accent" (click)="uploadFile(artifact.conceptId, artifact.type, selectedFileType)" *ngIf="selectedFile">
-                Upload data
-            </button>
-        </div>
-    </div>
-</div>
-
-<div *ngIf="selectedFileType == 'weblateTranslation' && shouldShowEditingOptions()">
-    <div class="step-row">
-        <span class="step-number">1</span>
-        Edit translations in Weblate
-        <a mat-flat-button color="primary" href="https://translate.snomedtools.org" target="_blank">Open Weblate</a>
-    </div>
-    <div class="step-row">
-        <span class="step-number">2</span>
-        Download translation from Weblate
-    </div>
-    <div class="step-row">
-        <span class="step-number">3</span>
-        Upload the exported translation
         <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
         <div class="file-selection">
             <!-- Button that triggers the hidden file input -->
@@ -315,3 +283,55 @@
 <!-- <mat-spinner [diameter]="20" *ngIf="loading" class="loading-spinner"></mat-spinner> -->
 <p *ngIf="!loading && jobs.length == 0 && refsetId != 'external'" class="no-imports">There are no recent uploads for this component</p>
 <p *ngIf="!loading && jobs.length == 0 && refsetId == 'external'" class="no-imports">There are no recent tasks for this edition</p>
+
+<!-- Weblate Confirmation Modal -->
+<app-modal id="weblate-confirmation-modal">
+    <div header>
+        <h3>Link to Weblate</h3>
+    </div>
+    <div body>
+        <p>This will create a Weblate project for this translation artifact, allowing you to edit translations online.</p>
+        <p><strong>What happens next:</strong></p>
+        <ul>
+            <li>A new Weblate project will be created</li>
+            <li>You'll be able to edit translations directly in Weblate</li>
+            <li>Changes can be downloaded and uploaded back to Simplex</li>
+        </ul>
+        <p>Do you want to proceed with linking this translation to Weblate?</p>
+    </div>
+    <div footer>
+        <button mat-flat-button (click)="closeWeblateConfirmation()">Cancel</button>
+        <button mat-flat-button color="primary" (click)="confirmLinkToWeblate()">Link to Weblate</button>
+    </div>
+</app-modal>
+
+<!-- Weblate steps template for reuse -->
+<ng-template #weblateSteps>
+    <div *ngIf="shouldShowEditingOptions()">
+        <div class="step-row">
+            <span class="step-number">1</span>
+            Edit translations in Weblate
+            <a mat-flat-button color="primary" href="https://translate.snomedtools.org" target="_blank">Open Weblate</a>
+        </div>
+        <div class="step-row">
+            <span class="step-number">2</span>
+            Download translation from Weblate
+        </div>
+        <div class="step-row">
+            <span class="step-number">3</span>
+            Upload the exported translation
+            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
+            <div class="file-selection">
+                <!-- Button that triggers the hidden file input -->
+                <button mat-flat-button color="primary" (click)="fileInput.click()">Choose File</button>
+                <!-- Display selected file's name with some left margin for spacing -->
+                <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+            </div>
+            <div class="upload-btn">
+                <button mat-flat-button color="accent" (click)="uploadFile(artifact.conceptId, artifact.type, selectedFileType)" *ngIf="selectedFile">
+                    Upload data
+                </button>
+            </div>
+        </div>
+    </div>
+</ng-template>
