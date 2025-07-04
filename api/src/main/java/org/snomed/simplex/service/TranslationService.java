@@ -95,7 +95,7 @@ public class TranslationService {
 		Concept concept = snowstormClient.createSimpleMetadataConcept(Concepts.LANG_REFSET, preferredTerm,
 				Concepts.FOUNDATION_METADATA_CONCEPT_TAG, codeSystem);
 
-		snowstormClient.addTranslationLanguage(concept.getConceptId(), languageCode, codeSystem, snowstormClient);
+		snowstormClient.addTranslationLanguage(concept.getConceptId(), languageCode, codeSystem);
 		return concept;
 	}
 
@@ -140,10 +140,11 @@ public class TranslationService {
 					logger.info("Using existing lang refset entries to set language code {} for {}, {}",
 							languageCode, codeSystem.getShortName(), langRefsetId);
 				}
-				snowstormClient.addTranslationLanguage(langRefsetId, languageCode, codeSystem, snowstormClient);
+				snowstormClient.addTranslationLanguage(langRefsetId, languageCode, codeSystem);
 			}
 
 			translationRefset.addExtraField("lang", languageCode);
+			translationRefset.addExtraField("isWeblate", codeSystem.getTranslationWeblateLanguages().get(langRefsetId) != null);
 		}
 		return translationRefsets;
 	}

@@ -79,6 +79,8 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 	@Override
 	protected boolean doMonitorProgress(ExternalServiceJob job, String languageCodeWithRefset) {
 		SecurityContextHolder.setContext(job.getSecurityContext());
+		String languageCode = languageCodeWithRefset.substring(0, languageCodeWithRefset.indexOf("-"));
+		String refset = languageCodeWithRefset.substring(languageCodeWithRefset.indexOf("-") + 1);
 
 		String creationError = createLanguageErrors.get(languageCodeWithRefset);
 		if (creationError != null) {
@@ -105,6 +107,10 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 					if (total > 0) {
 						logger.info("Weblate language initialization completed. Language:{}, total:{}, jobId:{}",
 								languageCodeWithRefset, total, job.getId());
+
+						SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+						CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(job.getCodeSystem());
+						snowstormClient.addWeblateTranslationLanguage(refset, languageCode, codeSystem);
 						return true;
 					}
 				}
