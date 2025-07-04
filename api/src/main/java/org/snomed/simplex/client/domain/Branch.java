@@ -18,6 +18,7 @@ public class Branch {
 	public static final String DEFAULT_MODULE_ID_METADATA_KEY = "defaultModuleId";
 	public static final String EDITION_STATUS_METADATA_KEY = "editionStatus";
 	public static final String SIMPLEX_TRANSLATION_METADATA_KEY = "simplex.translation.";
+	public static final String SIMPLEX_TRANSLATION_WEBLATE_METADATA_KEY = "simplex.translation.weblate.";
 
 	public static final String ORGANISATION_NAME = "package.orgName";
 	public static final String ORGANISATION_CONTACT_DETAILS = "package.orgContactDetails";

@@ -45,6 +45,7 @@ public class CodeSystem {
 	private CodeSystemVersion latestVersion;
 	private List<ConceptMini> modules;
 	private Map<String, String> translationLanguages;
+	private Map<String, String> translationWeblateLanguages;
 
 	private Branch branchObject;
 
@@ -258,6 +259,14 @@ public class CodeSystem {
 
 	public void setTranslationLanguages(Map<String, String> translationLanguages) {
 		this.translationLanguages = translationLanguages;
+	}
+
+	public Map<String, String> getTranslationWeblateLanguages() {
+		return translationWeblateLanguages;
+	}
+
+	public void setTranslationWeblateLanguages(Map<String, String> translationWeblateLanguages) {
+		this.translationWeblateLanguages = translationWeblateLanguages;
 	}
 
 	@JsonIgnore

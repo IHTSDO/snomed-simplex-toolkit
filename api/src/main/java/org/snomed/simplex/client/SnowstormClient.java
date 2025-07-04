@@ -161,7 +161,8 @@ public class SnowstormClient {
 		codeSystem.setLatestReleaseCandidateBuild(branch.getMetadataValue(Branch.LATEST_BUILD_METADATA_KEY));
 		codeSystem.setBuildStatus(CodeSystemBuildStatus.fromBranchMetadata(branch.getMetadataValue(Branch.BUILD_STATUS_METADATA_KEY)));
 		codeSystem.setEditionStatus(getEditionStatus(branch.getMetadataValue(Branch.EDITION_STATUS_METADATA_KEY)));
-		codeSystem.setTranslationLanguages(getTranslationLanguages(branch));
+		codeSystem.setTranslationLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_METADATA_KEY));
+		codeSystem.setTranslationWeblateLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_WEBLATE_METADATA_KEY));
 	}
 
 	public List<CodeSystemVersion> getVersions(CodeSystem codeSystem) {
@@ -821,17 +822,23 @@ public class SnowstormClient {
 		restTemplate.exchange(url, HttpMethod.PUT, null, Void.class);
 	}
 
-	public void addTranslationLanguage(String refsetId, String languageCode, CodeSystem codeSystem, SnowstormClient snowstormClient) {
-		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(),
+	public void addTranslationLanguage(String refsetId, String languageCode, CodeSystem codeSystem) {
+		upsertBranchMetadata(codeSystem.getBranchPath(),
 				Map.of((Branch.SIMPLEX_TRANSLATION_METADATA_KEY + "%s").formatted(refsetId), languageCode));
 		codeSystem.getTranslationLanguages().put(refsetId, languageCode);
 	}
 
-	private Map<String, String> getTranslationLanguages(Branch branch) {
+	public void addWeblateTranslationLanguage(String refsetId, String languageCode, CodeSystem codeSystem) {
+		upsertBranchMetadata(codeSystem.getBranchPath(),
+				Map.of((Branch.SIMPLEX_TRANSLATION_WEBLATE_METADATA_KEY + "%s").formatted(refsetId), languageCode));
+		codeSystem.getTranslationWeblateLanguages().put(refsetId, languageCode);
+	}
+
+	private Map<String, String> getTranslationLanguages(Branch branch, String metadataKey) {
 		Map<String, String> translationLanguages = new HashMap<>();
 		branch.getMetadata().forEach((key, value) -> {
-			if (key.startsWith(Branch.SIMPLEX_TRANSLATION_METADATA_KEY)) {
-				translationLanguages.put(key.substring(Branch.SIMPLEX_TRANSLATION_METADATA_KEY.length()), value.toString());
+			if (key.startsWith(metadataKey)) {
+				translationLanguages.put(key.substring(metadataKey.length()), value.toString());
 			}
 		});
 		return translationLanguages;
