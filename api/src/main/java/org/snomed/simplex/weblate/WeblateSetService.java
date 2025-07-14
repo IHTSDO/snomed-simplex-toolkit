@@ -55,7 +55,13 @@ public class WeblateSetService {
 
 
 	public List<WeblateTranslationSet> findByCodeSystemAndRefset(String codeSystem, String refsetId) {
-		return weblateSetRepository.findByCodesystemAndRefset(codeSystem, refsetId);
+		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystemAndRefset(codeSystem, refsetId);
+		String webUrl = weblateClientFactory.getApiUrl().replaceAll("/api/?$", "");
+		list.stream()
+			.filter(set -> set.getStatus() == TranslationSetStatus.COMPLETED)
+			.forEach(set -> set.setWeblateLabelUrl("%s/translate/common/snomedct/%s/?q=label:\"%s\""
+				.formatted(webUrl, set.getLanguageCodeWithRefsetId(), set.getCompositeLabel())));
+		return list;
 	}
 
 	public WeblateTranslationSet createSet(WeblateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
@@ -74,14 +80,14 @@ public class WeblateSetService {
 		}
 
 		CodeSystem codeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(codesystemShortName);
-		String language = codeSystem.getTranslationLanguages().get(refsetId);
-		if (language == null) {
+		String languageCode = codeSystem.getTranslationLanguages().get(refsetId);
+		if (languageCode == null) {
 			throw new ServiceExceptionWithStatusCode("Language code not found for refset: " + refsetId, HttpStatus.NOT_FOUND);
 		}
-		String languageCodeWithRefsetId = "%s-%s".formatted(language, refsetId);
+		translationSet.setLanguageCode(languageCode);
 
 		WeblateClient weblateClient = weblateClientFactory.getClient();
-		if (!weblateClient.isTranslationExistsSearchByLanguageRefset(languageCodeWithRefsetId)) {
+		if (!weblateClient.isTranslationExistsSearchByLanguageRefset(translationSet.getLanguageCodeWithRefsetId())) {
 			throw new ServiceExceptionWithStatusCode("Translation does not exist in Weblate, " +
 					"please start language initialisation job or wait for it to finish.", HttpStatus.CONFLICT);
 		}
@@ -124,21 +130,20 @@ public class WeblateSetService {
 			Supplier<String> conceptIdStream = snowstormClient.getConceptIdStream(translationSet.getBranchPath(), translationSet.getEcl());
 
 			String code;
-			String label = "%s_%s_%s".formatted(translationSet.getCodesystem().replace("SNOMEDCT-", ""),
-				translationSet.getRefset(), translationSet.getLabel());
+			String compositeLabel = translationSet.getCompositeLabel();
 
-			WeblateLabel weblateLabel = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, label);
+			WeblateLabel weblateLabel = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, compositeLabel);
 
 			List<String> codes = new ArrayList<>();
 			while ((code = conceptIdStream.get()) != null) {
 				codes.add(code);
 				if (codes.size() == labelBatchSize) {
-					bulkAddLabelsToBatch(label, codes, weblateClient, weblateLabel);
+					bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
 					timerUtil.checkpoint("Completed batch");
 				}
 			}
 			if (!codes.isEmpty()) {
-				bulkAddLabelsToBatch(label, codes, weblateClient, weblateLabel);
+				bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
 			}
 			timerUtil.finish();
 

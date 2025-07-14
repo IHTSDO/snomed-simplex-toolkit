@@ -48,4 +48,8 @@ public class WeblateClientFactory {
 
 		return new WeblateClient(restTemplate, supportRegister);
 	}
+
+	public String getApiUrl() {
+		return url;
+	}
 }

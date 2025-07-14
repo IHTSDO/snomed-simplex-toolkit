@@ -23,15 +23,15 @@ import java.io.*;
 import java.util.UUID;
 
 @RestController
-@Tag(name = "Weblate Translation Management")
+@Tag(name = "Weblate Management")
 @RequestMapping("api/weblate")
-public class WeblateComponentController {
+public class WeblateManagementController {
 
 	private final WeblateService weblateService;
 	private final ContentProcessingJobService jobService;
 	private final SnowstormClientFactory snowstormClientFactory;
 
-	public WeblateComponentController(WeblateService weblateService, ContentProcessingJobService jobService,
+	public WeblateManagementController(WeblateService weblateService, ContentProcessingJobService jobService,
 			SnowstormClientFactory snowstormClientFactory) {
 		this.weblateService = weblateService;
 		this.jobService = jobService;

@@ -1,6 +1,7 @@
 package org.snomed.simplex.weblate.domain;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
@@ -36,6 +37,9 @@ public final class WeblateTranslationSet {
 
 	private TranslationSetStatus status;
 
+	@Transient
+	private String weblateLabelUrl;
+
 	public WeblateTranslationSet(String codesystem, String refset, String name, String label, String ecl, String branchPath) {
 		this.codesystem = codesystem;
 		this.refset = refset;
@@ -43,6 +47,14 @@ public final class WeblateTranslationSet {
 		this.label = label;
 		this.ecl = ecl;
 		this.branchPath = branchPath;
+	}
+
+	public String getLanguageCodeWithRefsetId() {
+		return "%s-%s".formatted(languageCode, refset);
+	}
+
+	public String getCompositeLabel() {
+		return "%s_%s_%s".formatted(getCodesystem().replace("SNOMEDCT-", ""), getRefset(), getLabel());
 	}
 
 	public String getId() {
@@ -63,6 +75,14 @@ public final class WeblateTranslationSet {
 
 	public void setRefset(String refset) {
 		this.refset = refset;
+	}
+
+	public String getLanguageCode() {
+		return languageCode;
+	}
+
+	public void setLanguageCode(String languageCode) {
+		this.languageCode = languageCode;
 	}
 
 	public String getName() {
@@ -89,6 +109,14 @@ public final class WeblateTranslationSet {
 		return status;
 	}
 
+	public String getWeblateLabelUrl() {
+		return weblateLabelUrl;
+	}
+
+	public void setWeblateLabelUrl(String weblateLabelUrl) {
+		this.weblateLabelUrl = weblateLabelUrl;
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (obj == this) return true;
@@ -113,5 +141,4 @@ public final class WeblateTranslationSet {
 				"label=" + label + ", " +
 				"ecl=" + ecl + ']';
 	}
-
 }
