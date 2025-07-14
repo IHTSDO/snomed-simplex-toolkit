@@ -222,7 +222,7 @@ public class WeblateSetService {
 		weblateSetRepository.save(translationSet);
 	}
 
-	private void doDeleteSet(WeblateTranslationSet translationSet, WeblateClient weblateClient) throws ServiceExceptionWithStatusCode {
+	private void doDeleteSet(WeblateTranslationSet translationSet, WeblateClient weblateClient) {
 		weblateClient.deleteLabelAsync(WeblateClient.COMMON_PROJECT, translationSet.getCompositeLabel());
 	}
 
