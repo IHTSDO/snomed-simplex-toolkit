@@ -1127,21 +1127,60 @@ class ProjectViewSet(
                 self.permission_denied(request, "Can not create labels")
             with transaction.atomic():
                 serializer = LabelSerializer(
-                    data=request.data, context={"request": request, "project": obj}
+                    data=request.data,
+                    context={"project": obj},
                 )
                 serializer.is_valid(raise_exception=True)
                 serializer.save(project=obj)
-                return Response(
-                    serializer.data,
-                    status=HTTP_201_CREATED,
-                )
+                return Response(serializer.data, status=201)
 
+        # GET request - return all labels for the project
         queryset = obj.label_set.all().order_by("id")
         page = self.paginate_queryset(queryset)
-
         serializer = LabelSerializer(page, many=True, context={"request": request})
-
         return self.get_paginated_response(serializer.data)
+
+    @extend_schema(
+        description="Delete a label from a project.",
+        methods=["delete"],
+        parameters=[OpenApiParameter("label_id", int, OpenApiParameter.PATH)],
+    )
+    @action(detail=True, methods=["delete"], url_path="labels/(?P<label_id>[0-9]+)")
+    def delete_labels(self, request: Request, slug, label_id):  # noqa: A002
+        obj = self.get_object()
+        
+        if not request.user.has_perm("project.edit", obj):
+            self.permission_denied(request, "Can not delete labels")
+        
+        try:
+            label = obj.label_set.get(id=label_id)
+        except Label.DoesNotExist as error:
+            raise ValidationError({
+                "label_id": f"Label with ID {label_id} was not found in project {slug}"
+            })
+        
+        with transaction.atomic():
+            # Remove label from all units in the project
+            from weblate.trans.models import Unit
+            units_with_label = Unit.objects.filter(
+                translation__component__project=obj,
+                labels=label
+            )
+            for unit in units_with_label:
+                unit.labels.remove(label)
+            
+            # Also remove from source units that might have the label
+            source_units_with_label = Unit.objects.filter(
+                translation__component__project=obj,
+                source_unit__labels=label
+            )
+            for unit in source_units_with_label:
+                unit.source_unit.labels.remove(label)
+            
+            # Delete the label
+            label.delete()
+            
+            return Response(status=HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["post"])
     def addons(self, request: Request, **kwargs):

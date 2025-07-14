@@ -6,8 +6,10 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
+import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.weblate.domain.TranslationSetStatus;
 import org.snomed.simplex.weblate.domain.WeblateLabel;
@@ -28,10 +30,14 @@ public class WeblateSetService {
 
 	private static final String JOB_MESSAGE_USERNAME = "username";
 	private static final String JOB_MESSAGE_ID = "id";
+	private static final String JOB_TYPE = "type";
+	public static final String JOB_TYPE_CREATE = "Create";
+	public static final String JOB_TYPE_DELETE = "Delete";
 
 	private final WeblateSetRepository weblateSetRepository;
 	private final WeblateClientFactory weblateClientFactory;
 	private final SnowstormClientFactory snowstormClientFactory;
+	private final SupportRegister supportRegister;
 
 	private final JmsTemplate jmsTemplate;
 	private final String jmsQueuePrefix;
@@ -41,12 +47,13 @@ public class WeblateSetService {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public WeblateSetService(WeblateSetRepository weblateSetRepository, WeblateClientFactory weblateClientFactory, SnowstormClientFactory snowstormClientFactory,
+	public WeblateSetService(WeblateSetRepository weblateSetRepository, WeblateClientFactory weblateClientFactory, SnowstormClientFactory snowstormClientFactory, SupportRegister supportRegister,
 			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix, @Value("${weblate.label.batch-size}") int labelBatchSize) {
 
 		this.weblateSetRepository = weblateSetRepository;
 		this.weblateClientFactory = weblateClientFactory;
 		this.snowstormClientFactory = snowstormClientFactory;
+		this.supportRegister = supportRegister;
 		this.jmsTemplate = jmsTemplate;
 		this.jmsQueuePrefix = jmsQueuePrefix;
 		this.labelBatchSize = labelBatchSize;
@@ -54,8 +61,27 @@ public class WeblateSetService {
 	}
 
 
-	public List<WeblateTranslationSet> findByCodeSystemAndRefset(String codeSystem, String refsetId) {
+	public List<WeblateTranslationSet> findByCodeSystemAndRefset(String codeSystem, String refsetId) throws ServiceExceptionWithStatusCode {
 		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystemAndRefset(codeSystem, refsetId);
+
+		List<WeblateTranslationSet> deleting = list.stream().filter(set -> set.getStatus() == TranslationSetStatus.DELETING).toList();
+		if (!deleting.isEmpty()) {
+			boolean anyDeleted = false;
+			WeblateClient weblateClient = weblateClientFactory.getClient();
+			for (WeblateTranslationSet set : deleting) {
+				WeblateLabel label = weblateClient.getLabel(WeblateClient.COMMON_PROJECT, set.getCompositeLabel());
+				if (label == null) {
+					weblateSetRepository.delete(set);
+					anyDeleted = true;
+				}
+			}
+			if (anyDeleted) {
+				// Reload the list
+				list = weblateSetRepository.findByCodesystemAndRefset(codeSystem, refsetId);
+			}
+		}
+
+
 		String webUrl = weblateClientFactory.getApiUrl().replaceAll("/api/?$", "");
 		list.stream()
 			.filter(set -> set.getStatus() == TranslationSetStatus.COMPLETED)
@@ -94,19 +120,38 @@ public class WeblateSetService {
 
 		translationSet.setStatus(TranslationSetStatus.INITIALISING);
 
-		logger.info("Creating Weblate Translation Set {}/{}/{}", codesystemShortName, refsetId, translationSet.getLabel());
+		logger.info("Queueing Weblate Translation Set for creation {}/{}/{}", codesystemShortName, refsetId, translationSet.getLabel());
 		weblateSetRepository.save(translationSet);
 		String username = SecurityUtil.getUsername();
 		translationSetUserIdToUserContextMap.put(username, SecurityContextHolder.getContext());
 
-		jmsTemplate.convertAndSend(jmsQueuePrefix + ".translation-set.processing", Map.of(JOB_MESSAGE_USERNAME, username, JOB_MESSAGE_ID, translationSet.getId()));
+		jmsTemplate.convertAndSend(jmsQueuePrefix + ".translation-set.processing",
+			Map.of(JOB_TYPE, JOB_TYPE_CREATE,
+				JOB_MESSAGE_USERNAME, username,
+				JOB_MESSAGE_ID, translationSet.getId()));
 		return translationSet;
+	}
+
+	public void deleteSet(WeblateTranslationSet translationSet) {
+		logger.info("Queueing Weblate Translation Set for deletion {}/{}/{}", translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
+		translationSet.setStatus(TranslationSetStatus.DELETING);
+		weblateSetRepository.save(translationSet);
+
+		String username = SecurityUtil.getUsername();
+		translationSetUserIdToUserContextMap.put(username, SecurityContextHolder.getContext());
+
+		jmsTemplate.convertAndSend(jmsQueuePrefix + ".translation-set.processing",
+			Map.of(JOB_TYPE, JOB_TYPE_DELETE,
+				JOB_MESSAGE_USERNAME, username,
+				JOB_MESSAGE_ID, translationSet.getId()));
+
 	}
 
 	@JmsListener(destination = "${jms.queue.prefix}.translation-set.processing", concurrency = "1")
 	public void processTranslationSet(Map<String, String> jobMessage) {
 		String username = jobMessage.get(JOB_MESSAGE_USERNAME);
 		String translationSetId = jobMessage.get(JOB_MESSAGE_ID);
+		String jobType = jobMessage.get(JOB_TYPE);
 		Optional<WeblateTranslationSet> optional = weblateSetRepository.findById(translationSetId);
 		if (optional.isEmpty()) {
 			logger.info("Weblate set was deleted before being processed {}", translationSetId);
@@ -114,48 +159,30 @@ public class WeblateSetService {
 		}
 
 		WeblateTranslationSet translationSet = optional.get();
-		logger.info("Processing translation set: {}/{}/{}", translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
-		TimerUtil timerUtil = new TimerUtil("Adding label %s".formatted(translationSet.getLabel()));
+		SecurityContextHolder.setContext(translationSetUserIdToUserContextMap.get(username));
 
 		try {
-			SecurityContextHolder.setContext(translationSetUserIdToUserContextMap.get(username));
-			// Update status to processing
-			translationSet.setStatus(TranslationSetStatus.PROCESSING);
-			weblateSetRepository.save(translationSet);
+			logger.info("Starting - {} translation Set: {}/{}/{}",
+				jobType, translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
 
-			// Get the Weblate client
 			WeblateClient weblateClient = weblateClientFactory.getClient();
-
 			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-			Supplier<String> conceptIdStream = snowstormClient.getConceptIdStream(translationSet.getBranchPath(), translationSet.getEcl());
-
-			String code;
-			String compositeLabel = translationSet.getCompositeLabel();
-
-			WeblateLabel weblateLabel = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, compositeLabel);
-
-			List<String> codes = new ArrayList<>();
-			while ((code = conceptIdStream.get()) != null) {
-				codes.add(code);
-				if (codes.size() == labelBatchSize) {
-					bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
-					timerUtil.checkpoint("Completed batch");
-				}
+			if (jobType.equals(JOB_TYPE_CREATE)) {
+				doCreateSet(translationSet, weblateClient, snowstormClient);
+			} else if (jobType.equals(JOB_TYPE_DELETE)) {
+				doDeleteSet(translationSet, weblateClient);
+			} else {
+				String errorMessage = "Unrecognised job type: %s, translationSet: %s, username: %s".formatted(jobType, translationSetId, username);
+				supportRegister.handleSystemError(CodeSystem.SHARED, errorMessage, new ServiceException(errorMessage));
+				return;
 			}
-			if (!codes.isEmpty()) {
-				bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
-			}
-			timerUtil.finish();
 
-			translationSet.setStatus(TranslationSetStatus.COMPLETED);
-			weblateSetRepository.save(translationSet);
-
-			logger.info("Successfully processed translation set: {}/{}/{}",
-					translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
+			logger.info("Success - {} translation set: {}/{}/{}",
+				jobType, translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
 
 		} catch (Exception e) {
-			logger.error("Error processing translation set: {}/{}/{}",
-					translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel(), e);
+			logger.error("Error - {} translation set: {}/{}/{}",
+				jobType, translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel(), e);
 
 			// Update status to failed
 			translationSet.setStatus(TranslationSetStatus.FAILED);
@@ -163,6 +190,40 @@ public class WeblateSetService {
 		} finally {
 			SecurityContextHolder.clearContext();
 		}
+	}
+
+	private void doCreateSet(WeblateTranslationSet translationSet, WeblateClient weblateClient, SnowstormClient snowstormClient) throws ServiceExceptionWithStatusCode {
+		TimerUtil timerUtil = new TimerUtil("Adding label %s".formatted(translationSet.getLabel()));
+		// Update status to processing
+		translationSet.setStatus(TranslationSetStatus.PROCESSING);
+		weblateSetRepository.save(translationSet);
+
+		Supplier<String> conceptIdStream = snowstormClient.getConceptIdStream(translationSet.getBranchPath(), translationSet.getEcl());
+
+		String code;
+		String compositeLabel = translationSet.getCompositeLabel();
+
+		WeblateLabel weblateLabel = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, compositeLabel);
+
+		List<String> codes = new ArrayList<>();
+		while ((code = conceptIdStream.get()) != null) {
+			codes.add(code);
+			if (codes.size() == labelBatchSize) {
+				bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
+				timerUtil.checkpoint("Completed batch");
+			}
+		}
+		if (!codes.isEmpty()) {
+			bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
+		}
+		timerUtil.finish();
+
+		translationSet.setStatus(TranslationSetStatus.COMPLETED);
+		weblateSetRepository.save(translationSet);
+	}
+
+	private void doDeleteSet(WeblateTranslationSet translationSet, WeblateClient weblateClient) throws ServiceExceptionWithStatusCode {
+		weblateClient.deleteLabelAsync(WeblateClient.COMMON_PROJECT, translationSet.getCompositeLabel());
 	}
 
 	private void bulkAddLabelsToBatch(String label, List<String> codes, WeblateClient weblateClient, WeblateLabel weblateLabel) throws ServiceExceptionWithStatusCode {

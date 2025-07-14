@@ -37,6 +37,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @Tag(name = "Translation", description = "-")
@@ -116,7 +117,7 @@ public class TranslationController {
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public List<WeblateTranslationSet> listWeblateSets(@PathVariable String codeSystem, @PathVariable String refsetId) {
+	public List<WeblateTranslationSet> listWeblateSets(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceExceptionWithStatusCode {
 		return weblateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
 	}
 
@@ -155,9 +156,17 @@ public class TranslationController {
 	}
 
 	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")
+	@Operation(summary = "Asynchronously delete a Weblate translation set.",
+			description = "Deletes a Weblate translation set as an asynchronous operation. The status of the set will be set to DELETING immediately. " +
+				"The set will be deleted from the system over the next few minutes. Sets with a status of DELETING should be hidden from the user.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob deleteWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) {
-		return DUMMY_COMPLETE;
+	public void deleteWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
+		List<WeblateTranslationSet> list = weblateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
+		Optional<WeblateTranslationSet> first = list.stream().filter(set -> set.getLabel().equals(label)).findFirst();
+		if (first.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("Translation set not found.", HttpStatus.NOT_FOUND);
+		}
+		weblateSetService.deleteSet(first.get());
 	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")

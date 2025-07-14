@@ -97,7 +97,7 @@ public class ControllerAdvice {
 		result.put("error", statusCode);
 		result.put("message", exception.getMessage());
 		String message = "Exception with status code: {} - {}";
-		if (statusCode == 500) {
+		if (statusCode >= 500 && statusCode < 600) {
 			logger.error(message, statusCode, exception.getMessage(), exception);
 		} else {
 			logger.info(message, statusCode, exception.getMessage());

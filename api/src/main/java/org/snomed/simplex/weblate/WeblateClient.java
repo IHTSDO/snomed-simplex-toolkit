@@ -21,6 +21,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 public class WeblateClient {
 	public static final String COMMON_PROJECT = "common";
@@ -339,19 +340,20 @@ public class WeblateClient {
 
 	public WeblateLabel getCreateLabel(String project, String label) {
 		try {
-			String url = "/projects/%s/labels/?format=json".formatted(project);
-			WeblateLabel existing = getLabel(label, url);
+			WeblateLabel existing = getLabel(project, label);
 			if (existing != null) return existing;
 
 			WeblateLabel newLabel = new WeblateLabel(null, label, "", "blue");
+			String url = getLabelsUrl(project);
 			restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(newLabel, getJsonHeaders()), Void.class);
-			return getLabel(label, url);
+			return getLabel(project, label);
 		} catch (HttpClientErrorException e) {
 			return null;
 		}
 	}
 
-	private WeblateLabel getLabel(String label, String url) {
+	public WeblateLabel getLabel(String project, String label) {
+		String url = getLabelsUrl(project);
 		ResponseEntity<WeblatePage<WeblateLabel>> response = restTemplate.exchange(
 			url,
 			HttpMethod.GET,
@@ -365,6 +367,26 @@ public class WeblateClient {
 		} else {
 			return null;
 		}
+	}
+
+	private static @NotNull String getLabelsUrl(String project) {
+		return "/projects/%s/labels/?format=json".formatted(project);
+	}
+
+	public void deleteLabelAsync(String project, String label) {
+		// Run the deletion in background without error handling
+		CompletableFuture.runAsync(() -> {
+			try {
+				WeblateLabel weblateLabel = getLabel(project, label);
+				if (weblateLabel != null) {
+					String url = "/projects/%s/labels/%s/".formatted(project, weblateLabel.id());
+					restTemplate.delete(url);
+				}
+			} catch (Exception e) {
+				// Fire and forget - no error handling
+				logger.debug("Background label deletion failed for project {} label {}: {}", project, label, e.getMessage());
+			}
+		});
 	}
 
 	protected RestTemplate getRestTemplate() {
