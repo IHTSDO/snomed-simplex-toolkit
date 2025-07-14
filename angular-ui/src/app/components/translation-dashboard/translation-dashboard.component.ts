@@ -15,17 +15,16 @@ export class TranslationDashboardComponent {
   private subscriptions: Subscription = new Subscription();
   loading = false;
   loadingSets = false;
-  loadingLabelSetDetails = false;
   loadingLabelSetMembers = false;
   loadingTranslations = false;
   labelSets: any[] = [];
   translations: any[] = [];
   selectedTranslation: any;
   selectedLabelSet: any;
-  selectedLabelSetDetails: any;
   selectedLabelSetMembers: any[] = [];
   mode = 'view';
   saving = false;
+  deleting = false;
   
   form: FormGroup = this.fb.group({
       id: ['', Validators.required],
@@ -104,23 +103,7 @@ export class TranslationDashboardComponent {
     );
   }
 
-  getLabelSetDetails(labelSet: any) {
-    this.loadingLabelSetDetails = true;
-    this.simplexService.getLabelSetDetails(this.selectedEdition.shortName, labelSet.id).subscribe(
-      (labelSetDetails) => {
-        this.selectedLabelSetDetails = labelSetDetails;
-        this.loadingLabelSetDetails = false;
-        this.changeDetectorRef.detectChanges();
-      },
-      (error) => {
-        console.error(error);
-        this.snackBar.open('Failed to fetch label set details', 'Dismiss', {
-          duration: 5000
-        });
-        this.loadingLabelSetDetails = false;
-      }
-    );
-  }
+
 
   getLabelSetMembers(labelSet: any) {
     this.loadingLabelSetMembers = true;
@@ -142,8 +125,6 @@ export class TranslationDashboardComponent {
 
   selectSet(labelSet: any) {
     this.selectedLabelSet = labelSet;
-    this.selectedLabelSetDetails = null;
-    this.getLabelSetDetails(labelSet);
     this.getLabelSetMembers(labelSet);
   }
 
@@ -155,10 +136,12 @@ export class TranslationDashboardComponent {
     this.loadingTranslations = true;
     this.simplexService.getTranslations(this.selectedEdition.shortName).subscribe(
       (translations) => {
-        this.translations = translations;
+        // Filter out translations with status "DELETING"
+        this.translations = translations.filter(translation => translation.status !== 'DELETING');
+        
         // Preselect the first translation if available
-        if (translations && translations.length > 0) {
-          this.selectedTranslation = translations[0];
+        if (this.translations && this.translations.length > 0) {
+          this.selectedTranslation = this.translations[0];
           this.onTranslationChange();
         }
         this.loadingTranslations = false;
@@ -177,11 +160,60 @@ export class TranslationDashboardComponent {
     if (this.selectedTranslation) {
       // Clear current selection
       this.selectedLabelSet = null;
-      this.selectedLabelSetDetails = null;
       this.selectedLabelSetMembers = [];
       
       // Load translation sets for the selected translation
       this.getTranslationSets();
+    }
+  }
+
+  deleteTranslationSet() {
+    console.log('Delete button clicked');
+    console.log('selectedTranslation:', this.selectedTranslation);
+    console.log('selectedLabelSet:', this.selectedLabelSet);
+    
+    if (!this.selectedTranslation || !this.selectedLabelSet) {
+      console.log('Missing required data for deletion');
+      return;
+    }
+
+    const label = this.selectedLabelSet.label;
+    console.log('Label from selectedLabelSet:', label);
+    
+    if (!label) {
+      console.log('No label found in selectedLabelSet');
+      this.snackBar.open('No label found for this translation set', 'Dismiss', {
+        duration: 5000
+      });
+      return;
+    }
+
+    // Show confirmation dialog
+    if (confirm(`Are you sure you want to delete the translation set "${this.selectedLabelSet.name}"?`)) {
+      this.deleting = true;
+      this.simplexService.deleteTranslationSet(
+        this.selectedEdition.shortName,
+        this.selectedTranslation.id,
+        label
+      ).subscribe(
+        () => {
+          this.snackBar.open('Translation set deleted successfully', 'Dismiss', {
+            duration: 5000
+          });
+          // Clear selection and reload translation sets
+          this.selectedLabelSet = null;
+          this.selectedLabelSetMembers = [];
+          this.getTranslationSets();
+          this.deleting = false;
+        },
+        (error) => {
+          console.error(error);
+          this.snackBar.open('Failed to delete translation set', 'Dismiss', {
+            duration: 5000
+          });
+          this.deleting = false;
+        }
+      );
     }
   }
 }

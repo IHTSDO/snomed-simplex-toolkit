@@ -338,15 +338,7 @@ export class SimplexService {
   }
 
   public getLabelSetDetails(edition: string, labelSetId: string): Observable<any> {
-    const mockLabelSetDetails = [
-      { id:'1', languageRefset: {code: '298137102', display: 'Danish language'}, languageCode: 'da', progress: 75, ecl: '<< 12345678900 |Clinical findings|' },
-      { id:'2', languageRefset: {code: '298137102', display: 'Danish language'}, languageCode: 'da', progress: 50, ecl: '<< 98754896502 |Nursing procedures|' },
-      { id:'3', languageRefset: {code: '298137102', display: 'Danish language'}, languageCode: 'da', progress: 25, ecl: '<< 34534535301 |Substances|' }
-    ];
-    const detail = mockLabelSetDetails.find(set => set.id === labelSetId);
-    return of(detail).pipe(delay(1000)); // 1 second delay
-
-    // return this.http.get(`/api/${edition}/label-sets`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`/api/${edition}/label-sets/${labelSetId}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   getLabelSetMembers(edition: string, labelSetId: string, offset?: number, limit?: number): Observable<any> {
@@ -368,6 +360,10 @@ export class SimplexService {
 
   public getTranslationSets(edition: string, refsetId: string): Observable<any> {
     return this.http.get(`/api/${edition}/translations/${refsetId}/weblate-set`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public deleteTranslationSet(edition: string, refsetId: string, label: string): Observable<any> {
+    return this.http.delete(`/api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
   }
 
 }

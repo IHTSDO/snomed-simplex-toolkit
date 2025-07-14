@@ -60,23 +60,16 @@
                 </div>
                 <div class="centered-component-row">
                     <!-- Repeat this block for as many skeleton items as you want -->
-                    <div class="skeleton-loader sk-width" *ngIf="loadingLabelSetDetails || !selectedLabelSetDetails">
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                    </div>
-                    <div *ngIf="!loadingLabelSetDetails && selectedLabelSetDetails" class="centered-component-row large-text">
-                        <div>Language Refset:  {{ selectedLabelSetDetails.languageRefset?.code }} - {{ selectedLabelSetDetails.languageRefset?.display }}</div>
-                        <div>Language Code: {{ selectedLabelSetDetails.languageCode }}</div>
-                        <div>Size: {{ selectedLabelSet.length }} records</div>
-                        <div>Progress: {{ selectedLabelSetDetails.progress }}% completed</div>
-                        <div>Type: ECL: {{ selectedLabelSetDetails.ecl }}</div>
+
+                    <div *ngIf="selectedLabelSet" class="centered-component-row large-text">
+                        <div>Label: {{ selectedLabelSet.label }}</div>
+                        <div>Name: {{ selectedLabelSet.name }}</div>
+                        <div>ID: {{ selectedLabelSet.id }}</div>
                     </div>
                     <div class="centered-component-row">
                         <h3>Translation Set Members</h3>
                         <mat-list id="members-list" class="sk-width">
-                            <div *ngIf="loadingLabelSetMembers || loadingLabelSetDetails">
+                            <div *ngIf="loadingLabelSetMembers">
                                 <!-- Repeat this block for as many skeleton items as you want -->
                                 <div class="skeleton-loader">
                                     <div class="skeleton-text"></div>
@@ -89,7 +82,7 @@
                                 </div>
                             </div>
                             <!-- Actual List Items -->
-                            <ng-container *ngIf="(!loadingLabelSetMembers && !loadingLabelSetDetails)">
+                            <ng-container *ngIf="!loadingLabelSetMembers">
                                 <mat-list-item class="hoverable-item" matRipple *ngFor="let member of selectedLabelSetMembers">
                                     {{ member.display }} - {{ member.code }} 
                                 </mat-list-item>
@@ -109,8 +102,10 @@
                         <button mat-flat-button color="primary">
                             Edit Set
                         </button>
-                        <button mat-flat-button color="warn">
-                            Delete Set
+                        <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting">
+                            <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+                            <span *ngIf="!deleting">Delete Set</span>
+                            <span *ngIf="deleting">Deleting...</span>
                         </button>
                     </div>
                 </div>

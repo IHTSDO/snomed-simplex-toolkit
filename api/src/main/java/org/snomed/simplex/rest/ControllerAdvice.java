@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -67,11 +68,11 @@ public class ControllerAdvice {
 		return result;
 	}
 
-	@ExceptionHandler(ClientAbortException.class)
+	@ExceptionHandler({ClientAbortException.class, AsyncRequestNotUsableException.class})
 	@ResponseStatus(HttpStatus.OK)
 	public void handleClientAbortException(Exception exception) {
 		logger.info("A client aborted an HTTP connection, probably a page refresh during loading.");
-		logger.debug("ClientAbortException.", exception);
+		logger.debug(exception.getClass().getSimpleName(), exception);
 	}
 
 	@ExceptionHandler(NoResourceFoundException.class)
