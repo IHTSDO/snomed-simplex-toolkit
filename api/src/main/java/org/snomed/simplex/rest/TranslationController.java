@@ -154,9 +154,9 @@ public class TranslationController {
 		return DUMMY_COMPLETE;
 	}
 
-	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{weblateComponentSlug}")
+	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob deleteWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String weblateComponentSlug) {
+	public AsyncJob deleteWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) {
 		return DUMMY_COMPLETE;
 	}
 
