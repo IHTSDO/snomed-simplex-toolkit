@@ -6,11 +6,11 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 
 @Component({
-  selector: 'app-translation-set',
-  templateUrl: './translation-set.component.html',
-  styleUrl: './translation-set.component.scss'
+  selector: 'app-translation-dashboard',
+  templateUrl: './translation-dashboard.component.html',
+  styleUrl: './translation-dashboard.component.scss'
 })
-export class TranslationSetComponent {
+export class TranslationDashboardComponent {
   selectedEdition: any;
   private subscriptions: Subscription = new Subscription();
   loading = false;
