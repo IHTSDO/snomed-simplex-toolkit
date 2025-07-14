@@ -17,7 +17,10 @@ export class TranslationDashboardComponent {
   loadingSets = false;
   loadingLabelSetDetails = false;
   loadingLabelSetMembers = false;
+  loadingTranslations = false;
   labelSets: any[] = [];
+  translations: any[] = [];
+  selectedTranslation: any;
   selectedLabelSet: any;
   selectedLabelSetDetails: any;
   selectedLabelSetMembers: any[] = [];
@@ -42,6 +45,8 @@ export class TranslationDashboardComponent {
         this.selectedEdition = edition;
         if (!edition.namespace) {
           this.refreshEdition();
+        } else {
+          this.getTranslations();
         }
         this.changeDetectorRef.detectChanges();
       }
@@ -54,7 +59,7 @@ export class TranslationDashboardComponent {
       lastValueFrom(this.simplexService.getEdition(this.selectedEdition.shortName)).then(
         (edition) => {
           this.selectedEdition = edition;
-          this.getLabelSets();
+          this.getTranslations();
           this.loading = false;
         },
         (error) => {
@@ -78,16 +83,20 @@ export class TranslationDashboardComponent {
     this.mode = 'view';
   }
 
-  getLabelSets() {
+  getTranslationSets() {
+    if (!this.selectedTranslation) {
+      return;
+    }
+    
     this.loadingSets = true;
-    this.simplexService.getLabelSets(this.selectedEdition.shortName).subscribe(
-      (labelSets) => {
-        this.labelSets = labelSets;
+    this.simplexService.getTranslationSets(this.selectedEdition.shortName, this.selectedTranslation.id).subscribe(
+      (translationSets) => {
+        this.labelSets = translationSets;
         this.loadingSets = false;
       },
       (error) => {
         console.error(error);
-        this.snackBar.open('Failed to fetch label sets', 'Dismiss', {
+        this.snackBar.open('Failed to fetch translation sets', 'Dismiss', {
           duration: 5000
         });
         this.loadingSets = false;
@@ -140,5 +149,39 @@ export class TranslationDashboardComponent {
 
   setMode(mode: string) {
     this.mode = mode;
+  }
+
+  getTranslations() {
+    this.loadingTranslations = true;
+    this.simplexService.getTranslations(this.selectedEdition.shortName).subscribe(
+      (translations) => {
+        this.translations = translations;
+        // Preselect the first translation if available
+        if (translations && translations.length > 0) {
+          this.selectedTranslation = translations[0];
+          this.onTranslationChange();
+        }
+        this.loadingTranslations = false;
+      },
+      (error) => {
+        console.error(error);
+        this.snackBar.open('Failed to fetch translations', 'Dismiss', {
+          duration: 5000
+        });
+        this.loadingTranslations = false;
+      }
+    );
+  }
+
+  onTranslationChange() {
+    if (this.selectedTranslation) {
+      // Clear current selection
+      this.selectedLabelSet = null;
+      this.selectedLabelSetDetails = null;
+      this.selectedLabelSetMembers = [];
+      
+      // Load translation sets for the selected translation
+      this.getTranslationSets();
+    }
   }
 }

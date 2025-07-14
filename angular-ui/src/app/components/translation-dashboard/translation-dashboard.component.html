@@ -8,7 +8,17 @@
     <div class="component-row">
         <div class="component-col-left">
             <h2>Translation Dashboard</h2>
-            <mat-list id="components-list">
+            <p *ngIf="!selectedTranslation" class="select-translation-hint">Please select a translation to view its translation sets.</p>
+            <mat-form-field>
+                <mat-label>Select Translation</mat-label>
+                <mat-select [(ngModel)]="selectedTranslation" (selectionChange)="onTranslationChange()" [disabled]="loadingTranslations">
+                    <mat-option *ngFor="let translation of translations" [value]="translation">
+                        {{translation.pt.term}}
+                    </mat-option>
+                </mat-select>
+                <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>
+            </mat-form-field>
+            <mat-list id="components-list" *ngIf="selectedTranslation">
                 <div *ngIf="loadingSets || loading">
                     <!-- Repeat this block for as many skeleton items as you want -->
                     <div class="skeleton-loader">
@@ -27,8 +37,6 @@
                     (click)="selectSet(set)"
                     [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
                         {{ set.name }} 
-                        <span class="pill pill-purple">{{ set.id }} </span>
-                        <span class="artifact-info">{{ set.length }} records</span>
                     </mat-list-item>
                     <div class="button-container">
                         <button mat-flat-button color="primary" (click)="setMode('create')">

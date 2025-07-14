@@ -366,4 +366,8 @@ export class SimplexService {
     // return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public getTranslationSets(edition: string, refsetId: string): Observable<any> {
+    return this.http.get(`/api/${edition}/translations/${refsetId}/weblate-set`).pipe(catchError(this.handleError.bind(this)));
+  }
+
 }
