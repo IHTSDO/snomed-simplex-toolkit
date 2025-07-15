@@ -87,6 +87,9 @@ CACHE_DIR = f"{DATA_DIR}/cache"
 # In a Windows environment this must be set to your system time zone.
 TIME_ZONE = "UTC"
 
+# Don't calculate unit stats every time we change a label. Only do it when stats are requested.
+STATS_LAZY = True
+
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 LANGUAGE_CODE = "en-us"
