@@ -25,6 +25,8 @@ export class TranslationDashboardComponent {
   mode = 'view';
   saving = false;
   deleting = false;
+  private pollingInterval: any;
+  private isPolling = false;
   
   form: FormGroup = this.fb.group({
     translation: ['', Validators.required],
@@ -61,6 +63,17 @@ export class TranslationDashboardComponent {
         this.form.patchValue({ label: computedLabel }, { emitEvent: false });
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.stopPolling();
+    this.subscriptions.unsubscribe();
+  }
+
+  openWeblateUrl(url: string) {
+    if (url) {
+      window.open(url, '_blank');
+    }
   }
 
   async refreshEdition() {
@@ -124,8 +137,15 @@ export class TranslationDashboardComponent {
         },
         (error) => {
           console.error(error);
-          this.snackBar.open('Failed to create translation set', 'Dismiss', {
-            duration: 5000
+          
+          // Extract error message from API response
+          let errorMessage = 'Failed to create translation set';
+          if (error.error && error.error.message) {
+            errorMessage = `${errorMessage}: ${error.error.message}`;
+          }
+          
+          this.snackBar.open(errorMessage, 'Dismiss', {
+            duration: 8000
           });
           this.saving = false;
         }
@@ -138,16 +158,21 @@ export class TranslationDashboardComponent {
     
     this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
       (allTranslationSets) => {
-        // Join translation sets with translations data to add translationName
-        this.labelSets = allTranslationSets.map((translationSet: any) => {
-          const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
-          return {
-            ...translationSet,
-            translationId: translationSet.refset,
-            translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
-          };
-        });
+        // Filter out translation sets with status "DELETING" and join with translations data
+        this.labelSets = allTranslationSets
+          .filter((translationSet: any) => translationSet.status !== 'DELETING')
+          .map((translationSet: any) => {
+            const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
+            return {
+              ...translationSet,
+              translationId: translationSet.refset,
+              translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
+            };
+          });
         this.loadingSets = false;
+        
+        // Check if any translation sets are processing and manage polling
+        this.managePolling();
       },
       (error) => {
         console.error(error);
@@ -156,6 +181,68 @@ export class TranslationDashboardComponent {
         });
         this.loadingSets = false;
         this.labelSets = [];
+      }
+    );
+  }
+
+  private managePolling() {
+    const hasProcessingSets = this.labelSets.some((set: any) => set.status === 'PROCESSING');
+    
+    if (hasProcessingSets && !this.isPolling) {
+      this.startPolling();
+    } else if (!hasProcessingSets && this.isPolling) {
+      this.stopPolling();
+    }
+  }
+
+  private startPolling() {
+    this.isPolling = true;
+    this.pollingInterval = setInterval(() => {
+      this.pollTranslationSets();
+    }, 10000); // 10 seconds
+  }
+
+  private stopPolling() {
+    this.isPolling = false;
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  private pollTranslationSets() {
+    // Background reload without showing loading state
+    this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
+      (allTranslationSets) => {
+        // Filter out translation sets with status "DELETING" and join with translations data
+        const updatedLabelSets = allTranslationSets
+          .filter((translationSet: any) => translationSet.status !== 'DELETING')
+          .map((translationSet: any) => {
+            const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
+            return {
+              ...translationSet,
+              translationId: translationSet.refset,
+              translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
+            };
+          });
+        
+        // Update the list without showing loading state
+        this.labelSets = updatedLabelSets;
+        
+        // Silently update selectedLabelSet if it exists
+        if (this.selectedLabelSet) {
+          const updatedSelectedSet = updatedLabelSets.find((set: any) => set.id === this.selectedLabelSet.id);
+          if (updatedSelectedSet) {
+            this.selectedLabelSet = updatedSelectedSet;
+          }
+        }
+        
+        // Check if polling should continue
+        this.managePolling();
+      },
+      (error) => {
+        console.error('Background polling error:', error);
+        // Don't show error to user for background polling
       }
     );
   }

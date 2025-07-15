@@ -88,7 +88,7 @@ public class WeblateSetService {
 
 		String webUrl = weblateClientFactory.getApiUrl().replaceAll("/api/?$", "");
 		list.stream()
-			.filter(set -> set.getStatus() == TranslationSetStatus.COMPLETED)
+			.filter(set -> set.getStatus() == TranslationSetStatus.READY)
 			.forEach(set -> set.setWeblateLabelUrl("%s/translate/common/snomedct/%s/?q=label:\"%s\""
 				.formatted(webUrl, set.getLanguageCodeWithRefsetId(), set.getCompositeLabel())));
 		return list;
@@ -222,7 +222,7 @@ public class WeblateSetService {
 		}
 		timerUtil.finish();
 
-		translationSet.setStatus(TranslationSetStatus.COMPLETED);
+		translationSet.setStatus(TranslationSetStatus.READY);
 		weblateSetRepository.save(translationSet);
 	}
 

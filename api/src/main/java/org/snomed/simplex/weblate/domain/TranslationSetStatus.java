@@ -4,6 +4,7 @@ public enum TranslationSetStatus {
 
 	INITIALISING,
 	PROCESSING,
+	READY,
 	COMPLETED,
 	FAILED,
 	DELETING

@@ -29,6 +29,9 @@
                     [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
                         {{ set.name }} 
                         <span class="pill pill-blue">{{ set.translationName }}</span>
+                        <mat-icon *ngIf="set.status === 'PROCESSING'" 
+                                 matTooltip="Status: {{ set.status }}"
+                                 class="processing-icon">schedule</mat-icon>
                     </mat-list-item>
                     <div class="button-container">
                         <button mat-flat-button color="primary" (click)="setMode('create')">
@@ -43,10 +46,11 @@
                 <img src="/assets/artifact.png">
             </div>
             <div *ngIf="selectedLabelSet" class="details-panel">
-                <h2>Set: {{ selectedLabelSet.name }}</h2>
+                <h2>{{ selectedLabelSet.name }}</h2>
                 <br><br>
                 <div>
-                    <button mat-flat-button color="primary">
+                    <button mat-flat-button color="primary" *ngIf="selectedLabelSet.status === 'READY'"
+                            (click)="openWeblateUrl(selectedLabelSet.weblateLabelUrl)">
                         Open Translation Set in Weblate
                     </button>
                 </div>
@@ -54,9 +58,9 @@
                     <!-- Repeat this block for as many skeleton items as you want -->
 
                     <div *ngIf="selectedLabelSet" class="centered-component-row large-text">
-                        <div>Label: {{ selectedLabelSet.label }}</div>
                         <div>Name: {{ selectedLabelSet.name }}</div>
-                        <div>ID: {{ selectedLabelSet.id }}</div>
+                        <div>Translation: {{ selectedLabelSet.translationName }}</div>
+                        <div>Status: {{ selectedLabelSet.status }}</div>
                     </div>
                     <div class="centered-component-row">
                         <h3>Translation Set Members</h3>

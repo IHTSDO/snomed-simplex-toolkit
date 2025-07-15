@@ -26,6 +26,11 @@ public class TestWeblateSetRepository extends NoopRepository<WeblateTranslationS
 	}
 
 	@Override
+	public List<WeblateTranslationSet> findByCodesystem(String codesystem) {
+		return List.of();
+	}
+
+	@Override
 	public List<WeblateTranslationSet> findByCodesystemAndRefset(String codesystem, String refsetId) {
 		return List.of();
 	}

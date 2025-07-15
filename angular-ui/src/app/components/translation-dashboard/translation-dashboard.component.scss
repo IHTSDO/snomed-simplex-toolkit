@@ -199,6 +199,13 @@
     .title-right-column {
       align-self: flex-end; /* Aligns to the end of the flex container */
     }
+    
+    .processing-icon {
+      color: #FF9800; /* Orange color for processing status */
+      margin-left: 8px;
+      vertical-align: middle;
+      line-height: 1;
+    }
 
     .computed-field {
       width: 60%;
