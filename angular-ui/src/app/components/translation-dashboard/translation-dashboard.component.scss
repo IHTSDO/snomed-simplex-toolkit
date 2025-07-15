@@ -198,7 +198,44 @@
     /* Right column */
     .title-right-column {
       align-self: flex-end; /* Aligns to the end of the flex container */
-      flex: 0 0 auto; /* This ensures the column does not grow or shrink */
+    }
+
+    .computed-field {
+      width: 60%;
+      margin-bottom: 16px;
+      
+      .computed-label {
+        display: block;
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.6);
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+      
+      .computed-value {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background-color: #f5f5f5;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #666;
+        min-height: 20px;
+        
+        span {
+          flex: 1;
+          font-family: 'Courier New', monospace;
+          color: #333;
+        }
+        
+        mat-icon {
+          color: #2196F3;
+          font-size: 18px;
+          margin-left: 8px;
+        }
+      }
     }
 
     .skeleton-cell-loader {

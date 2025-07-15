@@ -29,7 +29,7 @@ export class TranslationDashboardComponent {
   form: FormGroup = this.fb.group({
     translation: ['', Validators.required],
     name: ['', Validators.required],
-    label: ['', Validators.required],
+    label: [{value: '', disabled: true}, Validators.required],
     ecl: ['', Validators.required],
     branchPath: ['', Validators.required]
   });
@@ -54,6 +54,14 @@ export class TranslationDashboardComponent {
       }
     });
     this.subscriptions.add(editionSubscription);
+
+    // Set up automatic label computation from name field
+    this.form.get('name')?.valueChanges.subscribe(name => {
+      if (name) {
+        const computedLabel = this.computeLabelFromName(name);
+        this.form.patchValue({ label: computedLabel }, { emitEvent: false });
+      }
+    });
   }
 
   async refreshEdition() {
@@ -80,10 +88,24 @@ export class TranslationDashboardComponent {
     return Object.keys(this.form.controls);
   }
 
+  computeLabelFromName(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics (accented characters)
+      .replace(/\s+/g, '-') // Replace whitespace with hyphens
+      .replace(/[^a-z0-9-]/g, '') // Remove any other non-alphanumeric characters except hyphens
+      .replace(/-+/g, '-') // Replace multiple consecutive hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading and trailing hyphens
+  }
+
   submit() {
     if (this.form.valid) {
       this.saving = true;
       const formData = this.form.value;
+      
+      // Include the disabled label field value in the form data
+      formData.label = this.form.get('label')?.value;
       
       // Create the translation set using the form data
       this.simplexService.createTranslationSet(
@@ -189,11 +211,16 @@ export class TranslationDashboardComponent {
 
   getTranslations() {
     this.loadingTranslations = true;
+    // Disable the translation form control while loading
+    this.form.get('translation')?.disable();
+    
     this.simplexService.getTranslations(this.selectedEdition.shortName).subscribe(
       (translations) => {
         // Filter out translations with status "DELETING"
         this.translations = translations.filter(translation => translation.status !== 'DELETING');
         this.loadingTranslations = false;
+        // Re-enable the translation form control after loading
+        this.form.get('translation')?.enable();
       },
       (error) => {
         console.error(error);
@@ -201,6 +228,8 @@ export class TranslationDashboardComponent {
           duration: 5000
         });
         this.loadingTranslations = false;
+        // Re-enable the translation form control after error
+        this.form.get('translation')?.enable();
       }
     );
   }

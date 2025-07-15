@@ -110,7 +110,7 @@
                 <!-- Translation Selection -->
                 <mat-form-field>
                     <mat-label>Translation</mat-label>
-                    <mat-select formControlName="translation" [disabled]="loadingTranslations">
+                    <mat-select formControlName="translation">
                         <mat-option *ngFor="let translation of translations" [value]="translation.id">
                             {{translation.pt.term}}
                         </mat-option>
@@ -132,12 +132,9 @@
 
                 <!-- Label Field -->
                 <mat-form-field>
-                    <mat-label>Label</mat-label>
-                    <input matInput formControlName="label">
-                    <button *ngIf="form.get('label')?.value" matSuffix 
-                        mat-icon-button aria-label="Clear" (click)="form.get('label')?.setValue('')">
-                        <mat-icon>close</mat-icon>
-                    </button>
+                    <mat-label>Label (computed from name)</mat-label>
+                    <input matInput formControlName="label" readonly>
+                    <mat-icon matSuffix>auto_fix_high</mat-icon>
                     <mat-error *ngIf="form.get('label')?.hasError('required')">Label is required</mat-error>
                 </mat-form-field>
 
