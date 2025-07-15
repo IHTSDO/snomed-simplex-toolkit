@@ -118,18 +118,15 @@ public final class WeblateTranslationSet {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (obj == this) return true;
-		if (obj == null || obj.getClass() != this.getClass()) return false;
-		var that = (WeblateTranslationSet) obj;
-		return Objects.equals(this.codesystem, that.codesystem) &&
-				Objects.equals(this.refset, that.refset) &&
-				Objects.equals(this.name, that.name);
+	public boolean equals(Object o) {
+		if (o == null || getClass() != o.getClass()) return false;
+		WeblateTranslationSet set = (WeblateTranslationSet) o;
+		return Objects.equals(id, set.id);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(codesystem, refset, name);
+		return Objects.hashCode(id);
 	}
 
 	@Override

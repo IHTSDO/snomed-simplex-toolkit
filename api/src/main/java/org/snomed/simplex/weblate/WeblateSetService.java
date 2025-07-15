@@ -60,27 +60,31 @@ public class WeblateSetService {
 		translationSetUserIdToUserContextMap = new HashMap<>();
 	}
 
+	public List<WeblateTranslationSet> findByCodeSystem(String codeSystem) throws ServiceExceptionWithStatusCode {
+		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystem(codeSystem);
+		return processTranslationSets(list);
+	}
 
 	public List<WeblateTranslationSet> findByCodeSystemAndRefset(String codeSystem, String refsetId) throws ServiceExceptionWithStatusCode {
 		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystemAndRefset(codeSystem, refsetId);
+		return processTranslationSets(list);
+	}
 
+	private List<WeblateTranslationSet> processTranslationSets(List<WeblateTranslationSet> list) throws ServiceExceptionWithStatusCode {
 		List<WeblateTranslationSet> deleting = list.stream().filter(set -> set.getStatus() == TranslationSetStatus.DELETING).toList();
+		List<WeblateTranslationSet> deleted = new ArrayList<>();
 		if (!deleting.isEmpty()) {
-			boolean anyDeleted = false;
 			WeblateClient weblateClient = weblateClientFactory.getClient();
 			for (WeblateTranslationSet set : deleting) {
 				WeblateLabel label = weblateClient.getLabel(WeblateClient.COMMON_PROJECT, set.getCompositeLabel());
 				if (label == null) {
 					weblateSetRepository.delete(set);
-					anyDeleted = true;
+					deleted.add(set);
 				}
 			}
-			if (anyDeleted) {
-				// Reload the list
-				list = weblateSetRepository.findByCodesystemAndRefset(codeSystem, refsetId);
-			}
+			list = new ArrayList<>(list);
+			list.removeAll(deleted);
 		}
-
 
 		String webUrl = weblateClientFactory.getApiUrl().replaceAll("/api/?$", "");
 		list.stream()

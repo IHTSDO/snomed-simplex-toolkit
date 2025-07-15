@@ -48,7 +48,6 @@ export class TranslationDashboardComponent {
           this.refreshEdition();
         } else {
           this.getTranslations();
-          this.getTranslationSets();
         }
         this.changeDetectorRef.detectChanges();
       }
@@ -70,7 +69,6 @@ export class TranslationDashboardComponent {
         (edition) => {
           this.selectedEdition = edition;
           this.getTranslations();
-          this.getTranslationSets();
           this.loading = false;
         },
         (error) => {
@@ -137,43 +135,29 @@ export class TranslationDashboardComponent {
 
   getTranslationSets() {
     this.loadingSets = true;
-    // Load translation sets for all translations
-    const allTranslationSets: any[] = [];
-    let completedRequests = 0;
     
-    if (this.translations.length === 0) {
-      this.loadingSets = false;
-      this.labelSets = [];
-      return;
-    }
-    
-    this.translations.forEach(translation => {
-      this.simplexService.getTranslationSets(this.selectedEdition.shortName, translation.id).subscribe(
-        (translationSets) => {
-          // Add translation info to each set
-          const setsWithTranslation = translationSets.map((set: any) => ({
-            ...set,
-            translationId: translation.id,
-            translationName: translation.pt.term
-          }));
-          allTranslationSets.push(...setsWithTranslation);
-          completedRequests++;
-          
-          if (completedRequests === this.translations.length) {
-            this.labelSets = allTranslationSets;
-            this.loadingSets = false;
-          }
-        },
-        (error) => {
-          console.error(error);
-          completedRequests++;
-          if (completedRequests === this.translations.length) {
-            this.labelSets = allTranslationSets;
-            this.loadingSets = false;
-          }
-        }
-      );
-    });
+    this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
+      (allTranslationSets) => {
+        // Join translation sets with translations data to add translationName
+        this.labelSets = allTranslationSets.map((translationSet: any) => {
+          const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
+          return {
+            ...translationSet,
+            translationId: translationSet.refset,
+            translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
+          };
+        });
+        this.loadingSets = false;
+      },
+      (error) => {
+        console.error(error);
+        this.snackBar.open('Failed to fetch translation sets', 'Dismiss', {
+          duration: 5000
+        });
+        this.loadingSets = false;
+        this.labelSets = [];
+      }
+    );
   }
 
 
@@ -221,6 +205,9 @@ export class TranslationDashboardComponent {
         this.loadingTranslations = false;
         // Re-enable the translation form control after loading
         this.form.get('translation')?.enable();
+        
+        // Load translation sets after translations are loaded
+        this.getTranslationSets();
       },
       (error) => {
         console.error(error);

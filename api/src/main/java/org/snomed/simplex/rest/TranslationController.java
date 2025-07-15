@@ -115,6 +115,12 @@ public class TranslationController {
 		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, ActivityType.WEBLATE_LANGUAGE_INITIALISATION, weblateLanguageInitialisationJobService, request);
 	}
 
+	@GetMapping("{codeSystem}/translations/weblate-set")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public List<WeblateTranslationSet> listAllWeblateSets(@PathVariable String codeSystem) throws ServiceExceptionWithStatusCode {
+		return weblateSetService.findByCodeSystem(codeSystem);
+	}
+
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<WeblateTranslationSet> listWeblateSets(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceExceptionWithStatusCode {

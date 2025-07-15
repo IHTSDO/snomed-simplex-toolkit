@@ -362,6 +362,10 @@ export class SimplexService {
     return this.http.get(`/api/${edition}/translations/${refsetId}/weblate-set`).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public getAllTranslationSets(edition: string): Observable<any> {
+    return this.http.get(`/api/${edition}/translations/weblate-set`).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public deleteTranslationSet(edition: string, refsetId: string, label: string): Observable<any> {
     return this.http.delete(`/api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
   }
