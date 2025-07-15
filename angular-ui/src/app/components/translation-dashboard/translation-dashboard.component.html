@@ -27,11 +27,18 @@
                     <mat-list-item class="hoverable-item" matRipple *ngFor="let set of labelSets"
                     (click)="selectSet(set)"
                     [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
-                        {{ set.name }} 
+                        {{ set.name }}
                         <span class="pill pill-blue">{{ set.translationName }}</span>
                         <mat-icon *ngIf="set.status === 'PROCESSING'" 
-                                 matTooltip="Status: {{ set.status }}"
+                                 matTooltip="Status: {{ set.status }}&#10;{{ set.percentageProcessed }}% complete" 
+                                 matTooltipClass="multiline-tooltip"
                                  class="processing-icon">schedule</mat-icon>
+                        <mat-icon *ngIf="set.status === 'FAILED'" 
+                                 matTooltip="Status: {{ set.status }}"
+                                 class="processing-icon">error</mat-icon>
+                        <mat-progress-bar *ngIf="set.status === 'PROCESSING' && set.percentageProcessed !== undefined"
+                                         [value]="set.percentageProcessed"
+                                         class="processing-progress-bar"></mat-progress-bar>
                     </mat-list-item>
                     <div class="button-container">
                         <button mat-flat-button color="primary" (click)="setMode('create')">

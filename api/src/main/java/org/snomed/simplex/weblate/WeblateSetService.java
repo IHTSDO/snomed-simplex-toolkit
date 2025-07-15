@@ -23,7 +23,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.function.Supplier;
 
 @Service
 public class WeblateSetService {
@@ -202,7 +201,7 @@ public class WeblateSetService {
 		translationSet.setStatus(TranslationSetStatus.PROCESSING);
 		weblateSetRepository.save(translationSet);
 
-		Supplier<String> conceptIdStream = snowstormClient.getConceptIdStream(translationSet.getBranchPath(), translationSet.getEcl());
+		SnowstormClient.ConceptIdStream conceptIdStream = snowstormClient.getConceptIdStream(translationSet.getBranchPath(), translationSet.getEcl());
 
 		String code;
 		String compositeLabel = translationSet.getCompositeLabel();
@@ -210,19 +209,31 @@ public class WeblateSetService {
 		WeblateLabel weblateLabel = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, compositeLabel);
 
 		List<String> codes = new ArrayList<>();
+		int done = 0;
 		while ((code = conceptIdStream.get()) != null) {
 			codes.add(code);
 			if (codes.size() == labelBatchSize) {
 				bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
 				timerUtil.checkpoint("Completed batch");
+				done += labelBatchSize;
+				updateProcessingTotal(translationSet, done, conceptIdStream.getTotal());
 			}
 		}
 		if (!codes.isEmpty()) {
 			bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
+			updateProcessingTotal(translationSet, conceptIdStream.getTotal(), conceptIdStream.getTotal());
 		}
 		timerUtil.finish();
 
 		translationSet.setStatus(TranslationSetStatus.READY);
+		weblateSetRepository.save(translationSet);
+	}
+
+	private void updateProcessingTotal(WeblateTranslationSet translationSet, int done, int total) {
+		if (total == 0) {
+			total++;
+		}
+		translationSet.setPercentageProcessed((int) (((float) done / (float) total) * 100));
 		weblateSetRepository.save(translationSet);
 	}
 

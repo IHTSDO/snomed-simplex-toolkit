@@ -63,6 +63,7 @@ import { LegalAgreementComponent } from './components/legal-agreement/legal-agre
 import {MatMenuModule} from '@angular/material/menu';
 import {MatExpansionModule} from '@angular/material/expansion';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatProgressBarModule} from '@angular/material/progress-bar';
 import { TimelineComponent } from './components/timeline/timeline.component';
 import { ValidationResultsComponent } from './components/validation-results/validation-results.component';
 import {MatCardModule} from '@angular/material/card';
@@ -148,6 +149,7 @@ import { TranslationDashboardComponent } from './components/translation-dashboar
         MatMenuModule,
         MatExpansionModule,
         MatTooltipModule,
+        MatProgressBarModule,
         MatCardModule], providers: [
         AuthenticationService,
         AuthoringService,

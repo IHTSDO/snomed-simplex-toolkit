@@ -35,6 +35,9 @@ public final class WeblateTranslationSet {
 	@Field(type = FieldType.Text)
 	private final String branchPath;
 
+	@Field(type = FieldType.Integer)
+	private int percentageProcessed;
+
 	private TranslationSetStatus status;
 
 	@Transient
@@ -47,6 +50,7 @@ public final class WeblateTranslationSet {
 		this.label = label;
 		this.ecl = ecl;
 		this.branchPath = branchPath;
+		this.percentageProcessed = 0;
 	}
 
 	public String getLanguageCodeWithRefsetId() {
@@ -115,6 +119,14 @@ public final class WeblateTranslationSet {
 
 	public void setWeblateLabelUrl(String weblateLabelUrl) {
 		this.weblateLabelUrl = weblateLabelUrl;
+	}
+
+	public int getPercentageProcessed() {
+		return percentageProcessed;
+	}
+
+	public void setPercentageProcessed(int percentageProcessed) {
+		this.percentageProcessed = percentageProcessed;
 	}
 
 	@Override

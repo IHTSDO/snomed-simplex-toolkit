@@ -603,34 +603,52 @@ public class SnowstormClient {
 		};
 	}
 
-	public Supplier<String> getConceptIdStream(String branch, String ecl) {
-		return new Supplier<>() {
+	public ConceptIdStream getConceptIdStream(String branch, String ecl) {
+		return new ConceptIdStream(branch, ecl, restTemplate);
+	}
 
-			private List<String> items;
-			private int itemOffset = 0;
-			private String searchAfter = "";
+	public static final class ConceptIdStream implements Supplier<String> {
 
-			private final ParameterizedTypeReference<Page<String>> listOfConceptIdsType = new ParameterizedTypeReference<>() {};
+		private final String branch;
+		private final String ecl;
+		private final RestTemplate restTemplate;
 
-			@Override
-			public String get() {
-				if (items == null || itemOffset == items.size()) {
-					String url = format("/%s/concepts?ecl=%s&form=inferred&returnIdOnly=true&limit=%s&searchAfter=%s", branch, ecl, 10_000, searchAfter);
-					ResponseEntity<Page<String>> pageResponse = restTemplate.exchange(url, HttpMethod.GET, null, listOfConceptIdsType);
-					Page<String> page = pageResponse.getBody();
-					if (page == null) {
-						return null;
-					}
-					items = page.getItems();
-					itemOffset = 0;
-					if (items.isEmpty()) {
-						return null;
-					}
-					searchAfter = page.getSearchAfter();
+		private List<String> items;
+		private int itemOffset = 0;
+		private String searchAfter = "";
+		private int total;
+
+		private final ParameterizedTypeReference<Page<String>> listOfConceptIdsType = new ParameterizedTypeReference<>() {};
+
+		public ConceptIdStream(String branch, String ecl, RestTemplate restTemplate) {
+			this.branch = branch;
+			this.ecl = ecl;
+			this.restTemplate = restTemplate;
+		}
+
+		@Override
+		public String get() {
+			if (items == null || itemOffset == items.size()) {
+				String url = format("/%s/concepts?ecl=%s&form=inferred&returnIdOnly=true&limit=%s&searchAfter=%s", branch, ecl, 10_000, searchAfter);
+				ResponseEntity<Page<String>> pageResponse = restTemplate.exchange(url, HttpMethod.GET, null, listOfConceptIdsType);
+				Page<String> page = pageResponse.getBody();
+				if (page == null) {
+					return null;
 				}
-				return items.get(itemOffset++);
+				total = page.getTotal().intValue();
+				items = page.getItems();
+				itemOffset = 0;
+				if (items.isEmpty()) {
+					return null;
+				}
+				searchAfter = page.getSearchAfter();
 			}
-		};
+			return items.get(itemOffset++);
+		}
+
+		public int getTotal() {
+			return total;
+		}
 	}
 
 	public List<Concept> loadBrowserFormatConcepts(List<Long> conceptIds, CodeSystem codeSystem) {

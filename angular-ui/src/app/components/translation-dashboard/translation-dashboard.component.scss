@@ -170,6 +170,10 @@
     mat-list-item:not(:last-child) {
       border-bottom: 1px solid rgba(0, 0, 0, 0.1); // Change the rgba values for different shades
     }
+
+    mat-list-item {
+      position: relative; /* Required for absolute positioning of progress bar */
+    }
     
     .home-message {
       font-size: 2rem;
@@ -205,6 +209,27 @@
       margin-left: 8px;
       vertical-align: middle;
       line-height: 1;
+    }
+
+    .processing-progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: 0;
+      
+      ::ng-deep .mat-progress-bar-fill::after {
+        background-color: #FF9800; /* Orange color to match the processing icon */
+      }
+      
+      ::ng-deep .mat-progress-bar-buffer {
+        background-color: rgba(255, 152, 0, 0.2); /* Light orange background */
+      }
+    }
+
+    ::ng-deep .multiline-tooltip {
+      white-space: pre-line;
     }
 
     .computed-field {
