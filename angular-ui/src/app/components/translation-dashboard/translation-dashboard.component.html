@@ -8,17 +8,8 @@
     <div class="component-row">
         <div class="component-col-left">
             <h2>Translation Dashboard</h2>
-            <p *ngIf="!selectedTranslation" class="select-translation-hint">Please select a translation to view its translation sets.</p>
-            <mat-form-field>
-                <mat-label>Select Translation</mat-label>
-                <mat-select [(ngModel)]="selectedTranslation" (selectionChange)="onTranslationChange()" [disabled]="loadingTranslations">
-                    <mat-option *ngFor="let translation of translations" [value]="translation">
-                        {{translation.pt.term}}
-                    </mat-option>
-                </mat-select>
-                <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>
-            </mat-form-field>
-            <mat-list id="components-list" *ngIf="selectedTranslation">
+            <h4>Translation Sets</h4>
+            <mat-list id="components-list">
                 <div *ngIf="loadingSets || loading">
                     <!-- Repeat this block for as many skeleton items as you want -->
                     <div class="skeleton-loader">
@@ -37,6 +28,7 @@
                     (click)="selectSet(set)"
                     [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
                         {{ set.name }} 
+                        <span class="pill pill-blue">{{ set.translationName }}</span>
                     </mat-list-item>
                     <div class="button-container">
                         <button mat-flat-button color="primary" (click)="setMode('create')">
@@ -115,17 +107,60 @@
             <h4>New Translation Set</h4>
             <br><br>
             <form [formGroup]="form" (keydown.enter)="$event.preventDefault(); submit()">
-                <mat-form-field *ngFor="let controlName of formKeys">
-                    <mat-label>{{controlName | camelToTitle}}</mat-label>
+                <!-- Translation Selection -->
+                <mat-form-field>
+                    <mat-label>Translation</mat-label>
+                    <mat-select formControlName="translation" [disabled]="loadingTranslations">
+                        <mat-option *ngFor="let translation of translations" [value]="translation.id">
+                            {{translation.pt.term}}
+                        </mat-option>
+                    </mat-select>
+                    <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>
+                    <mat-error *ngIf="form.get('translation')?.hasError('required')">Translation is required</mat-error>
+                </mat-form-field>
 
-                    <input matInput formControlName="{{controlName}}">
-                    <button *ngIf="form.controls[controlName]['value']" matSuffix 
-                        mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
-                        [disabled]= "form.get(controlName).disabled">
+                <!-- Name Field -->
+                <mat-form-field>
+                    <mat-label>Name</mat-label>
+                    <input matInput formControlName="name">
+                    <button *ngIf="form.get('name')?.value" matSuffix 
+                        mat-icon-button aria-label="Clear" (click)="form.get('name')?.setValue('')">
                         <mat-icon>close</mat-icon>
                     </button>
+                    <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+                </mat-form-field>
 
-                    <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
+                <!-- Label Field -->
+                <mat-form-field>
+                    <mat-label>Label</mat-label>
+                    <input matInput formControlName="label">
+                    <button *ngIf="form.get('label')?.value" matSuffix 
+                        mat-icon-button aria-label="Clear" (click)="form.get('label')?.setValue('')">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                    <mat-error *ngIf="form.get('label')?.hasError('required')">Label is required</mat-error>
+                </mat-form-field>
+
+                <!-- ECL Field -->
+                <mat-form-field>
+                    <mat-label>ECL</mat-label>
+                    <input matInput formControlName="ecl">
+                    <button *ngIf="form.get('ecl')?.value" matSuffix 
+                        mat-icon-button aria-label="Clear" (click)="form.get('ecl')?.setValue('')">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                    <mat-error *ngIf="form.get('ecl')?.hasError('required')">ECL is required</mat-error>
+                </mat-form-field>
+
+                <!-- Branch Path Field -->
+                <mat-form-field>
+                    <mat-label>Branch Path</mat-label>
+                    <input matInput formControlName="branchPath">
+                    <button *ngIf="form.get('branchPath')?.value" matSuffix 
+                        mat-icon-button aria-label="Clear" (click)="form.get('branchPath')?.setValue('')">
+                        <mat-icon>close</mat-icon>
+                    </button>
+                    <mat-error *ngIf="form.get('branchPath')?.hasError('required')">Branch Path is required</mat-error>
                 </mat-form-field>
             </form>
             <div>

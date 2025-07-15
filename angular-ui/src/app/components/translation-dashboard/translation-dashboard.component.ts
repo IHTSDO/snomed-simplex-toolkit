@@ -27,9 +27,11 @@ export class TranslationDashboardComponent {
   deleting = false;
   
   form: FormGroup = this.fb.group({
-      id: ['', Validators.required],
-      name: ['', Validators.required],
-      ecl: ['', Validators.required]
+    translation: ['', Validators.required],
+    name: ['', Validators.required],
+    label: ['', Validators.required],
+    ecl: ['', Validators.required],
+    branchPath: ['', Validators.required]
   });
 
   constructor(  private fb: FormBuilder,
@@ -46,6 +48,7 @@ export class TranslationDashboardComponent {
           this.refreshEdition();
         } else {
           this.getTranslations();
+          this.getTranslationSets();
         }
         this.changeDetectorRef.detectChanges();
       }
@@ -59,6 +62,7 @@ export class TranslationDashboardComponent {
         (edition) => {
           this.selectedEdition = edition;
           this.getTranslations();
+          this.getTranslationSets();
           this.loading = false;
         },
         (error) => {
@@ -77,30 +81,77 @@ export class TranslationDashboardComponent {
   }
 
   submit() {
-    console.log('Form submitted:', this.form.value);
-    this.form.reset();
-    this.mode = 'view';
+    if (this.form.valid) {
+      this.saving = true;
+      const formData = this.form.value;
+      
+      // Create the translation set using the form data
+      this.simplexService.createTranslationSet(
+        this.selectedEdition.shortName,
+        formData.translation, // This is now the translation ID
+        formData
+      ).subscribe(
+        () => {
+          this.snackBar.open('Translation set created successfully', 'Dismiss', {
+            duration: 5000
+          });
+          this.form.reset();
+          this.mode = 'view';
+          this.saving = false;
+          
+          // Reload the translation sets to show the new one
+          this.getTranslationSets();
+        },
+        (error) => {
+          console.error(error);
+          this.snackBar.open('Failed to create translation set', 'Dismiss', {
+            duration: 5000
+          });
+          this.saving = false;
+        }
+      );
+    }
   }
 
   getTranslationSets() {
-    if (!this.selectedTranslation) {
+    this.loadingSets = true;
+    // Load translation sets for all translations
+    const allTranslationSets: any[] = [];
+    let completedRequests = 0;
+    
+    if (this.translations.length === 0) {
+      this.loadingSets = false;
+      this.labelSets = [];
       return;
     }
     
-    this.loadingSets = true;
-    this.simplexService.getTranslationSets(this.selectedEdition.shortName, this.selectedTranslation.id).subscribe(
-      (translationSets) => {
-        this.labelSets = translationSets;
-        this.loadingSets = false;
-      },
-      (error) => {
-        console.error(error);
-        this.snackBar.open('Failed to fetch translation sets', 'Dismiss', {
-          duration: 5000
-        });
-        this.loadingSets = false;
-      }
-    );
+    this.translations.forEach(translation => {
+      this.simplexService.getTranslationSets(this.selectedEdition.shortName, translation.id).subscribe(
+        (translationSets) => {
+          // Add translation info to each set
+          const setsWithTranslation = translationSets.map((set: any) => ({
+            ...set,
+            translationId: translation.id,
+            translationName: translation.pt.term
+          }));
+          allTranslationSets.push(...setsWithTranslation);
+          completedRequests++;
+          
+          if (completedRequests === this.translations.length) {
+            this.labelSets = allTranslationSets;
+            this.loadingSets = false;
+          }
+        },
+        (error) => {
+          console.error(error);
+          completedRequests++;
+          if (completedRequests === this.translations.length) {
+            this.labelSets = allTranslationSets;
+            this.loadingSets = false;
+          }
+        }
+      );
+    });
   }
 
 
@@ -130,6 +181,10 @@ export class TranslationDashboardComponent {
 
   setMode(mode: string) {
     this.mode = mode;
+    if (mode === 'create') {
+      // Reset the form when entering create mode
+      this.form.reset();
+    }
   }
 
   getTranslations() {
@@ -138,12 +193,6 @@ export class TranslationDashboardComponent {
       (translations) => {
         // Filter out translations with status "DELETING"
         this.translations = translations.filter(translation => translation.status !== 'DELETING');
-        
-        // Preselect the first translation if available
-        if (this.translations && this.translations.length > 0) {
-          this.selectedTranslation = this.translations[0];
-          this.onTranslationChange();
-        }
         this.loadingTranslations = false;
       },
       (error) => {
@@ -169,16 +218,17 @@ export class TranslationDashboardComponent {
 
   deleteTranslationSet() {
     console.log('Delete button clicked');
-    console.log('selectedTranslation:', this.selectedTranslation);
     console.log('selectedLabelSet:', this.selectedLabelSet);
     
-    if (!this.selectedTranslation || !this.selectedLabelSet) {
+    if (!this.selectedLabelSet) {
       console.log('Missing required data for deletion');
       return;
     }
 
     const label = this.selectedLabelSet.label;
+    const translationId = this.selectedLabelSet.translationId;
     console.log('Label from selectedLabelSet:', label);
+    console.log('Translation ID from selectedLabelSet:', translationId);
     
     if (!label) {
       console.log('No label found in selectedLabelSet');
@@ -193,7 +243,7 @@ export class TranslationDashboardComponent {
       this.deleting = true;
       this.simplexService.deleteTranslationSet(
         this.selectedEdition.shortName,
-        this.selectedTranslation.id,
+        translationId,
         label
       ).subscribe(
         () => {
