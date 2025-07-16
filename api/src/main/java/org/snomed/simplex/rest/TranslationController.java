@@ -112,7 +112,7 @@ public class TranslationController {
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 
 		WeblateLanguageInitialisationRequest request = new WeblateLanguageInitialisationRequest(refsetId);
-		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, ActivityType.WEBLATE_LANGUAGE_INITIALISATION, weblateLanguageInitialisationJobService, request);
+		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, refsetId, ActivityType.WEBLATE_LANGUAGE_INITIALISATION, weblateLanguageInitialisationJobService, request);
 	}
 
 	@GetMapping("{codeSystem}/translations/weblate-set")

@@ -160,7 +160,14 @@ public class ActivityService {
 	public <T> ExternalServiceJob startExternalServiceActivity(CodeSystem codeSystem, ComponentType componentType, ActivityType activityType,
 			ExternalFunctionJobService<T> service, T param) throws ServiceException {
 
+		return startExternalServiceActivity(codeSystem, componentType, null, activityType, service, param);
+	}
+
+	public <T> ExternalServiceJob startExternalServiceActivity(CodeSystem codeSystem, ComponentType componentType, String componentId, ActivityType activityType,
+			ExternalFunctionJobService<T> service, T param) throws ServiceException {
+
 		Activity activity = createActivity(codeSystem.getShortName(), componentType, activityType);
+		activity.setComponentId(componentId);
 		try {
 			return service.callService(codeSystem, activity, param);
 		} catch (ServiceException e) {
