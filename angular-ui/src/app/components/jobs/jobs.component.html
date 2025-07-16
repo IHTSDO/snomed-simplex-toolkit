@@ -2,12 +2,17 @@
     <h4>How to edit this artifact?</h4>
     <br>
     <!-- Integrated options for translation artifacts -->
-    <div *ngIf="artifact?.type === 'translation' && shouldShowEditingOptions()">
-        <h5 *ngIf="!isWeblateLinked()">Upload content or <a href="javascript:void(0)" (click)="linkToWeblate()">link to Weblate</a></h5>
-        <h5 *ngIf="isWeblateLinked()">Upload weblate content (linked as {{ artifact.weblateSlug }} )</h5>
+    <div *ngIf="artifact?.type === 'translation' && !shouldDisableEditing() && !loadingActivities">
+        <h5 *ngIf="!isWeblateLinked()">
+            Upload content or <a href="javascript:void(0)" (click)="linkToWeblate()" [class.disabled]="shouldDisableWeblateLinking()">link to Weblate</a>
+            <mat-icon *ngIf="hasWeblateActivityFailed" 
+                     [matTooltip]="getWeblateActivityErrorMessage()" 
+                     class="error-icon">error</mat-icon>
+        </h5>
+        <h5 *ngIf="isWeblateLinked()">Upload weblate content (linked to Weblate)</h5>
         
         <!-- Only show radio buttons if not Weblate linked -->
-        <div class="row" *ngIf="!isWeblateLinked()">
+        <div class="row" *ngIf="!isWeblateLinked() && !shouldDisableEditing()">
             <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
               <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
                 {{ type.viewValue }}
@@ -19,13 +24,13 @@
             <ng-container *ngTemplateOutlet="weblateSteps"></ng-container>
         </div>
         <!-- If user selects Weblate Translation in a non-linked translation, show the steps -->
-        <div *ngIf="selectedFileType == 'weblateTranslation' && !isWeblateLinked() && shouldShowEditingOptions()">
+        <div *ngIf="selectedFileType == 'weblateTranslation' && !isWeblateLinked() && !shouldDisableEditing()">
             <ng-container *ngTemplateOutlet="weblateSteps"></ng-container>
         </div>
     </div>
     
     <!-- Show radio buttons for non-translation artifacts -->
-    <div *ngIf="artifact?.type !== 'translation' && shouldShowEditingOptions()">
+    <div *ngIf="artifact?.type !== 'translation' && !shouldDisableEditing() && !loadingActivities">
         <p>Select source:</p>
         <div class="row">
             <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
@@ -40,12 +45,38 @@
     <div *ngIf="hasActiveRefsetChangeJob()" class="job-in-progress-message">
         <p>Editing is temporarily disabled while a refset change job is in progress. Please wait for the job to complete.</p>
     </div>
+    
+    <!-- Message when there's a Weblate language initialization activity -->
+    <div *ngIf="hasWeblateActivity" class="job-in-progress-message">
+        <p>
+            <mat-icon class="processing-icon">schedule</mat-icon>
+            Editing is temporarily disabled while Weblate language initialization is in progress for this language. Please wait for the initialization to complete.
+        </p>
+    </div>
+    
+    <!-- Skeleton loading for activities -->
+    <div *ngIf="loadingActivities" class="skeleton-loading">
+        <div class="skeleton-row">
+            <div class="skeleton-step-number"></div>
+            <div class="skeleton-content">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+            </div>
+        </div>
+        <div class="skeleton-row">
+            <div class="skeleton-step-number"></div>
+            <div class="skeleton-content">
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line short"></div>
+            </div>
+        </div>
+    </div>
 </div>
 <div *ngIf="refsetId == 'external'">
     <h4>Jobs</h4>
 </div>
 
-<div *ngIf="selectedFileType == 'conceptsSpreadsheet' && shouldShowEditingOptions()">
+<div *ngIf="selectedFileType == 'conceptsSpreadsheet' && !shouldDisableEditing()">
     <div class="step-row">
         <span class="step-number">1</span>
         Download existing concepts as a spreadsheet
@@ -76,7 +107,7 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'refsetToolTranslation' && shouldShowEditingOptions()">
+<div *ngIf="selectedFileType == 'refsetToolTranslation' && !shouldDisableEditing()">
     <div class="step-row">
         <span class="step-number">1</span>
         Edit translations in the Refset & Translation Tool
@@ -105,7 +136,7 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'mapSpreadsheet' && shouldShowEditingOptions()">
+<div *ngIf="selectedFileType == 'mapSpreadsheet' && !shouldDisableEditing()">
     <div class="step-row">
         <span class="step-number">1</span>
         Edit maps in Snap2Snomed
@@ -145,7 +176,7 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'refsetSpreadsheet' && shouldShowEditingOptions()">
+<div *ngIf="selectedFileType == 'refsetSpreadsheet' && !shouldDisableEditing()">
     <div class="step-row">
         <span class="step-number">1</span>
         Download spreadsheet with current content in the Refset
@@ -176,7 +207,7 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'refsetToolSubset' && shouldShowEditingOptions()">
+<div *ngIf="selectedFileType == 'refsetToolSubset' && !shouldDisableEditing()">
     <div class="step-row">
         <span class="step-number">1</span>
         Edit the refset in the Refset & Translation Tool
@@ -307,7 +338,7 @@
 
 <!-- Weblate steps template for reuse -->
 <ng-template #weblateSteps>
-    <div *ngIf="shouldShowEditingOptions()">
+            <div *ngIf="!shouldDisableEditing()">
         <div class="step-row">
             <span class="step-number">1</span>
             Edit translations in Weblate

@@ -34,10 +34,15 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   @ViewChild('fileInput') fileInput: ElementRef;
 
   jobs: any[] = [];
+  activities: any[] = [];
   skeleton: any[] = Array(2).fill({});
   loading = false;
+  loadingActivities = false;
+  saving = false;
   showMapInfo = false;
   hasInProgressJob = false;
+  hasWeblateActivity = false;
+  hasWeblateActivityFailed = false;
 
   selectedFile: File = null;
   selectedFileType: string = null;
@@ -79,7 +84,10 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   downloadRefsetFileDisabled = false;
 
   private subscription: Subscription;
+  private activitiesSubscription: Subscription;
   private intervalId?: any;
+  private activitiesIntervalId?: any;
+  private isPollingActivities = false;
 
   displayedColumns: string[] = ['date', 'display', 'status', 'total', 'icon'];
 
@@ -97,7 +105,12 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   ngOnChanges() {
+    // Reset activity flags immediately when component changes
+    this.hasWeblateActivity = false;
+    this.hasWeblateActivityFailed = false;
+    
     this.loadJobs(true);
+    this.loadActivities(true);
     this.selectedFileType = null;
     this.filterFileTypes();
   }
@@ -107,8 +120,16 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       this.subscription.unsubscribe();
     }
 
+    if (this.activitiesSubscription) {
+      this.activitiesSubscription.unsubscribe();
+    }
+
     if (this.intervalId) {
       clearInterval(this.intervalId);
+    }
+
+    if (this.activitiesIntervalId) {
+      clearInterval(this.activitiesIntervalId);
     }
   }
 
@@ -138,7 +159,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         const previousInProgressJobs = this.jobs.filter(
           (job) => job.status === 'IN_PROGRESS'
         );
-        this.jobs = data.slice(0, 5);
+        console.log('Jobs loaded:', data); // Debug: see what jobs are returned
+        this.jobs = data.slice(0, 10); // Increased limit to 10 jobs
         this.loading = false;
         this.changeDetectorRef.detectChanges();
 
@@ -170,6 +192,110 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
           }, 10000);
         }
       });
+  }
+
+  public loadActivities(clear: boolean) {
+    if (clear) {
+      this.activities = [];
+      this.loadingActivities = true;
+    }
+    
+    this.activitiesSubscription = this.simplexService
+      .getActivities(this.edition)
+      .pipe(
+        catchError((error) => {
+          console.error('An error occurred loading activities:', error);
+          this.loadingActivities = false;
+          return of([]);
+        })
+      )
+      .subscribe((data) => {
+        console.log('Activities loaded:', data); // Debug: see what activities are returned
+        this.activities = data.items || data; // Handle both response format and direct array
+        this.loadingActivities = false;
+        this.changeDetectorRef.detectChanges();
+
+        // Check for Weblate-related activities
+        this.checkWeblateActivities();
+
+        // Manage activities polling
+        this.manageActivitiesPolling();
+      });
+  }
+
+  private checkWeblateActivities() {
+    // Check if there are any activities related to Weblate language initialization for this artifact
+    this.hasWeblateActivity = this.activities.some((activity: any) => {
+      // Check if activity is related to Weblate language initialization and this specific artifact
+      // Activity is still running if it has no endDate
+      return activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
+             activity.componentType === 'TRANSLATION' &&
+             activity.componentId === this.artifact?.conceptId &&
+             !activity.endDate;
+    });
+
+    // Check for failed Weblate activities
+    this.hasWeblateActivityFailed = this.activities.some((activity: any) => {
+      return activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
+             activity.componentType === 'TRANSLATION' &&
+             activity.componentId === this.artifact?.conceptId &&
+             activity.error === true;
+    });
+
+
+  }
+
+
+
+  getWeblateActivityErrorMessage(): string {
+    const failedActivity = this.activities.find((activity: any) => 
+      activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
+      activity.componentType === 'TRANSLATION' &&
+      activity.componentId === this.artifact?.conceptId &&
+      activity.error === true
+    );
+    
+    if (failedActivity) {
+      return 'Weblate language initialization failed';
+    }
+    return 'Weblate linking failed';
+  }
+
+  private manageActivitiesPolling() {
+    const hasProcessingActivities = this.activities.some((activity: any) => 
+      activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
+      activity.componentType === 'TRANSLATION' &&
+      activity.componentId === this.artifact?.conceptId &&
+      !activity.endDate
+    );
+    
+    const hasFailedActivities = this.activities.some((activity: any) => 
+      activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
+      activity.componentType === 'TRANSLATION' &&
+      activity.componentId === this.artifact?.conceptId &&
+      activity.error === true
+    );
+    
+    if ((hasProcessingActivities || hasFailedActivities) && !this.isPollingActivities) {
+      this.startActivitiesPolling();
+    } else if (!hasProcessingActivities && !hasFailedActivities && this.isPollingActivities) {
+      this.stopActivitiesPolling();
+    }
+  }
+
+  private startActivitiesPolling() {
+    this.isPollingActivities = true;
+    this.activitiesIntervalId = setInterval(() => {
+      this.loadActivities(false);
+    }, 10000); // Poll every 10 seconds for activities
+  }
+
+  private stopActivitiesPolling() {
+    this.isPollingActivities = false;
+    if (this.activitiesIntervalId) {
+      clearInterval(this.activitiesIntervalId);
+      this.activitiesIntervalId = null;
+    }
   }
 
   onFileSelected(event: Event): void {
@@ -389,26 +515,36 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     this.modalService.close('weblate-confirmation-modal');
     
     if (this.artifact && this.artifact.type === 'translation' && this.edition) {
+      // Prevent multiple requests
+      this.saving = true;
+      
       this.simplexService.linkTranslationToWeblate(this.edition, this.artifact.conceptId).subscribe(
         (response) => {
-          this.snackBar.open('Successfully linked to Weblate', 'Dismiss', {
+          console.log('Weblate linking response:', response); // Debug: see the job response
+          this.snackBar.open('Weblate linking job created successfully', 'Dismiss', {
             duration: 5000,
           });
-          // Refresh the artifact data to get the updated weblateSlug
+          // Load the new job to show it in the list
+          this.loadJobs(false);
+          // Load activities to show processing status
+          this.loadActivities(false);
+          // Emit job completion for parent component
           this.jobCompleted.emit(response);
+          this.saving = false;
         },
         (error) => {
           console.error('Failed to link to Weblate:', error);
           this.snackBar.open('Failed to link to Weblate', 'Dismiss', {
             duration: 5000,
           });
+          this.saving = false;
         }
       );
     }
   }
 
   isWeblateLinked(): boolean {
-    return this.artifact && this.artifact.type === 'translation' && this.artifact.weblateSlug;
+    return this.artifact && this.artifact.type === 'translation' && this.artifact.isWeblate;
   }
 
   hasActiveRefsetChangeJob(): boolean {
@@ -421,6 +557,16 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       return false;
     }
     return true;
+  }
+
+  shouldDisableWeblateLinking(): boolean {
+    // Disable Weblate linking if there's a specific activity for this artifact
+    return this.hasWeblateActivity || this.saving;
+  }
+
+  shouldDisableEditing(): boolean {
+    // Disable all editing options if there's a Weblate language initialization activity for this specific language
+    return this.hasWeblateActivity || this.hasActiveRefsetChangeJob();
   }
 
 }
