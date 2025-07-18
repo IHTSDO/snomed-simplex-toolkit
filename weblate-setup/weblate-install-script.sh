@@ -89,6 +89,10 @@ sudo cp base.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/ma
 sudo cp unit.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/trans/models/unit.py
 # Optimised version of translation file processing to use less memory when processing huge files
 sudo cp translation.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/trans/models/translation.py
+# Add csv-multi export type
+sudo cp exporters.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/formats/exporters.py
+sudo cp files.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/trans/views/files.py
+sudo cp utils/views.py /opt/weblate/weblate-env/lib/python3.12/site-packages/weblate/utils/views.py
 sudo chown -R weblate:weblate /opt/weblate
 
 

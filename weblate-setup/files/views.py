@@ -1751,6 +1751,7 @@ class TranslationViewSet(MultipleFieldViewSet, DestroyModelMixin):
                 raise PermissionDenied
             fmt = self.format_kwarg or request.query_params.get("format")
             query_string = request.GET.get("q", "")
+            fields = request.GET.get("fields", "")
             if query_string and not fmt:
                 raise ValidationError({"q": "Query string is ignored without format"})
             try:
@@ -1760,7 +1761,7 @@ class TranslationViewSet(MultipleFieldViewSet, DestroyModelMixin):
                     {"q": f"Could not parse query string: {error}"}
                 ) from error
             try:
-                return download_translation_file(request, obj, fmt, query_string)
+                return download_translation_file(request, obj, fmt, query_string, fields)
             except Http404 as error:
                 raise ValidationError({"format": str(error)}) from error
 
