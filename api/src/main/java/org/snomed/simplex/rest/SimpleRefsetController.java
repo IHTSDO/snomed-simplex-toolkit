@@ -15,6 +15,7 @@ import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.RefsetToolSubsetReader;
 import org.snomed.simplex.service.SimpleRefsetService;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.service.job.ContentJob;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -67,8 +68,10 @@ public class SimpleRefsetController extends AbstractRefsetController<RefsetMembe
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.SUBSET, ActivityType.UPDATE);
-		return jobService.queueContentJob(theCodeSystem, "Subset upload (Refset Tool)", file.getInputStream(), file.getOriginalFilename(), refsetId,
-				activity, asyncJob -> getRefsetService().updateRefsetViaCustomFile(asyncJob, new RefsetToolSubsetReader(asyncJob.getInputStream())));
+		ContentJob contentJob = new ContentJob(theCodeSystem, "Subset upload (Refset Tool)", refsetId)
+			.addUpload(file.getInputStream(), file.getOriginalFilename());
+		return jobService.queueContentJob(contentJob, refsetId, activity,
+			asyncJob -> getRefsetService().updateRefsetViaCustomFile(asyncJob, new RefsetToolSubsetReader(asyncJob.getInputStream())));
 	}
 
 	@Override

@@ -4,11 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.ProgressMonitor;
+import org.springframework.util.StreamUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.*;
 
 public class ContentJob extends AsyncJob implements ProgressMonitor {
 
@@ -21,6 +19,16 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 	public ContentJob(CodeSystem codeSystem, String display, String refsetId) {
 		super(codeSystem, display);
 		this.refsetId = refsetId;
+	}
+
+	public ContentJob addUpload(InputStream inputStream, String originalFilename) throws IOException {
+		File tempFile = File.createTempFile("user-temp-file_" + getId(), "txt");
+		try (FileOutputStream out = new FileOutputStream(tempFile)) {
+			StreamUtils.copy(inputStream, out);
+		}
+		setInputFileCopy(tempFile);
+		this.inputFileOriginalName = originalFilename;
+		return this;
 	}
 
 	@Override

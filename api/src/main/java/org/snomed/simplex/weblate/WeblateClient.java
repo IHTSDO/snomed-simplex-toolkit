@@ -13,13 +13,18 @@ import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequest;
 import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequestPlural;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -387,6 +392,26 @@ public class WeblateClient {
 				logger.debug("Background label deletion failed for project {} label {}: {}", project, label, e.getMessage());
 			}
 		});
+	}
+
+	public File downloadTranslationSubset(WeblateTranslationSet translationSet) throws IOException {
+		String languageCodeWithRefsetId = translationSet.getLanguageCodeWithRefsetId();
+		String compositeLabel = translationSet.getCompositeLabel();
+
+		String url = "/translations/%s/%s/%s/file/?format=csv-multi&q=label:%s+AND+state:>=translated&fields=context,target"
+			.formatted(COMMON_PROJECT, SNOMEDCT_COMPONENT, languageCodeWithRefsetId, compositeLabel);
+
+		ResponseEntity<Resource> response = restTemplate.getForEntity(url, Resource.class);
+
+		File tempFile = File.createTempFile("translation_%s".formatted(compositeLabel), ".csv");
+		Resource body = response.getBody();
+		if (body != null) {
+			try (FileOutputStream outputStream = new FileOutputStream(tempFile);
+				 InputStream inputStream = body.getInputStream()) {
+				StreamUtils.copy(inputStream, outputStream);
+			}
+		}
+		return tempFile;
 	}
 
 	protected RestTemplate getRestTemplate() {

@@ -12,6 +12,7 @@ import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.ContentProcessingJobService;
+import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.weblate.WeblateService;
 import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
@@ -48,7 +49,8 @@ public class WeblateManagementController {
 	public void refreshSharedSet(@PathVariable String slug, @RequestParam(required = false, defaultValue = "1") int startPage) throws ServiceException, IOException {
 		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
 		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.TRANSLATION_SET_CREATE);
-		jobService.queueContentJob(rootCodeSystem, "Update shared set %s".formatted(slug), null, null, null, activity,
+		ContentJob contentJob = new ContentJob(rootCodeSystem, "Update shared set %s".formatted(slug), null);
+		jobService.queueContentJob(contentJob, null, activity,
 				asyncJob -> weblateService.updateSharedSet(slug, startPage));
 	}
 

@@ -19,6 +19,7 @@ import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.RefsetUpdateService;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.service.job.ContentJob;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -83,7 +84,9 @@ public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 
 		try (InputStream inputStream = file.getInputStream()) {
 			Activity activity = new Activity(SecurityUtil.getUsername(), codeSystem, getComponentType(), ActivityType.UPDATE);
-			return jobService.queueContentJob(theCodeSystem, getSpreadsheetUploadJobName(), inputStream, file.getOriginalFilename(), refsetId, activity,
+			ContentJob contentJob = new ContentJob(theCodeSystem, getSpreadsheetUploadJobName(), refsetId)
+				.addUpload(inputStream, file.getOriginalFilename());
+			return jobService.queueContentJob(contentJob, refsetId, activity,
 					asyncJob -> getRefsetService().updateRefsetViaSpreadsheet(asyncJob));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Failed to open uploaded file.");

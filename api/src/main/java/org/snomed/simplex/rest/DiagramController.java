@@ -11,6 +11,7 @@ import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.weblate.WeblateClient;
 import org.snomed.simplex.weblate.WeblateDiagramService;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -55,11 +56,9 @@ public class DiagramController {
 		String projectSlug = WeblateClient.COMMON_PROJECT;
 		String componentSlug = WeblateClient.SNOMEDCT_COMPONENT;
 
+		ContentJob contentJob = new ContentJob(theCodeSystem, "Update all diagrams for project " + projectSlug + " component " + componentSlug, null);
 		return jobService.queueContentJob(
-			theCodeSystem,
-			"Update all diagrams for project " + projectSlug + " component " + componentSlug,
-			null,
-			null,
+			contentJob,
 			null,
 			activity,
 			job -> {

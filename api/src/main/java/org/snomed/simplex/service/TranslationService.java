@@ -24,6 +24,7 @@ import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.weblate.WeblateExplanationCreator;
+import org.snomed.simplex.weblate.pojo.WeblateFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -429,7 +430,12 @@ public class TranslationService {
 			}
 			header = FileUtils.removeUTF8BOM(header);
 			header = header.replace("\"", "");
-			if (!header.equals("source,target,context,developer_comments")) {
+			WeblateFormat weblateFormat;
+			if (header.equals("source,target,context,developer_comments")) {
+				weblateFormat = WeblateFormat.STANDARD;
+			} else if (header.equals("context,target")) {
+				weblateFormat = WeblateFormat.MINIMUM;
+			} else {
 				throw new ServiceException(format("Unrecognised CSV header '%s'", header));
 			}
 
@@ -439,22 +445,33 @@ public class TranslationService {
 			Set<Long> conceptsCovered = new LongOpenHashSet();
 			while ((line = reader.readLine()) != null) {
 				lineNumber++;
-				String[] columns = line.split("\",\"");
-				String translatedTerm;
-				String conceptString;
-				if (columns.length == 4) {
-					if (columns[2].isBlank() && columns[3].equals("\"")) {
-						// Strange case - weblate exports synonyms as "concept id", "term"
-						translatedTerm = columns[1];
-						conceptString = columns[0];
-					} else {
-						// source	target	context	developer_comments
-						// 0		1		2		3
-						translatedTerm = columns[1];
-						conceptString = columns[2];
+				String conceptString = null;
+				String translatedTerm = null;
+				if (weblateFormat == WeblateFormat.STANDARD) {
+					String[] columns = line.split("\",\"");
+					if (columns.length == 4) {
+						if (columns[2].isBlank() && columns[3].equals("\"")) {
+							// Strange case - weblate exports synonyms as "concept id", "term"
+							translatedTerm = columns[1];
+							conceptString = columns[0];
+						} else {
+							// source	target	context	developer_comments
+							// 0		1		2		3
+							translatedTerm = columns[1];
+							conceptString = columns[2];
+						}
 					}
 				} else {
-					logger.warn("Line {} has less than 4 columns, skipping: {}", lineNumber, columns);
+					String[] columns = line.split(",", 2);
+					if (columns.length == 2) {
+						// context	target
+						// 0		1
+						conceptString = columns[0];
+						translatedTerm = columns[1];
+					}
+				}
+				if (conceptString == null) {
+					logger.warn("Line {} has the wrong number of columns, skipping: '{}'", lineNumber, line);
 					continue;
 				}
 				translatedTerm = translatedTerm.replace("\"", "");

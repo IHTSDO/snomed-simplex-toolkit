@@ -40,32 +40,20 @@ public class ContentProcessingJobService {
 		this.activityService = activityService;
 	}
 
-	public AsyncJob queueContentJob(CodeSystem codeSystem, String display, InputStream jobInputStream, String originalFilename, String refsetId,
-			Activity activity, AsyncFunction<ContentJob> function) throws IOException {
-
+	public AsyncJob queueContentJob(ContentJob contentJob, String refsetId, Activity activity, AsyncFunction<ContentJob> function) {
 		activity.setComponentId(refsetId);
-		ContentJob asyncJob = new ContentJob(codeSystem, display, refsetId);
-		File tempFile = null;
-		if (jobInputStream != null) {
-			tempFile = File.createTempFile("user-temp-file_" + asyncJob.getId(), "txt");
-			try (FileOutputStream out = new FileOutputStream(tempFile)) {
-				StreamUtils.copy(jobInputStream, out);
-			}
-			asyncJob.setInputFileCopy(tempFile);
-			asyncJob.setInputFileOriginalName(originalFilename);
-		}
-
-		final File tempFileFinal = tempFile;
-		return doQueueJob(codeSystem, function, asyncJob, activity, () -> {
+		final File tempFileFinal = contentJob.getInputFileCopy();
+		return doQueueJob(contentJob, activity, function, () -> {
 			if (tempFileFinal != null && !tempFileFinal.delete()) {
 				logger.info("Failed to delete temp file {}", tempFileFinal.getAbsoluteFile());
 			}
 		});
 	}
 
-	private ContentJob doQueueJob(CodeSystem codeSystem, AsyncFunction<ContentJob> function, ContentJob asyncJob, Activity activity,
-			Runnable onCompleteRunnable) {
+	private ContentJob doQueueJob(ContentJob asyncJob, Activity activity, AsyncFunction<ContentJob> function,
+		Runnable onCompleteRunnable) {
 
+		CodeSystem codeSystem = asyncJob.getCodeSystemObject();
 		// Add job to thread limited executor service to be run when there is capacity
 		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
 

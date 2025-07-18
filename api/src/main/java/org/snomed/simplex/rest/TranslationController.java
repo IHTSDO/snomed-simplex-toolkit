@@ -22,6 +22,7 @@ import org.snomed.simplex.service.TranslationService;
 import org.snomed.simplex.service.external.WeblateLanguageInitialisationJobService;
 import org.snomed.simplex.service.external.WeblateLanguageInitialisationRequest;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.service.job.JobType;
 import org.snomed.simplex.weblate.WeblateSetService;
 import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
@@ -37,7 +38,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @Tag(name = "Translation", description = "-")
@@ -157,8 +157,14 @@ public class TranslationController {
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/pull-content")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob pullWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) {
-		return DUMMY_COMPLETE;
+	public AsyncJob pullWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
+		final ContentJob weblatePull = new ContentJob(theCodeSystem, "Weblate pull", refsetId);
+		return jobService.queueContentJob(weblatePull, refsetId, activity,
+			job -> weblateSetService.pullTranslationSubset(weblatePull, label));
 	}
 
 	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")
@@ -167,12 +173,8 @@ public class TranslationController {
 				"The set will be deleted from the system over the next few minutes. Sets with a status of DELETING should be hidden from the user.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void deleteWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
-		List<WeblateTranslationSet> list = weblateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
-		Optional<WeblateTranslationSet> first = list.stream().filter(set -> set.getLabel().equals(label)).findFirst();
-		if (first.isEmpty()) {
-			throw new ServiceExceptionWithStatusCode("Translation set not found.", HttpStatus.NOT_FOUND);
-		}
-		weblateSetService.deleteSet(first.get());
+		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		weblateSetService.deleteSet(translationSet);
 	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
@@ -184,8 +186,10 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
-		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
-				activity, asyncJob -> translationService.uploadTranslationAsWeblateCSV(translationTermsUseTitleCase, asyncJob));
+		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation upload", refsetId)
+			.addUpload(file.getInputStream(), file.getOriginalFilename());
+		return jobService.queueContentJob(contentJob, refsetId, activity,
+			asyncJob -> translationService.uploadTranslationAsWeblateCSV(translationTermsUseTitleCase, asyncJob));
 	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")
@@ -197,8 +201,10 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
-		return jobService.queueContentJob(theCodeSystem, "Translation upload", file.getInputStream(), file.getOriginalFilename(), refsetId,
-				activity, job -> translationService.uploadTranslationAsRefsetToolArchive(job, ignoreCaseInImport));
+		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation upload", refsetId)
+			.addUpload(file.getInputStream(), file.getOriginalFilename());
+		return jobService.queueContentJob(contentJob, refsetId, activity,
+			job -> translationService.uploadTranslationAsRefsetToolArchive(job, ignoreCaseInImport));
 	}
 
 	@GetMapping(path = "language-codes")

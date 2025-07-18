@@ -10,6 +10,10 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.service.SupportRegister;
+import org.snomed.simplex.service.TranslationService;
+import org.snomed.simplex.service.job.ChangeSummary;
+import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.weblate.domain.TranslationSetStatus;
 import org.snomed.simplex.weblate.domain.WeblateLabel;
@@ -22,6 +26,9 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 
 @Service
@@ -36,6 +43,7 @@ public class WeblateSetService {
 	private final WeblateSetRepository weblateSetRepository;
 	private final WeblateClientFactory weblateClientFactory;
 	private final SnowstormClientFactory snowstormClientFactory;
+	private final TranslationService translationService;
 	private final SupportRegister supportRegister;
 
 	private final JmsTemplate jmsTemplate;
@@ -46,12 +54,13 @@ public class WeblateSetService {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public WeblateSetService(WeblateSetRepository weblateSetRepository, WeblateClientFactory weblateClientFactory, SnowstormClientFactory snowstormClientFactory, SupportRegister supportRegister,
+	public WeblateSetService(WeblateSetRepository weblateSetRepository, WeblateClientFactory weblateClientFactory, SnowstormClientFactory snowstormClientFactory, TranslationService translationService, SupportRegister supportRegister,
 			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix, @Value("${weblate.label.batch-size}") int labelBatchSize) {
 
 		this.weblateSetRepository = weblateSetRepository;
 		this.weblateClientFactory = weblateClientFactory;
 		this.snowstormClientFactory = snowstormClientFactory;
+		this.translationService = translationService;
 		this.supportRegister = supportRegister;
 		this.jmsTemplate = jmsTemplate;
 		this.jmsQueuePrefix = jmsQueuePrefix;
@@ -67,6 +76,15 @@ public class WeblateSetService {
 	public List<WeblateTranslationSet> findByCodeSystemAndRefset(String codeSystem, String refsetId) throws ServiceExceptionWithStatusCode {
 		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystemAndRefset(codeSystem, refsetId);
 		return processTranslationSets(list);
+	}
+
+	public WeblateTranslationSet findSubsetOrThrow(String codeSystem, String refsetId, String label) throws ServiceExceptionWithStatusCode {
+		List<WeblateTranslationSet> list = findByCodeSystemAndRefset(codeSystem, refsetId);
+		Optional<WeblateTranslationSet> first = list.stream().filter(set -> set.getLabel().equals(label)).findFirst();
+		if (first.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("Translation set not found.", HttpStatus.NOT_FOUND);
+		}
+		return first.get();
 	}
 
 	private List<WeblateTranslationSet> processTranslationSets(List<WeblateTranslationSet> list) throws ServiceExceptionWithStatusCode {
@@ -192,6 +210,26 @@ public class WeblateSetService {
 			weblateSetRepository.save(translationSet);
 		} finally {
 			SecurityContextHolder.clearContext();
+		}
+	}
+
+	public ChangeSummary pullTranslationSubset(ContentJob contentJob, String label) throws ServiceException {
+		WeblateClient weblateClient = weblateClientFactory.getClient();
+		CodeSystem codeSystem = contentJob.getCodeSystemObject();
+		WeblateTranslationSet translationSet = findSubsetOrThrow(codeSystem.getShortName(), contentJob.getRefsetId(), label);
+		File subsetFile;
+		try {
+			subsetFile = weblateClient.downloadTranslationSubset(translationSet);
+		} catch (IOException e) {
+			throw new ServiceExceptionWithStatusCode("Failed to download translation file from Weblate.", HttpStatus.INTERNAL_SERVER_ERROR, e);
+		}
+		try (FileInputStream fileInputStream = new FileInputStream(subsetFile)) {
+			contentJob.addUpload(fileInputStream, "weblate-automatic-download.csv");
+			return translationService.uploadTranslationAsWeblateCSV(true, contentJob);
+		} catch (IOException e) {
+			throw new ServiceExceptionWithStatusCode("Translation upload step failed.", HttpStatus.INTERNAL_SERVER_ERROR, e);
+		} finally {
+			FileUtils.deleteOrLogWarning(subsetFile);
 		}
 	}
 
