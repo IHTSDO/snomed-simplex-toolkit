@@ -54,6 +54,16 @@ Make a note of the generated password.
 Login to Simplex with an account that has Weblate super-user status.
 Access the Weblate management page at URL /manage/. In the **SSH keys** page take the "Public RSA SSH key" and add that to the github repo with write access, using deploy keys section or other method.
 
+## Appearance Setup
+As an admin user navigate to the management appearance screen under /manage/appearance/.
+
+Change the following RGB colours:
+- Navigation color (Light) = 18 / 79 / 107
+- Focus color (Light) = 0 / 169 / 224
+- Hover color (Light) = 100 / 190 / 224
+
+Also select "Hide page footer".
+
 ---
 ## Weblate Upgrade
 Weblate upgrade will require code changes. The Weblate files in the `files` directory that have been modified in this repository need to be updated using the source git repo, but modifications need to be kept.

@@ -1,3 +1,12 @@
+
+.progress-bar-success {
+    background-color: rgb(100, 190, 224);
+}
+
+.chart-progress .progress-bar-success {
+    background-color: rgb(148, 238, 255);
+}
+
 .navbar-right {
     margin-right: 0;
     display: NONE;
@@ -40,7 +49,7 @@
     border: none;
 }
 .markdown table td:nth-child(3n), .markdown table th:nth-child(3n) {
-    padding-right: 0px;
+    padding-right: 0;
     border-right: none;
 }
 .markdown table td:nth-child(4n), .markdown table th:nth-child(4n) {

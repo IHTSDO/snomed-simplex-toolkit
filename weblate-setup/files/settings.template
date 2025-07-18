@@ -16,7 +16,7 @@ from weblate.api.spectacular import (
 )
 
 # Title of site to use
-SITE_TITLE = "Weblate"
+SITE_TITLE = "Snowlate"
 
 # Site domain
 SITE_DOMAIN = "${SITE_DOMAIN}"
