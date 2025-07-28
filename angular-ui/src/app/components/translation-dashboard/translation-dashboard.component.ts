@@ -34,15 +34,15 @@ export class TranslationDashboardComponent {
   selectedRefsetCode: string = '';
   selectedDerivativeCode: string = '';
   
-  // Loading state for refsets
-  loadingRefsets = false;
-  
   // Dynamic refsets loaded from server
   refsets: any[] = [];
+  loadingRefsets = false;
+  refsetsLoaded = false; // Cache flag for refsets
   
   // Dynamic derivatives loaded from server
   derivatives: any[] = [];
   loadingDerivatives = false;
+  derivativesLoaded = false; // Cache flag for derivatives
   
   form: FormGroup = this.fb.group({
     translation: ['', Validators.required],
@@ -298,6 +298,9 @@ export class TranslationDashboardComponent {
       this.eclInputMethod = 'manual';
       this.selectedRefsetCode = '';
       this.selectedDerivativeCode = '';
+      // Reset cache flags to allow fresh data loading
+      this.refsetsLoaded = false;
+      this.derivativesLoaded = false;
     }
   }
 
@@ -346,13 +349,13 @@ export class TranslationDashboardComponent {
     this.selectedRefsetCode = '';
     this.selectedDerivativeCode = '';
     
-    // Load refsets from server when refset option is selected
-    if (this.eclInputMethod === 'refset') {
+    // Load refsets from server when refset option is selected (only if not already loaded)
+    if (this.eclInputMethod === 'refset' && !this.refsetsLoaded) {
       this.loadRefsetsFromServer();
     }
     
-    // Load derivatives from server when derivative option is selected
-    if (this.eclInputMethod === 'derivative') {
+    // Load derivatives from server when derivative option is selected (only if not already loaded)
+    if (this.eclInputMethod === 'derivative' && !this.derivativesLoaded) {
       this.loadDerivativesFromServer();
     }
   }
@@ -478,6 +481,7 @@ export class TranslationDashboardComponent {
           this.derivatives = [];
         }
         this.loadingDerivatives = false;
+        this.derivativesLoaded = true; // Mark as loaded for caching
       },
       (error) => {
         console.error('Error loading derivatives:', error);
@@ -528,6 +532,7 @@ export class TranslationDashboardComponent {
           this.refsets = [];
         }
         this.loadingRefsets = false;
+        this.refsetsLoaded = true; // Mark as loaded for caching
       },
       (error) => {
         console.error('Error loading refsets:', error);
