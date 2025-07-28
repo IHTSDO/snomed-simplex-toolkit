@@ -369,4 +369,46 @@ export class TranslationDashboardComponent {
       );
     }
   }
+
+  pullFromWeblate() {
+    if (!this.selectedLabelSet) {
+      this.snackBar.open('No translation set selected', 'Dismiss', {
+        duration: 5000
+      });
+      return;
+    }
+
+    const label = this.selectedLabelSet.label;
+    const translationId = this.selectedLabelSet.translationId;
+    
+    if (!label) {
+      this.snackBar.open('No label found for this translation set', 'Dismiss', {
+        duration: 5000
+      });
+      return;
+    }
+
+    // Show confirmation dialog
+    if (confirm(`Are you sure you want to pull content from Weblate for "${this.selectedLabelSet.name}"?`)) {
+      this.simplexService.pullFromWeblate(
+        this.selectedEdition.shortName,
+        translationId,
+        label
+      ).subscribe(
+        () => {
+          this.snackBar.open('Task is scheduled', 'Dismiss', {
+            duration: 5000
+          });
+          // Reload the translation set to show updated data
+          this.getLabelSetMembers(this.selectedLabelSet);
+        },
+        (error) => {
+          console.error(error);
+          this.snackBar.open('Failed to pull content from Weblate', 'Dismiss', {
+            duration: 5000
+          });
+        }
+      );
+    }
+  }
 }

@@ -61,57 +61,52 @@
                         Open Translation Set in Weblate
                     </button>
                 </div>
-                <div class="centered-component-row">
-                    <!-- Repeat this block for as many skeleton items as you want -->
-
-                    <div *ngIf="selectedLabelSet" class="centered-component-row large-text">
-                        <div>Name: {{ selectedLabelSet.name }}</div>
-                        <div>Translation: {{ selectedLabelSet.translationName }}</div>
-                        <div>Status: {{ selectedLabelSet.status }}</div>
+                <div>Name: {{ selectedLabelSet.name }}</div>
+                <div>Translation: {{ selectedLabelSet.translationName }}</div>
+                <div>Status: {{ selectedLabelSet.status }}</div>
+                <h3>Translation Set Members</h3>
+                <mat-list id="members-list" class="sk-width">
+                    <div *ngIf="loadingLabelSetMembers">
+                        <!-- Repeat this block for as many skeleton items as you want -->
+                        <div class="skeleton-loader">
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                            <!-- <div class="skeleton-button"></div> -->
+                        </div>
                     </div>
-                    <div class="centered-component-row">
-                        <h3>Translation Set Members</h3>
-                        <mat-list id="members-list" class="sk-width">
-                            <div *ngIf="loadingLabelSetMembers">
-                                <!-- Repeat this block for as many skeleton items as you want -->
-                                <div class="skeleton-loader">
-                                    <div class="skeleton-text"></div>
-                                    <div class="skeleton-text"></div>
-                                    <div class="skeleton-text"></div>
-                                    <div class="skeleton-text"></div>
-                                    <div class="skeleton-text"></div>
-                                    <div class="skeleton-text"></div>
-                                    <!-- <div class="skeleton-button"></div> -->
-                                </div>
-                            </div>
-                            <!-- Actual List Items -->
-                            <ng-container *ngIf="!loadingLabelSetMembers">
-                                <mat-list-item class="hoverable-item" matRipple *ngFor="let member of selectedLabelSetMembers">
-                                    {{ member.display }} - {{ member.code }} 
-                                </mat-list-item>
-                            </ng-container>
-                        </mat-list>
-                    </div>
-                    <div class="centered-button-container">
-                        <button mat-flat-button color="primary">
-                            Push to Weblate
-                        </button>
-                        <button mat-flat-button color="primary">
-                            Pull from Weblate
-                        </button>
-                        <button mat-flat-button color="primary">
-                            Assign Set to Users
-                        </button>
-                        <button mat-flat-button color="primary">
-                            Edit Set
-                        </button>
-                        <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting">
-                            <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
-                            <span *ngIf="!deleting">Delete Set</span>
-                            <span *ngIf="deleting">Deleting...</span>
-                        </button>
-                    </div>
-                </div>
+                    <!-- Actual List Items -->
+                    <ng-container *ngIf="!loadingLabelSetMembers">
+                        <mat-list-item class="hoverable-item" matRipple *ngFor="let member of selectedLabelSetMembers">
+                            {{ member.display }} - {{ member.code }} 
+                        </mat-list-item>
+                    </ng-container>
+                </mat-list>
+            <div class="centered-button-container">
+                <button mat-flat-button color="primary">
+                    Pull from Weblate
+                </button>
+                <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting">
+                    <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+                    <span *ngIf="!deleting">Delete Set</span>
+                    <span *ngIf="deleting">Deleting...</span>
+                </button>
+            </div>
+            <div class="centered-button-container">
+                <h4>Not implemented:</h4>
+                <button mat-flat-button color="primary" disabled>
+                    Push to Weblate
+                </button>
+                <button mat-flat-button color="primary" disabled>
+                    Assign Set to Users
+                </button>
+                <button mat-flat-button color="primary" disabled>
+                    Edit Set
+                </button>
+            </div>
             </div>
         </div>
         <div class="component-col-right" *ngIf="mode == 'create'">
