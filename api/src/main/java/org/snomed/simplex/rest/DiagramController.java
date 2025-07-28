@@ -17,7 +17,6 @@ import org.snomed.simplex.weblate.WeblateDiagramService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.Map;
 
 @RestController
@@ -49,7 +48,7 @@ public class DiagramController {
 	@PostMapping("diagrams/update-all")
 	@Operation(summary = "Update diagrams for all concepts in a Weblate component")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public AsyncJob updateAllDiagrams(@RequestParam(required = false) String lastCompletedConcept) throws ServiceException, IOException {
+	public AsyncJob updateAllDiagrams(@RequestParam(required = false) String lastCompletedConcept) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
 		Activity activity = new Activity(SnowstormClient.ROOT_CODESYSTEM, ComponentType.CUSTOM_CONCEPTS, ActivityType.UPDATE);

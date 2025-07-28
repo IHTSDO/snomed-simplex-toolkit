@@ -20,7 +20,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.UUID;
 
 @RestController
@@ -46,7 +47,7 @@ public class WeblateManagementController {
 
 	@PostMapping("shared-components/{slug}/refresh")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void refreshSharedSet(@PathVariable String slug, @RequestParam(required = false, defaultValue = "1") int startPage) throws ServiceException, IOException {
+	public void refreshSharedSet(@PathVariable String slug, @RequestParam(required = false, defaultValue = "1") int startPage) throws ServiceException {
 		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
 		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.TRANSLATION_SET_CREATE);
 		ContentJob contentJob = new ContentJob(rootCodeSystem, "Update shared set %s".formatted(slug), null);
