@@ -4,6 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom, Subscription } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
+import { TerminologyService } from 'src/app/services/simplex/terminology.service';
 
 @Component({
   selector: 'app-translation-dashboard',
@@ -28,6 +29,21 @@ export class TranslationDashboardComponent {
   private pollingInterval: any;
   private isPolling = false;
   
+  // ECL input method properties
+  eclInputMethod: 'manual' | 'refset' | 'derivative' = 'manual';
+  selectedRefsetCode: string = '';
+  selectedDerivativeCode: string = '';
+  
+  // Loading state for refsets
+  loadingRefsets = false;
+  
+  // Dynamic refsets loaded from server
+  refsets: any[] = [];
+  
+  // Dynamic derivatives loaded from server
+  derivatives: any[] = [];
+  loadingDerivatives = false;
+  
   form: FormGroup = this.fb.group({
     translation: ['', Validators.required],
     name: ['', Validators.required],
@@ -40,7 +56,8 @@ export class TranslationDashboardComponent {
                 private simplexService: SimplexService,
                 private snackBar: MatSnackBar,
                 private uiConfigurationService: UiConfigurationService,
-                private changeDetectorRef: ChangeDetectorRef) {}
+                private changeDetectorRef: ChangeDetectorRef,
+                private terminologyService: TerminologyService) {}
 
   ngOnInit(): void {
     const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
@@ -277,6 +294,10 @@ export class TranslationDashboardComponent {
     if (mode === 'create') {
       // Reset the form when entering create mode
       this.form.reset();
+      // Reset ECL input method properties
+      this.eclInputMethod = 'manual';
+      this.selectedRefsetCode = '';
+      this.selectedDerivativeCode = '';
     }
   }
 
@@ -316,6 +337,49 @@ export class TranslationDashboardComponent {
       
       // Load translation sets for the selected translation
       this.getTranslationSets();
+    }
+  }
+
+  onEclInputMethodChange() {
+    // Clear the ECL field and selected refset/derivative when switching input methods
+    this.form.patchValue({ ecl: '' });
+    this.selectedRefsetCode = '';
+    this.selectedDerivativeCode = '';
+    
+    // Load refsets from server when refset option is selected
+    if (this.eclInputMethod === 'refset') {
+      this.loadRefsetsFromServer();
+    }
+    
+    // Load derivatives from server when derivative option is selected
+    if (this.eclInputMethod === 'derivative') {
+      this.loadDerivativesFromServer();
+    }
+  }
+
+  onRefsetSelectionChange(refsetCode: string) {
+    // Set the selected refset code for the dropdown display
+    this.selectedRefsetCode = refsetCode;
+    
+    // Find the selected refset to get its display name
+    const selectedRefset = this.refsets.find(refset => refset.code === refsetCode);
+    if (selectedRefset) {
+      // Format ECL as: ^ refsetCode |refset display|
+      const eclValue = `^ ${selectedRefset.code} |${selectedRefset.display}|`;
+      this.form.patchValue({ ecl: eclValue });
+    }
+  }
+
+  onDerivativeSelectionChange(derivativeCode: string) {
+    // Set the selected derivative code for the dropdown display
+    this.selectedDerivativeCode = derivativeCode;
+    
+    // Find the selected derivative to get its display name
+    const selectedDerivative = this.derivatives.find(derivative => derivative.code === derivativeCode);
+    if (selectedDerivative) {
+      // Format ECL as: ^ derivativeCode |derivative display|
+      const eclValue = `^ ${selectedDerivative.code} |${selectedDerivative.display}|`;
+      this.form.patchValue({ ecl: eclValue });
     }
   }
 
@@ -368,6 +432,112 @@ export class TranslationDashboardComponent {
         }
       );
     }
+  }
+
+  /**
+   * Loads refsets array from a specific ECL with moduleId replacement
+   * @param moduleId The module ID to replace in the ECL
+   * @param fhirBase Optional FHIR base URL (defaults to /snowstorm/snomed-ct/fhir)
+   * @param fhirUrl Optional FHIR URL parameter
+   * @param offset Optional offset for pagination
+   * @param count Optional count for pagination
+   * @returns Observable with the refsets array
+   */
+  loadRefsetsArray(moduleId: string, fhirBase?: string, fhirUrl?: string, offset?: number, count?: number) {
+    const baseEcl = `(< 446609009 |Simple type reference set (foundation metadata concept)| OR < 900000000000496009 |Simple map from SNOMED CT type reference set (foundation metadata concept)| OR < 1187636009 |Simple map to SNOMED CT type reference set (foundation metadata concept)| OR < 1193543008 |Simple map with correlation to SNOMED CT type reference set (foundation metadata concept)|) {{ C moduleId = ${moduleId} }}`;
+    
+    // Use the specified FHIR base or default to /snowstorm/snomed-ct/fhir
+    const serverUrl = fhirBase || '/snowstorm/snomed-ct/fhir';
+    
+    return this.terminologyService.expandValueSetFromServer(serverUrl, fhirUrl, baseEcl, '', offset, count);
+  }
+
+  /**
+   * Loads derivatives from the server using the fixed URL
+   */
+  loadDerivativesFromServer() {
+    this.loadingDerivatives = true;
+    
+    this.terminologyService.getDerivativesFromServer().subscribe(
+      (response) => {
+        if (response?.referenceSets) {
+          // Transform the response to match the expected derivatives format
+          this.derivatives = Object.values(response.referenceSets).map((refset: any) => ({
+            editionUri: 'http://snomed.info/sct/705115006', // Keep the same edition URI for consistency
+            code: refset.conceptId,
+            display: refset.pt?.term || refset.fsn?.term || `Derivative ${refset.conceptId}`,
+            fsn: refset.fsn?.term,
+            active: refset.active,
+            definitionStatus: refset.definitionStatus,
+            moduleId: refset.moduleId,
+            effectiveTime: refset.effectiveTime,
+            memberCount: response.memberCountsByReferenceSet?.[refset.conceptId] || 0
+          }));
+        } else {
+          console.warn('No derivatives found in response:', response);
+          this.derivatives = [];
+        }
+        this.loadingDerivatives = false;
+      },
+      (error) => {
+        console.error('Error loading derivatives:', error);
+        this.snackBar.open('Failed to load derivatives from server', 'Dismiss', {
+          duration: 5000
+        });
+        this.loadingDerivatives = false;
+        // Keep empty array as fallback
+        this.derivatives = [];
+      }
+    );
+  }
+
+  /**
+   * Loads refsets from the server using the selected edition's module ID
+   */
+  loadRefsetsFromServer() {
+    if (!this.selectedEdition?.defaultModule) {
+      console.warn('No default module available for loading refsets');
+      return;
+    }
+
+    this.loadingRefsets = true;
+    
+    // Use the default module directly
+    const moduleId = this.selectedEdition.defaultModule;
+    console.log('Using defaultModule:', moduleId);
+    
+    // Use the branch path directly from the selected edition
+    const branchPath = this.selectedEdition.branchPath;
+    console.log('Using branchPath:', branchPath);
+    
+    this.terminologyService.getRefsetsFromNativeApi(branchPath, moduleId).subscribe(
+      (response) => {
+        if (response?.items && response.items.length > 0) {
+          // Transform the response to match the expected refsets format
+          this.refsets = response.items.map((item: any) => ({
+            code: item.conceptId,
+            display: item.pt?.term || item.fsn?.term || `Refset ${item.conceptId}`,
+            fsn: item.fsn?.term,
+            active: item.active,
+            definitionStatus: item.definitionStatus,
+            moduleId: item.moduleId,
+            effectiveTime: item.effectiveTime
+          }));
+        } else {
+          console.warn('No refsets found in response:', response);
+          this.refsets = [];
+        }
+        this.loadingRefsets = false;
+      },
+      (error) => {
+        console.error('Error loading refsets:', error);
+        this.snackBar.open('Failed to load refsets from server', 'Dismiss', {
+          duration: 5000
+        });
+        this.loadingRefsets = false;
+        // Keep the hardcoded refsets as fallback
+      }
+    );
   }
 
   pullFromWeblate() {

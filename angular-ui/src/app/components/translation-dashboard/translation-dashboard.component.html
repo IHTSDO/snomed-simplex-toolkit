@@ -146,8 +146,18 @@
                     <mat-error *ngIf="form.get('label')?.hasError('required')">Label is required</mat-error>
                 </mat-form-field>
 
-                <!-- ECL Field -->
-                <mat-form-field>
+                <!-- ECL Input Method Selection -->
+                <div class="ecl-input-section">
+                    <h4>ECL Input Method</h4>
+                    <mat-radio-group [(ngModel)]="eclInputMethod" (change)="onEclInputMethodChange()" [ngModelOptions]="{standalone: true}">
+                        <mat-radio-button value="manual">Manual ECL Input</mat-radio-button>
+                        <mat-radio-button value="refset">Select from a Refset in this Extension</mat-radio-button>
+                        <mat-radio-button value="derivative">Select from a SNOMED CT Derivative</mat-radio-button>
+                    </mat-radio-group>
+                </div>
+
+                <!-- Manual ECL Field -->
+                <mat-form-field *ngIf="eclInputMethod === 'manual'">
                     <mat-label>ECL</mat-label>
                     <input matInput formControlName="ecl">
                     <button *ngIf="form.get('ecl')?.value" matSuffix 
@@ -155,6 +165,36 @@
                         <mat-icon>close</mat-icon>
                     </button>
                     <mat-error *ngIf="form.get('ecl')?.hasError('required')">ECL is required</mat-error>
+                </mat-form-field>
+
+                <!-- Refset Selection -->
+                <mat-form-field *ngIf="eclInputMethod === 'refset'">
+                    <mat-label>Select Refset</mat-label>
+                    <mat-select (selectionChange)="onRefsetSelectionChange($event.value)" [value]="selectedRefsetCode" [disabled]="loadingRefsets">
+                        <mat-option *ngFor="let refset of refsets" [value]="refset.code">
+                            {{ refset.display }} ({{ refset.code }})
+                        </mat-option>
+                        <mat-option *ngIf="!loadingRefsets && refsets.length === 0" disabled>
+                            No refsets available
+                        </mat-option>
+                    </mat-select>
+                    <mat-spinner *ngIf="loadingRefsets" matSuffix [diameter]="20"></mat-spinner>
+                    <mat-error *ngIf="form.get('ecl')?.hasError('required')">Refset selection is required</mat-error>
+                </mat-form-field>
+
+                <!-- Derivative Selection -->
+                <mat-form-field *ngIf="eclInputMethod === 'derivative'">
+                    <mat-label>Select Derivative</mat-label>
+                    <mat-select (selectionChange)="onDerivativeSelectionChange($event.value)" [value]="selectedDerivativeCode" [disabled]="loadingDerivatives">
+                        <mat-option *ngFor="let derivative of derivatives" [value]="derivative.code">
+                            {{ derivative.display }} ({{ derivative.code }}){{ derivative.memberCount ? ' - ' + derivative.memberCount + ' members' : '' }}
+                        </mat-option>
+                        <mat-option *ngIf="!loadingDerivatives && derivatives.length === 0" disabled>
+                            No derivatives available
+                        </mat-option>
+                    </mat-select>
+                    <mat-spinner *ngIf="loadingDerivatives" matSuffix [diameter]="20"></mat-spinner>
+                    <mat-error *ngIf="form.get('ecl')?.hasError('required')">Derivative selection is required</mat-error>
                 </mat-form-field>
 
                 <!-- Branch Path Field -->
