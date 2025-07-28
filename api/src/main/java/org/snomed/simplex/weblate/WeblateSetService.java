@@ -119,7 +119,7 @@ public class WeblateSetService {
 		ServiceHelper.requiredParameter("refset", refsetId);
 		ServiceHelper.requiredParameter("label", translationSet.getLabel());
 		ServiceHelper.requiredParameter("ecl", translationSet.getEcl());
-		ServiceHelper.requiredParameter("branchPath", translationSet.getBranchPath());
+		ServiceHelper.requiredParameter("branchPath", translationSet.getSelectionCodesystem());
 
 		Optional<WeblateTranslationSet> optional = weblateSetRepository.findByCodesystemAndLabelAndRefset(codesystemShortName, translationSet.getLabel(), refsetId);
 		if (optional.isPresent()) {
@@ -239,7 +239,7 @@ public class WeblateSetService {
 		translationSet.setStatus(TranslationSetStatus.PROCESSING);
 		weblateSetRepository.save(translationSet);
 
-		SnowstormClient.ConceptIdStream conceptIdStream = snowstormClient.getConceptIdStream(translationSet.getBranchPath(), translationSet.getEcl());
+		SnowstormClient.ConceptIdStream conceptIdStream = snowstormClient.getConceptIdStream(translationSet.getSelectionCodesystem(), translationSet.getEcl());
 
 		String code;
 		String compositeLabel = translationSet.getCompositeLabel();

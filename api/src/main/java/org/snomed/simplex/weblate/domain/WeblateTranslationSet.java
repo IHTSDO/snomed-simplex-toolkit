@@ -33,7 +33,10 @@ public final class WeblateTranslationSet {
 	private final String ecl;
 
 	@Field(type = FieldType.Text)
-	private final String branchPath;
+	private final TranslationSubsetType subsetType;
+
+	@Field(type = FieldType.Text)
+	private final String selectionCodesystem;
 
 	@Field(type = FieldType.Integer)
 	private int percentageProcessed;
@@ -43,13 +46,16 @@ public final class WeblateTranslationSet {
 	@Transient
 	private String weblateLabelUrl;
 
-	public WeblateTranslationSet(String codesystem, String refset, String name, String label, String ecl, String branchPath) {
+	public WeblateTranslationSet(String codesystem, String refset, String name, String label,
+		String ecl, TranslationSubsetType subsetType, String selectionCodesystem) {
+
 		this.codesystem = codesystem;
 		this.refset = refset;
 		this.name = name;
 		this.label = label;
 		this.ecl = ecl;
-		this.branchPath = branchPath;
+		this.subsetType = subsetType;
+		this.selectionCodesystem = selectionCodesystem;
 		this.percentageProcessed = 0;
 	}
 
@@ -101,8 +107,12 @@ public final class WeblateTranslationSet {
 		return ecl;
 	}
 
-	public String getBranchPath() {
-		return branchPath;
+	public TranslationSubsetType getSubsetType() {
+		return subsetType;
+	}
+
+	public String getSelectionCodesystem() {
+		return selectionCodesystem;
 	}
 
 	public void setStatus(TranslationSetStatus status) {

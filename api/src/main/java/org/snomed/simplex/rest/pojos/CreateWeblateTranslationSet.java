@@ -1,11 +1,14 @@
 package org.snomed.simplex.rest.pojos;
 
+import org.snomed.simplex.weblate.domain.TranslationSubsetType;
+
 public class CreateWeblateTranslationSet {
 
 	private String name;
 	private String label;
 	private String ecl;
-	private String branchPath;
+	private TranslationSubsetType subsetType;
+	private String selectionCodesystem;
 
 	public String getName() {
 		return name;
@@ -31,11 +34,20 @@ public class CreateWeblateTranslationSet {
 		this.ecl = ecl;
 	}
 
-	public String getBranchPath() {
-		return branchPath;
+	public TranslationSubsetType getSubsetType() {
+		return subsetType;
 	}
 
-	public void setBranchPath(String branchPath) {
-		this.branchPath = branchPath;
+	public void setSubsetType(TranslationSubsetType subsetType) {
+		this.subsetType = subsetType;
 	}
+
+	public String getSelectionCodesystem() {
+		return selectionCodesystem;
+	}
+
+	public void setSelectionCodesystem(String selectionCodesystem) {
+		this.selectionCodesystem = selectionCodesystem;
+	}
+
 }

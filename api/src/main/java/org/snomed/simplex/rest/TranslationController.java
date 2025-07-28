@@ -150,7 +150,8 @@ public class TranslationController {
 			throw new ServiceExceptionWithStatusCode("Label parameter must contain only lowercase letters, numbers, hyphens, and underscores.", HttpStatus.BAD_REQUEST);
 		}
 
-		WeblateTranslationSet set = new WeblateTranslationSet(codeSystem, refsetId, createRequest.getName(), label, createRequest.getEcl(), createRequest.getBranchPath());
+		WeblateTranslationSet set = new WeblateTranslationSet(codeSystem, refsetId, createRequest.getName(), label,
+			createRequest.getEcl(), createRequest.getSubsetType(), createRequest.getSelectionCodesystem());
 
 		return weblateSetService.createSet(set);
 	}
