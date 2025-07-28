@@ -135,11 +135,20 @@ export class TranslationDashboardComponent {
       // Include the disabled label field value in the form data
       formData.label = this.form.get('label')?.value;
       
-      // Create the translation set using the form data
+      // Map form data to new API format
+      const apiPayload = {
+        name: formData.name,
+        label: formData.label,
+        ecl: formData.ecl,
+        subsetType: this.determineSubsetType(),
+        selectionCodesystem: this.determineSelectionCodesystem()
+      };
+      
+      // Create the translation set using the new API format
       this.simplexService.createTranslationSet(
         this.selectedEdition.shortName,
         formData.translation, // This is now the translation ID
-        formData
+        apiPayload
       ).subscribe(
         () => {
           this.snackBar.open('Translation set created successfully', 'Dismiss', {
@@ -453,6 +462,43 @@ export class TranslationDashboardComponent {
     const serverUrl = fhirBase || '/snowstorm/snomed-ct/fhir';
     
     return this.terminologyService.expandValueSetFromServer(serverUrl, fhirUrl, baseEcl, '', offset, count);
+  }
+
+  /**
+   * Determines the subset type based on the ECL input method
+   * @returns 'ECL', 'REFSET', or 'SUB_TYPE' (though SUB_TYPE is not yet implemented)
+   */
+  private determineSubsetType(): string {
+    switch (this.eclInputMethod) {
+      case 'manual':
+        return 'ECL';
+      case 'refset':
+        return 'REFSET';
+      case 'derivative':
+        return 'REFSET'; // Derivatives are also reference sets
+      default:
+        return 'ECL';
+    }
+  }
+
+  /**
+   * Determines the selection codesystem based on the ECL input method and selected items
+   * @returns The codesystem identifier
+   */
+  private determineSelectionCodesystem(): string {
+    switch (this.eclInputMethod) {
+      case 'manual':
+        // For manual ECL, use the edition's shortName
+        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
+      case 'refset':
+        // For refsets, use the edition's shortName
+        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
+      case 'derivative':
+        // For derivatives, use the hardcoded SNOMEDCT-DERIVATIVES
+        return 'SNOMEDCT-DERIVATIVES';
+      default:
+        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
+    }
   }
 
   /**
