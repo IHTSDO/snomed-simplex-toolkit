@@ -7,16 +7,16 @@
                   <span class="nav-item-name">Artifacts</span>
                 </span>
               </mat-list-item>
-              <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'manage'}" (click)="navigateTo('manage')">
-                <span class="nav-item">
-                  <mat-icon mat-list-icon>settings</mat-icon>
-                  <span class="nav-item-name">Manage Edition</span>
-                </span>
-              </mat-list-item>
               <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'translation-dashboard'}" (click)="navigateTo('translation-dashboard')">
                 <span class="nav-item">
                   <mat-icon mat-list-icon>translate</mat-icon>
                   <span class="nav-item-name">Translation Dashboard</span>
+                </span>
+              </mat-list-item>
+              <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'manage'}" (click)="navigateTo('manage')">
+                <span class="nav-item">
+                  <mat-icon mat-list-icon>settings</mat-icon>
+                  <span class="nav-item-name">Manage Edition</span>
                 </span>
               </mat-list-item>
               <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'releases'}" (click)="navigateTo('releases')">
