@@ -211,7 +211,7 @@
                     </div>
                     <app-autocomplete-binding
                         *ngIf="selectedEdition?.branchPath"
-                        [binding]="{ecl: '*', branchPath: selectedEdition.branchPath}"
+                        [binding]="{ecl: '<< 138875005', branchPath: selectedEdition.branchPath}"
                         [term]="selectedSubtype?.display || ''"
                         (selectionChange)="onSubtypeSelectionChange($event)">
                     </app-autocomplete-binding>
