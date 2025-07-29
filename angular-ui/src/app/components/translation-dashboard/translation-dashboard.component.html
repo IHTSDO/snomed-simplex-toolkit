@@ -58,12 +58,13 @@
                 <div>
                     <button mat-flat-button color="primary" *ngIf="selectedLabelSet.status === 'READY'"
                             (click)="openWeblateUrl(selectedLabelSet.weblateLabelUrl)">
-                        Open Translation Set in Weblate
+                        Open Set in Weblate
                     </button>
                 </div>
-                <div>Name: {{ selectedLabelSet.name }}</div>
+                <br><br>
                 <div>Translation: {{ selectedLabelSet.translationName }}</div>
                 <div>Status: {{ selectedLabelSet.status }}</div>
+                <br><br>
                 <h3>Translation Set Members</h3>
                 <mat-list id="members-list" class="sk-width">
                     <div *ngIf="loadingLabelSetMembers">
@@ -87,7 +88,7 @@
                 </mat-list>
             <div class="centered-button-container">
                 <button mat-flat-button color="primary">
-                    Pull from Weblate
+                    Pull new translations from Weblate
                 </button>
                 <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting">
                     <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
@@ -113,20 +114,6 @@
             <h4>New Translation Set</h4>
             <br><br>
             <form [formGroup]="form" (keydown.enter)="$event.preventDefault(); submit()">
-                <!-- Translation Selection -->
-                <mat-form-field>
-                    <mat-label>Translation</mat-label>
-                    <mat-select formControlName="translation">
-                        <mat-option *ngFor="let translation of translations" 
-                                   [value]="translation.id"
-                                   [disabled]="!translation.isWeblate">
-                            {{translation.pt.term}}{{!translation.isWeblate ? ' (Not yet linked to Weblate)' : ''}}
-                        </mat-option>
-                    </mat-select>
-                    <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>
-                    <mat-error *ngIf="form.get('translation')?.hasError('required')">Translation is required</mat-error>
-                </mat-form-field>
-
                 <!-- Name Field -->
                 <mat-form-field>
                     <mat-label>Name</mat-label>
@@ -136,6 +123,20 @@
                         <mat-icon>close</mat-icon>
                     </button>
                     <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+                </mat-form-field>
+
+                <!-- Translation Selection -->
+                <mat-form-field>
+                    <mat-label>Translation</mat-label>
+                    <mat-select formControlName="translation">
+                        <mat-option *ngFor="let translation of translations" 
+                                   [value]="translation.id"
+                                   [disabled]="!translation.isWeblate">
+                            {{translation.pt.term}}{{!translation.isWeblate ? ' (Not linked to Weblate)' : ''}}
+                        </mat-option>
+                    </mat-select>
+                    <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>
+                    <mat-error *ngIf="form.get('translation')?.hasError('required')">Translation is required</mat-error>
                 </mat-form-field>
 
                 <!-- Label Field -->

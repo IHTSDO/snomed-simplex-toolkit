@@ -38,6 +38,7 @@
                     [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
                         {{ item.pt.term }} 
                         <span class="pill pill-blue">Translation</span>
+                        <span class="pill pill-green" *ngIf="item.isWeblate">Weblate Linked</span>
                         <span class="artifact-info">{{item.activeMemberCount}} records</span>
                     </mat-list-item>
                     <mat-list-item *ngFor="let item of maps" (click)="onClick(item, 'map')" class="hoverable-item" matRipple

@@ -9,7 +9,9 @@
                      [matTooltip]="getWeblateActivityErrorMessage()" 
                      class="error-icon">error</mat-icon>
         </h5>
-        <h5 *ngIf="isWeblateLinked()">Upload weblate content (linked to Weblate)</h5>
+        <h5 *ngIf="isWeblateLinked()">
+            <a href="javascript:void(0)" (click)="navigateToTranslationDashboard()">Use the Translation Dashboard</a>
+        </h5>
         
         <!-- Only show radio buttons if not Weblate linked -->
         <div class="row" *ngIf="!isWeblateLinked() && !shouldDisableEditing()">
@@ -18,10 +20,6 @@
                 {{ type.viewValue }}
               </mat-radio-button>
             </mat-radio-group>
-        </div>
-        <!-- If Weblate linked, always show the Weblate steps -->
-        <div *ngIf="isWeblateLinked()">
-            <ng-container *ngTemplateOutlet="weblateSteps"></ng-container>
         </div>
         <!-- If user selects Weblate Translation in a non-linked translation, show the steps -->
         <div *ngIf="selectedFileType == 'weblateTranslation' && !isWeblateLinked() && !shouldDisableEditing()">

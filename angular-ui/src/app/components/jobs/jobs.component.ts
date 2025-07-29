@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild, ElementRef } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import { ModalService } from '../../services/modal/modal.service';
 import { Subscription, catchError, lastValueFrom, of } from 'rxjs';
@@ -95,7 +96,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     private simplexService: SimplexService,
     private changeDetectorRef: ChangeDetectorRef,
     private snackBar: MatSnackBar,
-    private modalService: ModalService
+    private modalService: ModalService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -567,6 +569,14 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   shouldDisableEditing(): boolean {
     // Disable all editing options if there's a Weblate language initialization activity for this specific language
     return this.hasWeblateActivity || this.hasActiveRefsetChangeJob();
+  }
+
+  navigateToTranslationDashboard(): void {
+    if (this.edition) {
+      this.router.navigate(['/translation-dashboard', this.edition]);
+    } else {
+      this.router.navigate(['/translation-dashboard']);
+    }
   }
 
 }

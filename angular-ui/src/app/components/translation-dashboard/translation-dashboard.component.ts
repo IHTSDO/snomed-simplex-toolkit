@@ -151,7 +151,7 @@ export class TranslationDashboardComponent {
         apiPayload
       ).subscribe(
         () => {
-          this.snackBar.open('Translation set created successfully', 'Dismiss', {
+          this.snackBar.open('Translation set is being created', 'Dismiss', {
             duration: 5000
           });
           this.form.reset();
