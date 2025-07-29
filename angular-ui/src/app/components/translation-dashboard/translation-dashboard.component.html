@@ -196,17 +196,6 @@
                     <mat-spinner *ngIf="loadingDerivatives" matSuffix [diameter]="20"></mat-spinner>
                     <mat-error *ngIf="form.get('ecl')?.hasError('required')">Derivative selection is required</mat-error>
                 </mat-form-field>
-
-                <!-- Branch Path Field -->
-                <mat-form-field>
-                    <mat-label>Branch Path</mat-label>
-                    <input matInput formControlName="branchPath">
-                    <button *ngIf="form.get('branchPath')?.value" matSuffix 
-                        mat-icon-button aria-label="Clear" (click)="form.get('branchPath')?.setValue('')">
-                        <mat-icon>close</mat-icon>
-                    </button>
-                    <mat-error *ngIf="form.get('branchPath')?.hasError('required')">Branch Path is required</mat-error>
-                </mat-form-field>
             </form>
             <div>
                 <button mat-flat-button (click)="mode = 'view'" *ngIf="!saving">Cancel</button>

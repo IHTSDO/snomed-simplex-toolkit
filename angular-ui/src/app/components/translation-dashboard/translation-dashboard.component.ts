@@ -48,8 +48,7 @@ export class TranslationDashboardComponent {
     translation: ['', Validators.required],
     name: ['', Validators.required],
     label: [{value: '', disabled: true}, Validators.required],
-    ecl: ['', Validators.required],
-    branchPath: ['', Validators.required]
+    ecl: ['', Validators.required]
   });
 
   constructor(  private fb: FormBuilder,
