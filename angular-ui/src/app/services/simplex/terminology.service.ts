@@ -630,6 +630,41 @@ export class TerminologyService {
   }
 
   /**
+   * Runs an ECL query using Snowstorm's native API instead of the FHIR API
+   * @param branchPath The branch path for the edition
+   * @param ecl The ECL query to execute
+   * @param terms Optional search terms to filter results
+   * @param offset Optional offset for pagination
+   * @param limit Optional limit for pagination
+   * @returns Observable with the ECL query results
+   */
+  runECL(branchPath: string, ecl: string, terms?: string, offset: number = 0, limit: number = 50): Observable<any> {
+    console.log('runECL', branchPath, ecl, terms, offset, limit);
+
+    // Encode the branch path and ECL for URL
+    const encodedBranchPath = encodeURIComponent(branchPath);
+    const encodedEcl = encodeURIComponent(ecl);
+    
+    // Construct the native API URL
+    let requestUrl = `/snowstorm/snomed-ct/${encodedBranchPath}/concepts?ecl=${encodedEcl}&includeLeafFlag=false&form=inferred&offset=${offset}&limit=${limit}`;
+    
+    // Add term parameter if provided (using 'term' not 'termFilter' per API docs)
+    if (terms && terms.trim()) {
+      const encodedTerms = encodeURIComponent(terms.trim());
+      requestUrl += `&term=${encodedTerms}`;
+    }
+    
+    const headers = new HttpHeaders({
+      'Accept-Language': this.getComputedLanguageContext()
+    });
+    
+    return this.http.get<any>(requestUrl, { headers })
+      .pipe(
+        catchError(this.handleError<any>('runECL', {}))
+      );
+  }
+
+  /**
    * Retrieves derivatives from the fixed SNOMED CT derivatives URL
    * @returns Observable with the derivatives data containing memberCountsByReferenceSet and referenceSets
    */

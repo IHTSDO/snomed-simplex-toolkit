@@ -153,6 +153,11 @@
                         <mat-radio-button value="manual">Manual ECL Input</mat-radio-button>
                         <mat-radio-button value="refset">Select from a Refset in this Extension</mat-radio-button>
                         <mat-radio-button value="derivative">Select from a SNOMED CT Derivative</mat-radio-button>
+                        <mat-radio-button value="subtype" 
+                                         [disabled]="!selectedEdition?.branchPath"
+                                         [matTooltip]="!selectedEdition?.branchPath ? 'Branch path not available. Please ensure an edition is selected.' : ''">
+                            Select from SNOMED CT Sub Types
+                        </mat-radio-button>
                     </mat-radio-group>
                 </div>
 
@@ -196,6 +201,21 @@
                     <mat-spinner *ngIf="loadingDerivatives" matSuffix [diameter]="20"></mat-spinner>
                     <mat-error *ngIf="form.get('ecl')?.hasError('required')">Derivative selection is required</mat-error>
                 </mat-form-field>
+
+                <!-- Subtype Selection -->
+                <div *ngIf="eclInputMethod === 'subtype'" class="subtype-selection">
+                    <mat-label>Select Sub Type</mat-label>
+                    <div *ngIf="!selectedEdition?.branchPath" class="error-message">
+                        <mat-icon>error</mat-icon>
+                        <span>Branch path not available. Please ensure an edition is selected.</span>
+                    </div>
+                    <app-autocomplete-binding
+                        *ngIf="selectedEdition?.branchPath"
+                        [binding]="{ecl: '*', branchPath: selectedEdition.branchPath}"
+                        [term]="selectedSubtype?.display || ''"
+                        (selectionChange)="onSubtypeSelectionChange($event)">
+                    </app-autocomplete-binding>
+                </div>
             </form>
             <div>
                 <button mat-flat-button (click)="mode = 'view'" *ngIf="!saving">Cancel</button>

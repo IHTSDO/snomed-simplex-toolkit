@@ -30,9 +30,10 @@ export class TranslationDashboardComponent {
   private isPolling = false;
   
   // ECL input method properties
-  eclInputMethod: 'manual' | 'refset' | 'derivative' = 'manual';
+  eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'manual';
   selectedRefsetCode: string = '';
   selectedDerivativeCode: string = '';
+  selectedSubtype: any = null;
   
   // Dynamic refsets loaded from server
   refsets: any[] = [];
@@ -306,6 +307,7 @@ export class TranslationDashboardComponent {
       this.eclInputMethod = 'manual';
       this.selectedRefsetCode = '';
       this.selectedDerivativeCode = '';
+      this.selectedSubtype = null; // Reset subtype
       // Reset cache flags to allow fresh data loading
       this.refsetsLoaded = false;
       this.derivativesLoaded = false;
@@ -352,10 +354,11 @@ export class TranslationDashboardComponent {
   }
 
   onEclInputMethodChange() {
-    // Clear the ECL field and selected refset/derivative when switching input methods
+    // Clear the ECL field and selected refset/derivative/subtype when switching input methods
     this.form.patchValue({ ecl: '' });
     this.selectedRefsetCode = '';
     this.selectedDerivativeCode = '';
+    this.selectedSubtype = null; // Clear subtype on method change
     
     // Load refsets from server when refset option is selected (only if not already loaded)
     if (this.eclInputMethod === 'refset' && !this.refsetsLoaded) {
@@ -365,6 +368,15 @@ export class TranslationDashboardComponent {
     // Load derivatives from server when derivative option is selected (only if not already loaded)
     if (this.eclInputMethod === 'derivative' && !this.derivativesLoaded) {
       this.loadDerivativesFromServer();
+    }
+    
+    // Validate branchPath is available when subtype option is selected
+    if (this.eclInputMethod === 'subtype' && !this.selectedEdition?.branchPath) {
+      this.snackBar.open('Branch path not available. Please ensure an edition is selected.', 'Dismiss', {
+        duration: 5000
+      });
+      // Reset to manual mode if branchPath is not available
+      this.eclInputMethod = 'manual';
     }
   }
 
@@ -391,6 +403,20 @@ export class TranslationDashboardComponent {
       // Format ECL as: ^ derivativeCode |derivative display|
       const eclValue = `^ ${selectedDerivative.code} |${selectedDerivative.display}|`;
       this.form.patchValue({ ecl: eclValue });
+    }
+  }
+
+  onSubtypeSelectionChange(subtype: any) {
+    // Set the selected subtype
+    this.selectedSubtype = subtype;
+    
+    if (subtype && subtype.code) {
+      // Format ECL as: << subtypeCode |subtype display|
+      const eclValue = `<< ${subtype.code} |${subtype.display}|`;
+      this.form.patchValue({ ecl: eclValue });
+    } else {
+      // Clear ECL if no subtype selected
+      this.form.patchValue({ ecl: '' });
     }
   }
 
@@ -475,6 +501,8 @@ export class TranslationDashboardComponent {
         return 'REFSET';
       case 'derivative':
         return 'REFSET'; // Derivatives are also reference sets
+      case 'subtype':
+        return 'SUB_TYPE';
       default:
         return 'ECL';
     }
@@ -495,6 +523,9 @@ export class TranslationDashboardComponent {
       case 'derivative':
         // For derivatives, use the hardcoded SNOMEDCT-DERIVATIVES
         return 'SNOMEDCT-DERIVATIVES';
+      case 'subtype':
+        // For subtypes, use the hardcoded SNOMEDCT-SUBTYPES
+        return 'SNOMEDCT-SUBTYPES';
       default:
         return this.selectedEdition?.shortName || 'http://snomed.info/sct';
     }

@@ -67,6 +67,7 @@ import {MatProgressBarModule} from '@angular/material/progress-bar';
 import { TimelineComponent } from './components/timeline/timeline.component';
 import { ValidationResultsComponent } from './components/validation-results/validation-results.component';
 import {MatCardModule} from '@angular/material/card';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import { ProductPackagingComponent } from './components/product-packaging/product-packaging.component';
 import { WelcomeComponent } from './components/welcome/welcome.component';
 import { UpgradeEditionComponent } from './components/upgrade-edition/upgrade-edition.component';
@@ -78,6 +79,7 @@ import { CreateSharedSetComponent } from './components/admin-settings/create-sha
 import { CommonModule } from '@angular/common';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslationDashboardComponent } from './components/translation-dashboard/translation-dashboard.component';
+import { AutocompleteBindingComponent } from './components/binding-controls/autocomplete-binding/autocomplete-binding.component';
 
 // SERVICE IMPORTS
 
@@ -123,7 +125,8 @@ import { TranslationDashboardComponent } from './components/translation-dashboar
         DownloadReleasesComponent,
         AdminSettingsComponent,
         CreateSharedSetComponent,
-        TranslationDashboardComponent
+        TranslationDashboardComponent,
+        AutocompleteBindingComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
         FormsModule,
@@ -150,7 +153,8 @@ import { TranslationDashboardComponent } from './components/translation-dashboar
         MatExpansionModule,
         MatTooltipModule,
         MatProgressBarModule,
-        MatCardModule], providers: [
+        MatCardModule,
+        MatAutocompleteModule], providers: [
         AuthenticationService,
         AuthoringService,
         StatusPageService,
