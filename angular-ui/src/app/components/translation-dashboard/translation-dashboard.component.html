@@ -66,7 +66,7 @@
                 <div>Status: {{ selectedLabelSet.status }}</div>
                 <br><br>
                 <div class="centered-button-container">
-                    <button mat-flat-button color="primary">
+                    <button mat-flat-button color="primary" (click)="pullFromWeblate()">
                         Pull new translations from Weblate
                     </button>
                     <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting">
