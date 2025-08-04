@@ -1,5 +1,7 @@
 package org.snomed.simplex.weblate.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.List;
 
 public class WeblateUnit {
@@ -9,6 +11,7 @@ public class WeblateUnit {
 	private List<String> target;
 	private String context;
 	private String explanation;
+	@JsonIgnore
 	private List<WeblateLabel> labels;
 
 	public WeblateUnit() {

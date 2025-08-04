@@ -15,7 +15,6 @@ import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.weblate.domain.WeblateComponent;
-import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
@@ -143,12 +142,6 @@ public class WeblateService {
 				logger.info("Created concept set {}/{}", branch, focusConcept);
 			}
 		}
-	}
-
-	public Page<WeblateUnit> getSharedSetRecords(String slug) throws ServiceException {
-		WeblateClient weblateClient = weblateClientFactory.getClient();
-		WeblatePage<WeblateUnit> unitPage = weblateClient.getUnitPage(commonProject, slug);
-		return new Page<>(unitPage.results(), (long) unitPage.count());
 	}
 
 	public void deleteSharedSet(String slug) throws ServiceException {

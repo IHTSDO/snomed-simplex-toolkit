@@ -341,21 +341,8 @@ export class SimplexService {
     return this.http.get(`/api/${edition}/label-sets/${labelSetId}`).pipe(catchError(this.handleError.bind(this)));
   }
 
-  getLabelSetMembers(edition: string, labelSetId: string, offset?: number, limit?: number): Observable<any> {
-    if (!offset) offset = 0;
-    if (!limit) limit = 10;
-    const allMockMembers = Array.from({ length: 50 }, (_, i) => ({
-      code: `CODE-${i + 1}`,
-      display: `Concept Name ${i + 1}`
-    }));
-  
-    // Apply pagination
-    const paginated = allMockMembers.slice(offset, offset + limit);
-  
-    // Simulate a slight delay like a real HTTP call
-    return of(paginated).pipe(delay(500));
-    // const url = `/api/${edition}/label-sets/${labelSetId}/members?offset=${offset}&limit=${limit}`;
-    // return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
+  getLabelSetMembers(edition: string, selectedTranslation: string, labelSetId: string): Observable<any> {
+    return this.http.get(`/api/${edition}/translations/${selectedTranslation}/weblate-set/${labelSetId}/sample-rows`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSets(edition: string, refsetId: string): Observable<any> {

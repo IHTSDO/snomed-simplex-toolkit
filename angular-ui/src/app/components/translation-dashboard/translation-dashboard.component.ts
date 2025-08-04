@@ -277,9 +277,9 @@ export class TranslationDashboardComponent {
 
   getLabelSetMembers(labelSet: any) {
     this.loadingLabelSetMembers = true;
-    this.simplexService.getLabelSetMembers(this.selectedEdition.shortName, labelSet.id).subscribe(
+    this.simplexService.getLabelSetMembers(this.selectedEdition.shortName, labelSet.refset, labelSet.label).subscribe(
       (labelSetMembers) => {
-        this.selectedLabelSetMembers = labelSetMembers;
+        this.selectedLabelSetMembers = labelSetMembers.results;
         this.loadingLabelSetMembers = false;
         this.changeDetectorRef.detectChanges();
       },

@@ -376,3 +376,38 @@
         }
       }
     }
+
+    .translation-table {
+      width: 100%;
+      table-layout: fixed; /* Force equal column widths */
+      
+      th.mat-header-cell,
+      td.mat-cell {
+        width: 50% !important; /* Force equal width with !important */
+        text-align: left;
+        padding: 12px 16px;
+        word-wrap: break-word; /* Allow text to wrap */
+        overflow-wrap: break-word;
+      }
+      
+      th.mat-header-cell {
+        font-weight: 500;
+        color: rgba(0, 0, 0, 0.87);
+        border-bottom: 2px solid rgba(0, 0, 0, 0.12);
+      }
+      
+      td.mat-cell {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      }
+      
+      tr.mat-row:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+      
+      /* Override any Angular Material default column sizing */
+      .mat-column-concept,
+      .mat-column-translation {
+        width: 50% !important;
+        flex: 1 1 50% !important;
+      }
+    }

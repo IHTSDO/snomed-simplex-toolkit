@@ -1,6 +1,7 @@
 package org.snomed.simplex.weblate;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -89,25 +90,37 @@ public class WeblateClient {
 			handleSharedCodeSystemError("Failed to create translation component. %s".formatted(e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 	}
-	public WeblatePage<WeblateUnit> getUnitPage(String projectSlug, String componentSlug) {
-		String url = getUnitQuery(projectSlug, componentSlug);
-		ResponseEntity<WeblatePage<WeblateUnit>> response = restTemplate.exchange(url,
-				HttpMethod.GET, null, UNITS_RESPONSE_TYPE);
-		return response.getBody();
+	public WeblatePage<WeblateUnit> getUnitPage(String projectSlug, String componentSlug, String languageCode, String compositeLabel, int pageSize) {
+		return doGetUnitPage(getUnitQuery(projectSlug, componentSlug, languageCode, compositeLabel, pageSize, true));
+	}
+
+	public WeblatePage<WeblateUnit> getUnitPage(String projectSlug, String componentSlug, int pageSize) {
+		return doGetUnitPage(getUnitQuery(projectSlug, componentSlug, pageSize, true));
+	}
+
+	private @Nullable WeblatePage<WeblateUnit> doGetUnitPage(String url) {
+		return restTemplate.exchange(url, HttpMethod.GET, null, UNITS_RESPONSE_TYPE).getBody();
 	}
 
 	public UnitSupplier getUnitStream(String projectSlug, String componentSlug, int startPage) {
 		return new WeblateUnitStream(projectSlug, componentSlug, startPage, this);
 	}
 
-	protected static @NotNull String getUnitQuery(String projectSlug, String componentSlug) {
+	protected static @NotNull String getUnitQuery(String projectSlug, String componentSlug, int pageSize, boolean fastestSort) {
+		return getUnitQuery(projectSlug, componentSlug, "en", null, pageSize, fastestSort);
+	}
+
+	protected static @NotNull String getUnitQuery(String projectSlug, String componentSlug, String langCode, String compositeLabel, int pageSize, boolean fastestSort) {
 		StringBuilder query = new StringBuilder()
 				.append("project").append(":").append(projectSlug)
 				.append(" AND ")
 				.append("component").append(":").append(componentSlug)
 				.append(" AND ")
-				.append("language").append(":").append("en");
-		return "/units/?q=%s&sort_by=id&format=json".formatted(query);
+				.append("language").append(":").append(langCode);
+		if (compositeLabel != null) {
+			query.append(" AND label:").append(compositeLabel);
+		}
+		return "/units/?q=%s&page_size=%s%s&format=json".formatted(query, pageSize, fastestSort ? "&sort_by=id" : "");
 	}
 
 	protected void handleSharedCodeSystemError(String message, HttpStatus httpStatus, HttpClientErrorException e) throws ServiceExceptionWithStatusCode {

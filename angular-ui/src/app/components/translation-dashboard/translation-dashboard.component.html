@@ -65,6 +65,29 @@
                 <div>Translation: {{ selectedLabelSet.translationName }}</div>
                 <div>Status: {{ selectedLabelSet.status }}</div>
                 <br><br>
+                <div class="centered-button-container">
+                    <button mat-flat-button color="primary">
+                        Pull new translations from Weblate
+                    </button>
+                    <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting">
+                        <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+                        <span *ngIf="!deleting">Delete Set</span>
+                        <span *ngIf="deleting">Deleting...</span>
+                    </button>
+                </div>
+                <div class="centered-button-container">
+                    <h4>Not implemented:</h4>
+                    <button mat-flat-button color="primary" disabled>
+                        Push to Weblate
+                    </button>
+                    <button mat-flat-button color="primary" disabled>
+                        Assign Set to Users
+                    </button>
+                    <button mat-flat-button color="primary" disabled>
+                        Edit Set
+                    </button>
+                </div>
+                <br><br>
                 <h3>Translation Set Members</h3>
                 <mat-list id="members-list" class="sk-width">
                     <div *ngIf="loadingLabelSetMembers">
@@ -79,35 +102,30 @@
                             <!-- <div class="skeleton-button"></div> -->
                         </div>
                     </div>
-                    <!-- Actual List Items -->
+                    <!-- Actual Table Items -->
                     <ng-container *ngIf="!loadingLabelSetMembers">
-                        <mat-list-item class="hoverable-item" matRipple *ngFor="let member of selectedLabelSetMembers">
-                            {{ member.display }} - {{ member.code }} 
-                        </mat-list-item>
+                        <table mat-table [dataSource]="selectedLabelSetMembers" class="translation-table">
+                            <!-- Concept Column -->
+                            <ng-container matColumnDef="concept">
+                                <th mat-header-cell *matHeaderCellDef>Concept</th>
+                                <td mat-cell *matCellDef="let unit">
+                                    <i>{{ unit.context }} |{{ unit.source }}|</i>
+                                </td>
+                            </ng-container>
+                            
+                            <!-- Translation Column -->
+                            <ng-container matColumnDef="translation">
+                                <th mat-header-cell *matHeaderCellDef>Translation</th>
+                                <td mat-cell *matCellDef="let unit">
+                                    {{ unit.target }}
+                                </td>
+                            </ng-container>
+                            
+                            <tr mat-header-row *matHeaderRowDef="['concept', 'translation']"></tr>
+                            <tr mat-row *matRowDef="let row; columns: ['concept', 'translation'];"></tr>
+                        </table>
                     </ng-container>
                 </mat-list>
-            <div class="centered-button-container">
-                <button mat-flat-button color="primary">
-                    Pull new translations from Weblate
-                </button>
-                <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting">
-                    <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
-                    <span *ngIf="!deleting">Delete Set</span>
-                    <span *ngIf="deleting">Deleting...</span>
-                </button>
-            </div>
-            <div class="centered-button-container">
-                <h4>Not implemented:</h4>
-                <button mat-flat-button color="primary" disabled>
-                    Push to Weblate
-                </button>
-                <button mat-flat-button color="primary" disabled>
-                    Assign Set to Users
-                </button>
-                <button mat-flat-button color="primary" disabled>
-                    Edit Set
-                </button>
-            </div>
             </div>
         </div>
         <div class="component-col-right" *ngIf="mode == 'create'">

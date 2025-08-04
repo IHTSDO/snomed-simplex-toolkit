@@ -15,9 +15,7 @@ import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
-import org.snomed.simplex.weblate.domain.TranslationSetStatus;
-import org.snomed.simplex.weblate.domain.WeblateLabel;
-import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
+import org.snomed.simplex.weblate.domain.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jms.annotation.JmsListener;
@@ -151,6 +149,12 @@ public class WeblateSetService {
 				JOB_MESSAGE_USERNAME, username,
 				JOB_MESSAGE_ID, translationSet.getId()));
 		return translationSet;
+	}
+
+	public WeblatePage<WeblateUnit> getSampleRows(WeblateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+		WeblateClient weblateClient = weblateClientFactory.getClient();
+		return weblateClient.getUnitPage(WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT,
+			translationSet.getLanguageCodeWithRefsetId(), translationSet.getCompositeLabel(), 10);
 	}
 
 	public void deleteSet(WeblateTranslationSet translationSet) {

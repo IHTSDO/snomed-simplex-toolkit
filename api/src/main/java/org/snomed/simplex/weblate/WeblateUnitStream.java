@@ -26,7 +26,7 @@ public class WeblateUnitStream implements UnitSupplier {
 
 	private Iterator<WeblateUnit> iterator;
 	public WeblateUnitStream(String projectSlug, String componentSlug, int startPage, WeblateClient weblateClient) {
-		nextUrl = "%s&page=%s".formatted(getUnitQuery(projectSlug, componentSlug), startPage);
+		nextUrl = "%s&page=%s".formatted(getUnitQuery(projectSlug, componentSlug, 1000, true), startPage);
 		this.weblateClient = weblateClient;
 	}
 

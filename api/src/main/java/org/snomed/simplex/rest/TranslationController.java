@@ -25,7 +25,9 @@ import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.service.job.JobType;
 import org.snomed.simplex.weblate.WeblateSetService;
+import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
+import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.Assert;
@@ -154,6 +156,13 @@ public class TranslationController {
 			createRequest.getEcl(), createRequest.getSubsetType(), createRequest.getSelectionCodesystem());
 
 		return weblateSetService.createSet(set);
+	}
+
+	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/sample-rows")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public WeblatePage<WeblateUnit> getSampleWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
+		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		return weblateSetService.getSampleRows(translationSet);
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/pull-content")

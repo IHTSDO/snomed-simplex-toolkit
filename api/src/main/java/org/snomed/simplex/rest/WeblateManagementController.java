@@ -15,7 +15,6 @@ import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.weblate.WeblateService;
 import org.snomed.simplex.weblate.domain.WeblateComponent;
-import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -53,14 +52,6 @@ public class WeblateManagementController {
 		ContentJob contentJob = new ContentJob(rootCodeSystem, "Update shared set %s".formatted(slug), null);
 		jobService.queueContentJob(contentJob, null, activity,
 				asyncJob -> weblateService.updateSharedSet(slug, startPage));
-	}
-
-	@GetMapping("shared-components/{slug}/records")
-	public Page<WeblateUnit> getSharedSetRecords(@PathVariable String slug,
-			@RequestParam(required = false, defaultValue = "0") int offset,
-			@RequestParam(required = false, defaultValue = "100") int limit) throws ServiceException {
-
-		return weblateService.getSharedSetRecords(slug);
 	}
 
 	@PutMapping("shared-components/{slug}")

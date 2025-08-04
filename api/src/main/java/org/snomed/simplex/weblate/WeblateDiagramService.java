@@ -260,7 +260,7 @@ public class WeblateDiagramService {
 			WeblateClient weblateClient = weblateClientFactory.getClient();
 
 			// Get initial page to get total count
-			WeblatePage<WeblateUnit> initialPage = weblateClient.getUnitPage(projectSlug, componentSlug);
+			WeblatePage<WeblateUnit> initialPage = weblateClient.getUnitPage(projectSlug, componentSlug, 1);
 			int totalCount = initialPage.count();
 
 			UnitSupplier unitStream = weblateClient.getUnitStream(projectSlug, componentSlug, startPage);
