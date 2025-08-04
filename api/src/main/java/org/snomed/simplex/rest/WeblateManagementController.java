@@ -54,12 +54,6 @@ public class WeblateManagementController {
 				asyncJob -> weblateService.updateSharedSet(slug, startPage));
 	}
 
-	@PutMapping("shared-components/{slug}")
-	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void updateSharedSet(@PathVariable String slug, @RequestBody WeblateComponent weblateComponent) {
-		// not written yet
-	}
-
 	@DeleteMapping("shared-components/{slug}")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void deleteSharedSet(@PathVariable String slug) throws ServiceException {

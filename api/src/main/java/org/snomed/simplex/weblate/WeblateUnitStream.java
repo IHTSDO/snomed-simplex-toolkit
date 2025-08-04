@@ -16,6 +16,7 @@ import java.util.Iterator;
 
 import static org.snomed.simplex.weblate.WeblateClient.UNITS_RESPONSE_TYPE;
 import static org.snomed.simplex.weblate.WeblateClient.getUnitQuery;
+import org.snomed.simplex.weblate.UnitQueryBuilder;
 
 public class WeblateUnitStream implements UnitSupplier {
 
@@ -26,7 +27,9 @@ public class WeblateUnitStream implements UnitSupplier {
 
 	private Iterator<WeblateUnit> iterator;
 	public WeblateUnitStream(String projectSlug, String componentSlug, int startPage, WeblateClient weblateClient) {
-		nextUrl = "%s&page=%s".formatted(getUnitQuery(projectSlug, componentSlug, 1000, true), startPage);
+		nextUrl = "%s&page=%s".formatted(getUnitQuery(UnitQueryBuilder.of(projectSlug, componentSlug)
+				.pageSize(1000)
+				.fastestSort(true)), startPage);
 		this.weblateClient = weblateClient;
 	}
 

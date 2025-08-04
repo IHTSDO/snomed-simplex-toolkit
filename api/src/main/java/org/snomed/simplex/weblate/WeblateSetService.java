@@ -153,8 +153,20 @@ public class WeblateSetService {
 
 	public WeblatePage<WeblateUnit> getSampleRows(WeblateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
 		WeblateClient weblateClient = weblateClientFactory.getClient();
-		return weblateClient.getUnitPage(WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT,
-			translationSet.getLanguageCodeWithRefsetId(), translationSet.getCompositeLabel(), 10);
+		return weblateClient.getUnitPage(UnitQueryBuilder.of(WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT)
+			.languageCode(translationSet.getLanguageCodeWithRefsetId())
+			.compositeLabel(translationSet.getCompositeLabel())
+			.pageSize(10));
+	}
+
+	public int getStateCount(WeblateTranslationSet translationSet, String state) throws ServiceExceptionWithStatusCode {
+		WeblateClient weblateClient = weblateClientFactory.getClient();
+		WeblatePage<WeblateUnit> unitPage = weblateClient.getUnitPage(UnitQueryBuilder.of(WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT)
+			.languageCode(translationSet.getLanguageCodeWithRefsetId())
+			.compositeLabel(translationSet.getCompositeLabel())
+			.state(state)
+			.pageSize(1));
+		return unitPage.count();
 	}
 
 	public void deleteSet(WeblateTranslationSet translationSet) {
@@ -278,6 +290,7 @@ public class WeblateSetService {
 			total++;
 		}
 		translationSet.setPercentageProcessed((int) (((float) done / (float) total) * 100));
+		translationSet.setSize(total);
 		weblateSetRepository.save(translationSet);
 	}
 

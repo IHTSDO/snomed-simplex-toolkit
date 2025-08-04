@@ -90,12 +90,9 @@ public class WeblateClient {
 			handleSharedCodeSystemError("Failed to create translation component. %s".formatted(e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 	}
-	public WeblatePage<WeblateUnit> getUnitPage(String projectSlug, String componentSlug, String languageCode, String compositeLabel, int pageSize) {
-		return doGetUnitPage(getUnitQuery(projectSlug, componentSlug, languageCode, compositeLabel, pageSize, true));
-	}
 
-	public WeblatePage<WeblateUnit> getUnitPage(String projectSlug, String componentSlug, int pageSize) {
-		return doGetUnitPage(getUnitQuery(projectSlug, componentSlug, pageSize, true));
+	public WeblatePage<WeblateUnit> getUnitPage(UnitQueryBuilder builder) {
+		return doGetUnitPage(getUnitQuery(builder));
 	}
 
 	private @Nullable WeblatePage<WeblateUnit> doGetUnitPage(String url) {
@@ -106,21 +103,8 @@ public class WeblateClient {
 		return new WeblateUnitStream(projectSlug, componentSlug, startPage, this);
 	}
 
-	protected static @NotNull String getUnitQuery(String projectSlug, String componentSlug, int pageSize, boolean fastestSort) {
-		return getUnitQuery(projectSlug, componentSlug, "en", null, pageSize, fastestSort);
-	}
-
-	protected static @NotNull String getUnitQuery(String projectSlug, String componentSlug, String langCode, String compositeLabel, int pageSize, boolean fastestSort) {
-		StringBuilder query = new StringBuilder()
-				.append("project").append(":").append(projectSlug)
-				.append(" AND ")
-				.append("component").append(":").append(componentSlug)
-				.append(" AND ")
-				.append("language").append(":").append(langCode);
-		if (compositeLabel != null) {
-			query.append(" AND label:").append(compositeLabel);
-		}
-		return "/units/?q=%s&page_size=%s%s&format=json".formatted(query, pageSize, fastestSort ? "&sort_by=id" : "");
+	protected static @NotNull String getUnitQuery(UnitQueryBuilder builder) {
+		return builder.build();
 	}
 
 	protected void handleSharedCodeSystemError(String message, HttpStatus httpStatus, HttpClientErrorException e) throws ServiceExceptionWithStatusCode {

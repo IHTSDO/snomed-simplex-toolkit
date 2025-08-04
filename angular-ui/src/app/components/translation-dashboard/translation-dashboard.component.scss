@@ -8,38 +8,28 @@
 }
 
 .component-row {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: flex-start;
-    max-height: calc(100vh - 190px);
-}
-
-.centered-component-row {
-  width: 100%;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  max-height: calc(100vh - 190px - 2rem);
-  gap: 1rem;
-  margin-top: 2rem;
-}
-    
-.component-col {
-    flex: 1;
-    margin: 0 10px;
-}
-    
-.component-col-left {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  max-height: calc(100vh - 190px);
+  }
+  
+  .component-col {
+  flex: 1;
+  margin: 4px 10px;
+  }
+  
+  .component-col-left {
     flex: 2;
     margin: 0 10px;
-}
-.component-col-right {
+  }
+  .component-col-right {
     flex: 3;
     margin: 0 10px;
     padding-bottom: 20px;
-}
+  }
+  
 
 .skeleton-loader {
     margin: 10px 0;
@@ -202,6 +192,7 @@
     /* Right column */
     .title-right-column {
       align-self: flex-end; /* Aligns to the end of the flex container */
+      flex: 0 0 auto; /* This ensures the column does not grow or shrink */
     }
     
     .processing-icon {
@@ -374,9 +365,14 @@
           width: 20px;
           height: 20px;
         }
-      }
+            }
     }
-
+    
+    .inline-spinner {
+      display: inline-block;
+      margin-right: 8px;
+    }
+    
     .translation-table {
       width: 100%;
       table-layout: fixed; /* Force equal column widths */

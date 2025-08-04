@@ -39,12 +39,18 @@ public final class WeblateTranslationSet {
 	private final String selectionCodesystem;
 
 	@Field(type = FieldType.Integer)
+	private int size;
+
+	@Field(type = FieldType.Integer)
 	private int percentageProcessed;
 
 	private TranslationSetStatus status;
 
 	@Transient
 	private String weblateLabelUrl;
+
+	@Transient
+	private int translated;
 
 	public WeblateTranslationSet(String codesystem, String refset, String name, String label,
 		String ecl, TranslationSubsetType subsetType, String selectionCodesystem) {
@@ -131,12 +137,28 @@ public final class WeblateTranslationSet {
 		this.weblateLabelUrl = weblateLabelUrl;
 	}
 
+	public void setSize(int size) {
+		this.size = size;
+	}
+
+	public int getSize() {
+		return size;
+	}
+
 	public int getPercentageProcessed() {
 		return percentageProcessed;
 	}
 
 	public void setPercentageProcessed(int percentageProcessed) {
 		this.percentageProcessed = percentageProcessed;
+	}
+
+	public void setTranslated(int translated) {
+		this.translated = translated;
+	}
+
+	public int getTranslated() {
+		return translated;
 	}
 
 	@Override

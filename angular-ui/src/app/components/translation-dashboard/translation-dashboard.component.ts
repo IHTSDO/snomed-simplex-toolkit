@@ -18,6 +18,7 @@ export class TranslationDashboardComponent {
   loadingSets = false;
   loadingLabelSetMembers = false;
   loadingTranslations = false;
+  loadingLabelSetDetails = false;
   labelSets: any[] = [];
   translations: any[] = [];
   selectedTranslation: any;
@@ -28,6 +29,7 @@ export class TranslationDashboardComponent {
   deleting = false;
   private pollingInterval: any;
   private isPolling = false;
+  private currentLabelSetRequestId = 0; // Track the most recent request
   
   // ECL input method properties
   eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'manual';
@@ -296,6 +298,7 @@ export class TranslationDashboardComponent {
   selectSet(labelSet: any) {
     this.selectedLabelSet = labelSet;
     this.getLabelSetMembers(labelSet);
+    this.loadLabelSetDetails(labelSet);
   }
 
   setMode(mode: string) {
@@ -608,6 +611,39 @@ export class TranslationDashboardComponent {
         });
         this.loadingRefsets = false;
         // Keep the hardcoded refsets as fallback
+      }
+    );
+  }
+
+  loadLabelSetDetails(labelSet: any) {
+    if (!labelSet || !this.selectedEdition) {
+      return;
+    }
+
+    // Increment request ID to track this as the most recent request
+    const requestId = ++this.currentLabelSetRequestId;
+    this.loadingLabelSetDetails = true;
+    
+    this.simplexService.getTranslationSetDetails(
+      this.selectedEdition.shortName,
+      labelSet.translationId,
+      labelSet.label
+    ).subscribe(
+      (details) => {
+        // Only update if this is still the most recent request
+        if (requestId === this.currentLabelSetRequestId) {
+          this.selectedLabelSet = { ...this.selectedLabelSet, ...details };
+          this.loadingLabelSetDetails = false;
+          this.changeDetectorRef.detectChanges();
+        }
+      },
+      (error) => {
+        console.error('Error loading label set details:', error);
+        // Only update loading state if this is still the most recent request
+        if (requestId === this.currentLabelSetRequestId) {
+          this.loadingLabelSetDetails = false;
+          this.changeDetectorRef.detectChanges();
+        }
       }
     );
   }

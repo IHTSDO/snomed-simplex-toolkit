@@ -158,6 +158,15 @@ public class TranslationController {
 		return weblateSetService.createSet(set);
 	}
 
+	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public WeblateTranslationSet getWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
+		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		int translated = weblateSetService.getStateCount(translationSet, "translated");
+		translationSet.setTranslated(translated);
+		return translationSet;
+	}
+
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/sample-rows")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public WeblatePage<WeblateUnit> getSampleWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
