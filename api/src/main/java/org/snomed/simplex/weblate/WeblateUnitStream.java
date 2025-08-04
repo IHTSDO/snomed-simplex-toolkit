@@ -16,7 +16,6 @@ import java.util.Iterator;
 
 import static org.snomed.simplex.weblate.WeblateClient.UNITS_RESPONSE_TYPE;
 import static org.snomed.simplex.weblate.WeblateClient.getUnitQuery;
-import org.snomed.simplex.weblate.UnitQueryBuilder;
 
 public class WeblateUnitStream implements UnitSupplier {
 

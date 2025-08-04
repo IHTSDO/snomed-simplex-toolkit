@@ -1,17 +1,18 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom, Subscription } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { TerminologyService } from 'src/app/services/simplex/terminology.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-translation-dashboard',
   templateUrl: './translation-dashboard.component.html',
   styleUrl: './translation-dashboard.component.scss'
 })
-export class TranslationDashboardComponent {
+export class TranslationDashboardComponent implements OnInit, OnDestroy {
   selectedEdition: any;
   private subscriptions: Subscription = new Subscription();
   loading = false;
@@ -30,6 +31,8 @@ export class TranslationDashboardComponent {
   private pollingInterval: any;
   private isPolling = false;
   private currentLabelSetRequestId = 0; // Track the most recent request
+  private isInitialized = false; // Flag to prevent duplicate initialization
+  private isSubscribedToEdition = false; // Flag to prevent duplicate edition subscriptions
   
   // ECL input method properties
   eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'manual';
@@ -59,21 +62,55 @@ export class TranslationDashboardComponent {
                 private snackBar: MatSnackBar,
                 private uiConfigurationService: UiConfigurationService,
                 private changeDetectorRef: ChangeDetectorRef,
-                private terminologyService: TerminologyService) {}
+                private terminologyService: TerminologyService,
+                private route: ActivatedRoute) {}
 
   ngOnInit(): void {
-    const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
-      if (edition) {
-        this.selectedEdition = edition;
-        if (!edition.namespace) {
-          this.refreshEdition();
-        } else {
-          this.getTranslations();
+    if (!this.isSubscribedToEdition) {
+      const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+        if (edition && !this.isInitialized) {
+          this.selectedEdition = edition;
+          this.isInitialized = true;
+          
+          if (!edition.namespace) {
+            this.refreshEdition();
+          } else {
+            this.getTranslations();
+          }
+          this.changeDetectorRef.detectChanges();
         }
-        this.changeDetectorRef.detectChanges();
+      });
+      this.subscriptions.add(editionSubscription);
+      this.isSubscribedToEdition = true;
+    }
+
+    // Subscribe to route parameter changes to handle edition changes
+    const routeSubscription = this.route.params.subscribe(params => {
+      const editionParam = params['edition'];
+      if (editionParam && this.selectedEdition?.shortName !== editionParam) {
+        // Edition changed, reset component and reload
+        this.resetComponent();
+        
+        // Re-initialize with new edition
+        if (!this.isSubscribedToEdition) {
+          this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+            if (edition && edition.shortName === editionParam) {
+              this.selectedEdition = edition;
+              this.isInitialized = true;
+              
+              if (!edition.namespace) {
+                this.refreshEdition();
+              } else {
+                this.getTranslations();
+              }
+              this.changeDetectorRef.detectChanges();
+            }
+          });
+          this.isSubscribedToEdition = true;
+        }
       }
     });
-    this.subscriptions.add(editionSubscription);
+    this.subscriptions.add(routeSubscription);
 
     // Set up automatic label computation from name field
     this.form.get('name')?.valueChanges.subscribe(name => {
@@ -87,6 +124,24 @@ export class TranslationDashboardComponent {
   ngOnDestroy(): void {
     this.stopPolling();
     this.subscriptions.unsubscribe();
+    this.isInitialized = false; // Reset initialization flag
+    this.isSubscribedToEdition = false; // Reset subscription flag
+  }
+
+  // Method to handle component reuse when navigating to the same route
+  private resetComponent(): void {
+    this.isInitialized = false;
+    this.isSubscribedToEdition = false;
+    this.translations = [];
+    this.labelSets = [];
+    this.selectedLabelSet = null;
+    this.selectedLabelSetMembers = [];
+    this.stopPolling();
+    this.loading = false;
+    this.loadingSets = false;
+    this.loadingTranslations = false;
+    this.loadingLabelSetMembers = false;
+    this.loadingLabelSetDetails = false;
   }
 
   openWeblateUrl(url: string) {
@@ -100,7 +155,10 @@ export class TranslationDashboardComponent {
       lastValueFrom(this.simplexService.getEdition(this.selectedEdition.shortName)).then(
         (edition) => {
           this.selectedEdition = edition;
-          this.getTranslations();
+          // Only call getTranslations if we haven't already loaded translations
+          if (this.translations.length === 0) {
+            this.getTranslations();
+          }
           this.loading = false;
         },
         (error) => {
@@ -182,6 +240,11 @@ export class TranslationDashboardComponent {
   }
 
   getTranslationSets() {
+    // Prevent duplicate calls if already loading
+    if (this.loadingSets) {
+      return;
+    }
+    
     this.loadingSets = true;
     
     this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
@@ -318,6 +381,11 @@ export class TranslationDashboardComponent {
   }
 
   getTranslations() {
+    // Prevent duplicate calls if already loading
+    if (this.loadingTranslations) {
+      return;
+    }
+    
     this.loadingTranslations = true;
     // Disable the translation form control while loading
     this.form.get('translation')?.disable();
