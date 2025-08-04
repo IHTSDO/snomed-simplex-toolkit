@@ -160,6 +160,15 @@
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
 				<inherited>false</inherited>
+				<configuration>
+					<!-- Disable .NET assembly analysis since this is a Java project -->
+					<assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+					<!-- Disable HTML report to avoid template issues -->
+					<formats>
+						<format>JSON</format>
+						<format>XML</format>
+					</formats>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>
