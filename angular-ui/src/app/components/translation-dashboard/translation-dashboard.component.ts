@@ -514,18 +514,9 @@ export class TranslationDashboardComponent {
    */
   private determineSelectionCodesystem(): string {
     switch (this.eclInputMethod) {
-      case 'manual':
-        // For manual ECL, use the edition's shortName
-        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
-      case 'refset':
-        // For refsets, use the edition's shortName
-        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
       case 'derivative':
         // For derivatives, use the hardcoded SNOMEDCT-DERIVATIVES
         return 'SNOMEDCT-DERIVATIVES';
-      case 'subtype':
-        // For subtypes, use the hardcoded SNOMEDCT-SUBTYPES
-        return 'SNOMEDCT-SUBTYPES';
       default:
         return this.selectedEdition?.shortName || 'http://snomed.info/sct';
     }
