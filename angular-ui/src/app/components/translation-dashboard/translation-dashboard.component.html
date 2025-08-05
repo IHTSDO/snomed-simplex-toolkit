@@ -7,10 +7,10 @@
 <div class="main-container" *ngIf="selectedEdition">
     <div class="component-row">
         <div class="component-col-left">
-            <h2>Translation Dashboard</h2>
+            <h1>Translation Dashboard</h1>
             <h4>Translation Sets</h4>
             <mat-list id="components-list">
-                <div *ngIf="loadingSets || loading">
+                <div *ngIf="showSkeleton">
                     <!-- Repeat this block for as many skeleton items as you want -->
                     <div class="skeleton-loader">
                         <div class="skeleton-text"></div>
@@ -23,7 +23,7 @@
                     </div>
                 </div>
                 <!-- Actual List Items -->
-                <ng-container *ngIf="(!loadingSets && !loading)">
+                <ng-container *ngIf="!showSkeleton">
                     <mat-list-item class="hoverable-item" matRipple *ngFor="let set of labelSets"
                     (click)="selectSet(set)"
                     [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
@@ -56,13 +56,10 @@
             <div *ngIf="selectedLabelSet" class="details-panel">
                 <div class="title-container">
                     <div class="title-left-column">
-                        <h4>
-                            {{ selectedLabelSet.name }}
-                        </h4>
+                        <h2>{{ selectedLabelSet.name }}</h2>
                     </div>
                 </div>
     
-                <h2>{{ selectedLabelSet.name }}</h2>
                 <br><br>
                 <div>
                     <div class="component-row">

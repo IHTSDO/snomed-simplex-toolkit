@@ -57,6 +57,16 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     ecl: ['', Validators.required]
   });
 
+  // Computed property for skeleton loading state
+  get showSkeleton(): boolean {
+    // Show skeleton when any of these conditions are true:
+    // 1. Component is loading (initial load)
+    // 2. Translation sets are loading
+    // 3. Component is not initialized yet
+    // 4. No data has been loaded yet and we're not in a loading state
+    return this.loading || this.loadingSets || !this.isInitialized || (this.labelSets.length === 0 && !this.loadingSets && this.isInitialized);
+  }
+
   constructor(  private fb: FormBuilder,
                 private simplexService: SimplexService,
                 private snackBar: MatSnackBar,
@@ -137,7 +147,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     this.selectedLabelSet = null;
     this.selectedLabelSetMembers = [];
     this.stopPolling();
-    this.loading = false;
+    // Set loading states to show skeleton during reset
+    this.loading = true;
     this.loadingSets = false;
     this.loadingTranslations = false;
     this.loadingLabelSetMembers = false;
@@ -158,8 +169,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
           // Only call getTranslations if we haven't already loaded translations
           if (this.translations.length === 0) {
             this.getTranslations();
+          } else {
+            // If translations are already loaded, clear the loading state
+            this.loading = false;
           }
-          this.loading = false;
         },
         (error) => {
           console.error(error);
@@ -167,7 +180,6 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
           this.snackBar.open('Failed to refresh edition', 'Dismiss', {
             duration: 5000
           });
-          this.loading = false;
         }
       );
   }
@@ -261,6 +273,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             };
           });
         this.loadingSets = false;
+        // Clear the main loading state once we have data
+        if (this.loading) {
+          this.loading = false;
+        }
         
         // Check if any translation sets are processing and manage polling
         this.managePolling();
@@ -271,6 +287,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
           duration: 5000
         });
         this.loadingSets = false;
+        this.loading = false;
         this.labelSets = [];
       }
     );
@@ -407,6 +424,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
           duration: 5000
         });
         this.loadingTranslations = false;
+        this.loading = false;
         // Re-enable the translation form control after error
         this.form.get('translation')?.enable();
       }
