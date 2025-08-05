@@ -317,6 +317,10 @@ public class TranslationService {
 		}
 		existingDescriptions.removeAll(toRemove);
 
+		existingDescriptions.stream()
+				.filter(d -> d.getLang().equals(languageCode))
+				.forEach(description -> description.setAcceptabilityMap(new HashMap<>(description.getAcceptabilityMap())));
+
 		// Add any missing descriptions in the snowstorm concept
 		boolean descriptionChange;
 		for (Description uploadedDescription : uploadedDescriptions) {
