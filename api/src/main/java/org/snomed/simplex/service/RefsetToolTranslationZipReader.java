@@ -147,7 +147,7 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 			for (Description description : conceptAndDescriptions.getValue()) {
 				Description.Acceptability acceptability = descriptionAcceptabilityMap.get(parseLong(description.getDescriptionId()));
 				if (acceptability != null) {
-					description.setAcceptabilityMap(Map.of(langRefset, acceptability));
+					description.setAcceptabilityMap(new HashMap<>(Map.of(langRefset, acceptability)));
 				}
 				// Forget the description id from the refset tool
 				description.setDescriptionId(null);
