@@ -2,11 +2,15 @@ package org.snomed.simplex.service;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import org.apache.coyote.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.Description;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.util.FileUtils;
+import org.springframework.http.HttpStatus;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -80,7 +84,7 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 		BufferedReader descriptionReader = new BufferedReader(new InputStreamReader(zipInputStream));
 		String header = FileUtils.removeUTF8BOM(descriptionReader.readLine());
 		if (!header.equals("id\teffectiveTime\tactive\tmoduleId\tconceptId\tlanguageCode\ttypeId\tterm\tcaseSignificanceId")) {
-			throw new ServiceException(format("Unrecognised header in Description file '%s' within zip file.", zipEntryName));
+			throw new ServiceExceptionWithStatusCode(format("Unrecognised header in Description file '%s' within zip file.", zipEntryName), HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
 		}
 		String line;
 		int lineNum = 1;
@@ -90,8 +94,7 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 			// id	effectiveTime	active	moduleId	conceptId	languageCode	typeId	term	caseSignificanceId
 			// 0	1				2		3			4			5				6		7		8
 			if (!split[4].matches("\\d+")) {
-				logger.info("Bad conceptId format on line {}.", lineNum);
-				continue;
+				throw new ServiceExceptionWithStatusCode(format("Line '%s' of description file has an invalid conceptId format.", lineNum), HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
 			}
 			long conceptId = parseLong(split[4]);
 			String languageCode = split[5];
@@ -103,7 +106,11 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 			Description description = new Description(Description.Type.fromConceptId(split[6]), languageCode, split[7],
 					caseSignificance);
 
-			description.setDescriptionId(split[0]);
+			String descriptionId = split[0];
+			if (!descriptionId.matches("\\d+")) {
+				throw new ServiceExceptionWithStatusCode(format("Line '%s' of description file has an invalid description id format.", lineNum), HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
+			}
+			description.setDescriptionId(descriptionId);
 			if (description.getType() == Description.Type.SYNONYM) {
 				conceptMap.computeIfAbsent(conceptId, key -> new ArrayList<>()).add(description);
 			}
@@ -115,7 +122,7 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 		BufferedReader langRefsetReader = new BufferedReader(new InputStreamReader(zipInputStream));
 		String header = FileUtils.removeUTF8BOM(langRefsetReader.readLine());
 		if (!header.equals("id\teffectiveTime\tactive\tmoduleId\trefsetId\treferencedComponentId\tacceptabilityId")) {
-			throw new ServiceException(format("Unrecognised header in Language Refset file '%s' within zip file.", zipEntryName));
+			throw new ServiceExceptionWithStatusCode(format("Unrecognised header in Language Refset file '%s' within zip file.", zipEntryName), HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
 		}
 		boolean anyAcceptabilityFound = false;
 		String line;
@@ -128,12 +135,12 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 
 			// Only read active rows in the refset we are interested in
 			if ("1".equals(split[2])) {
-				if (!split[5].matches("\\d+")) {
-					logger.info("Bad referencedComponentId format on line {}.", lineNum);
-					continue;
+				String descriptionIdString = split[5];
+				if (!descriptionIdString.matches("\\d+")) {
+					throw new ServiceExceptionWithStatusCode(format("Line '%s' of acceptability file has an invalid referencedComponentId format.", lineNum), HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
 				}
 				anyAcceptabilityFound = true;
-				long descriptionId = parseLong(split[5]);
+				long descriptionId = parseLong(descriptionIdString);
 				descriptionAcceptabilityMap.put(descriptionId, Description.Acceptability.fromConceptId(split[6]));
 			}
 		}
