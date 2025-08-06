@@ -19,6 +19,9 @@ import org.springframework.http.*;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -51,9 +54,21 @@ public class ValidationServiceClient {
 		this.restTemplate = new RestTemplateBuilder()
 				.rootUri(rvfUrl)
 				.messageConverters(new MappingJackson2HttpMessageConverter(), new FormHttpMessageConverter(), new ByteArrayHttpMessageConverter())
+				.additionalRequestCustomizers(request -> request.getHeaders().add("Cookie", getAuthenticationToken()))
 				.build();
 		this.queuePrefix = queuePrefix;
 		this.spreadsheetService = spreadsheetService;
+	}
+
+	private String getAuthenticationToken() {
+		SecurityContext securityContext = SecurityContextHolder.getContext();
+		if (securityContext != null) {
+			Authentication authentication = securityContext.getAuthentication();
+			if (authentication != null) {
+				return (String) authentication.getCredentials();
+			}
+		}
+		return null;
 	}
 
 	public URI startValidation(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
