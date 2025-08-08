@@ -181,7 +181,7 @@ public class WeblateSetService {
 		WeblateClient weblateClient = weblateClientFactory.getClient();
 		// Use the optimized endpoint for much faster performance
 		WeblatePage<WeblateUnit> unitPage = weblateClient.getUnitsWithChangesSince(
-			WeblateClient.COMMON_PROJECT, 
+			WeblateClient.COMMON_PROJECT,
 			WeblateClient.SNOMEDCT_COMPONENT,
 			translationSet.getLanguageCodeWithRefsetId(),
 			sinceDate,
@@ -226,9 +226,8 @@ public class WeblateSetService {
 				jobType, translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
 
 			WeblateClient weblateClient = weblateClientFactory.getClient();
-			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 			if (jobType.equals(JOB_TYPE_CREATE)) {
-				doCreateSet(translationSet, weblateClient, snowstormClient);
+				doCreateSet(translationSet, weblateClient, snowstormClientFactory);
 			} else if (jobType.equals(JOB_TYPE_DELETE)) {
 				doDeleteSet(translationSet, weblateClient);
 			} else {
@@ -278,15 +277,13 @@ public class WeblateSetService {
 		}
 	}
 
-	private void doCreateSet(WeblateTranslationSet translationSet, WeblateClient weblateClient, SnowstormClient snowstormClient) throws ServiceExceptionWithStatusCode {
+	private void doCreateSet(WeblateTranslationSet translationSet, WeblateClient weblateClient, SnowstormClientFactory snowstormClientFactory) throws ServiceExceptionWithStatusCode {
 		TimerUtil timerUtil = new TimerUtil("Adding label %s".formatted(translationSet.getLabel()));
 		// Update status to processing
 		translationSet.setStatus(TranslationSetStatus.PROCESSING);
 		weblateSetRepository.save(translationSet);
 
-		String selectionCodesystemName = translationSet.getSelectionCodesystem();
-		CodeSystem selectionCodeSystem = snowstormClient.getCodeSystemOrThrow(selectionCodesystemName);
-		SnowstormClient.ConceptIdStream conceptIdStream = snowstormClient.getConceptIdStream(selectionCodeSystem.getBranchPath(), translationSet.getEcl());
+		SnowstormClient.ConceptIdStream conceptIdStream = getConceptIdStream(translationSet, snowstormClientFactory);
 
 		String code;
 		String compositeLabel = translationSet.getCompositeLabel();
@@ -312,6 +309,18 @@ public class WeblateSetService {
 
 		translationSet.setStatus(TranslationSetStatus.READY);
 		weblateSetRepository.save(translationSet);
+	}
+
+	private static SnowstormClient.ConceptIdStream getConceptIdStream(WeblateTranslationSet translationSet, SnowstormClientFactory snowstormClientFactory) throws ServiceExceptionWithStatusCode {
+		String selectionCodesystemName = translationSet.getSelectionCodesystem();
+		SnowstormClient snowstormClient;
+		if (selectionCodesystemName.equals(SnowstormClientFactory.SNOMEDCT_DERIVATIVES)) {
+			snowstormClient = snowstormClientFactory.getDerivativesClient();
+		} else {
+			snowstormClient = snowstormClientFactory.getClient();
+		}
+		CodeSystem selectionCodeSystem = snowstormClient.getCodeSystemOrThrow(selectionCodesystemName);
+		return snowstormClient.getConceptIdStream(selectionCodeSystem.getBranchPath(), translationSet.getEcl());
 	}
 
 	private void updateProcessingTotal(WeblateTranslationSet translationSet, int done, int total) {
