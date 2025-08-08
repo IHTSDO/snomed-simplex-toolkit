@@ -105,6 +105,27 @@
                             </span>
                         </div>
                     </div>
+                    <div class="component-row" *ngIf="selectedLabelSet.size && selectedLabelSet.created">
+                        <div class="component-col align-right">
+                            <span class="details-field-name">Changes Since {{ selectedLabelSet.lastPulled ? 'Last Pull' : 'Created' }}</span>
+                        </div>
+                        <div class="component-col">
+                            <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
+                            <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
+                                {{ selectedLabelSet.changedSinceCreatedOrLastPulled || 0 }}
+                                <span *ngIf="selectedLabelSet.lastPulled" 
+                                      matTooltip="Last pulled: {{ selectedLabelSet.lastPulled | date:'medium' }}"
+                                      class="last-pulled-hint">
+                                    ({{ selectedLabelSet.lastPulled | timeAgo }})
+                                </span>
+                                <span *ngIf="!selectedLabelSet.lastPulled && selectedLabelSet.created" 
+                                      matTooltip="Created: {{ selectedLabelSet.created | date:'medium' }}"
+                                      class="created-hint">
+                                    ({{ selectedLabelSet.created | timeAgo }})
+                                </span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 <br><br>
                 <div>
@@ -138,7 +159,11 @@
                 </div>
                 <br><br>
                 <h3>Translation Set Members</h3>
-                <mat-list id="members-list" class="sk-width">
+                <div *ngIf="selectedLabelSet.status !== 'READY'" class="status-message">
+                    <p>Translation set members are only available when the set status is READY.</p>
+                    <p>Current status: <strong>{{ selectedLabelSet.status }}</strong></p>
+                </div>
+                <mat-list id="members-list" class="sk-width" *ngIf="selectedLabelSet.status === 'READY'">
                     <div *ngIf="loadingLabelSetMembers">
                         <!-- Repeat this block for as many skeleton items as you want -->
                         <div class="skeleton-loader">

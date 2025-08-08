@@ -169,6 +169,29 @@ public class WeblateSetService {
 		return unitPage.count();
 	}
 
+	public int getChangedSinceCount(WeblateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+		// Use the more recent of created or lastPulled as the baseline
+		Date sinceDate = translationSet.getLastPulled() != null ?
+			translationSet.getLastPulled() : translationSet.getCreated();
+
+		if (sinceDate == null) {
+			return 0; // No baseline date available
+		}
+
+		WeblateClient weblateClient = weblateClientFactory.getClient();
+		// Use the optimized endpoint for much faster performance
+		WeblatePage<WeblateUnit> unitPage = weblateClient.getUnitsWithChangesSince(
+			WeblateClient.COMMON_PROJECT, 
+			WeblateClient.SNOMEDCT_COMPONENT,
+			translationSet.getLanguageCodeWithRefsetId(),
+			sinceDate,
+			translationSet.getCompositeLabel(),
+			null, // No state filter
+			1 // Page size of 1 for counting
+		);
+		return unitPage.count();
+	}
+
 	public void deleteSet(WeblateTranslationSet translationSet) {
 		logger.info("Queueing Weblate Translation Set for deletion {}/{}/{}", translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
 		translationSet.setStatus(TranslationSetStatus.DELETING);
@@ -241,7 +264,13 @@ public class WeblateSetService {
 		}
 		try (FileInputStream fileInputStream = new FileInputStream(subsetFile)) {
 			contentJob.addUpload(fileInputStream, "weblate-automatic-download.csv");
-			return translationService.uploadTranslationAsWeblateCSV(true, contentJob);
+			ChangeSummary result = translationService.uploadTranslationAsWeblateCSV(true, contentJob);
+
+			// Update the last pulled timestamp after successful pull
+			translationSet.setLastPulled(new Date());
+			weblateSetRepository.save(translationSet);
+
+			return result;
 		} catch (IOException e) {
 			throw new ServiceExceptionWithStatusCode("Translation upload step failed.", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		} finally {

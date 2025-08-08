@@ -164,6 +164,11 @@ public class TranslationController {
 		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		int translated = weblateSetService.getStateCount(translationSet, "translated");
 		translationSet.setTranslated(translated);
+		
+		// Get count of translations changed since the set was created or last pulled
+		int changedSince = weblateSetService.getChangedSinceCount(translationSet);
+		translationSet.setChangedSinceCreatedOrLastPulled(changedSince);
+		
 		return translationSet;
 	}
 

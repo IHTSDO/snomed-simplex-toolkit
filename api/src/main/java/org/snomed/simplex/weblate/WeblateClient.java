@@ -95,7 +95,52 @@ public class WeblateClient {
 		return doGetUnitPage(getUnitQuery(builder));
 	}
 
+	/**
+	 * Get units with changes since a specific date using the optimized endpoint.
+	 * This is much faster than the standard units endpoint for counting changes.
+	 *
+	 * @param projectSlug The project slug (e.g., "common")
+	 * @param componentSlug The component slug (e.g., "snomedct")
+	 * @param languageCode The language code with refset ID (e.g., "nl-58888888102")
+	 * @param sinceDate The date to check changes since
+	 * @param label Optional label filter
+	 * @param state Optional state filter (e.g., "translated", "fuzzy")
+	 * @param pageSize Page size for pagination (default 1 for counting)
+	 * @return WeblatePage containing the units with changes
+	 */
+	public WeblatePage<WeblateUnit> getUnitsWithChangesSince(String projectSlug, String componentSlug, 
+			String languageCode, Date sinceDate, String label, String state, int pageSize) {
+		
+		UriComponentsBuilder builder = UriComponentsBuilder.fromPath("/translations/{project}/{component}/{language}/units_with_changes_since/")
+				.queryParam("since", formatDateForWeblate(sinceDate))
+				.queryParam("format", "json")
+				.queryParam("page_size", pageSize);
+		
+		if (label != null && !label.isEmpty()) {
+			builder.queryParam("label", label);
+		}
+		
+		if (state != null && !state.isEmpty()) {
+			builder.queryParam("state", state);
+		}
+		
+		String finalUrl = builder.buildAndExpand(projectSlug, componentSlug, languageCode).toUriString();
+		logger.info("Getting units with changes since from Weblate: {}", finalUrl);
+		
+		return restTemplate.exchange(finalUrl, HttpMethod.GET, null, UNITS_RESPONSE_TYPE).getBody();
+	}
+
+	/**
+	 * Format a Date object for Weblate API consumption (ISO 8601 format).
+	 */
+	private String formatDateForWeblate(Date date) {
+		// Use ISO 8601 format that Weblate expects
+		java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+		return date.toInstant().atZone(java.time.ZoneOffset.UTC).format(formatter);
+	}
+
 	private @Nullable WeblatePage<WeblateUnit> doGetUnitPage(String url) {
+		logger.info("Getting unit page from Weblate: {}", url);
 		return restTemplate.exchange(url, HttpMethod.GET, null, UNITS_RESPONSE_TYPE).getBody();
 	}
 

@@ -6,6 +6,7 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
+import java.util.Date;
 import java.util.Objects;
 
 @Document(indexName = "#{@indexNameProvider.indexName('weblate-set')}")
@@ -46,11 +47,20 @@ public final class WeblateTranslationSet {
 
 	private TranslationSetStatus status;
 
+	@Field(type = FieldType.Long)
+	private Date created;
+
+	@Field(type = FieldType.Long)
+	private Date lastPulled;
+
 	@Transient
 	private String weblateLabelUrl;
 
 	@Transient
 	private int translated;
+
+	@Transient
+	private int changedSinceCreatedOrLastPulled;
 
 	public WeblateTranslationSet(String codesystem, String refset, String name, String label,
 		String ecl, TranslationSubsetType subsetType, String selectionCodesystem) {
@@ -63,6 +73,7 @@ public final class WeblateTranslationSet {
 		this.subsetType = subsetType;
 		this.selectionCodesystem = selectionCodesystem;
 		this.percentageProcessed = 0;
+		this.created = new Date();
 	}
 
 	public String getLanguageCodeWithRefsetId() {
@@ -159,6 +170,30 @@ public final class WeblateTranslationSet {
 
 	public int getTranslated() {
 		return translated;
+	}
+
+	public Date getCreated() {
+		return created;
+	}
+
+	public void setCreated(Date created) {
+		this.created = created;
+	}
+
+	public Date getLastPulled() {
+		return lastPulled;
+	}
+
+	public void setLastPulled(Date lastPulled) {
+		this.lastPulled = lastPulled;
+	}
+
+	public int getChangedSinceCreatedOrLastPulled() {
+		return changedSinceCreatedOrLastPulled;
+	}
+
+	public void setChangedSinceCreatedOrLastPulled(int changedSinceCreatedOrLastPulled) {
+		this.changedSinceCreatedOrLastPulled = changedSinceCreatedOrLastPulled;
 	}
 
 	@Override

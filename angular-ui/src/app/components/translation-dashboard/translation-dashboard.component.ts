@@ -33,6 +33,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
   private currentLabelSetRequestId = 0; // Track the most recent request
   private isInitialized = false; // Flag to prevent duplicate initialization
   private isSubscribedToEdition = false; // Flag to prevent duplicate edition subscriptions
+  private translationSetsLoaded = false; // Flag to track if translation sets have been loaded
   
   // ECL input method properties
   eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'manual';
@@ -63,8 +64,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     // 1. Component is loading (initial load)
     // 2. Translation sets are loading
     // 3. Component is not initialized yet
-    // 4. No data has been loaded yet and we're not in a loading state
-    return this.loading || this.loadingSets || !this.isInitialized || (this.labelSets.length === 0 && !this.loadingSets && this.isInitialized);
+    // 4. No data has been loaded yet and translation sets haven't been loaded
+    return this.loading || this.loadingSets || !this.isInitialized || (this.labelSets.length === 0 && !this.translationSetsLoaded);
   }
 
   constructor(  private fb: FormBuilder,
@@ -74,6 +75,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                 private changeDetectorRef: ChangeDetectorRef,
                 private terminologyService: TerminologyService,
                 private route: ActivatedRoute) {}
+
+
 
   ngOnInit(): void {
     if (!this.isSubscribedToEdition) {
@@ -142,6 +145,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
   private resetComponent(): void {
     this.isInitialized = false;
     this.isSubscribedToEdition = false;
+    this.translationSetsLoaded = false; // Reset translation sets loaded flag
     this.translations = [];
     this.labelSets = [];
     this.selectedLabelSet = null;
@@ -273,6 +277,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             };
           });
         this.loadingSets = false;
+        this.translationSetsLoaded = true; // Mark that translation sets have been loaded
         // Clear the main loading state once we have data
         if (this.loading) {
           this.loading = false;
@@ -288,6 +293,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         });
         this.loadingSets = false;
         this.loading = false;
+        this.translationSetsLoaded = true; // Mark as loaded even on error
         this.labelSets = [];
       }
     );
@@ -377,8 +383,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
 
   selectSet(labelSet: any) {
     this.selectedLabelSet = labelSet;
-    this.getLabelSetMembers(labelSet);
-    this.loadLabelSetDetails(labelSet);
+    
+    // Only load translation-set members if status is READY
+    if (labelSet.status === 'READY') {
+      this.loadLabelSetDetails(labelSet);
+    } else {
+      // Clear members if status is not READY
+      this.selectedLabelSetMembers = [];
+    }
   }
 
   setMode(mode: string) {
@@ -720,6 +732,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         if (requestId === this.currentLabelSetRequestId) {
           this.selectedLabelSet = { ...this.selectedLabelSet, ...details };
           this.loadingLabelSetDetails = false;
+          
+          // Load translation-set members after details have been loaded
+          this.getLabelSetMembers(this.selectedLabelSet);
+          
           this.changeDetectorRef.detectChanges();
         }
       },
