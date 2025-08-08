@@ -1920,6 +1920,82 @@ class TranslationViewSet(MultipleFieldViewSet, DestroyModelMixin):
             status=HTTP_200_OK,
         )
 
+    @extend_schema(
+        description="Get units with changes since a specific date, optimized for performance.",
+        methods=["get"],
+        parameters=[
+            OpenApiParameter("since", str, OpenApiParameter.QUERY, description="ISO datetime (e.g., 2025-08-05T08:39:52.383Z)"),
+            OpenApiParameter("label", str, OpenApiParameter.QUERY, description="Label name to filter by"),
+            OpenApiParameter("state", str, OpenApiParameter.QUERY, description="Unit state filter (e.g., translated, fuzzy)"),
+        ],
+    )
+    @action(detail=True, methods=["get"])
+    def units_with_changes_since(self, request: Request, **kwargs):
+        """Optimized endpoint to get units that have changes since a specific date."""
+        from django.utils.dateparse import parse_datetime
+        from weblate.trans.models import Unit
+        from weblate.trans.models.change import Change
+        from weblate.utils.state import StringState
+        
+        translation = self.get_object()
+        
+        # Get query parameters
+        since_date_str = request.GET.get("since")
+        label = request.GET.get("label")
+        state_filter = request.GET.get("state")
+        
+        if not since_date_str:
+            raise ValidationError({"since": "Since date is required"})
+        
+        try:
+            since_date = parse_datetime(since_date_str)
+            if not since_date:
+                raise ValueError("Invalid datetime format")
+        except (ValueError, TypeError):
+            raise ValidationError({"since": "Invalid datetime format. Use ISO format (e.g., 2025-08-05T08:39:52.383Z)"})
+        
+        # Start with changes - this is the optimization
+        changes = Change.objects.filter(
+            timestamp__gt=since_date,
+            language=translation.language
+        ).select_related('unit', 'unit__source_unit')
+        
+        # Get unique unit IDs from changes
+        unit_ids = changes.values_list('unit_id', flat=True).distinct()
+        
+        # Now get the units with additional filters
+        units = Unit.objects.filter(
+            id__in=unit_ids,
+            translation=translation
+        ).select_related('source_unit')
+        
+        # Apply label filter if provided
+        if label:
+            units = units.filter(source_unit__labels__name=label)
+        
+        # Apply state filter if provided
+        if state_filter:
+            if state_filter == "translated":
+                units = units.filter(state__gte=StringState.STATE_TRANSLATED)
+            elif state_filter == "fuzzy":
+                units = units.filter(state=StringState.STATE_FUZZY)
+            elif state_filter == "approved":
+                units = units.filter(state=StringState.STATE_APPROVED)
+            elif state_filter == "untranslated":
+                units = units.filter(state__lt=StringState.STATE_TRANSLATED)
+        
+        # Paginate the results
+        page = self.paginate_queryset(units)
+        if page is not None:
+            from weblate.api.serializers import UnitSerializer
+            serializer = UnitSerializer(page, many=True, context={"request": request})
+            return self.get_paginated_response(serializer.data)
+        
+        # If no pagination, return all results
+        from weblate.api.serializers import UnitSerializer
+        serializer = UnitSerializer(units, many=True, context={"request": request})
+        return Response(serializer.data)
+
     def destroy(self, request: Request, *args, **kwargs):
         """Delete a translation."""
         instance = self.get_object()
