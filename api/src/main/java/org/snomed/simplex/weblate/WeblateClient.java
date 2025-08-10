@@ -351,7 +351,7 @@ public class WeblateClient {
 
 		} catch (HttpClientErrorException e) {
 			throw new ServiceExceptionWithStatusCode(("Failed to create new language. " +
-					"Weblate status code:%s").formatted(e.getStatusCode().value()), HttpStatus.INTERNAL_SERVER_ERROR, e);
+					"Snowlate status code:%s").formatted(e.getStatusCode().value()), HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 	}
 

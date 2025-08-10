@@ -133,13 +133,13 @@ public class WeblateSetService {
 
 		WeblateClient weblateClient = weblateClientFactory.getClient();
 		if (!weblateClient.isTranslationExistsSearchByLanguageRefset(translationSet.getLanguageCodeWithRefsetId())) {
-			throw new ServiceExceptionWithStatusCode("Translation does not exist in Weblate, " +
+			throw new ServiceExceptionWithStatusCode("Translation does not exist in Snowlate, " +
 					"please start language initialisation job or wait for it to finish.", HttpStatus.CONFLICT);
 		}
 
 		translationSet.setStatus(TranslationSetStatus.INITIALISING);
 
-		logger.info("Queueing Weblate Translation Set for creation {}/{}/{}", codesystemShortName, refsetId, translationSet.getLabel());
+		logger.info("Queueing Snowlate Translation Set for creation {}/{}/{}", codesystemShortName, refsetId, translationSet.getLabel());
 		weblateSetRepository.save(translationSet);
 		String username = SecurityUtil.getUsername();
 		translationSetUserIdToUserContextMap.put(username, SecurityContextHolder.getContext());
@@ -193,7 +193,7 @@ public class WeblateSetService {
 	}
 
 	public void deleteSet(WeblateTranslationSet translationSet) {
-		logger.info("Queueing Weblate Translation Set for deletion {}/{}/{}", translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
+		logger.info("Queueing Snowlate Translation Set for deletion {}/{}/{}", translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
 		translationSet.setStatus(TranslationSetStatus.DELETING);
 		weblateSetRepository.save(translationSet);
 
@@ -214,7 +214,7 @@ public class WeblateSetService {
 		String jobType = jobMessage.get(JOB_TYPE);
 		Optional<WeblateTranslationSet> optional = weblateSetRepository.findById(translationSetId);
 		if (optional.isEmpty()) {
-			logger.info("Weblate set was deleted before being processed {}", translationSetId);
+			logger.info("Snowlate set was deleted before being processed {}", translationSetId);
 			return;
 		}
 
@@ -259,7 +259,7 @@ public class WeblateSetService {
 		try {
 			subsetFile = weblateClient.downloadTranslationSubset(translationSet);
 		} catch (IOException e) {
-			throw new ServiceExceptionWithStatusCode("Failed to download translation file from Weblate.", HttpStatus.INTERNAL_SERVER_ERROR, e);
+			throw new ServiceExceptionWithStatusCode("Failed to download translation file from Snowlate.", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 		try (FileInputStream fileInputStream = new FileInputStream(subsetFile)) {
 			contentJob.addUpload(fileInputStream, "weblate-automatic-download.csv");

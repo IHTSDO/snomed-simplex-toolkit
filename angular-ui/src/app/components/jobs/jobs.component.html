@@ -4,7 +4,7 @@
     <!-- Integrated options for translation artifacts -->
     <div *ngIf="artifact?.type === 'translation' && !shouldDisableEditing() && !loadingActivities">
         <h5 *ngIf="!isWeblateLinked()">
-            Upload content or <a href="javascript:void(0)" (click)="linkToWeblate()" [class.disabled]="shouldDisableWeblateLinking()">link to Weblate</a>
+            Upload content or <a href="javascript:void(0)" (click)="linkToWeblate()" [class.disabled]="shouldDisableWeblateLinking()">link to Snowlate</a>
             <mat-icon *ngIf="hasWeblateActivityFailed" 
                      [matTooltip]="getWeblateActivityErrorMessage()" 
                      class="error-icon">error</mat-icon>
@@ -13,7 +13,7 @@
             <a href="javascript:void(0)" (click)="navigateToTranslationDashboard()">Use the Translation Dashboard</a>
         </h5>
         
-        <!-- Only show radio buttons if not Weblate linked -->
+        <!-- Only show radio buttons if not Snowlate linked -->
         <div class="row" *ngIf="!isWeblateLinked() && !shouldDisableEditing()">
             <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
               <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
@@ -21,7 +21,7 @@
               </mat-radio-button>
             </mat-radio-group>
         </div>
-        <!-- If user selects Weblate Translation in a non-linked translation, show the steps -->
+        <!-- If user selects Snowlate Translation in a non-linked translation, show the steps -->
         <div *ngIf="selectedFileType == 'weblateTranslation' && !isWeblateLinked() && !shouldDisableEditing()">
             <ng-container *ngTemplateOutlet="weblateSteps"></ng-container>
         </div>
@@ -44,11 +44,11 @@
         <p>Editing is temporarily disabled while a refset change job is in progress. Please wait for the job to complete.</p>
     </div>
     
-    <!-- Message when there's a Weblate language initialization activity -->
+    <!-- Message when there's a Snowlate language initialization activity -->
     <div *ngIf="hasWeblateActivity" class="job-in-progress-message">
         <p>
             <mat-icon class="processing-icon">schedule</mat-icon>
-            Editing is temporarily disabled while Weblate language initialization is in progress for this language. Please wait for the initialization to complete.
+            Editing is temporarily disabled while Snowlate language initialization is in progress for this language. Please wait for the initialization to complete.
         </p>
     </div>
     
@@ -313,38 +313,38 @@
 <p *ngIf="!loading && jobs.length == 0 && refsetId != 'external'" class="no-imports">There are no recent uploads for this component</p>
 <p *ngIf="!loading && jobs.length == 0 && refsetId == 'external'" class="no-imports">There are no recent tasks for this edition</p>
 
-<!-- Weblate Confirmation Modal -->
+<!-- Snowlate Confirmation Modal -->
 <app-modal id="weblate-confirmation-modal">
     <div header>
-        <h3>Link to Weblate</h3>
+        <h3>Link to Snowlate</h3>
     </div>
     <div body>
-        <p>This will create a Weblate project for this translation artifact, allowing you to edit translations online.</p>
+        <p>This will create a Snowlate project for this translation artifact, allowing you to edit translations online.</p>
         <p><strong>What happens next:</strong></p>
         <ul>
-            <li>A new Weblate project will be created</li>
-            <li>You'll be able to edit translations directly in Weblate</li>
+            <li>A new Snowlate project will be created</li>
+            <li>You'll be able to edit translations directly in Snowlate</li>
             <li>Changes can be downloaded and uploaded back to Simplex</li>
         </ul>
-        <p>Do you want to proceed with linking this translation to Weblate?</p>
+        <p>Do you want to proceed with linking this translation to Snowlate?</p>
     </div>
     <div footer>
         <button mat-flat-button (click)="closeWeblateConfirmation()">Cancel</button>
-        <button mat-flat-button color="primary" (click)="confirmLinkToWeblate()">Link to Weblate</button>
+        <button mat-flat-button color="primary" (click)="confirmLinkToWeblate()">Link to Snowlate</button>
     </div>
 </app-modal>
 
-<!-- Weblate steps template for reuse -->
+<!-- Snowlate steps template for reuse -->
 <ng-template #weblateSteps>
             <div *ngIf="!shouldDisableEditing()">
         <div class="step-row">
             <span class="step-number">1</span>
-            Edit translations in Weblate
-            <a mat-flat-button color="primary" href="https://translate.snomedtools.org" target="_blank">Open Weblate</a>
+            Edit translations in Snowlate
+            <a mat-flat-button color="primary" href="https://translate.snomedtools.org" target="_blank">Open Snowlate</a>
         </div>
         <div class="step-row">
             <span class="step-number">2</span>
-            Download translation from Weblate
+            Download translation from Snowlate
         </div>
         <div class="step-row">
             <span class="step-number">3</span>

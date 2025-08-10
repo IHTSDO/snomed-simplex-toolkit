@@ -131,13 +131,13 @@
                 <div>
                     <button mat-flat-button color="primary" *ngIf="selectedLabelSet.status === 'READY'"
                             (click)="openWeblateUrl(selectedLabelSet.weblateLabelUrl)">
-                        Open Set in Weblate
+                        Open Set in Snowlate
                     </button>
                 </div>
                 <br><br>
                 <div class="centered-button-container">
                     <button mat-flat-button color="primary" (click)="pullFromWeblate()">
-                        Pull new translations from Weblate
+                        Pull new translations from Snowlate
                     </button>
                     <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting">
                         <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
@@ -148,7 +148,7 @@
                 <div class="centered-button-container">
                     <h4>Not implemented:</h4>
                     <button mat-flat-button color="primary" disabled>
-                        Push to Weblate
+                        Push to Snowlate
                     </button>
                     <button mat-flat-button color="primary" disabled>
                         Assign Set to Users
@@ -224,7 +224,7 @@
                         <mat-option *ngFor="let translation of translations" 
                                    [value]="translation.id"
                                    [disabled]="!translation.isWeblate">
-                            {{translation.pt.term}}{{!translation.isWeblate ? ' (Not linked to Weblate)' : ''}}
+                            {{translation.pt.term}}{{!translation.isWeblate ? ' (Not linked to Snowlate)' : ''}}
                         </mat-option>
                     </mat-select>
                     <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>

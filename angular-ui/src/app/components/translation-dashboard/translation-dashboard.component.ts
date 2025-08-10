@@ -769,7 +769,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     }
 
     // Show confirmation dialog
-    if (confirm(`Are you sure you want to pull content from Weblate for "${this.selectedLabelSet.name}"?`)) {
+    if (confirm(`Are you sure you want to pull content from Snowlate for "${this.selectedLabelSet.name}"?`)) {
       this.simplexService.pullFromWeblate(
         this.selectedEdition.shortName,
         translationId,
@@ -784,7 +784,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         },
         (error) => {
           console.error(error);
-          this.snackBar.open('Failed to pull content from Weblate', 'Dismiss', {
+          this.snackBar.open('Failed to pull content from Snowlate', 'Dismiss', {
             duration: 5000
           });
         }

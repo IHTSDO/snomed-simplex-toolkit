@@ -161,7 +161,7 @@ public class WeblateService {
 
 				// LanguageCode format = lang-refsetid, example fr-100000100
 				if (!weblateClient.isLanguageExists(languageCodeWithRefset)) {
-					logger.info("Language {} does not exist in Weblate, creating...", languageCodeWithRefset);
+					logger.info("Language {} does not exist in Snowlate, creating...", languageCodeWithRefset);
 					String refsetTerm = langRefset.getPtOrFsnOrConceptId();
 					String leftToRight = "ltr";
 					// This request is quick because it's not creating any terms.
@@ -169,12 +169,12 @@ public class WeblateService {
 				}
 
 				if (!weblateClient.isTranslationExistsSearchByLanguageRefset(languageCodeWithRefset)) {
-					logger.info("Translation {} does not exist in Weblate, creating...", languageCodeWithRefset);
+					logger.info("Translation {} does not exist in Snowlate, creating...", languageCodeWithRefset);
 					// This request takes a long time because it's creating a new translation of the terms.
 					weblateClient.createTranslation(languageCodeWithRefset);
 				}
 			} catch (ServiceExceptionWithStatusCode e) {
-				supportRegister.handleSystemError(CodeSystem.SHARED, "Failed to add Weblate language.", e);
+				supportRegister.handleSystemError(CodeSystem.SHARED, "Failed to add Snowlate language.", e);
 				errorCallback.accept(e);
 			}
 		});

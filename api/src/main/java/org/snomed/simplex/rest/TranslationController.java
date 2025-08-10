@@ -105,7 +105,7 @@ public class TranslationController {
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-setup")
-	@Operation(summary = "Setup a language refset for weblate translation.")
+	@Operation(summary = "Setup a language refset for Snowlate translation.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob initialiseInWeblate(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
 
@@ -130,8 +130,8 @@ public class TranslationController {
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set")
-	@Operation(summary = "Create a new Weblate translation set for a language refset.",
-			description = "Creates a new translation set in Weblate. The 'label' parameter must be a lowercase URL-friendly string using characters [a-z0-9_-]. The 'name' parameter is the human-readable display name for the translation set.")
+	@Operation(summary = "Create a new Snowlate translation set for a language refset.",
+			description = "Creates a new translation set in Snowlate. The 'label' parameter must be a lowercase URL-friendly string using characters [a-z0-9_-]. The 'name' parameter is the human-readable display name for the translation set.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public WeblateTranslationSet createWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestBody CreateWeblateTranslationSet createRequest) throws ServiceException {
@@ -164,11 +164,11 @@ public class TranslationController {
 		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		int translated = weblateSetService.getStateCount(translationSet, "translated");
 		translationSet.setTranslated(translated);
-		
+
 		// Get count of translations changed since the set was created or last pulled
 		int changedSince = weblateSetService.getChangedSinceCount(translationSet);
 		translationSet.setChangedSinceCreatedOrLastPulled(changedSince);
-		
+
 		return translationSet;
 	}
 
@@ -186,14 +186,14 @@ public class TranslationController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
-		final ContentJob weblatePull = new ContentJob(theCodeSystem, "Weblate pull", refsetId);
+		final ContentJob weblatePull = new ContentJob(theCodeSystem, "Snowlate pull", refsetId);
 		return jobService.queueContentJob(weblatePull, refsetId, activity,
 			job -> weblateSetService.pullTranslationSubset(weblatePull, label));
 	}
 
 	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")
-	@Operation(summary = "Asynchronously delete a Weblate translation set.",
-			description = "Deletes a Weblate translation set as an asynchronous operation. The status of the set will be set to DELETING immediately. " +
+	@Operation(summary = "Asynchronously delete a Snowlate translation set.",
+			description = "Deletes a Snowlate translation set as an asynchronous operation. The status of the set will be set to DELETING immediately. " +
 				"The set will be deleted from the system over the next few minutes. Sets with a status of DELETING should be hidden from the user.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void deleteWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
