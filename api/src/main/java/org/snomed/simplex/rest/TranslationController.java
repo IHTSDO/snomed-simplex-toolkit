@@ -24,6 +24,7 @@ import org.snomed.simplex.service.external.WeblateLanguageInitialisationRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.service.job.JobType;
+import org.snomed.simplex.weblate.WeblateService;
 import org.snomed.simplex.weblate.WeblateSetService;
 import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
@@ -61,16 +62,19 @@ public class TranslationController {
 	private final TranslationService translationService;
 	private final ContentProcessingJobService jobService;
 	private final ActivityService activityService;
+	private final WeblateService weblateService;
 	private final WeblateSetService weblateSetService;
 	private final WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService;
 
 	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, ContentProcessingJobService jobService,
-			ActivityService activityService, WeblateSetService weblateSetService, WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService) {
+			ActivityService activityService,
+			WeblateService weblateService, WeblateSetService weblateSetService, WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
 		this.jobService = jobService;
 		this.activityService = activityService;
+		this.weblateService = weblateService;
 		this.weblateSetService = weblateSetService;
 		this.weblateLanguageInitialisationJobService = weblateLanguageInitialisationJobService;
 	}
@@ -112,7 +116,7 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-
+		weblateService.runUserAccessCheck();
 		WeblateLanguageInitialisationRequest request = new WeblateLanguageInitialisationRequest(refsetId);
 		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, refsetId, ActivityType.WEBLATE_LANGUAGE_INITIALISATION, weblateLanguageInitialisationJobService, request);
 	}
@@ -120,6 +124,7 @@ public class TranslationController {
 	@GetMapping("{codeSystem}/translations/weblate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<WeblateTranslationSet> listAllWeblateSets(@PathVariable String codeSystem) throws ServiceExceptionWithStatusCode {
+		weblateService.runUserAccessCheck();
 		return weblateSetService.findByCodeSystem(codeSystem);
 	}
 

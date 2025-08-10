@@ -1,8 +1,10 @@
 package org.snomed.simplex.weblate;
 
 import org.apache.hc.core5.concurrent.DefaultThreadFactory;
+import org.ihtsdo.sso.integration.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.AuthenticationClient;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -16,6 +18,7 @@ import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.weblate.domain.WeblateComponent;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
+import org.snomed.simplex.weblate.domain.WeblateUser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContext;
@@ -45,17 +48,39 @@ public class WeblateService {
 	private final WeblateGitClient weblateGitClient;
 	private final ExecutorService addLanguageExecutorService;
 	private final SupportRegister supportRegister;
+	private final AuthenticationClient authenticationClient;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory, WeblateGitClient weblateGitClient,
-			SupportRegister supportRegister) {
+			SupportRegister supportRegister, AuthenticationClient authenticationClient) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClientFactory = weblateClientFactory;
 		this.weblateGitClient = weblateGitClient;
 		this.supportRegister = supportRegister;
+		this.authenticationClient = authenticationClient;
 		addLanguageExecutorService = Executors.newFixedThreadPool(1, new DefaultThreadFactory("Weblate-add-language-thread"));
+	}
+
+	public void runUserAccessCheck() {
+		WeblateAdminClient adminClient = weblateClientFactory.getAdminClient();
+		String username = SecurityUtil.getUsername();
+		WeblateUser weblateUser = adminClient.getWeblateUser(username);
+
+		if (weblateUser == null) {
+			logger.info("Automatically creating new Weblate user {}", username);
+			weblateUser = adminClient.createUser(getUserDetails());
+		}
+		if (weblateUser.getUsername().equals(weblateUser.getFull_name())) {
+//			// Fix name
+			logger.info("Automatically updating Weblate user details {}", username);
+			adminClient.updateDetails(getUserDetails());
+		}
+	}
+
+	private AuthenticationClient.UserDetails getUserDetails() {
+		return authenticationClient.fetchUserDetails(SecurityUtil.getAuthenticationToken());
 	}
 
 	public Page<WeblateComponent> getSharedSets() throws ServiceException {
