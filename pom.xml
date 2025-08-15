@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.snomed</groupId>
 		<artifactId>snomed-parent-bom</artifactId>
-		<version>3.6.2</version>
+		<version>3.11.0-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.snomed.simplex</groupId>
@@ -19,8 +19,6 @@
 
 	<properties>
 		<!-- BOM Overrides. Remove and reassert as needed when upgrading the BOM. -->
-		<spring.version>6.1.14</spring.version>
-		<springdoc-openapi-starter-webmvc-ui.version>2.6.0</springdoc-openapi-starter-webmvc-ui.version>
 	</properties>
 
 	<modules>
