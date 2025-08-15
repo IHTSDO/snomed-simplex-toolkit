@@ -1,9 +1,12 @@
 package org.snomed.simplex.weblate.domain;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
+
 public class WeblateUser {
 	private int id;
 	private String email;
-	private String full_name;
+	private String fullName;
 	private String username;
 
 	public int getId() {
@@ -22,12 +25,14 @@ public class WeblateUser {
 		this.email = email;
 	}
 
-	public String getFull_name() {
-		return full_name;
+	@JsonGetter("full_name")
+	public String getFullName() {
+		return fullName;
 	}
 
-	public void setFull_name(String full_name) {
-		this.full_name = full_name;
+	@JsonSetter("full_name")
+	public void setFullName(String fullName) {
+		this.fullName = fullName;
 	}
 
 	public String getUsername() {

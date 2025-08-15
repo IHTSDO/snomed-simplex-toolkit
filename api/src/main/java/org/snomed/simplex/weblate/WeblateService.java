@@ -72,7 +72,7 @@ public class WeblateService {
 			logger.info("Automatically creating new Weblate user {}", username);
 			weblateUser = adminClient.createUser(getUserDetails());
 		}
-		if (weblateUser.getUsername().equals(weblateUser.getFull_name())) {
+		if (weblateUser.getUsername().equals(weblateUser.getFullName())) {
 //			// Fix name
 			logger.info("Automatically updating Weblate user details {}", username);
 			adminClient.updateDetails(getUserDetails());
