@@ -1,5 +1,7 @@
 package org.snomed.simplex.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -27,6 +29,8 @@ public class SecurityService {
 	private final SnowstormClientFactory snowstormClientFactory;
 
 	private final Map<String, Map<String, Set<String>>> userCodesystemRoleCache;
+
+	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public SecurityService(SnowstormClientFactory snowstormClientFactory) {
 		userCodesystemRoleCache = new HashMap<>();
@@ -68,7 +72,12 @@ public class SecurityService {
 				return false;
 			}
 		}
-		return userCodesystemRoleCache.getOrDefault(principal, Collections.emptyMap())
-				.getOrDefault(codesystem, Collections.emptySet()).contains(role);
+		Map<String, Set<String>> codesystemsRolesMap = userCodesystemRoleCache.getOrDefault(principal, Collections.emptyMap());
+		Set<String> singleCodesystemRoles = codesystemsRolesMap.getOrDefault(codesystem, Collections.emptySet());
+		boolean userHasRole = singleCodesystemRoles.contains(role);
+		if (!userHasRole) {
+			logger.info("User {} does not have required role {} on codesystem {}", principal, role, codesystem);
+		}
+		return userHasRole;
 	}
 }
