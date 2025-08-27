@@ -67,12 +67,12 @@ public class WeblateSetService {
 	}
 
 	public List<WeblateTranslationSet> findByCodeSystem(String codeSystem) throws ServiceExceptionWithStatusCode {
-		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystem(codeSystem);
+		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystemOrderByName(codeSystem);
 		return processTranslationSets(list);
 	}
 
 	public List<WeblateTranslationSet> findByCodeSystemAndRefset(String codeSystem, String refsetId) throws ServiceExceptionWithStatusCode {
-		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystemAndRefset(codeSystem, refsetId);
+		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystemAndRefsetOrderByName(codeSystem, refsetId);
 		return processTranslationSets(list);
 	}
 
@@ -119,7 +119,7 @@ public class WeblateSetService {
 		ServiceHelper.requiredParameter("ecl", translationSet.getEcl());
 		ServiceHelper.requiredParameter("selectionCodesystem", translationSet.getSelectionCodesystem());
 
-		Optional<WeblateTranslationSet> optional = weblateSetRepository.findByCodesystemAndLabelAndRefset(codesystemShortName, translationSet.getLabel(), refsetId);
+		Optional<WeblateTranslationSet> optional = weblateSetRepository.findByCodesystemAndLabelAndRefsetOrderByName(codesystemShortName, translationSet.getLabel(), refsetId);
 		if (optional.isPresent()) {
 			throw new ServiceExceptionWithStatusCode("A translation set with this label already exists.", HttpStatus.CONFLICT);
 		}
@@ -288,7 +288,7 @@ public class WeblateSetService {
 		String code;
 		String compositeLabel = translationSet.getCompositeLabel();
 
-		WeblateLabel weblateLabel = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, compositeLabel);
+		WeblateLabel weblateLabel = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, compositeLabel, translationSet.getName());
 
 		List<String> codes = new ArrayList<>();
 		int done = 0;

@@ -108,25 +108,25 @@ public class WeblateClient {
 	 * @param pageSize Page size for pagination (default 1 for counting)
 	 * @return WeblatePage containing the units with changes
 	 */
-	public WeblatePage<WeblateUnit> getUnitsWithChangesSince(String projectSlug, String componentSlug, 
+	public WeblatePage<WeblateUnit> getUnitsWithChangesSince(String projectSlug, String componentSlug,
 			String languageCode, Date sinceDate, String label, String state, int pageSize) {
-		
+
 		UriComponentsBuilder builder = UriComponentsBuilder.fromPath("/translations/{project}/{component}/{language}/units_with_changes_since/")
 				.queryParam("since", formatDateForWeblate(sinceDate))
 				.queryParam("format", "json")
 				.queryParam("page_size", pageSize);
-		
+
 		if (label != null && !label.isEmpty()) {
 			builder.queryParam("label", label);
 		}
-		
+
 		if (state != null && !state.isEmpty()) {
 			builder.queryParam("state", state);
 		}
-		
+
 		String finalUrl = builder.buildAndExpand(projectSlug, componentSlug, languageCode).toUriString();
 		logger.info("Getting units with changes since from Weblate: {}", finalUrl);
-		
+
 		return restTemplate.exchange(finalUrl, HttpMethod.GET, null, UNITS_RESPONSE_TYPE).getBody();
 	}
 
@@ -385,12 +385,12 @@ public class WeblateClient {
 		}
 	}
 
-	public WeblateLabel getCreateLabel(String project, String label) {
+	public WeblateLabel getCreateLabel(String project, String label, String description) {
 		try {
 			WeblateLabel existing = getLabel(project, label);
 			if (existing != null) return existing;
 
-			WeblateLabel newLabel = new WeblateLabel(null, label, "", "blue");
+			WeblateLabel newLabel = new WeblateLabel(null, label, description, "blue");
 			String url = getLabelsUrl(project);
 			restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(newLabel, getJsonHeaders()), Void.class);
 			return getLabel(project, label);

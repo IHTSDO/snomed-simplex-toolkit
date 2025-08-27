@@ -8,9 +8,9 @@ import java.util.Optional;
 
 public interface WeblateSetRepository extends ElasticsearchRepository<WeblateTranslationSet, String> {
 
-	List<WeblateTranslationSet> findByCodesystem(String codesystem);
+	List<WeblateTranslationSet> findByCodesystemOrderByName(String codesystem);
 
-	List<WeblateTranslationSet> findByCodesystemAndRefset(String codesystem, String refsetId);
+	List<WeblateTranslationSet> findByCodesystemAndRefsetOrderByName(String codesystem, String refsetId);
 
-	Optional<WeblateTranslationSet> findByCodesystemAndLabelAndRefset(String codesystem, String label, String refset);
+	Optional<WeblateTranslationSet> findByCodesystemAndLabelAndRefsetOrderByName(String codesystem, String label, String refset);
 }
