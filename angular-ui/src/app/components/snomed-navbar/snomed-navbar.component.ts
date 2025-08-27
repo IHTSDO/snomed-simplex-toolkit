@@ -8,6 +8,7 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { CookieService } from 'ngx-cookie-service';
 
 @Component({
     selector: 'app-snomed-navbar',
@@ -42,6 +43,7 @@ export class SnomedNavbarComponent implements OnInit {
 
     editions = [];
     loading = false;
+    private readonly SELECTED_EDITION_COOKIE_NAME = 'selectedEdition';
 
     constructor(
         private authenticationService: AuthenticationService, 
@@ -51,7 +53,8 @@ export class SnomedNavbarComponent implements OnInit {
         private uiConfigurationService: UiConfigurationService,
         private route: ActivatedRoute,
         private router: Router,
-        private simplexService: SimplexService) {
+        private simplexService: SimplexService,
+        private cookieService: CookieService) {
         }
 
     ngOnInit() {
@@ -125,7 +128,15 @@ export class SnomedNavbarComponent implements OnInit {
             if (editionParam && matchedEdition) {
                 this.selectEdition(matchedEdition);
             } else {
-                this.selectEdition(this.editions[0]);
+                // Check for saved edition in cookie
+                const savedEditionShortName = this.getSavedEdition();
+                const savedEdition = this.editions.find((item) => item.shortName === savedEditionShortName);
+                
+                if (savedEdition) {
+                    this.selectEdition(savedEdition);
+                } else {
+                    this.selectEdition(this.editions[0]);
+                }
             }
             this.loading = false;
             },
@@ -151,8 +162,29 @@ export class SnomedNavbarComponent implements OnInit {
     selectEdition(item: any) {
         this.selectedEdition = item;
         this.uiConfigurationService.setSelectedEdition(item);
+        this.saveEditionToCookie(item.shortName);
         let url = this.router.url;
         this.updateEditionInUrl(item.shortName);
+    }
+
+    private saveEditionToCookie(editionShortName: string): void {
+        try {
+            // Set cookie to expire in 1 year
+            const expiryDate = new Date();
+            expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+            this.cookieService.set(this.SELECTED_EDITION_COOKIE_NAME, editionShortName, expiryDate);
+        } catch (error) {
+            console.error('Error saving edition cookie:', error);
+        }
+    }
+
+    private getSavedEdition(): string | null {
+        try {
+            return this.cookieService.get(this.SELECTED_EDITION_COOKIE_NAME) || null;
+        } catch (error) {
+            console.error('Error reading edition cookie:', error);
+            return null;
+        }
     }
 
     updateEditionInUrl(edition: string) {
