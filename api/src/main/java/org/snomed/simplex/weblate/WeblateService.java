@@ -45,19 +45,17 @@ public class WeblateService {
 	public String commonProject;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final WeblateClientFactory weblateClientFactory;
-	private final WeblateGitClient weblateGitClient;
 	private final ExecutorService addLanguageExecutorService;
 	private final SupportRegister supportRegister;
 	private final AuthenticationClient authenticationClient;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory, WeblateGitClient weblateGitClient,
+	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory,
 			SupportRegister supportRegister, AuthenticationClient authenticationClient) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClientFactory = weblateClientFactory;
-		this.weblateGitClient = weblateGitClient;
 		this.supportRegister = supportRegister;
 		this.authenticationClient = authenticationClient;
 		addLanguageExecutorService = Executors.newFixedThreadPool(1, new DefaultThreadFactory("Weblate-add-language-thread"));
@@ -93,11 +91,6 @@ public class WeblateService {
 		String project = commonProject;
 		ServiceHelper.requiredParameter("slug", slug);
 		ServiceHelper.requiredParameter("project", project);
-
-		// nonsense code for sonar
-		if (slug.equals("xxx")) {
-			logger.info(weblateGitClient.getRemoteRepo());
-		}
 
 		WeblateClient weblateClient = weblateClientFactory.getClient();
 

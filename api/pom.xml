@@ -126,11 +126,6 @@
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-xml</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.eclipse.jgit</groupId>
-			<artifactId>org.eclipse.jgit.ssh.apache</artifactId>
-			<version>7.1.0.202411261347-r</version>
-		</dependency>
 
 		<!-- Consul and Vault configuration services (optional) -->
 		<dependency>
