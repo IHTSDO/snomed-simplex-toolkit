@@ -138,6 +138,7 @@ public class WeblateSetService {
 		}
 
 		translationSet.setStatus(TranslationSetStatus.INITIALISING);
+		translationSet.setPercentageProcessed(5);
 
 		logger.info("Queueing Snowlate Translation Set for creation {}/{}/{}", codesystemShortName, refsetId, translationSet.getLabel());
 		weblateSetRepository.save(translationSet);
