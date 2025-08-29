@@ -166,6 +166,8 @@
 				<configuration>
 					<!-- Disable .NET assembly analysis since this is a Java project -->
 					<assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+					<!-- Fail build if CVSS score is 7.0 or higher (High/Critical severity) -->
+					<failBuildOnCVSS>7.0</failBuildOnCVSS>
 					<formats>
 						<format>HTML</format>
 						<format>JSON</format>
