@@ -19,6 +19,7 @@ import static org.snomed.simplex.weblate.WeblateClient.getUnitQuery;
 
 public class WeblateUnitStream implements UnitSupplier {
 
+	public static final int PAGE_SIZE = 1000;
 	private final WeblateClient weblateClient;
 	private String nextUrl;
 	private WeblatePage<WeblateUnit> page;
@@ -27,7 +28,7 @@ public class WeblateUnitStream implements UnitSupplier {
 	private Iterator<WeblateUnit> iterator;
 	public WeblateUnitStream(String projectSlug, String componentSlug, int startPage, WeblateClient weblateClient) {
 		nextUrl = "%s&page=%s".formatted(getUnitQuery(UnitQueryBuilder.of(projectSlug, componentSlug)
-				.pageSize(1000)
+				.pageSize(PAGE_SIZE)
 				.fastestSort(true)), startPage);
 		this.weblateClient = weblateClient;
 	}
@@ -69,8 +70,8 @@ public class WeblateUnitStream implements UnitSupplier {
 			String[] split = nextUrl.split("&");
 			String pageNum = split[1];
 			pageNum = pageNum.split("=")[1];
-			int done = Integer.parseInt(pageNum) * 100;
-			if (done % 1000 == 0) {
+			int done = Integer.parseInt(pageNum) * PAGE_SIZE;
+			if (done % PAGE_SIZE == 0) {
 				int percentComplete = Math.round(((float) done / page.count()) * 100);
 				logger.info("Completed {}/{}, {}%", String.format("%,d", done), String.format("%,d", page.count()), percentComplete);
 			}
