@@ -11,7 +11,7 @@ import org.springframework.security.config.annotation.web.configurers.FormLoginC
 import org.springframework.security.config.annotation.web.configurers.HttpBasicConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -48,7 +48,7 @@ public class HttpSecurityConfig {
 			http.addFilterAt(new RequiredRoleFilter(requiredRole, excludedUrlPatterns), AuthorizationFilter.class);
 
 			for (String pattern : excludedUrlPatterns) {
-				http.authorizeHttpRequests(auth -> auth.requestMatchers(new AntPathRequestMatcher(pattern)).permitAll());
+				http.authorizeHttpRequests(auth -> auth.requestMatchers(PathPatternRequestMatcher.withDefaults().matcher(pattern)).permitAll());
 			}
 			http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
 					.exceptionHandling(ah -> ah.accessDeniedHandler(new AccessDeniedExceptionHandler()))

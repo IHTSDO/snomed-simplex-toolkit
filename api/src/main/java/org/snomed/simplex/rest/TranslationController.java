@@ -2,7 +2,6 @@ package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -31,13 +30,8 @@ import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.util.List;
@@ -239,13 +233,6 @@ public class TranslationController {
 	@GetMapping(path = "language-codes")
 	public List<LanguageCode> getLanguageCodes() {
 		return translationService.getLanguageCodes();
-	}
-
-	static String getAsyncJobUrl(String id) {
-		RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
-		Assert.state(attrs instanceof ServletRequestAttributes, "No current ServletRequestAttributes");
-		HttpServletRequest request = ((ServletRequestAttributes) attrs).getRequest();
-		return ServletUriComponentsBuilder.fromHttpUrl(request.getRequestURL().toString()).path("/{id}").buildAndExpand(id).toUri().toString();
 	}
 
 	@GetMapping(path = "translation-markdown", produces = "text/plain")
