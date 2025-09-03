@@ -2,6 +2,9 @@ package org.snomed.simplex.client.domain;
 
 public class Concepts {
 
+	private Concepts() {
+	}
+
 	public static final String FOUNDATION_METADATA_CONCEPT_TAG = "foundation metadata concept";
 
 	// 900000000000443000 |Module (core metadata concept)|

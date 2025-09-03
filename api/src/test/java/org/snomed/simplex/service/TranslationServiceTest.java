@@ -6,7 +6,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mockito;
 import org.snomed.otf.snomedboot.testutil.ZipUtil;
-import org.snomed.simplex.TestConfig;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -14,20 +13,20 @@ import org.snomed.simplex.client.domain.Concept;
 import org.snomed.simplex.client.domain.Description;
 import org.snomed.simplex.client.domain.DummyProgressMonitor;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.service.job.ChangeSummary;
+import org.snomed.simplex.service.job.DummyChangeMonitor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.snomed.simplex.client.domain.Concepts.US_LANG_REFSET;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 
 @SpringBootTest
@@ -37,7 +36,7 @@ class TranslationServiceTest {
 	@Autowired
 	private TranslationService service;
 
-	@MockBean
+	@MockitoBean
 	private SnowstormClientFactory snowstormClientFactory;
 
 	@Captor
@@ -135,5 +134,34 @@ class TranslationServiceTest {
 		} catch (ServiceException e) {
 			assertEquals("3 of the uploaded terms have an incorrect language. Set language code to 'vi' for all terms and try again.", e.getMessage());
 		}
+	}
+
+	@Test
+	void updateConceptDescriptionsToFixBadFsn() throws ServiceException {
+		String languageCode = "en";
+		List<Description> existingDescriptions = new ArrayList<>(List.of(
+			new Description(Description.Type.FSN, languageCode, "One (procedure) (procedure)", CASE_INSENSITIVE, new HashMap<>(Map.of(US_LANG_REFSET, Description.Acceptability.PREFERRED))),
+			new Description(Description.Type.SYNONYM, languageCode, "One (procedure)", CASE_INSENSITIVE, new HashMap<>(Map.of(US_LANG_REFSET, Description.Acceptability.PREFERRED))),
+			new Description(Description.Type.SYNONYM, languageCode, "One", CASE_INSENSITIVE, new HashMap<>(Map.of(US_LANG_REFSET, Description.Acceptability.ACCEPTABLE)))
+		));
+		List<Description> uploadedDescriptions = List.of(
+			new Description(Description.Type.FSN, languageCode, "One (procedure)", CASE_INSENSITIVE, Map.of(US_LANG_REFSET, Description.Acceptability.PREFERRED)),
+			new Description(Description.Type.SYNONYM, languageCode, "One", CASE_INSENSITIVE, Map.of(US_LANG_REFSET, Description.Acceptability.PREFERRED))
+		);
+		boolean anyChange = service.updateConceptDescriptions("1234567", existingDescriptions, uploadedDescriptions, languageCode, US_LANG_REFSET,
+			true, new DummyChangeMonitor(), new ChangeSummary());
+
+		assertEquals(2, existingDescriptions.size());
+		assertTrue(anyChange);
+
+		Optional<Description> actualFSNOptional = existingDescriptions.stream().filter(d -> d.getType() == Description.Type.FSN).findFirst();
+		assertTrue(actualFSNOptional.isPresent());
+		Description actualFSN = actualFSNOptional.get();
+		assertEquals("One (procedure)", actualFSN.getTerm());
+
+		Optional<Description> actualPTOptional = existingDescriptions.stream().filter(d -> d.getType() == Description.Type.SYNONYM).findFirst();
+		assertTrue(actualPTOptional.isPresent());
+		Description actualPT = actualPTOptional.get();
+		assertEquals("One", actualPT.getTerm());
 	}
 }

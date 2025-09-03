@@ -297,7 +297,7 @@ public class TranslationService {
 					&& snowstormDescription.isActive()
 					&& snowstormDescription.getAcceptabilityMap().containsKey(languageRefsetId)) {
 
-				if (uploadedDescriptions.stream().noneMatch(uploadedDescription -> uploadedDescription.getTerm().equals(snowstormDescription.getTerm()))) {
+				if (uploadedDescriptions.stream().noneMatch(uploadedDescription -> descriptionsEqual(snowstormDescription, uploadedDescription))) {
 					// Description in Snowstorm does not match any of the uploaded descriptions. Remove the acceptability for this lang-refset
 					snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
 					anyChange = true;
@@ -321,9 +321,9 @@ public class TranslationService {
 		// Add any missing descriptions in the snowstorm concept
 		boolean descriptionChange;
 		for (Description uploadedDescription : uploadedDescriptions) {
-			// Match by language and term only
+			// Match by language, term and type only
 			Optional<Description> existingDescriptionOptional = existingDescriptions.stream()
-					.filter(d -> d.getLang().equals(languageCode) && d.getTerm().equals(uploadedDescription.getTerm())).findFirst();
+					.filter(d -> descriptionsEqual(uploadedDescription, d)).findFirst();
 
 			descriptionChange = false;
 
@@ -392,6 +392,12 @@ public class TranslationService {
 		}
 
 		return anyChange;
+	}
+
+	private static boolean descriptionsEqual(Description descriptionA, Description descriptionB) {
+		return descriptionA.getType() == descriptionB.getType() &&
+			descriptionA.getLang().equals(descriptionB.getLang()) &&
+			descriptionB.getTerm().equals(descriptionA.getTerm());
 	}
 
 	private Description getPt(List<Description> descriptions, String languageRefsetId) {
