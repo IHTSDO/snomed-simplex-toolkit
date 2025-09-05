@@ -25,8 +25,14 @@ public class WeblateClientFactory {
 	private final Cache<String, WeblateClient> clientCache;
 	private final String url;
 	private final SupportRegister supportRegister;
-	private final WeblateAdminClient adminClient;
+	private volatile WeblateAdminClient adminClient;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
+	
+	// Fields for admin client recreation
+	private long adminClientCreationTime;
+	private final AuthenticationClient authenticationClient;
+	private final String adminUsername;
+	private final String adminPassword;
 
 	public WeblateClientFactory(@Value("${weblate.url}") String url, SupportRegister supportRegister,
 			@Value("${weblate.admin.username}") String adminUsername, @Value("${weblate.admin.password}") String adminPassword,
@@ -35,7 +41,11 @@ public class WeblateClientFactory {
 		this.clientCache = CacheBuilder.newBuilder().expireAfterAccess(5L, TimeUnit.MINUTES).build();
 		this.url = url;
 		this.supportRegister = supportRegister;
-		adminClient = createAdminClient(authenticationClient, adminUsername, adminPassword);
+		this.authenticationClient = authenticationClient;
+		this.adminUsername = adminUsername;
+		this.adminPassword = adminPassword;
+		this.adminClient = createAdminClient(authenticationClient, adminUsername, adminPassword);
+		this.adminClientCreationTime = System.currentTimeMillis();
 	}
 
 	public WeblateClient getClient() throws ServiceExceptionWithStatusCode {
@@ -51,6 +61,26 @@ public class WeblateClientFactory {
 	}
 
 	WeblateAdminClient getAdminClient() {
+		long currentTime = System.currentTimeMillis();
+		long timeSinceCreation = currentTime - adminClientCreationTime;
+		
+		// If more than 10 minutes have passed, recreate the admin client
+		if (timeSinceCreation > TimeUnit.MINUTES.toMillis(10)) {
+			synchronized (this) {
+				// Double-check pattern to avoid race conditions
+				if (currentTime - adminClientCreationTime > TimeUnit.MINUTES.toMillis(10)) {
+					try {
+						adminClient = createAdminClient(authenticationClient, adminUsername, adminPassword);
+						adminClientCreationTime = currentTime;
+						logger.info("Admin client recreated after {} minutes", TimeUnit.MILLISECONDS.toMinutes(timeSinceCreation));
+					} catch (ServiceException e) {
+						logger.error("Failed to recreate admin client", e);
+						// Return the existing client if recreation fails
+					}
+				}
+			}
+		}
+		
 		return adminClient;
 	}
 
