@@ -294,7 +294,7 @@ export class SimplexService {
     return this.http.get(`/api/language-codes`).pipe(catchError(this.handleError.bind(this)));
   }
 
-  // Snowlate utils
+  // Translation Tool utils
 
   public getSharedSets(): Observable<any> {
     return this.http.get(`/api/weblate/shared-components`).pipe(catchError(this.handleError.bind(this)));

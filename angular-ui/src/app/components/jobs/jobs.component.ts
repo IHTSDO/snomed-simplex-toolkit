@@ -217,7 +217,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         this.loadingActivities = false;
         this.changeDetectorRef.detectChanges();
 
-        // Check for Snowlate-related activities
+        // Check for Translation Tool-related activities
         this.checkWeblateActivities();
 
         // Manage activities polling
@@ -226,9 +226,9 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   private checkWeblateActivities() {
-    // Check if there are any activities related to Snowlate language initialization for this artifact
+    // Check if there are any activities related to Translation Tool language initialization for this artifact
     this.hasWeblateActivity = this.activities.some((activity: any) => {
-      // Check if activity is related to Snowlate language initialization and this specific artifact
+      // Check if activity is related to Translation Tool language initialization and this specific artifact
       // Activity is still running if it has no endDate
       return activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
              activity.componentType === 'TRANSLATION' &&
@@ -236,7 +236,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
              !activity.endDate;
     });
 
-    // Check for failed Snowlate activities
+    // Check for failed Translation Tool activities
     this.hasWeblateActivityFailed = this.activities.some((activity: any) => {
       return activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
              activity.componentType === 'TRANSLATION' &&
@@ -475,7 +475,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   filterFileTypes() {
     if (this.artifact && this.artifact.type) {
-      // If translation is linked to Snowlate, only show weblateTranslation option
+      // If translation is linked to Translation Tool, only show weblateTranslation option
       if (this.artifact.type === 'translation' && this.isWeblateLinked()) {
         this.filteredFileTypes = this.fileTypes.filter((type) =>
           type.value === 'weblateTranslation'
@@ -562,12 +562,12 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   shouldDisableWeblateLinking(): boolean {
-    // Disable Snowlate linking if there's a specific activity for this artifact
+    // Disable Translation Tool linking if there's a specific activity for this artifact
     return this.hasWeblateActivity || this.saving;
   }
 
   shouldDisableEditing(): boolean {
-    // Disable all editing options if there's a Snowlate language initialization activity for this specific language
+    // Disable all editing options if there's a Translation Tool language initialization activity for this specific language
     return this.hasWeblateActivity || this.hasActiveRefsetChangeJob();
   }
 
