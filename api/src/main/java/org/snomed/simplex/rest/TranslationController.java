@@ -12,10 +12,7 @@ import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
-import org.snomed.simplex.rest.pojos.AssignWorkRequest;
-import org.snomed.simplex.rest.pojos.CreateTranslationRequest;
-import org.snomed.simplex.rest.pojos.CreateWeblateTranslationSet;
-import org.snomed.simplex.rest.pojos.LanguageCode;
+import org.snomed.simplex.rest.pojos.*;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.TranslationService;
@@ -199,9 +196,11 @@ public class TranslationController {
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/sample-rows")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public WeblatePage<WeblateUnit> getSampleWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
+	public WeblatePage<WeblateUnit> getSampleWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+			@RequestParam(required = false, defaultValue = "10") int pageSize) throws ServiceExceptionWithStatusCode {
+
 		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		return weblateSetService.getSampleRows(translationSet);
+		return weblateSetService.getSampleRows(translationSet, pageSize);
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/pull-content")
@@ -214,6 +213,17 @@ public class TranslationController {
 		final ContentJob weblatePull = new ContentJob(theCodeSystem, "Snowlate pull", refsetId);
 		return jobService.queueContentJob(weblatePull, refsetId, activity,
 			job -> weblateSetService.pullTranslationSubset(weblatePull, label));
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/ai-setup")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void translationSetAiSetup(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+			@RequestBody AiSetupRequest request) throws ServiceExceptionWithStatusCode {
+
+		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		translationSet.setAiLanguageAdvice(request.languageAdvice());
+		translationSet.setAiGoldenSet(request.aiGoldenSet());
+		weblateSetService.updateSet(translationSet);
 	}
 
 	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")

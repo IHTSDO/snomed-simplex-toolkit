@@ -139,6 +139,9 @@
                     <button mat-flat-button color="primary" (click)="openAssignWorkDialog()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                         Assign Work
                     </button>
+                    <button mat-flat-button color="primary" (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                        Setup AI Translation
+                    </button>
                     <button mat-flat-button color="primary" (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                         Pull new translations from Translation Tool
                     </button>

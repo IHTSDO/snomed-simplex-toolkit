@@ -7,6 +7,8 @@ import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 @Document(indexName = "#{@indexNameProvider.indexName('weblate-set')}")
@@ -27,17 +29,23 @@ public final class WeblateTranslationSet {
 	@Field(type = FieldType.Keyword)
 	private final String name;
 
-	@Field(type = FieldType.Text)
+	@Field(type = FieldType.Keyword)
 	private final String label;
 
-	@Field(type = FieldType.Text)
+	@Field(type = FieldType.Keyword)
 	private final String ecl;
 
-	@Field(type = FieldType.Text)
+	@Field(type = FieldType.Keyword)
 	private final TranslationSubsetType subsetType;
 
-	@Field(type = FieldType.Text)
+	@Field(type = FieldType.Keyword)
 	private final String selectionCodesystem;
+
+	@Field(type = FieldType.Object)
+	private LinkedHashMap<String, String> aiGoldenSet;
+
+	@Field(type = FieldType.Keyword)
+	private String aiLanguageAdvice;
 
 	@Field(type = FieldType.Integer)
 	private int size;
@@ -130,6 +138,22 @@ public final class WeblateTranslationSet {
 
 	public String getSelectionCodesystem() {
 		return selectionCodesystem;
+	}
+
+	public void setAiGoldenSet(Map<String, String> aiGoldenSet) {
+		this.aiGoldenSet = new LinkedHashMap<>(aiGoldenSet);
+	}
+
+	public Map<String, String> getAiGoldenSet() {
+		return aiGoldenSet;
+	}
+
+	public String getAiLanguageAdvice() {
+		return aiLanguageAdvice;
+	}
+
+	public void setAiLanguageAdvice(String aiLanguageAdvice) {
+		this.aiLanguageAdvice = aiLanguageAdvice;
 	}
 
 	public void setStatus(TranslationSetStatus status) {

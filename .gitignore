@@ -36,3 +36,4 @@ angular
 **/.angular
 npm.cmd
 weblate-setup/weblate_setup_files
+*.sh

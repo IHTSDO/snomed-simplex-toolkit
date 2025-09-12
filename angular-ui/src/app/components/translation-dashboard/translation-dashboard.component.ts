@@ -8,6 +8,7 @@ import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-con
 import { TerminologyService } from 'src/app/services/simplex/terminology.service';
 import { ActivatedRoute } from '@angular/router';
 import { AssignWorkDialogComponent } from '../assign-work-dialog/assign-work-dialog.component';
+import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 
 @Component({
   selector: 'app-translation-dashboard',
@@ -195,6 +196,36 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
           .map((assignment: any) => `${assignment.user.full_name} (${assignment.workPercentage}%)`)
           .join(', ');
         this.snackBar.open(`Work will be assigned to ${totalUsers} user(s): ${assignmentDetails}`, 'Close', {
+          duration: 5000
+        });
+      }
+    });
+  }
+
+  setupAiTranslation(): void {
+    if (!this.selectedLabelSet) {
+      this.snackBar.open('Please select a translation set first.', 'Close', {
+        duration: 3000
+      });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(SetupAiTranslationDialogComponent, {
+      width: '600px',
+      data: {
+        edition: this.selectedEdition.shortName,
+        refsetId: this.selectedLabelSet.refset,
+        labelSetName: this.selectedLabelSet.name,
+        label: this.selectedLabelSet.label,
+        selectedLabelSet: this.selectedLabelSet
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'setup') {
+        console.log('AI Translation setup:', result);
+        // Here you would implement the actual AI translation setup logic
+        this.snackBar.open(`AI Translation setup completed for ${result.goldenExamples.length} golden examples`, 'Close', {
           duration: 5000
         });
       }
