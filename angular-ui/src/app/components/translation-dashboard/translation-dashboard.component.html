@@ -136,10 +136,10 @@
                 </div>
                 <br><br>
                 <div class="centered-button-container">
-                    <button mat-flat-button color="primary" (click)="pullFromWeblate()">
+                    <button mat-flat-button color="primary" (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                         Pull new translations from Translation Tool
                     </button>
-                    <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting">
+                    <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting || selectedLabelSet.status === 'PROCESSING'">
                         <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
                         <span *ngIf="!deleting">Delete Set</span>
                         <span *ngIf="deleting">Deleting...</span>
