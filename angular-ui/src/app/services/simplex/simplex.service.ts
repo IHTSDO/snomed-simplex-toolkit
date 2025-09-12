@@ -1,9 +1,9 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, lastValueFrom, of, throwError } from 'rxjs';
-import { catchError, delay, switchMap } from 'rxjs/operators';
-import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
+import {HttpClient, HttpErrorResponse} from '@angular/common/http';
+import {Injectable} from '@angular/core';
+import {MatSnackBar} from '@angular/material/snack-bar';
+import {Observable, of, throwError} from 'rxjs';
+import {catchError, delay} from 'rxjs/operators';
+import {UiConfigurationService} from '../ui-configuration/ui-configuration.service';
 
 @Injectable({
   providedIn: 'root'
@@ -367,6 +367,21 @@ export class SimplexService {
 
   public getTranslationSetDetails(edition: string, refsetId: string, label: string): Observable<any> {
     return this.http.get(`/api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getWeblateUsersForRefset(edition: string, refsetId: string): Observable<any> {
+    return this.http.get(`/api/${edition}/translations/${refsetId}/weblate/users`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public assignWorkToUsers(edition: string, refsetId: string, label: string, assignments: any[]): Observable<any> {
+    const request = {
+      assignments: assignments.map(assignment => ({
+        username: assignment.user.username,
+        percentage: assignment.workPercentage
+      }))
+    };
+    return this.http.post(`/api/${edition}/translations/${refsetId}/weblate-set/${label}/assign-work`, request)
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
 }

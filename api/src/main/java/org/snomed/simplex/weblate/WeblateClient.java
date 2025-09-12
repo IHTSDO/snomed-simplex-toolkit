@@ -41,6 +41,8 @@ public class WeblateClient {
 	public static final ParameterizedTypeReference<WeblatePage<WeblateUnit>> UNITS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<WeblatePage<WeblateLabel>> LABELS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<Map<String, Object>> PARAMETERIZED_TYPE_REFERENCE_MAP = new ParameterizedTypeReference<>() {};
+	public static final ParameterizedTypeReference<WeblateResponse<WeblateGroup>> GROUPS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
+	public static final ParameterizedTypeReference<WeblateResponse<WeblateUserResponse>> USERS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 
 	protected WeblateClient(RestTemplate restTemplate, SupportRegister supportRegister) {
 		this.restTemplate = restTemplate;
@@ -454,6 +456,24 @@ public class WeblateClient {
 			}
 		}
 		return tempFile;
+	}
+
+	public List<WeblateGroup> listGroups() {
+		ResponseEntity<WeblateResponse<WeblateGroup>> response = restTemplate.exchange("/groups/?format=json", HttpMethod.GET, null, GROUPS_RESPONSE_TYPE);
+		WeblateResponse<WeblateGroup> weblateResponse = response.getBody();
+		if (weblateResponse == null) {
+			return new ArrayList<>();
+		}
+		return weblateResponse.getResults();
+	}
+
+	public List<WeblateUserResponse> listUsers() {
+		ResponseEntity<WeblateResponse<WeblateUserResponse>> response = restTemplate.exchange("/users/?format=json", HttpMethod.GET, null, USERS_RESPONSE_TYPE);
+		WeblateResponse<WeblateUserResponse> weblateResponse = response.getBody();
+		if (weblateResponse == null) {
+			return new ArrayList<>();
+		}
+		return weblateResponse.getResults();
 	}
 
 	protected RestTemplate getRestTemplate() {

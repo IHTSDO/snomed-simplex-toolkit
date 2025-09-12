@@ -12,6 +12,7 @@ import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.rest.pojos.AssignWorkRequest;
 import org.snomed.simplex.rest.pojos.CreateTranslationRequest;
 import org.snomed.simplex.rest.pojos.CreateWeblateTranslationSet;
 import org.snomed.simplex.rest.pojos.LanguageCode;
@@ -28,6 +29,7 @@ import org.snomed.simplex.weblate.WeblateSetService;
 import org.snomed.simplex.weblate.domain.WeblatePage;
 import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
+import org.snomed.simplex.weblate.domain.WeblateUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -113,6 +115,30 @@ public class TranslationController {
 		weblateService.runUserAccessCheck();
 		WeblateLanguageInitialisationRequest request = new WeblateLanguageInitialisationRequest(refsetId);
 		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, refsetId, ActivityType.WEBLATE_LANGUAGE_INITIALISATION, weblateLanguageInitialisationJobService, request);
+	}
+
+	@GetMapping("{codeSystem}/translations/{refsetId}/weblate/users")
+	@Operation(summary = "Get Weblate users for a specific refset translation team.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public List<WeblateUser> getWeblateUsersForRefset(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+		weblateService.runUserAccessCheck();
+		return weblateService.getUsersForRefset(refsetId);
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/assign-work")
+	@Operation(summary = "Assign work to users for a specific translation set.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void assignWorkToUsers(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@PathVariable String label, @RequestBody AssignWorkRequest request) throws ServiceException {
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+		weblateService.runUserAccessCheck();
+		weblateSetService.assignWorkToUsers(codeSystem, refsetId, label, request);
 	}
 
 	@GetMapping("{codeSystem}/translations/weblate-set")

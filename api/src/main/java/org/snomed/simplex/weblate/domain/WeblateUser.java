@@ -1,7 +1,6 @@
 package org.snomed.simplex.weblate.domain;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
 
 public class WeblateUser {
 	private int id;
@@ -30,7 +29,6 @@ public class WeblateUser {
 		return fullName;
 	}
 
-	@JsonSetter("full_name")
 	public void setFullName(String fullName) {
 		this.fullName = fullName;
 	}

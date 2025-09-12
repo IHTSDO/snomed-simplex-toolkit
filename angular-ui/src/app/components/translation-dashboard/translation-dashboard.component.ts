@@ -1,11 +1,13 @@
 import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { lastValueFrom, Subscription } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { TerminologyService } from 'src/app/services/simplex/terminology.service';
 import { ActivatedRoute } from '@angular/router';
+import { AssignWorkDialogComponent } from '../assign-work-dialog/assign-work-dialog.component';
 
 @Component({
   selector: 'app-translation-dashboard',
@@ -74,7 +76,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                 private uiConfigurationService: UiConfigurationService,
                 private changeDetectorRef: ChangeDetectorRef,
                 private terminologyService: TerminologyService,
-                private route: ActivatedRoute) {}
+                private route: ActivatedRoute,
+                private dialog: MatDialog) {}
 
 
 
@@ -163,6 +166,39 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     if (url) {
       window.open(url, '_blank');
     }
+  }
+
+  openAssignWorkDialog(): void {
+    if (!this.selectedLabelSet) {
+      this.snackBar.open('Please select a translation set first.', 'Close', {
+        duration: 3000
+      });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(AssignWorkDialogComponent, {
+      width: '500px',
+      data: {
+        edition: this.selectedEdition.shortName,
+        refsetId: this.selectedLabelSet.refset,
+        labelSetName: this.selectedLabelSet.name,
+        label: this.selectedLabelSet.label
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'assign') {
+        console.log('Work assignments:', result.assignments);
+        // Here you would implement the actual work assignment logic
+        const totalUsers = result.assignments.length;
+        const assignmentDetails = result.assignments
+          .map((assignment: any) => `${assignment.user.full_name} (${assignment.workPercentage}%)`)
+          .join(', ');
+        this.snackBar.open(`Work will be assigned to ${totalUsers} user(s): ${assignmentDetails}`, 'Close', {
+          duration: 5000
+        });
+      }
+    });
   }
 
   async refreshEdition() {

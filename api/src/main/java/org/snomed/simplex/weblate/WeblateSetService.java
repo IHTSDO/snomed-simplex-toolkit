@@ -1,5 +1,7 @@
 package org.snomed.simplex.weblate;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.ihtsdo.sso.integration.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,6 +10,7 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.rest.pojos.AssignWorkRequest;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.TranslationService;
@@ -37,6 +40,9 @@ public class WeblateSetService {
 	private static final String JOB_TYPE = "type";
 	public static final String JOB_TYPE_CREATE = "Create";
 	public static final String JOB_TYPE_DELETE = "Delete";
+	public static final int PERCENTAGE_PROCESSED_START = 5;
+	public static final String JOB_TYPE_ASSIGN_WORK = "AssignWork";
+	public static final String ASSIGN_WORK_REQUEST = "assignWorkRequest";
 
 	private final WeblateSetRepository weblateSetRepository;
 	private final WeblateClientFactory weblateClientFactory;
@@ -49,11 +55,12 @@ public class WeblateSetService {
 	private final int labelBatchSize;
 
 	private final Map<String, SecurityContext> translationSetUserIdToUserContextMap;
+	private final ObjectMapper objectMapper;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public WeblateSetService(WeblateSetRepository weblateSetRepository, WeblateClientFactory weblateClientFactory, SnowstormClientFactory snowstormClientFactory, TranslationService translationService, SupportRegister supportRegister,
-			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix, @Value("${weblate.label.batch-size}") int labelBatchSize) {
+			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix, @Value("${weblate.label.batch-size}") int labelBatchSize, ObjectMapper objectMapper) {
 
 		this.weblateSetRepository = weblateSetRepository;
 		this.weblateClientFactory = weblateClientFactory;
@@ -64,6 +71,7 @@ public class WeblateSetService {
 		this.jmsQueuePrefix = jmsQueuePrefix;
 		this.labelBatchSize = labelBatchSize;
 		translationSetUserIdToUserContextMap = new HashMap<>();
+		this.objectMapper = objectMapper;
 	}
 
 	public List<WeblateTranslationSet> findByCodeSystem(String codeSystem) throws ServiceExceptionWithStatusCode {
@@ -138,7 +146,7 @@ public class WeblateSetService {
 		}
 
 		translationSet.setStatus(TranslationSetStatus.INITIALISING);
-		translationSet.setPercentageProcessed(5);
+		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
 
 		logger.info("Queueing Snowlate Translation Set for creation {}/{}/{}", codesystemShortName, refsetId, translationSet.getLabel());
 		weblateSetRepository.save(translationSet);
@@ -209,10 +217,10 @@ public class WeblateSetService {
 	}
 
 	@JmsListener(destination = "${jms.queue.prefix}.translation-set.processing", concurrency = "1")
-	public void processTranslationSet(Map<String, String> jobMessage) {
-		String username = jobMessage.get(JOB_MESSAGE_USERNAME);
-		String translationSetId = jobMessage.get(JOB_MESSAGE_ID);
-		String jobType = jobMessage.get(JOB_TYPE);
+	public void processTranslationSet(Map<String, Object> jobMessage) {
+		String username = (String) jobMessage.get(JOB_MESSAGE_USERNAME);
+		String translationSetId = (String) jobMessage.get(JOB_MESSAGE_ID);
+		String jobType = (String) jobMessage.get(JOB_TYPE);
 		Optional<WeblateTranslationSet> optional = weblateSetRepository.findById(translationSetId);
 		if (optional.isEmpty()) {
 			logger.info("Snowlate set was deleted before being processed {}", translationSetId);
@@ -231,6 +239,10 @@ public class WeblateSetService {
 				doCreateSet(translationSet, weblateClient, snowstormClientFactory);
 			} else if (jobType.equals(JOB_TYPE_DELETE)) {
 				doDeleteSet(translationSet, weblateClient);
+			} else if (jobType.equals(JOB_TYPE_ASSIGN_WORK)) {
+				String requestJson = (String) jobMessage.get(ASSIGN_WORK_REQUEST);
+				AssignWorkRequest request = objectMapper.readValue(requestJson, AssignWorkRequest.class);
+				doAssignWorkToUsers(translationSet, request, weblateClient);
 			} else {
 				String errorMessage = "Unrecognised job type: %s, translationSet: %s, username: %s".formatted(jobType, translationSetId, username);
 				supportRegister.handleSystemError(CodeSystem.SHARED, errorMessage, new ServiceException(errorMessage));
@@ -342,5 +354,213 @@ public class WeblateSetService {
 		weblateClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, weblateLabel.id(), codes);
 		logger.info("Added label batch");
 		codes.clear();
+	}
+
+	public void assignWorkToUsers(String codeSystem, String refsetId, String label, AssignWorkRequest request) throws ServiceException {
+		// Get the translation set to find the language code
+		WeblateTranslationSet translationSet = findSubsetOrThrow(codeSystem, refsetId, label);
+
+		// Set status to processing and save
+		translationSet.setStatus(TranslationSetStatus.PROCESSING);
+		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
+		weblateSetRepository.save(translationSet);
+
+		String username = SecurityUtil.getUsername();
+		translationSetUserIdToUserContextMap.put(username, SecurityContextHolder.getContext());
+
+		try {
+			String assignWorkRequestJson = objectMapper.writeValueAsString(request);
+			// Queue the work assignment job
+			jmsTemplate.convertAndSend(jmsQueuePrefix + ".translation-set.processing",
+				Map.of(JOB_TYPE, JOB_TYPE_ASSIGN_WORK,
+					JOB_MESSAGE_USERNAME, username,
+					JOB_MESSAGE_ID, translationSet.getId(),
+					ASSIGN_WORK_REQUEST, assignWorkRequestJson));
+		} catch (JsonProcessingException e) {
+			throw new ServiceException("Failed to queue assign job.", e);
+		}
+	}
+
+	private void doAssignWorkToUsers(WeblateTranslationSet translationSet, AssignWorkRequest request, WeblateClient weblateClient) {
+		String languageCodeWithRefset = translationSet.getLanguageCodeWithRefsetId();
+		String label = translationSet.getCompositeLabel();
+
+		// Get units with the specified label using query builder
+		UnitQueryBuilder queryBuilder = UnitQueryBuilder.of(WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT)
+			.languageCode(languageCodeWithRefset)
+			.compositeLabel(label);
+
+		// First, get the total count without loading all units into memory
+		WeblatePage<WeblateUnit> countPage = weblateClient.getUnitPage(queryBuilder.pageSize(1).fastestSort(true));
+		int totalUnits = countPage != null ? countPage.count() : 0;
+
+		logger.info("Found {} units with label: {}", totalUnits, label);
+
+		if (totalUnits == 0) {
+			logger.info("No units found with label: {}", label);
+			translationSet.setStatus(TranslationSetStatus.READY);
+			weblateSetRepository.save(translationSet);
+			return;
+		}
+
+		// Calculate work distribution based on percentages
+		List<WorkDistribution> workDistribution = calculateWorkDistribution(request, totalUnits);
+
+		// Pre-create and cache all user labels to avoid repeated lookups
+		Map<String, WeblateLabel> userLabels = createUserLabels(request, weblateClient);
+
+		// Process units page by page to minimize memory usage
+		int processedUnits = 0;
+		WeblatePage<WeblateUnit> unitsPage;
+		int page = 1;
+		do {
+			// Get next page of units
+			unitsPage = weblateClient.getUnitPage(queryBuilder.pageSize(1000).page(page++).fastestSort(true));
+
+			if (unitsPage != null && unitsPage.results() != null) {
+				// Group units by assigned user for bulk processing
+				Map<String, List<String>> unitsByUser = new HashMap<>();
+
+				// Process each unit in the current page to determine assignment
+				for (WeblateUnit unit : unitsPage.results()) {
+					// Find which user this unit should be assigned to
+					WorkDistribution assignment = findAssignmentForUnit(workDistribution, processedUnits);
+
+					if (assignment != null) {
+						unitsByUser.computeIfAbsent(assignment.username, k -> new ArrayList<>()).add(unit.getContext());
+					}
+
+					processedUnits++;
+				}
+
+				// Apply labels in bulk for each user
+				for (Map.Entry<String, List<String>> entry : unitsByUser.entrySet()) {
+					String username = entry.getKey();
+					List<String> unitIds = entry.getValue();
+					WeblateLabel labelObj = userLabels.get(username);
+
+					if (labelObj != null && !unitIds.isEmpty()) {
+						try {
+							weblateClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, labelObj.id(), unitIds);
+							logger.debug("Bulk assigned {} units to user {}", unitIds.size(), username);
+						} catch (ServiceExceptionWithStatusCode e) {
+							logger.error("Failed to bulk assign units to user {}: {}", username, e.getMessage());
+							// Fall back to individual assignments if bulk fails
+							for (String unitId : unitIds) {
+								try {
+									List<WeblateLabel> currentLabels = new ArrayList<>();
+									currentLabels.add(labelObj);
+									weblateClient.patchUnitLabels(unitId, currentLabels);
+								} catch (Exception ex) {
+									logger.error("Failed to assign unit {} to user {}: {}", unitId, username, ex.getMessage());
+								}
+							}
+						}
+					}
+				}
+
+				// Update progress every page
+				translationSet.setPercentageProcessed(Math.min(90, (int) (((float) processedUnits / (float) totalUnits) * 100)));
+				weblateSetRepository.save(translationSet);
+			}
+
+		} while (unitsPage != null && unitsPage.next() != null);
+
+		// Log final assignment summary
+		for (WorkDistribution distribution : workDistribution) {
+			logger.info("Assigned {} units ({}%) to user: {}", distribution.unitsAssigned, distribution.percentage, distribution.username);
+		}
+
+		// Final progress update
+		translationSet.setPercentageProcessed(100);
+		translationSet.setStatus(TranslationSetStatus.READY);
+		weblateSetRepository.save(translationSet);
+
+		logger.info("Work assignment completed for label: {}", label);
+	}
+
+	/**
+	 * Pre-create and cache all user labels to avoid repeated lookups
+	 */
+	private Map<String, WeblateLabel> createUserLabels(AssignWorkRequest request, WeblateClient weblateClient) {
+		Map<String, WeblateLabel> userLabels = new HashMap<>();
+
+		for (AssignWorkRequest.WorkAssignment assignment : request.getAssignments()) {
+			String username = assignment.getUsername();
+			String assignedLabel = "assigned-" + username;
+
+			try {
+				WeblateLabel labelObj = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, assignedLabel,
+					"Work assigned to user: " + username);
+				if (labelObj != null) {
+					userLabels.put(username, labelObj);
+					logger.debug("Created/cached label for user: {}", username);
+				}
+			} catch (Exception e) {
+				logger.error("Failed to create label for user {}: {}", username, e.getMessage());
+			}
+		}
+
+		return userLabels;
+	}
+
+	/**
+	 * Calculate work distribution based on user percentages
+	 */
+	private List<WorkDistribution> calculateWorkDistribution(AssignWorkRequest request, int totalUnits) {
+		List<WorkDistribution> distribution = new ArrayList<>();
+		int remainingUnits = totalUnits;
+
+		for (int i = 0; i < request.getAssignments().size(); i++) {
+			AssignWorkRequest.WorkAssignment assignment = request.getAssignments().get(i);
+			int percentage = assignment.getPercentage();
+
+			// For the last assignment, give all remaining units to avoid rounding errors
+			int unitsForUser;
+			if (i == request.getAssignments().size() - 1) {
+				unitsForUser = remainingUnits;
+			} else {
+				unitsForUser = (int) Math.round((percentage / 100.0) * totalUnits);
+				remainingUnits -= unitsForUser;
+			}
+
+			distribution.add(new WorkDistribution(assignment.getUsername(), percentage, unitsForUser, 0));
+		}
+
+		return distribution;
+	}
+
+	/**
+	 * Find which user a unit should be assigned to based on the current unit index
+	 */
+	private WorkDistribution findAssignmentForUnit(List<WorkDistribution> workDistribution, int unitIndex) {
+		int currentIndex = 0;
+
+		for (WorkDistribution distribution : workDistribution) {
+			if (unitIndex < currentIndex + distribution.unitsToAssign) {
+				distribution.unitsAssigned++;
+				return distribution;
+			}
+			currentIndex += distribution.unitsToAssign;
+		}
+
+		return null; // Should not happen if distribution is calculated correctly
+	}
+
+	/**
+	 * Helper class to track work distribution
+	 */
+	private static class WorkDistribution {
+		final String username;
+		final int percentage;
+		final int unitsToAssign;
+		int unitsAssigned;
+
+		WorkDistribution(String username, int percentage, int unitsToAssign, int unitsAssigned) {
+			this.username = username;
+			this.percentage = percentage;
+			this.unitsToAssign = unitsToAssign;
+			this.unitsAssigned = unitsAssigned;
+		}
 	}
 }

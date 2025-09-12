@@ -14,8 +14,9 @@ public class UnitQueryBuilder {
     private Date changedSince;
     private int pageSize = 100;
     private boolean fastestSort = true;
+	private int page = 1;
 
-    public UnitQueryBuilder(String projectSlug, String componentSlug) {
+	public UnitQueryBuilder(String projectSlug, String componentSlug) {
         this.projectSlug = projectSlug;
         this.componentSlug = componentSlug;
     }
@@ -39,6 +40,11 @@ public class UnitQueryBuilder {
         this.pageSize = pageSize;
         return this;
     }
+
+	public UnitQueryBuilder page(int page) {
+		this.page = page;
+		return this;
+	}
 
     public UnitQueryBuilder fastestSort(boolean fastestSort) {
         this.fastestSort = fastestSort;
@@ -72,10 +78,9 @@ public class UnitQueryBuilder {
             query.append(" AND changed:>").append(formattedTime);
         }
 
-        return "/units/?q=%s&page_size=%s%s&format=json".formatted(
-                query,
-                pageSize,
-                fastestSort ? "&sort_by=id" : ""
+		String sort = fastestSort ? "&sort_by=id" : "";
+		return "/units/?q=%s&page_size=%s&page=%s%s&format=json".formatted(
+			query, pageSize, page, sort
         );
     }
 

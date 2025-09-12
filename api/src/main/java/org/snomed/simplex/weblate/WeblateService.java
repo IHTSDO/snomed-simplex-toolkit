@@ -16,9 +16,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ChangeSummary;
-import org.snomed.simplex.weblate.domain.WeblateComponent;
-import org.snomed.simplex.weblate.domain.WeblateUnit;
-import org.snomed.simplex.weblate.domain.WeblateUser;
+import org.snomed.simplex.weblate.domain.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContext;
@@ -27,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -45,6 +44,7 @@ public class WeblateService {
 	public String commonProject;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final WeblateClientFactory weblateClientFactory;
+	private final WeblateSetService weblateSetService;
 	private final ExecutorService addLanguageExecutorService;
 	private final SupportRegister supportRegister;
 	private final AuthenticationClient authenticationClient;
@@ -52,10 +52,11 @@ public class WeblateService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory,
-			SupportRegister supportRegister, AuthenticationClient authenticationClient) {
+			WeblateSetService weblateSetService, SupportRegister supportRegister, AuthenticationClient authenticationClient) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClientFactory = weblateClientFactory;
+		this.weblateSetService = weblateSetService;
 		this.supportRegister = supportRegister;
 		this.authenticationClient = authenticationClient;
 		addLanguageExecutorService = Executors.newFixedThreadPool(1, new DefaultThreadFactory("Weblate-add-language-thread"));
@@ -166,6 +167,41 @@ public class WeblateService {
 		WeblateClient weblateClient = weblateClientFactory.getClient();
 		weblateClient.deleteComponent(commonProject, slug);
 		// Will need to delete from git too.
+	}
+
+	public List<WeblateUser> getUsersForRefset(String refsetId) throws ServiceException {
+		WeblateClient weblateClient = weblateClientFactory.getClient();
+
+		// Step 1: Fetch all groups and find the one matching the refset
+		List<WeblateGroup> groups = weblateClient.listGroups();
+		WeblateGroup targetGroup = groups.stream()
+			.filter(group -> group.getName().matches("Translation Team ..-" + refsetId))
+			.findFirst()
+			.orElse(null);
+
+		if (targetGroup == null) {
+			logger.info("No translation team group found for refset: {}", refsetId);
+			return new ArrayList<>();
+		}
+
+		// Step 2: Fetch all users and filter by the target group
+		List<WeblateUserResponse> allUsers = weblateClient.listUsers();
+		String targetGroupUrl = targetGroup.getUrl();
+
+		List<WeblateUser> usersInGroup = allUsers.stream()
+			.filter(user -> user.getGroups() != null && user.getGroups().contains(targetGroupUrl))
+			.map(user -> {
+				WeblateUser simpleUser = new WeblateUser();
+				simpleUser.setId(user.getId());
+				simpleUser.setUsername(user.getUsername());
+				simpleUser.setFullName(user.getFullName());
+				simpleUser.setEmail(user.getEmail());
+				return simpleUser;
+			})
+			.toList();
+
+		logger.info("Found {} users in translation team for refset: {}", usersInGroup.size(), refsetId);
+		return usersInGroup;
 	}
 
 	public void initialiseLanguageAndTranslationAsync(ConceptMini langRefset, String languageCodeWithRefset, Consumer<ServiceException> errorCallback) {

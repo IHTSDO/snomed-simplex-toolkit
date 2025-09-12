@@ -1,11 +1,11 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild, ElementRef } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
-import { SimplexService } from '../../services/simplex/simplex.service';
-import { ModalService } from '../../services/modal/modal.service';
-import { Subscription, catchError, lastValueFrom, of } from 'rxjs';
-import { trigger, state, style, transition, animate } from '@angular/animations';
-import { MatRadioChange } from '@angular/material/radio';
+import {ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild} from '@angular/core';
+import {MatSnackBar} from '@angular/material/snack-bar';
+import {Router} from '@angular/router';
+import {SimplexService} from '../../services/simplex/simplex.service';
+import {ModalService} from '../../services/modal/modal.service';
+import {catchError, lastValueFrom, of, Subscription} from 'rxjs';
+import {animate, state, style, transition, trigger} from '@angular/animations';
+import {MatRadioChange} from '@angular/material/radio';
 
 @Component({
   selector: 'app-jobs',
