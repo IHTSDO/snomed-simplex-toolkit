@@ -26,6 +26,7 @@ export interface GoldenExample {
 	conceptId: string;
 	preferredTerm: string;
 	translation: string;
+	suggestions?: string[];
 }
 
 @Component({
@@ -96,14 +97,16 @@ export interface GoldenExample {
 									<input 
 										[(ngModel)]="example.conceptId" 
 										placeholder="e.g., 123456789"
-										class="concept-input">
+										class="concept-input"
+										readonly>
 								</div>
 								<div class="example-field">
 									<label>Preferred Term:</label>
 									<input 
 										[(ngModel)]="example.preferredTerm" 
 										placeholder="e.g., Heart disease"
-										class="term-input">
+										class="term-input"
+										readonly>
 								</div>
 								<div class="example-field">
 									<label>Translation:</label>
@@ -111,6 +114,26 @@ export interface GoldenExample {
 										[(ngModel)]="example.translation" 
 										placeholder="e.g., Maladie cardiaque"
 										class="translation-input">
+									
+									<!-- AI Translation Suggestions Loading -->
+									<div *ngIf="loadingSuggestions && example.preferredTerm.trim() && !example.translation.trim()" class="suggestions-loading">
+										<mat-spinner diameter="16"></mat-spinner>
+										<span class="loading-text">Loading AI suggestions...</span>
+									</div>
+									
+									<!-- AI Translation Suggestions -->
+									<div *ngIf="!loadingSuggestions && example.suggestions && example.suggestions.length > 0" class="suggestions-container">
+										<label class="suggestions-label">AI Suggestions:</label>
+										<div class="suggestions-list">
+											<button 
+												*ngFor="let suggestion of example.suggestions" 
+												type="button"
+												class="suggestion-button"
+												(click)="selectSuggestion(example, suggestion)">
+												{{ suggestion }}
+											</button>
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -274,6 +297,17 @@ export interface GoldenExample {
 			box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
 		}
 		
+		.example-field input[readonly] {
+			background-color: #f5f5f5;
+			color: #666;
+			cursor: not-allowed;
+		}
+		
+		.example-field input[readonly]:focus {
+			border-color: #ddd;
+			box-shadow: none;
+		}
+		
 		.add-example-button {
 			width: 100%;
 			margin-top: 8px;
@@ -290,12 +324,68 @@ export interface GoldenExample {
 			max-height: 600px;
 			overflow-y: auto;
 		}
+		
+		.suggestions-container {
+			margin-top: 8px;
+		}
+		
+		.suggestions-label {
+			font-size: 0.8em;
+			color: #666;
+			font-weight: 500;
+			margin-bottom: 4px;
+			display: block;
+		}
+		
+		.suggestions-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+		}
+		
+		.suggestion-button {
+			background-color: #e3f2fd;
+			border: 1px solid #1976d2;
+			color: #1976d2;
+			padding: 4px 8px;
+			border-radius: 12px;
+			font-size: 0.8em;
+			cursor: pointer;
+			transition: all 0.2s ease;
+		}
+		
+		.suggestion-button:hover {
+			background-color: #1976d2;
+			color: white;
+		}
+		
+		.suggestion-button:active {
+			transform: scale(0.95);
+		}
+		
+		.suggestions-loading {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-top: 8px;
+			padding: 8px 12px;
+			background-color: #f5f5f5;
+			border-radius: 4px;
+			border: 1px solid #e0e0e0;
+		}
+		
+		.loading-text {
+			font-size: 0.8em;
+			color: #666;
+			font-style: italic;
+		}
 	`]
 })
 export class SetupAiTranslationDialogComponent implements OnInit {
 	currentStep = 1;
 	loading = false;
 	loadingExamples = false;
+	loadingSuggestions = false;
 	languageRules: LanguageRules = { highLevelInfo: '' };
 	goldenExamples: GoldenExample[] = [];
 	
@@ -336,6 +426,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 			next: (response: any) => {
 				this.loadingExamples = false;
 				this.populateGoldenExamples(response.results);
+				this.loadTranslationSuggestions();
 			},
 			error: (error) => {
 				console.error('Error loading sample rows:', error);
@@ -345,6 +436,42 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 				});
 				// Initialize with one empty golden example as fallback
 				this.addExample();
+			}
+		});
+	}
+
+	loadTranslationSuggestions(): void {
+		// Get all English terms that don't have translations yet
+		const englishTerms = this.goldenExamples
+			.filter(example => example.preferredTerm.trim() && !example.translation.trim())
+			.map(example => example.preferredTerm.trim());
+
+		if (englishTerms.length === 0) {
+			return; // No terms need suggestions
+		}
+
+		this.loadingSuggestions = true;
+
+		// Build the API URL
+		const apiUrl = `/api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/ai-suggestion`;
+
+		this.http.post(apiUrl, englishTerms).subscribe({
+			next: (response: any) => {
+				this.loadingSuggestions = false;
+				// Update golden examples with suggestions
+				this.goldenExamples.forEach(example => {
+					if (example.preferredTerm.trim() && !example.translation.trim()) {
+						const suggestions = response[example.preferredTerm.trim()];
+						if (suggestions && suggestions.length > 0) {
+							example.suggestions = suggestions;
+						}
+					}
+				});
+			},
+			error: (error) => {
+				console.error('Error loading translation suggestions:', error);
+				this.loadingSuggestions = false;
+				// Don't show error to user as this is not critical functionality
 			}
 		});
 	}
@@ -366,7 +493,8 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 					existingExamples.push({
 						conceptId: conceptId,
 						preferredTerm: preferredTerm,
-						translation: translation
+						translation: translation,
+						suggestions: undefined
 					});
 				}
 			}
@@ -395,7 +523,8 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 					const example: GoldenExample = {
 						conceptId: row.context || row.key || '',
 						preferredTerm: row.source && row.source.length > 0 ? row.source[0] : '',
-						translation: row.target && row.target.length > 0 && row.target[0] ? row.target[0] : ''
+						translation: row.target && row.target.length > 0 && row.target[0] ? row.target[0] : '',
+						suggestions: undefined
 					};
 					this.goldenExamples.push(example);
 				} else {
@@ -428,7 +557,8 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		this.goldenExamples.push({
 			conceptId: '',
 			preferredTerm: '',
-			translation: ''
+			translation: '',
+			suggestions: undefined
 		});
 	}
 
@@ -436,6 +566,12 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		if (this.goldenExamples.length > 1) {
 			this.goldenExamples.splice(index, 1);
 		}
+	}
+
+	selectSuggestion(example: GoldenExample, suggestion: string): void {
+		example.translation = suggestion;
+		// Clear suggestions after selection
+		example.suggestions = undefined;
 	}
 
 	onSetup(): void {

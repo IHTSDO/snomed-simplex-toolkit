@@ -21,6 +21,7 @@ import org.snomed.simplex.service.external.WeblateLanguageInitialisationRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.service.job.JobType;
+import org.snomed.simplex.weblate.TranslationLLMService;
 import org.snomed.simplex.weblate.WeblateService;
 import org.snomed.simplex.weblate.WeblateSetService;
 import org.snomed.simplex.weblate.domain.WeblatePage;
@@ -34,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @Tag(name = "Translation", description = "-")
@@ -58,10 +60,11 @@ public class TranslationController {
 	private final WeblateService weblateService;
 	private final WeblateSetService weblateSetService;
 	private final WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService;
+	private final TranslationLLMService translationLLMService;
 
 	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, ContentProcessingJobService jobService,
-			ActivityService activityService,
-			WeblateService weblateService, WeblateSetService weblateSetService, WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService) {
+			ActivityService activityService, WeblateService weblateService, WeblateSetService weblateSetService,
+			WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService, TranslationLLMService translationLLMService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
@@ -70,6 +73,7 @@ public class TranslationController {
 		this.weblateService = weblateService;
 		this.weblateSetService = weblateSetService;
 		this.weblateLanguageInitialisationJobService = weblateLanguageInitialisationJobService;
+		this.translationLLMService = translationLLMService;
 	}
 
 	@GetMapping("{codeSystem}/translations")
@@ -218,12 +222,22 @@ public class TranslationController {
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/ai-setup")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void translationSetAiSetup(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-			@RequestBody AiSetupRequest request) throws ServiceExceptionWithStatusCode {
+		@RequestBody AiSetupRequest request) throws ServiceExceptionWithStatusCode {
 
 		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		translationSet.setAiLanguageAdvice(request.languageAdvice());
 		translationSet.setAiGoldenSet(request.aiGoldenSet());
 		weblateSetService.updateSet(translationSet);
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/ai-suggestion")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public Map<String, List<String>> aiGoldenSetSuggestion(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+		@RequestBody List<String> englishTerm) throws ServiceExceptionWithStatusCode {
+
+		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		String language = translationSet.getLanguageCode();
+		return translationLLMService.suggestTranslations(translationSet, language, englishTerm);
 	}
 
 	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")
