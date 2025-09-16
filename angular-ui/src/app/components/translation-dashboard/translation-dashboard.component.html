@@ -131,34 +131,34 @@
                 <div>
                     <button mat-flat-button color="primary" *ngIf="selectedLabelSet.status === 'READY'"
                             (click)="openWeblateUrl(selectedLabelSet.weblateLabelUrl)">
-                        Open Set in Translation Tool
+                        <mat-icon class="large-icon">translate</mat-icon>
+                        Open in Translation Tool
                     </button>
-                </div>
-                <br><br>
-                <div class="centered-button-container">
-                    <button mat-flat-button color="primary" (click)="openAssignWorkDialog()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                        Assign Work
+                    
+                    <button mat-stroked-button [matMenuTriggerFor]="actionsMenu" [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                        style="margin-left: 10px;">
+                        <mat-icon class="large-icon">more_vert</mat-icon>
+                        Manage
                     </button>
-                    <button mat-flat-button color="primary" (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                        Setup AI Translation
-                    </button>
-                    <button mat-flat-button color="primary" (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                        Pull new translations from Translation Tool
-                    </button>
-                    <button mat-flat-button color="warn" (click)="deleteTranslationSet()" [disabled]="deleting || selectedLabelSet.status === 'PROCESSING'">
-                        <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
-                        <span *ngIf="!deleting">Delete Set</span>
-                        <span *ngIf="deleting">Deleting...</span>
-                    </button>
-                </div>
-                <div class="centered-button-container">
-                    <h4>Not implemented:</h4>
-                    <button mat-flat-button color="primary" disabled>
-                        Push to Translation Tool
-                    </button>
-                    <button mat-flat-button color="primary" disabled>
-                        Edit Set
-                    </button>
+                        <mat-menu #actionsMenu="matMenu">
+                            <button mat-menu-item (click)="openAssignWorkDialog()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                                <mat-icon class="large-icon">people</mat-icon>
+                                Assign Work
+                            </button>
+                            <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                                <mat-icon class="large-icon">flash_on</mat-icon>
+                                Setup AI Translation
+                            </button>
+                            <button mat-menu-item (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                                <mat-icon class="large-icon">cloud_download</mat-icon>
+                                Pull new translations from Translation Tool
+                            </button>
+                            <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
+                                <mat-icon class="large-icon">cancel</mat-icon>
+                                <span>Delete Set</span>
+                                <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+                            </button>
+                        </mat-menu>
                 </div>
                 <br><br>
                 <h3>Translation Set Members</h3>

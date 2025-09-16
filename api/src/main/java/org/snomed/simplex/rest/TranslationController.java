@@ -219,6 +219,16 @@ public class TranslationController {
 			job -> weblateSetService.pullTranslationSubset(weblatePull, label));
 	}
 
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/ai-language-advice")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void saveAiLanguageAdvice(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+		@RequestBody AiLanguageAdviceRequest request) throws ServiceExceptionWithStatusCode {
+
+		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		translationSet.setAiLanguageAdvice(request.languageAdvice());
+		weblateSetService.updateSet(translationSet);
+	}
+
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/ai-setup")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void translationSetAiSetup(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,

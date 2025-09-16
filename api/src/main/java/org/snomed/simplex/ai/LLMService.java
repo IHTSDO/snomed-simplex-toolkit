@@ -20,7 +20,7 @@ public class LLMService {
 			.apiKey(apiKey)
 			.modelName(modelName);
 
-		if (!modelName.equals("gpt-5")) {
+		if (!modelName.startsWith("gpt-5")) {
 			modelBuilder
 				.maxTokens(500)
 				.temperature(0.0);      // makes it deterministic, often faster

@@ -27,7 +27,7 @@ public class TranslationLLMService {
 		String languageAdvice = translationSet.getAiLanguageAdvice();
 		String languageAdviceFormatted = "";
 		if (Strings.isNotEmpty(languageAdvice)) {
-			languageAdviceFormatted = "Specific advice for %s: %s\n".formatted(language, languageAdvice);
+			languageAdviceFormatted = "%s\n".formatted(languageAdvice);
 		}
 		String responseFormat = "For each term provided, return the English term and the top two %s translations.\n".formatted(language) +
 			"Use the exact formatting below:\n" +
@@ -37,6 +37,7 @@ public class TranslationLLMService {
 				Guidelines:
 				- Provide two translations after each English term. If a translation cannot be found, leave that translation blank after the '|'.
 				- Preserve the original order of the English terms; do not reorder, group, or summarize them.
+				- Preserve all modifiers, qualifiers, any body location descriptors.
 				- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.
 				""";
 		// System Advice
@@ -45,13 +46,14 @@ public class TranslationLLMService {
 		// Format
 		String response = llmService.chat((
 				"""
-					%s%s
+					%s
+					%s
 					%s
 					%s
 					English terms:
 					%s
 					"""
-			).formatted(systemAdvice, languageAdviceFormatted, responseFormat, guidelines, String.join("\n", englishTerm))
+			).formatted(systemAdvice, responseFormat, guidelines, languageAdviceFormatted, String.join("\n", englishTerm))
 		);
 		for (String line : response.split("\n")) {
 			if (line.contains("|")) {

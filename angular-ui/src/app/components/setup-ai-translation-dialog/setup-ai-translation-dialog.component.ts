@@ -181,7 +181,7 @@ export interface GoldenExample {
 					<mat-spinner diameter="20"></mat-spinner>
 					Setting up...
 				</span>
-				<span *ngIf="!loading">Setup AI Translation</span>
+				<span *ngIf="!loading">Complete Setup</span>
 			</button>
 		</mat-dialog-actions>
 	`,
@@ -386,6 +386,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 	loading = false;
 	loadingExamples = false;
 	loadingSuggestions = false;
+	languageAdviceSaved = false;
 	languageRules: LanguageRules = { highLevelInfo: '' };
 	goldenExamples: GoldenExample[] = [];
 	
@@ -426,7 +427,8 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 			next: (response: any) => {
 				this.loadingExamples = false;
 				this.populateGoldenExamples(response.results);
-				this.loadTranslationSuggestions();
+				// Check if we can now load AI suggestions
+				this.checkAndLoadSuggestions();
 			},
 			error: (error) => {
 				console.error('Error loading sample rows:', error);
@@ -436,6 +438,8 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 				});
 				// Initialize with one empty golden example as fallback
 				this.addExample();
+				// Check if we can now load AI suggestions
+				this.checkAndLoadSuggestions();
 			}
 		});
 	}
@@ -546,11 +550,58 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 
 	nextStep(): void {
 		this.languageRules = this.languageRulesForm.value;
-		this.currentStep = 2;
+		
+		// Check if golden examples are still loading
+		if (this.loadingExamples) {
+			this.snackBar.open('Please wait for golden examples to load before proceeding.', 'Close', {
+				duration: 3000
+			});
+			return;
+		}
+		
+		// Save language advice first, then proceed to step 2
+		this.saveLanguageAdvice();
 	}
 
 	goBack(): void {
 		this.currentStep = 1;
+	}
+
+	saveLanguageAdvice(): void {
+		const languageAdvice = this.languageRules.highLevelInfo || '';
+		
+		// Build the API URL for saving language advice
+		const apiUrl = `/api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/ai-language-advice`;
+		
+		// Prepare the request body
+		const requestBody = {
+			languageAdvice: languageAdvice
+		};
+
+		this.http.post(apiUrl, requestBody).subscribe({
+			next: () => {
+				// Language advice saved successfully, proceed to step 2
+				this.languageAdviceSaved = true;
+				this.currentStep = 2;
+				// Check if we can now load AI suggestions
+				this.checkAndLoadSuggestions();
+			},
+			error: (error) => {
+				console.error('Error saving language advice:', error);
+				this.snackBar.open('Failed to save language advice. Please try again.', 'Close', {
+					duration: 5000
+				});
+			}
+		});
+	}
+
+	checkAndLoadSuggestions(): void {
+		// Only load AI suggestions if both conditions are met:
+		// 1. Language advice has been saved
+		// 2. Golden examples have been loaded (not loading and not empty)
+		if (this.languageAdviceSaved && !this.loadingExamples && this.goldenExamples.length > 0) {
+			this.loadTranslationSuggestions();
+		}
 	}
 
 	addExample(): void {
