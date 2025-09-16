@@ -142,9 +142,14 @@ export interface GoldenExample {
 					<button 
 						mat-stroked-button 
 						color="primary" 
+						[disabled]="loadingNewExample"
 						(click)="addExample()"
 						class="add-example-button">
-						+ Add Golden Example
+						<span *ngIf="loadingNewExample" class="loading-content">
+							<mat-spinner diameter="16"></mat-spinner>
+							Loading example...
+						</span>
+						<span *ngIf="!loadingNewExample">+ Add Golden Example</span>
 					</button>
 				</div>
 			</div>
@@ -166,8 +171,13 @@ export interface GoldenExample {
 				*ngIf="currentStep === 1"
 				mat-raised-button 
 				color="primary" 
+				[disabled]="loadingExamples"
 				(click)="nextStep()">
-				Next
+				<span *ngIf="loadingExamples" class="loading-content">
+					<mat-spinner diameter="20"></mat-spinner>
+					Loading samples for Step 2...
+				</span>
+				<span *ngIf="!loadingExamples">Next</span>
 			</button>
 			
 			<!-- Setup button for step 2 -->
@@ -386,6 +396,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 	loading = false;
 	loadingExamples = false;
 	loadingSuggestions = false;
+	loadingNewExample = false;
 	languageAdviceSaved = false;
 	languageRules: LanguageRules = { highLevelInfo: '' };
 	goldenExamples: GoldenExample[] = [];
@@ -551,14 +562,6 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 	nextStep(): void {
 		this.languageRules = this.languageRulesForm.value;
 		
-		// Check if golden examples are still loading
-		if (this.loadingExamples) {
-			this.snackBar.open('Please wait for golden examples to load before proceeding.', 'Close', {
-				duration: 3000
-			});
-			return;
-		}
-		
 		// Save language advice first, then proceed to step 2
 		this.saveLanguageAdvice();
 	}
@@ -605,11 +608,44 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 	}
 
 	addExample(): void {
-		this.goldenExamples.push({
-			conceptId: '',
-			preferredTerm: '',
-			translation: '',
-			suggestions: undefined
+		// Prompt user for concept ID
+		const conceptId = prompt('Enter Concept ID:');
+		
+		if (!conceptId || conceptId.trim() === '') {
+			return; // User cancelled or entered empty string
+		}
+		
+		this.loadingNewExample = true;
+		
+		// Build the API URL to fetch the specific sample row
+		const apiUrl = `/api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/sample-row/${conceptId.trim()}`;
+		
+		this.http.get(apiUrl).subscribe({
+			next: (response: any) => {
+				this.loadingNewExample = false;
+				
+				// Create new golden example from the fetched data
+				const newExample: GoldenExample = {
+					conceptId: response.context || response.key || conceptId.trim(),
+					preferredTerm: response.source && response.source.length > 0 ? response.source[0] : '',
+					translation: response.target && response.target.length > 0 && response.target[0] ? response.target[0] : '',
+					suggestions: undefined
+				};
+				
+				this.goldenExamples.push(newExample);
+				
+				// If we have language advice saved, load suggestions for this new example
+				if (this.languageAdviceSaved) {
+					this.loadTranslationSuggestions();
+				}
+			},
+			error: (error) => {
+				this.loadingNewExample = false;
+				console.error('Error loading sample row:', error);
+				this.snackBar.open(`Failed to load example for concept ID: ${conceptId}`, 'Close', {
+					duration: 5000
+				});
+			}
 		});
 	}
 

@@ -59,12 +59,10 @@ public class TranslationController {
 	private final ActivityService activityService;
 	private final WeblateService weblateService;
 	private final WeblateSetService weblateSetService;
-	private final WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService;
 	private final TranslationLLMService translationLLMService;
 
 	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, ContentProcessingJobService jobService,
-			ActivityService activityService, WeblateService weblateService, WeblateSetService weblateSetService,
-			WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService, TranslationLLMService translationLLMService) {
+			ActivityService activityService, WeblateService weblateService, WeblateSetService weblateSetService, TranslationLLMService translationLLMService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
@@ -72,7 +70,6 @@ public class TranslationController {
 		this.activityService = activityService;
 		this.weblateService = weblateService;
 		this.weblateSetService = weblateSetService;
-		this.weblateLanguageInitialisationJobService = weblateLanguageInitialisationJobService;
 		this.translationLLMService = translationLLMService;
 	}
 
@@ -115,6 +112,7 @@ public class TranslationController {
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 		weblateService.runUserAccessCheck();
 		WeblateLanguageInitialisationRequest request = new WeblateLanguageInitialisationRequest(refsetId);
+		WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService = weblateService.getWeblateLanguageInitialisationJobService();
 		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, refsetId, ActivityType.WEBLATE_LANGUAGE_INITIALISATION, weblateLanguageInitialisationJobService, request);
 	}
 
@@ -201,10 +199,25 @@ public class TranslationController {
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/sample-rows")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public WeblatePage<WeblateUnit> getSampleWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-			@RequestParam(required = false, defaultValue = "10") int pageSize) throws ServiceExceptionWithStatusCode {
+		@RequestParam(required = false, defaultValue = "10") int pageSize) throws ServiceExceptionWithStatusCode {
 
 		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		return weblateSetService.getSampleRows(translationSet, pageSize);
+		WeblatePage<WeblateUnit> sampleRows = weblateSetService.getSampleRows(translationSet, pageSize);
+		sampleRows.results().forEach(WeblateUnit::blankLabels);
+		return sampleRows.withoutPagination();
+	}
+
+	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/sample-row/{conceptId}")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public WeblateUnit getSampleWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+		@PathVariable String conceptId, @RequestParam(required = false, defaultValue = "10") int pageSize) throws ServiceExceptionWithStatusCode {
+
+		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		WeblateUnit sampleRow = weblateSetService.getSampleRow(translationSet, conceptId);
+		if (sampleRow != null) {
+			sampleRow.blankLabels();
+		}
+		return sampleRow;
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/pull-content")

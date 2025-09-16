@@ -168,6 +168,19 @@ public class WeblateSetService {
 			.pageSize(pageSize));
 	}
 
+	public WeblateUnit getSampleRow(WeblateTranslationSet translationSet, String conceptId) throws ServiceExceptionWithStatusCode {
+		WeblateClient weblateClient = weblateClientFactory.getClient();
+		WeblateUnit unit = weblateClient.getUnitForConceptId(WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT, conceptId, translationSet.getLanguageCodeWithRefsetId());
+		if (unit != null) {
+			String compositeLabel = translationSet.getCompositeLabel();
+			List<WeblateLabel> labels = unit.getLabels();
+			if (labels != null && labels.stream().anyMatch(label -> compositeLabel.equals(label.name()))) {
+				return unit;
+			}
+		}
+		return null;
+	}
+
 	public int getStateCount(WeblateTranslationSet translationSet, String state) throws ServiceExceptionWithStatusCode {
 		WeblateClient weblateClient = weblateClientFactory.getClient();
 		WeblatePage<WeblateUnit> unitPage = weblateClient.getUnitPage(UnitQueryBuilder.of(WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT)

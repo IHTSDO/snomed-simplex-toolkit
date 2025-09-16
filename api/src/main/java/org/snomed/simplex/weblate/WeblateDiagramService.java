@@ -62,7 +62,7 @@ public class WeblateDiagramService {
 
 		try {
 			// Find the Weblate unit for this concept
-			WeblateUnit unit = weblateClient.getUnitForConceptId(projectSlug, componentSlug, conceptId);
+			WeblateUnit unit = weblateClient.getUnitForConceptId(projectSlug, componentSlug, conceptId, "en");
 			if (unit == null) {
 				logger.error("No Weblate unit found for concept ID {}", conceptId);
 				return Collections.emptyMap();

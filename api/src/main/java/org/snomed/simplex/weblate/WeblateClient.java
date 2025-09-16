@@ -300,14 +300,15 @@ public class WeblateClient {
 	 * @param projectSlug The project slug
 	 * @param componentSlug The component slug
 	 * @param conceptId The concept ID to search for
+	 * @param language The language of the unit
 	 * @return The WeblateUnit if found, null otherwise
 	 */
-	public WeblateUnit getUnitForConceptId(String projectSlug, String componentSlug, String conceptId) {
+	public WeblateUnit getUnitForConceptId(String projectSlug, String componentSlug, String conceptId, String language) {
 		try {
 			String url = UriComponentsBuilder.fromPath("/units/")
 					.queryParam("project", projectSlug)
 					.queryParam("component", componentSlug)
-					.queryParam("q", "context:=%s and language:=en".formatted(conceptId))
+					.queryParam("q", "context:=%s and language:=%s".formatted(conceptId, language))
 					.queryParam("format", "json")
 					.build()
 					.toUriString();

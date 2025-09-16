@@ -16,6 +16,7 @@ import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.snomed.simplex.weblate.WeblateClient;
 import org.snomed.simplex.weblate.WeblateClientFactory;
 import org.snomed.simplex.weblate.WeblateService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -38,7 +39,7 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 			ActivityService activityService,
 			SnowstormClientFactory snowstormClientFactory,
 			WeblateClientFactory weblateClientFactory,
-			WeblateService weblateService) {
+			@Lazy WeblateService weblateService) {
 
 		super(supportRegister, activityService);
 		this.snowstormClientFactory = snowstormClientFactory;

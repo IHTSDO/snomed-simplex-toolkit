@@ -15,6 +15,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.service.SupportRegister;
+import org.snomed.simplex.service.external.WeblateLanguageInitialisationJobService;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.weblate.domain.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,21 +45,21 @@ public class WeblateService {
 	public String commonProject;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final WeblateClientFactory weblateClientFactory;
-	private final WeblateSetService weblateSetService;
 	private final ExecutorService addLanguageExecutorService;
 	private final SupportRegister supportRegister;
 	private final AuthenticationClient authenticationClient;
+	private final WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory,
-			WeblateSetService weblateSetService, SupportRegister supportRegister, AuthenticationClient authenticationClient) {
+	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory, SupportRegister supportRegister,
+		AuthenticationClient authenticationClient, WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClientFactory = weblateClientFactory;
-		this.weblateSetService = weblateSetService;
 		this.supportRegister = supportRegister;
 		this.authenticationClient = authenticationClient;
+		this.weblateLanguageInitialisationJobService = weblateLanguageInitialisationJobService;
 		addLanguageExecutorService = Executors.newFixedThreadPool(1, new DefaultThreadFactory("Weblate-add-language-thread"));
 	}
 
@@ -233,4 +234,9 @@ public class WeblateService {
 			}
 		});
 	}
+
+	public WeblateLanguageInitialisationJobService getWeblateLanguageInitialisationJobService() {
+		return weblateLanguageInitialisationJobService;
+	}
+
 }
