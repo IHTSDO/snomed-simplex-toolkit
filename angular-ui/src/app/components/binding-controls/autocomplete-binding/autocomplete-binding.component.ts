@@ -118,7 +118,7 @@ export class AutocompleteBindingComponent implements OnInit, OnChanges, ControlV
                       const items = r.items ?? [];
                       return items.map((item: any) => ({
                         code: item.conceptId,
-                        display: item.pt?.term || item.fsn?.term || `Concept ${item.conceptId}`
+                        display: item.fsn?.term || `Concept ${item.conceptId}`
                       }));
                     }),
                     finalize(() => (this.loading = false))              // turn spinner off
