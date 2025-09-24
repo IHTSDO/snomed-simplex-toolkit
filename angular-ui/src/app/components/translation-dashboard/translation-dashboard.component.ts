@@ -40,7 +40,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
   private translationSetsLoaded = false; // Flag to track if translation sets have been loaded
   
   // ECL input method properties
-  eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'manual';
+  eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'subtype';
   selectedRefsetCode: string = '';
   selectedDerivativeCode: string = '';
   selectedSubtype: any = null;
@@ -70,6 +70,38 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     // 3. Component is not initialized yet
     // 4. No data has been loaded yet and translation sets haven't been loaded
     return this.loading || this.loadingSets || !this.isInitialized || (this.labelSets.length === 0 && !this.translationSetsLoaded);
+  }
+
+  // Computed property to determine which codesystem will be used
+  get selectedCodesystem(): string {
+    switch (this.eclInputMethod) {
+      case 'derivative':
+        return 'SNOMEDCT-DERIVATIVES';
+      case 'manual':
+        // Parse ECL input string to extract positive integer IDs (keep as strings)
+        const eclInput = this.form.get('ecl')?.value || '';
+        const idMatches = eclInput.match(/\b\d+\b/g);
+        
+        if (idMatches && idMatches.length > 0) {
+          // Keep IDs as strings and filter out any that are not positive integers
+          const extractedIds = idMatches.filter(id => id.length > 0 && !id.startsWith('0'));
+          
+          // Check if any extracted ID matches a derivative code
+          const hasDerivativeMatch = extractedIds.some(id => 
+            this.derivatives.some(derivative => derivative.code === id)
+          );
+          
+          if (hasDerivativeMatch) {
+            return 'SNOMEDCT-DERIVATIVES';
+          }
+        }
+        
+        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
+      case 'refset':
+      case 'subtype':
+      default:
+        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
+    }
   }
 
   constructor(  private fb: FormBuilder,
@@ -498,7 +530,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
       // Reset the form when entering create mode
       this.form.reset();
       // Reset ECL input method properties
-      this.eclInputMethod = 'manual';
+      this.eclInputMethod = 'subtype';
       this.selectedRefsetCode = '';
       this.selectedDerivativeCode = '';
       this.selectedSubtype = null; // Reset subtype
@@ -566,7 +598,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     }
     
     // Load derivatives from server when derivative option is selected (only if not already loaded)
-    if (this.eclInputMethod === 'derivative' && !this.derivativesLoaded) {
+    if ((this.eclInputMethod === 'derivative' || this.eclInputMethod === 'manual') && !this.derivativesLoaded) {
       this.loadDerivativesFromServer();
     }
     
@@ -713,13 +745,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
    * @returns The codesystem identifier
    */
   private determineSelectionCodesystem(): string {
-    switch (this.eclInputMethod) {
-      case 'derivative':
-        // For derivatives, use the hardcoded SNOMEDCT-DERIVATIVES
-        return 'SNOMEDCT-DERIVATIVES';
-      default:
-        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
-    }
+    return this.selectedCodesystem;
   }
 
   /**

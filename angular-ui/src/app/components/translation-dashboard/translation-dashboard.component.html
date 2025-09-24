@@ -233,7 +233,7 @@
                         <mat-option *ngFor="let translation of translations" 
                                    [value]="translation.id"
                                    [disabled]="!translation.isWeblate">
-                            {{translation.pt.term}}{{!translation.isWeblate ? ' (Not linked to Snowlate)' : ''}}
+                            {{translation.pt.term}}{{!translation.isWeblate ? ' (Not linked to Translation Tool)' : ''}}
                         </mat-option>
                     </mat-select>
                     <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>
@@ -252,14 +252,14 @@
                 <div class="ecl-input-section">
                     <h4>ECL Input Method</h4>
                     <mat-radio-group [(ngModel)]="eclInputMethod" (change)="onEclInputMethodChange()" [ngModelOptions]="{standalone: true}">
-                        <mat-radio-button value="manual">Manual ECL Input</mat-radio-button>
-                        <mat-radio-button value="refset">Select from a Refset in this Extension</mat-radio-button>
-                        <mat-radio-button value="derivative">Select from a SNOMED CT Derivative</mat-radio-button>
                         <mat-radio-button value="subtype" 
                                          [disabled]="!selectedEdition?.branchPath"
                                          [matTooltip]="!selectedEdition?.branchPath ? 'Branch path not available. Please ensure an edition is selected.' : ''">
-                            Select from SNOMED CT Sub Types
+                            Select a concept and all descendants
                         </mat-radio-button>
+                        <mat-radio-button value="refset">Select from a Refset in this Extension</mat-radio-button>
+                        <mat-radio-button value="derivative">Select from a SNOMED CT Derivative</mat-radio-button>
+                        <mat-radio-button value="manual">Manual ECL Input</mat-radio-button>
                     </mat-radio-group>
                 </div>
 
@@ -272,6 +272,7 @@
                         <mat-icon>close</mat-icon>
                     </button>
                     <mat-error *ngIf="form.get('ecl')?.hasError('required')">ECL is required</mat-error>
+                    
                 </mat-form-field>
 
                 <!-- Refset Selection -->
@@ -306,7 +307,7 @@
 
                 <!-- Subtype Selection -->
                 <div *ngIf="eclInputMethod === 'subtype'" class="subtype-selection">
-                    <mat-label>Select Sub Type</mat-label>
+                    <mat-label>Select Concept and All Descendants</mat-label>
                     <div *ngIf="!selectedEdition?.branchPath" class="error-message">
                         <mat-icon>error</mat-icon>
                         <span>Branch path not available. Please ensure an edition is selected.</span>
@@ -319,6 +320,15 @@
                     </app-autocomplete-binding>
                 </div>
             </form>
+            
+            <!-- Codesystem information -->
+            <div class="codesystem-info" *ngIf="selectedCodesystem === 'SNOMEDCT-DERIVATIVES'">
+                <mat-icon class="info-icon">info</mat-icon>
+                <span class="info-text">
+                    The set will be created from concepts in the SNOMED CT Derivatives Edition.
+                </span>
+            </div>
+            
             <div>
                 <button mat-flat-button (click)="mode = 'view'" *ngIf="!saving">Cancel</button>
                 <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="form.invalid">Create</button>
