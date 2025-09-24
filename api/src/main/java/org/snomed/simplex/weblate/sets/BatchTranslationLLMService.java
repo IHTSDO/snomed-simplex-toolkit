@@ -58,7 +58,6 @@ public class BatchTranslationLLMService extends AbstractWeblateSetProcessingServ
 			logger.error("Nothing found to translate.");
 			return;
 		}
-		Map<String, List<String>> sourceSuggestionMap = translationLLMService.suggestTranslations(translationSet, unitSources, false);
 
 		// Push suggestions to Weblate
 		Map<String, WeblateUnit> sourceStringToUnit = unitsToProcess.stream().collect(Collectors.toMap(unit -> unit.getSource().get(0), Function.identity()));
@@ -71,6 +70,7 @@ public class BatchTranslationLLMService extends AbstractWeblateSetProcessingServ
 				translationsToUpload.add(new WeblateUnitTranslation(weblateUnit.getContext(), suggestion));
 			}
 		}
+			Map<String, List<String>> sourceSuggestionMap = translationLLMService.suggestTranslations(translationSet, unitSources, false, false);
 
 		weblateClient.uploadTranslations(translationSet, translationsToUpload);
 	}

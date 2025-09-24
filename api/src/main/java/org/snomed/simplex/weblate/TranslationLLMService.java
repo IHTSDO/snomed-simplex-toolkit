@@ -19,7 +19,7 @@ public class TranslationLLMService {
 		this.llmService = llmService;
 	}
 
-	public Map<String, List<String>> suggestTranslations(WeblateTranslationSet translationSet, List<String> englishTerm, boolean multipleSuggestions) {
+	public Map<String, List<String>> suggestTranslations(WeblateTranslationSet translationSet, List<String> englishTerm, boolean multipleSuggestions, boolean fast) {
 
 		Map<String, List<String>> allSuggestions = new LinkedHashMap<>();
 
@@ -66,7 +66,8 @@ public class TranslationLLMService {
 					English terms:
 					%s
 					"""
-			).formatted(systemAdvice, responseFormat, guidelines, languageAdviceFormatted, String.join("\n", englishTerm))
+			).formatted(systemAdvice, responseFormat, guidelines, languageAdviceFormatted, String.join("\n", englishTerm)),
+			fast
 		);
 		for (String line : response.split("\n")) {
 			if (line.contains("|")) {

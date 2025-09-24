@@ -259,7 +259,7 @@ public class TranslationController {
 		@RequestBody List<String> englishTerm) throws ServiceExceptionWithStatusCode {
 
 		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		return translationLLMService.suggestTranslations(translationSet, englishTerm, true);
+		return translationLLMService.suggestTranslations(translationSet, englishTerm, true, true);
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/run-ai-batch")
