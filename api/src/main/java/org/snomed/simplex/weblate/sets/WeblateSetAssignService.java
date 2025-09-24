@@ -1,6 +1,5 @@
 package org.snomed.simplex.weblate.sets;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.exceptions.ServiceException;
@@ -23,12 +22,10 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 
 	private final WeblateSetRepository weblateSetRepository;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
-	private final ObjectMapper objectMapper;
 
 	public WeblateSetAssignService(ProcessingContext processingContext) {
 		super(processingContext);
 		weblateSetRepository = processingContext.weblateSetRepository();
-		objectMapper = processingContext.objectMapper();
 	}
 
 	public void assignWorkToUsers(WeblateTranslationSet translationSet, AssignWorkRequest request) throws ServiceException {
@@ -38,7 +35,7 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 		queueJob(translationSet, JOB_TYPE_ASSIGN_WORK, request);
 	}
 
-	public void doAssignWorkToUsers(WeblateTranslationSet translationSet, AssignWorkRequest request, WeblateClient weblateClient) {
+	public void doAssignWorkToUsers(WeblateTranslationSet translationSet, AssignWorkRequest request, WeblateClient weblateClient) throws ServiceExceptionWithStatusCode {
 		String languageCodeWithRefset = translationSet.getLanguageCodeWithRefsetId();
 		String label = translationSet.getCompositeLabel();
 
@@ -90,31 +87,7 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 					processedUnits++;
 				}
 
-				// Apply labels in bulk for each user
-				for (Map.Entry<String, List<String>> entry : unitsByUser.entrySet()) {
-					String username = entry.getKey();
-					List<String> unitIds = entry.getValue();
-					WeblateLabel labelObj = userLabels.get(username);
-
-					if (labelObj != null && !unitIds.isEmpty()) {
-						try {
-							weblateClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, labelObj.id(), unitIds);
-							logger.debug("Bulk assigned {} units to user {}", unitIds.size(), username);
-						} catch (ServiceExceptionWithStatusCode e) {
-							logger.error("Failed to bulk assign units to user {}: {}", username, e.getMessage());
-							// Fall back to individual assignments if bulk fails
-							for (String unitId : unitIds) {
-								try {
-									List<WeblateLabel> currentLabels = new ArrayList<>();
-									currentLabels.add(labelObj);
-									weblateClient.patchUnitLabels(unitId, currentLabels);
-								} catch (Exception ex) {
-									logger.error("Failed to assign unit {} to user {}: {}", unitId, username, ex.getMessage());
-								}
-							}
-						}
-					}
-				}
+				doApplyLabels(weblateClient, unitsByUser, userLabels);
 
 				// Update progress every page
 				setProgress(translationSet, Math.min(90, (int) (((float) processedUnits / (float) totalUnits) * 100)));
@@ -133,6 +106,20 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 		weblateSetRepository.save(translationSet);
 
 		logger.info("Work assignment completed for label: {}", label);
+	}
+
+	private void doApplyLabels(WeblateClient weblateClient, Map<String, List<String>> unitsByUser, Map<String, WeblateLabel> userLabels) throws ServiceExceptionWithStatusCode {
+		// Apply labels in bulk for each user
+		for (Map.Entry<String, List<String>> entry : unitsByUser.entrySet()) {
+			String username = entry.getKey();
+			List<String> unitIds = entry.getValue();
+			WeblateLabel labelObj = userLabels.get(username);
+
+			if (labelObj != null && !unitIds.isEmpty()) {
+				weblateClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, labelObj.id(), unitIds);
+				logger.debug("Bulk assigned {} units to user {}", unitIds.size(), username);
+			}
+		}
 	}
 
 	/**

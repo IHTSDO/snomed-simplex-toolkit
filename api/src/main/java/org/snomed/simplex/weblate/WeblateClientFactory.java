@@ -25,9 +25,9 @@ public class WeblateClientFactory {
 	private final Cache<String, WeblateClient> clientCache;
 	private final String url;
 	private final SupportRegister supportRegister;
-	private volatile WeblateAdminClient adminClient;
+	private WeblateAdminClient adminClient;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
-	
+
 	// Fields for admin client recreation
 	private long adminClientCreationTime;
 	private final AuthenticationClient authenticationClient;
@@ -63,7 +63,7 @@ public class WeblateClientFactory {
 	WeblateAdminClient getAdminClient() {
 		long currentTime = System.currentTimeMillis();
 		long timeSinceCreation = currentTime - adminClientCreationTime;
-		
+
 		// If more than 10 minutes have passed, recreate the admin client
 		if (timeSinceCreation > TimeUnit.MINUTES.toMillis(10)) {
 			synchronized (this) {
@@ -80,7 +80,7 @@ public class WeblateClientFactory {
 				}
 			}
 		}
-		
+
 		return adminClient;
 	}
 
