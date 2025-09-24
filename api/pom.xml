@@ -17,7 +17,7 @@
 		<packageName>snomed-simplex-toolkit</packageName>
 
 		<!-- BOM Overrides -->
-		<spring.version>6.2.10</spring.version>
+		<spring.version>6.2.11</spring.version>
 		<spring-boot.version>3.5.5</spring-boot.version>
 		<langchain4j.version>1.4.0</langchain4j.version>
 		<spring.security.version>6.5.3</spring.security.version>
