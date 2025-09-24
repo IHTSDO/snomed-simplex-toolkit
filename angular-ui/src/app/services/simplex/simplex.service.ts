@@ -384,4 +384,12 @@ export class SimplexService {
       .pipe(catchError(this.handleError.bind(this)));
   }
 
+  public runAiBatchTranslation(edition: string, refsetId: string, label: string, batchSize: number): Observable<any> {
+    const request = {
+      size: batchSize
+    };
+    return this.http.post(`/api/${edition}/translations/${refsetId}/weblate-set/${label}/run-ai-batch`, request)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
 }

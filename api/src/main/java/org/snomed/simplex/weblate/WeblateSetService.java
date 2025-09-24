@@ -1,6 +1,7 @@
 package org.snomed.simplex.weblate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
 import org.ihtsdo.sso.integration.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,15 +10,17 @@ import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.AssignWorkRequest;
+import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.TranslationService;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.weblate.domain.*;
+import org.snomed.simplex.weblate.sets.BatchTranslationLLMService;
+import org.snomed.simplex.weblate.sets.ProcessingContext;
 import org.snomed.simplex.weblate.sets.WeblateSetAssignService;
 import org.snomed.simplex.weblate.sets.WeblateSetCreationService;
-import org.snomed.simplex.weblate.sets.WeblateSetProcessingContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jms.annotation.JmsListener;
@@ -41,7 +44,8 @@ public class WeblateSetService {
 	public static final String JOB_TYPE_DELETE = "Delete";
 	public static final int PERCENTAGE_PROCESSED_START = 5;
 	public static final String JOB_TYPE_ASSIGN_WORK = "AssignWork";
-	public static final String ASSIGN_WORK_REQUEST = "assignWorkRequest";
+	public static final String JOB_TYPE_BATCH_AI_TRANSLATE = "BatchAiTranslate";
+	public static final String REQUEST_OBJECT = "requestObject";
 
 	private final WeblateSetRepository weblateSetRepository;
 	private final WeblateClientFactory weblateClientFactory;
@@ -50,16 +54,18 @@ public class WeblateSetService {
 	private final SupportRegister supportRegister;
 	private final WeblateSetCreationService creationService;
 	private final WeblateSetAssignService assignService;
+	private final BatchTranslationLLMService batchTranslationLLMService;
 
 	private final JmsTemplate jmsTemplate;
-	private final String jmsQueuePrefix;
+	private final String processingQueueName;
 
 	private final Map<String, SecurityContext> userIdToContextMap;
 	private final ObjectMapper objectMapper;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public WeblateSetService(WeblateSetRepository weblateSetRepository, WeblateClientFactory weblateClientFactory, SnowstormClientFactory snowstormClientFactory, TranslationService translationService, SupportRegister supportRegister,
+	public WeblateSetService(WeblateSetRepository weblateSetRepository, WeblateClientFactory weblateClientFactory, SnowstormClientFactory snowstormClientFactory,
+			TranslationService translationService, SupportRegister supportRegister, TranslationLLMService translationLLMService,
 			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix, @Value("${weblate.label.batch-size}") int labelBatchSize, ObjectMapper objectMapper) {
 
 		this.weblateSetRepository = weblateSetRepository;
@@ -68,14 +74,15 @@ public class WeblateSetService {
 		this.translationService = translationService;
 		this.supportRegister = supportRegister;
 		this.jmsTemplate = jmsTemplate;
-		this.jmsQueuePrefix = jmsQueuePrefix;
 		userIdToContextMap = new HashMap<>();
 		this.objectMapper = objectMapper;
+		processingQueueName = jmsQueuePrefix + ".translation-set.processing";
 
-		WeblateSetProcessingContext processingContext = new WeblateSetProcessingContext(snowstormClientFactory, weblateClientFactory,
-			weblateSetRepository, userIdToContextMap, jmsTemplate, jmsQueuePrefix, objectMapper);
+		ProcessingContext processingContext = new ProcessingContext(snowstormClientFactory, weblateClientFactory,
+			weblateSetRepository, translationLLMService, userIdToContextMap, jmsTemplate, processingQueueName, objectMapper);
 		creationService = new WeblateSetCreationService(processingContext, labelBatchSize);
 		assignService = new WeblateSetAssignService(processingContext);
+		batchTranslationLLMService = new BatchTranslationLLMService(processingContext);
 	}
 
 	public List<WeblateTranslationSet> findByCodeSystem(String codeSystem) throws ServiceExceptionWithStatusCode {
@@ -113,6 +120,16 @@ public class WeblateSetService {
 			list.removeAll(deleted);
 		}
 
+		list.forEach(set ->	{
+			boolean aiSetupComplete = false;
+			Map<String, String> aiGoldenSet = set.getAiGoldenSet();
+			if (aiGoldenSet != null && aiGoldenSet.size() >= 5 && aiGoldenSet.values().stream().noneMatch(Strings::isNullOrEmpty)) {
+				aiSetupComplete = true;
+			}
+			set.setAiSetupComplete(aiSetupComplete);
+		});
+
+
 		String webUrl = weblateClientFactory.getApiUrl().replaceAll("/api/?$", "");
 		list.stream()
 			.filter(set -> set.getStatus() == TranslationSetStatus.READY)
@@ -121,7 +138,7 @@ public class WeblateSetService {
 		return list;
 	}
 
-	public WeblateTranslationSet createSet(WeblateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+	public WeblateTranslationSet createSet(WeblateTranslationSet translationSet) throws ServiceException {
 		creationService.createSet(translationSet);
 		return translationSet;
 	}
@@ -184,6 +201,10 @@ public class WeblateSetService {
 		weblateSetRepository.save(translationSet);
 	}
 
+	public void runAiBatchTranslate(WeblateTranslationSet translationSet, BatchTranslateRequest request) throws ServiceException {
+		batchTranslationLLMService.runAiBatchTranslate(translationSet, request);
+	}
+
 	public void deleteSet(WeblateTranslationSet translationSet) {
 		logger.info("Queueing Translation Tool Translation Set for deletion {}/{}/{}", translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
 		translationSet.setStatus(TranslationSetStatus.DELETING);
@@ -192,11 +213,10 @@ public class WeblateSetService {
 		String username = SecurityUtil.getUsername();
 		userIdToContextMap.put(username, SecurityContextHolder.getContext());
 
-		jmsTemplate.convertAndSend(jmsQueuePrefix + ".translation-set.processing",
+		jmsTemplate.convertAndSend(processingQueueName,
 			Map.of(JOB_TYPE, JOB_TYPE_DELETE,
 				JOB_MESSAGE_USERNAME, username,
 				JOB_MESSAGE_ID, translationSet.getId()));
-
 	}
 
 	@JmsListener(destination = "${jms.queue.prefix}.translation-set.processing", concurrency = "1")
@@ -223,9 +243,13 @@ public class WeblateSetService {
 			} else if (jobType.equals(JOB_TYPE_DELETE)) {
 				doDeleteSet(translationSet, weblateClient);
 			} else if (jobType.equals(JOB_TYPE_ASSIGN_WORK)) {
-				String requestJson = (String) jobMessage.get(ASSIGN_WORK_REQUEST);
+				String requestJson = (String) jobMessage.get(REQUEST_OBJECT);
 				AssignWorkRequest request = objectMapper.readValue(requestJson, AssignWorkRequest.class);
 				assignService.doAssignWorkToUsers(translationSet, request, weblateClient);
+			} else if (jobType.equals(JOB_TYPE_BATCH_AI_TRANSLATE)) {
+				String requestJson = (String) jobMessage.get(REQUEST_OBJECT);
+				BatchTranslateRequest request = objectMapper.readValue(requestJson, BatchTranslateRequest.class);
+				batchTranslationLLMService.doRunAiBatchTranslate(translationSet, request);
 			} else {
 				String errorMessage = "Unrecognised job type: %s, translationSet: %s, username: %s".formatted(jobType, translationSetId, username);
 				supportRegister.handleSystemError(CodeSystem.SHARED, errorMessage, new ServiceException(errorMessage));
@@ -282,5 +306,4 @@ public class WeblateSetService {
 		WeblateTranslationSet translationSet = findSubsetOrThrow(codeSystem, refsetId, label);
 		assignService.assignWorkToUsers(translationSet, request);
 	}
-
 }

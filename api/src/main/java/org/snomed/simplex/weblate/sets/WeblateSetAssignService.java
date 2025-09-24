@@ -1,6 +1,5 @@
 package org.snomed.simplex.weblate.sets;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,15 +16,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.snomed.simplex.weblate.WeblateSetService.*;
+import static org.snomed.simplex.weblate.WeblateSetService.JOB_TYPE_ASSIGN_WORK;
+import static org.snomed.simplex.weblate.WeblateSetService.PERCENTAGE_PROCESSED_START;
 
-public class WeblateSetAssignService extends WeblateSetProcessingService {
+public class WeblateSetAssignService extends AbstractWeblateSetProcessingService {
 
 	private final WeblateSetRepository weblateSetRepository;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 	private final ObjectMapper objectMapper;
 
-	public WeblateSetAssignService(WeblateSetProcessingContext processingContext) {
+	public WeblateSetAssignService(ProcessingContext processingContext) {
 		super(processingContext);
 		weblateSetRepository = processingContext.weblateSetRepository();
 		objectMapper = processingContext.objectMapper();
@@ -33,17 +33,9 @@ public class WeblateSetAssignService extends WeblateSetProcessingService {
 
 	public void assignWorkToUsers(WeblateTranslationSet translationSet, AssignWorkRequest request) throws ServiceException {
 		// Set status to processing and save
-		translationSet.setStatus(TranslationSetStatus.PROCESSING);
-		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
-		weblateSetRepository.save(translationSet);
+		setProgress(translationSet, PERCENTAGE_PROCESSED_START);
 
-		String assignWorkRequestJson = null;
-		try {
-			assignWorkRequestJson = objectMapper.writeValueAsString(request);
-		} catch (JsonProcessingException e) {
-			throw new ServiceException("Failed to queue assign job.", e);
-		}
-		queueJob(translationSet, JOB_TYPE_ASSIGN_WORK, Map.of(ASSIGN_WORK_REQUEST, assignWorkRequestJson));
+		queueJob(translationSet, JOB_TYPE_ASSIGN_WORK, request);
 	}
 
 	public void doAssignWorkToUsers(WeblateTranslationSet translationSet, AssignWorkRequest request, WeblateClient weblateClient) {
@@ -125,8 +117,7 @@ public class WeblateSetAssignService extends WeblateSetProcessingService {
 				}
 
 				// Update progress every page
-				translationSet.setPercentageProcessed(Math.min(90, (int) (((float) processedUnits / (float) totalUnits) * 100)));
-				weblateSetRepository.save(translationSet);
+				setProgress(translationSet, Math.min(90, (int) (((float) processedUnits / (float) totalUnits) * 100)));
 			}
 
 		} while (unitsPage != null && unitsPage.next() != null);

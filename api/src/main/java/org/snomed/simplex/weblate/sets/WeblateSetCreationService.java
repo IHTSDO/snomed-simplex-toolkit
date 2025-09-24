@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.util.TimerUtil;
@@ -23,7 +24,7 @@ import java.util.Optional;
 import static org.snomed.simplex.weblate.WeblateSetService.JOB_TYPE_CREATE;
 import static org.snomed.simplex.weblate.WeblateSetService.PERCENTAGE_PROCESSED_START;
 
-public class WeblateSetCreationService extends WeblateSetProcessingService {
+public class WeblateSetCreationService extends AbstractWeblateSetProcessingService {
 
 	private final WeblateClientFactory weblateClientFactory;
 	private final WeblateSetRepository weblateSetRepository;
@@ -31,7 +32,7 @@ public class WeblateSetCreationService extends WeblateSetProcessingService {
 	private final int labelBatchSize;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public WeblateSetCreationService(WeblateSetProcessingContext processingContext, int labelBatchSize) {
+	public WeblateSetCreationService(ProcessingContext processingContext, int labelBatchSize) {
 		super(processingContext);
 		weblateSetRepository = processingContext.weblateSetRepository();
 		weblateClientFactory = processingContext.weblateClientFactory();
@@ -39,7 +40,7 @@ public class WeblateSetCreationService extends WeblateSetProcessingService {
 		this.labelBatchSize = labelBatchSize;
 	}
 
-	public void createSet(WeblateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+	public void createSet(WeblateTranslationSet translationSet) throws ServiceException {
 		String codesystemShortName = translationSet.getCodesystem();
 		ServiceHelper.requiredParameter("codesystem", codesystemShortName);
 		ServiceHelper.requiredParameter("name", translationSet.getName());

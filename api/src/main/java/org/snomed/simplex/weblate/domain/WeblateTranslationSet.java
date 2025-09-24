@@ -70,6 +70,9 @@ public final class WeblateTranslationSet {
 	@Transient
 	private int changedSinceCreatedOrLastPulled;
 
+	@Transient
+	private boolean aiSetupComplete;
+
 	public WeblateTranslationSet(String codesystem, String refset, String name, String label,
 		String ecl, TranslationSubsetType subsetType, String selectionCodesystem) {
 
@@ -218,6 +221,14 @@ public final class WeblateTranslationSet {
 
 	public void setChangedSinceCreatedOrLastPulled(int changedSinceCreatedOrLastPulled) {
 		this.changedSinceCreatedOrLastPulled = changedSinceCreatedOrLastPulled;
+	}
+
+	public void setAiSetupComplete(boolean aiSetupComplete) {
+		this.aiSetupComplete = aiSetupComplete;
+	}
+
+	public boolean isAiSetupComplete() {
+		return aiSetupComplete;
 	}
 
 	@Override

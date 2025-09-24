@@ -11,7 +11,8 @@ public enum ActivityType {
 	UPDATE_CONFIGURATION("Update configuration"), BUILD_RELEASE("Build release"), FINALIZE_RELEASE("Finalize release"),
 
 	WEBLATE_LANGUAGE_INITIALISATION("Initialise Translation Tool language"),
-	TRANSLATION_SET_CREATE("Create translation set");
+	TRANSLATION_SET_CREATE("Create translation set"),
+	AI_BATCH_TRANSLATION("AI batch translation");
 
 	private final String display;
 

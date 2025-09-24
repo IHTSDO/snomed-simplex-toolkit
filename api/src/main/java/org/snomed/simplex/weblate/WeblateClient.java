@@ -8,10 +8,12 @@ import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SupportRegister;
+import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.weblate.domain.*;
 import org.snomed.simplex.weblate.pojo.BulkAddLabelRequest;
 import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequest;
 import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequestPlural;
+import org.snomed.simplex.weblate.pojo.WeblateUnitTranslation;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -22,10 +24,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
@@ -187,6 +186,48 @@ public class WeblateClient {
 		Map<String, String> patchBody = new HashMap<>();
 		patchBody.put("explanation", explanation);
 		restTemplate.exchange(UNITS_URL.formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody, getJsonHeaders()), Void.class);
+	}
+
+	public void uploadTranslations(WeblateTranslationSet translationSet, List<WeblateUnitTranslation> translationsToUpload) throws ServiceException {
+		String languageCodeWithRefsetId = translationSet.getLanguageCodeWithRefsetId();
+
+		File translationUploadFile = null;
+		try {
+			translationUploadFile = File.createTempFile(UUID.randomUUID() + "-translation-upload", ".txt");
+			try (BufferedWriter writer = new BufferedWriter(new FileWriter(translationUploadFile))) {
+				writer.write("context\ttarget");
+				writer.newLine();
+				for (WeblateUnitTranslation translation : translationsToUpload) {
+					writer.write(translation.context());
+					writer.write("\t");
+					writer.write(translation.target());
+					writer.newLine();
+				}
+			}
+
+			// Create multipart request for screenshot upload
+			MultipartBodyBuilder builder = new MultipartBodyBuilder();
+			builder.part("conflicts", "ignore");// Ignore uploaded translations which are already translated.
+			builder.part("file", new FileSystemResource(translationUploadFile), MediaType.TEXT_PLAIN);
+			builder.part("author", "AI Batch Translate");
+			builder.part("method", "translate");
+
+			// Upload the file
+			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+				"/translations/%s/%s/%s/file/".formatted(COMMON_PROJECT, SNOMEDCT_COMPONENT, languageCodeWithRefsetId),
+				HttpMethod.POST,
+				new HttpEntity<>(builder.build(), getFormHeaders()),
+				PARAMETERIZED_TYPE_REFERENCE_MAP
+			);
+
+			if (response.getStatusCode() != HttpStatus.OK && response.getStatusCode() != HttpStatus.CREATED) {
+				throw new ServiceException("Failed to upload batch translation");
+			}
+		} catch (IOException e) {
+			throw new ServiceException("Failed to create temp file for translation upload.", e);
+		} finally {
+			FileUtils.deleteOrLogWarning(translationUploadFile);
+		}
 	}
 
 	public void patchUnitLabels(String id, List<WeblateLabel> labels) {
@@ -434,7 +475,7 @@ public class WeblateClient {
 				}
 			} catch (Exception e) {
 				// Fire and forget - no error handling
-				logger.debug("Background label deletion failed for project {} label {}: {}", project, label, e.getMessage());
+				logger.info("Background label deletion failed for project {} label {}: {}", project, label, e.getMessage());
 			}
 		});
 	}

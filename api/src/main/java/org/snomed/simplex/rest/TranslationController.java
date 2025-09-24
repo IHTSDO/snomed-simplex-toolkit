@@ -259,8 +259,16 @@ public class TranslationController {
 		@RequestBody List<String> englishTerm) throws ServiceExceptionWithStatusCode {
 
 		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		String language = translationSet.getLanguageCode();
-		return translationLLMService.suggestTranslations(translationSet, language, englishTerm);
+		return translationLLMService.suggestTranslations(translationSet, englishTerm, true);
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/run-ai-batch")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void runAiBatchTranslate(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+		@RequestBody BatchTranslateRequest request) throws ServiceException {
+
+		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		weblateSetService.runAiBatchTranslate(translationSet, request);
 	}
 
 	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")

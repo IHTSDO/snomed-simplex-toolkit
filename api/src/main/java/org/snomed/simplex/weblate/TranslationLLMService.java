@@ -19,27 +19,40 @@ public class TranslationLLMService {
 		this.llmService = llmService;
 	}
 
-	public Map<String, List<String>> suggestTranslations(WeblateTranslationSet translationSet, String language, List<String> englishTerm) {
+	public Map<String, List<String>> suggestTranslations(WeblateTranslationSet translationSet, List<String> englishTerm, boolean multipleSuggestions) {
 
 		Map<String, List<String>> allSuggestions = new LinkedHashMap<>();
 
-		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(language);
+		String languageCode = translationSet.getLanguageCode();
+		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(languageCode);
 		String languageAdvice = translationSet.getAiLanguageAdvice();
 		String languageAdviceFormatted = "";
 		if (Strings.isNotEmpty(languageAdvice)) {
 			languageAdviceFormatted = "%s\n".formatted(languageAdvice);
 		}
-		String responseFormat = "For each term provided, return the English term and the top two %s translations.\n".formatted(language) +
+		String responseFormat = "For each term provided, return the English term and the %s translation.\n".formatted(languageCode) +
 			"Use the exact formatting below:\n" +
-			"<english term>|<translation1>|<translation2>";
+			"<english term>|<translation>";
+		if (multipleSuggestions) {
+			responseFormat = "For each term provided, return the English term and the top two %s translations.\n".formatted(languageCode) +
+				"Use the exact formatting below:\n" +
+				"<english term>|<translation1>|<translation2>";
+		}
 		String guidelines =
 			"""
 				Guidelines:
-				- Provide two translations after each English term. If a translation cannot be found, leave that translation blank after the '|'.
+				- Provide X_TRANSLATIONS after each English term. If a translation cannot be found, leave that translation blank after the '|'.
 				- Preserve the original order of the English terms; do not reorder, group, or summarize them.
 				- Preserve all modifiers, qualifiers, any body location descriptors.
 				- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.
 				""";
+
+		if (multipleSuggestions) {
+			guidelines = guidelines.replace("X_TRANSLATIONS", "two translations");
+		} else {
+			guidelines = guidelines.replace("X_TRANSLATIONS", "one translation");
+		}
+
 		// System Advice
 		// Language Advice
 		// Term

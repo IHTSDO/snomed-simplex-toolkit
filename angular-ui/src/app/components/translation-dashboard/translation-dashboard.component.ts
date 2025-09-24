@@ -9,6 +9,7 @@ import { TerminologyService } from 'src/app/services/simplex/terminology.service
 import { ActivatedRoute } from '@angular/router';
 import { AssignWorkDialogComponent } from '../assign-work-dialog/assign-work-dialog.component';
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
+import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 
 @Component({
   selector: 'app-translation-dashboard',
@@ -228,6 +229,37 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         this.snackBar.open(`AI Translation setup completed for ${result.goldenExamples.length} golden examples`, 'Close', {
           duration: 5000
         });
+      }
+    });
+  }
+
+  runAiBatchTranslation(): void {
+    if (!this.selectedLabelSet) {
+      this.snackBar.open('Please select a translation set first.', 'Close', {
+        duration: 3000
+      });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(AiBatchTranslationDialogComponent, {
+      width: '500px',
+      data: {
+        edition: this.selectedEdition.shortName,
+        refsetId: this.selectedLabelSet.refset,
+        labelSetName: this.selectedLabelSet.name,
+        label: this.selectedLabelSet.label,
+        selectedLabelSet: this.selectedLabelSet
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result && result.action === 'batch_started') {
+        console.log('AI Batch Translation started:', result);
+        this.snackBar.open(`AI translation batch started for ${result.batchSize} concepts`, 'Close', {
+          duration: 5000
+        });
+        // Reload the translation sets to show updated status
+        this.getTranslationSets();
       }
     });
   }

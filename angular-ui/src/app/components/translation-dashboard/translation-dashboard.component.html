@@ -149,6 +149,12 @@
                                 <mat-icon class="large-icon">flash_on</mat-icon>
                                 Setup AI Translation
                             </button>
+                            <button mat-menu-item (click)="runAiBatchTranslation()" 
+                                    [disabled]="selectedLabelSet.status === 'PROCESSING'" 
+                                    *ngIf="selectedLabelSet.aiSetupComplete">
+                                <mat-icon class="large-icon">flash_on</mat-icon>
+                                Run AI Translation
+                            </button>
                             <button mat-menu-item (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                                 <mat-icon class="large-icon">cloud_download</mat-icon>
                                 Pull new translations from Translation Tool
