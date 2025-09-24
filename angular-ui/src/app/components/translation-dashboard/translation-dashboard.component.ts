@@ -261,6 +261,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         this.snackBar.open(`AI Translation setup completed for ${result.goldenExamples.length} golden examples`, 'Close', {
           duration: 5000
         });
+        
+        // Reload the translation sets to reflect any changes made during setup
+        this.getTranslationSets();
+        
+        // If a translation set is currently selected, reload its details to get updated AI setup information
+        if (this.selectedLabelSet) {
+          this.loadLabelSetDetails(this.selectedLabelSet);
+        }
       }
     });
   }
