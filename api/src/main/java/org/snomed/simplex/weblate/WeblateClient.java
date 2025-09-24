@@ -40,6 +40,7 @@ public class WeblateClient {
 	public static final ParameterizedTypeReference<WeblatePage<WeblateUnit>> UNITS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<WeblatePage<WeblateLabel>> LABELS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<Map<String, Object>> PARAMETERIZED_TYPE_REFERENCE_MAP = new ParameterizedTypeReference<>() {};
+	public static final ParameterizedTypeReference<List<Map<String, Object>>> PARAMETERIZED_TYPE_REFERENCE_LIST_OF_MAPS = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<WeblateResponse<WeblateGroup>> GROUPS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<WeblateResponse<WeblateUserResponse>> USERS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 
@@ -414,16 +415,20 @@ public class WeblateClient {
 		restTemplate.postForEntity("/components/common/snomedct/translations/", new HttpEntity<>(requestBody, getJsonHeaders()), String.class);
 	}
 
-	public Map<String, Object> getLanguageStatistics(String languageCode) {
+	public Map<String, Object> getComponentLanguageStats(String project, String languageCode) {
 		try {
-			String url = "/languages/%s/statistics/?format=json".formatted(languageCode);
-			ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+			String url = "/projects/%s/languages/?format=json".formatted(project);
+			ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
 					url,
 					HttpMethod.GET,
 					null,
-					PARAMETERIZED_TYPE_REFERENCE_MAP
+				PARAMETERIZED_TYPE_REFERENCE_LIST_OF_MAPS
 			);
-			return response.getBody();
+			List<Map<String, Object>> listOfStats = response.getBody();
+			if (listOfStats != null) {
+				return listOfStats.stream().filter(stats -> languageCode.equals(stats.get("code"))).findFirst().orElse(null);
+			}
+			return null;
 		} catch (HttpClientErrorException.NotFound e) {
 			return Collections.emptyMap();
 		}
