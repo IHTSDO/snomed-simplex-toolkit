@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.Page;
+import org.snomed.simplex.exceptions.RuntimeServiceException;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
@@ -412,7 +413,7 @@ public class SnowstormClient {
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "fetch status of bulk create/update refset member job");
 		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeServiceException("Thread interrupted while waiting for bulk create/update refset member job to complete.", e);
 		}
 	}
 
@@ -654,7 +655,7 @@ public class SnowstormClient {
 	public List<Concept> loadBrowserFormatConcepts(List<Long> conceptIds, CodeSystem codeSystem) {
 		ParameterizedTypeReference<List<Concept>> listOfConcepts = new ParameterizedTypeReference<>(){};
 		ResponseEntity<List<Concept>> response = restTemplate.exchange(format("/browser/%s/concepts/bulk-load", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
-				new HttpEntity<>(new ConceptBulkLoadRequest(conceptIds)), listOfConcepts);
+				new HttpEntity<>(ConceptBulkLoadRequest.of(conceptIds)), listOfConcepts);
 		return response.getBody();
 	}
 
@@ -871,17 +872,12 @@ public class SnowstormClient {
 		codeSystem.getTranslationLanguages().remove(refsetId);
 	}
 
-	private static final class ConceptBulkLoadRequest {
+	private record ConceptBulkLoadRequest(Set<String> conceptIds) {
 
-		private final Set<String> conceptIds;
+			public static ConceptBulkLoadRequest of(Collection<Long> conceptIds) {
+				return new ConceptBulkLoadRequest(conceptIds.stream().map(Objects::toString).collect(Collectors.toSet()));
+			}
 
-		public ConceptBulkLoadRequest(Collection<Long> conceptIds) {
-			this.conceptIds = conceptIds.stream().map(Objects::toString).collect(Collectors.toSet());
-		}
-
-		public Set<String> getConceptIds() {
-			return conceptIds;
-		}
 	}
 
 	private static final class StatusHolder {

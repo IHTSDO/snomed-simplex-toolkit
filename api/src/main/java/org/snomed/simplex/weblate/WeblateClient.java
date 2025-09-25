@@ -416,6 +416,7 @@ public class WeblateClient {
 	}
 
 	public Map<String, Object> getComponentLanguageStats(String project, String languageCode) {
+		Map<String, Object> emptyMap = Collections.emptyMap();
 		try {
 			String url = "/projects/%s/languages/?format=json".formatted(project);
 			ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
@@ -426,11 +427,11 @@ public class WeblateClient {
 			);
 			List<Map<String, Object>> listOfStats = response.getBody();
 			if (listOfStats != null) {
-				return listOfStats.stream().filter(stats -> languageCode.equals(stats.get("code"))).findFirst().orElse(null);
+				return listOfStats.stream().filter(stats -> languageCode.equals(stats.get("code"))).findFirst().orElse(emptyMap);
 			}
-			return null;
+			return emptyMap;
 		} catch (HttpClientErrorException.NotFound e) {
-			return Collections.emptyMap();
+			return emptyMap;
 		}
 	}
 
