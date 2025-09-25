@@ -101,10 +101,7 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 		}
 
 		// Final progress update
-		translationSet.setPercentageProcessed(100);
-		translationSet.setStatus(TranslationSetStatus.READY);
-		weblateSetRepository.save(translationSet);
-
+		setProgressToComplete(translationSet);
 		logger.info("Work assignment completed for label: {}", label);
 	}
 

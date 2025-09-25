@@ -53,7 +53,13 @@ public abstract class AbstractWeblateSetProcessingService {
 
 	protected void setProgress(WeblateTranslationSet translationSet, int percentage) {
 		translationSet.setStatus(TranslationSetStatus.PROCESSING);
-		translationSet.setPercentageProcessed(percentage);
+		translationSet.setPercentageProcessed(Math.min(100, percentage));
+		weblateSetRepository.save(translationSet);
+	}
+
+	protected void setProgressToComplete(WeblateTranslationSet translationSet) {
+		translationSet.setPercentageProcessed(100);
+		translationSet.setStatus(TranslationSetStatus.READY);
 		weblateSetRepository.save(translationSet);
 	}
 }

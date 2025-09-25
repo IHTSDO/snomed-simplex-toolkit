@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.Date;
 
 @Service
@@ -28,7 +29,8 @@ public class LLMService {
 	private static OpenAiChatModel getOpenAiChatModel(String apiKey, String fastModelName) {
 		OpenAiChatModel.OpenAiChatModelBuilder modelBuilder = OpenAiChatModel.builder()
 			.apiKey(apiKey)
-			.modelName(fastModelName);
+			.modelName(fastModelName)
+			.timeout(Duration.ofMinutes(2));
 		if (!fastModelName.startsWith("gpt-5")) {
 			modelBuilder
 				.maxTokens(500)

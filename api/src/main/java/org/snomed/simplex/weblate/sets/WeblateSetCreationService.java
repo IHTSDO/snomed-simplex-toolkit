@@ -107,8 +107,7 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 		}
 		timerUtil.finish();
 
-		translationSet.setStatus(TranslationSetStatus.READY);
-		weblateSetRepository.save(translationSet);
+		setProgressToComplete(translationSet);
 	}
 
 	private static SnowstormClient.ConceptIdStream getConceptIdStream(WeblateTranslationSet translationSet, SnowstormClientFactory snowstormClientFactory) throws ServiceExceptionWithStatusCode {
