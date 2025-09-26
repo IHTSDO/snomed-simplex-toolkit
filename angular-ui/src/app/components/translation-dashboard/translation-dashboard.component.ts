@@ -405,7 +405,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
       (allTranslationSets) => {
         // Filter out translation sets with status "DELETING" and join with translations data
-        this.labelSets = allTranslationSets
+        const newLabelSets = allTranslationSets
           .filter((translationSet: any) => translationSet.status !== 'DELETING')
           .map((translationSet: any) => {
             const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
@@ -415,6 +415,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
               translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
             };
           });
+
+        // Preserve detailed information (translated, changedSinceCreatedOrLastPulled) from existing labelSets
+        // if they were previously loaded via the detailed API
+        this.labelSets = this.preserveDetailedInformation(newLabelSets);
+
         this.loadingSets = false;
         this.translationSetsLoaded = true; // Mark that translation sets have been loaded
         // Clear the main loading state once we have data
@@ -448,6 +453,46 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Preserves detailed information (translated, changedSinceCreatedOrLastPulled) from existing data
+   * when merging new translation set data from the list API
+   */
+  private preserveDetailedInformation(newLabelSets: any[]): any[] {
+    return newLabelSets.map((newSet: any) => {
+      // First check if this set matches the currently selected set with detailed information
+      if (this.selectedLabelSet && 
+          this.selectedLabelSet.id === newSet.id && 
+          this.selectedLabelSet.translationId === newSet.translationId && 
+          this.selectedLabelSet.label === newSet.label &&
+          (this.selectedLabelSet.translated > 0 || this.selectedLabelSet.changedSinceCreatedOrLastPulled > 0)) {
+        // Preserve the detailed values from the selected set
+        return {
+          ...newSet,
+          translated: this.selectedLabelSet.translated,
+          changedSinceCreatedOrLastPulled: this.selectedLabelSet.changedSinceCreatedOrLastPulled
+        };
+      }
+      
+      // Then check existing labelSets for any other sets with detailed information
+      const existingSet = this.labelSets.find((existing: any) => 
+        existing.id === newSet.id && 
+        existing.translationId === newSet.translationId && 
+        existing.label === newSet.label
+      );
+      
+      if (existingSet && (existingSet.translated > 0 || existingSet.changedSinceCreatedOrLastPulled > 0)) {
+        // Preserve the detailed values if they were previously loaded
+        return {
+          ...newSet,
+          translated: existingSet.translated,
+          changedSinceCreatedOrLastPulled: existingSet.changedSinceCreatedOrLastPulled
+        };
+      }
+      
+      return newSet;
+    });
+  }
+
   private startPolling() {
     this.isPolling = true;
     this.pollingInterval = setInterval(() => {
@@ -478,16 +523,76 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
               translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
             };
           });
+
+        // Preserve detailed information (translated, changedSinceCreatedOrLastPulled) from existing labelSets
+        // if they were previously loaded via the detailed API
+        const preservedLabelSets = this.preserveDetailedInformation(updatedLabelSets);
+        
+        // Check if any sets have finished processing (changed from PROCESSING to READY)
+        const previouslyProcessingSets = this.labelSets.filter((set: any) => set.status === 'PROCESSING');
+        const nowReadySets = preservedLabelSets.filter((set: any) => set.status === 'READY');
+        
+        // Find sets that were processing and are now ready
+        const finishedProcessingSets = nowReadySets.filter((nowReadySet: any) => 
+          previouslyProcessingSets.some((prevSet: any) => 
+            prevSet.id === nowReadySet.id && 
+            prevSet.translationId === nowReadySet.translationId && 
+            prevSet.label === nowReadySet.label
+          )
+        );
+        
+        // If any sets finished processing, fetch detailed information for all of them
+        if (finishedProcessingSets.length > 0) {
+          finishedProcessingSets.forEach((finishedSet: any) => {
+            this.simplexService.getTranslationSetDetails(
+              this.selectedEdition.shortName,
+              finishedSet.translationId,
+              finishedSet.label
+            ).subscribe(
+              (details) => {
+                // Update the corresponding item in labelSets array with detailed information
+                const labelSetIndex = this.labelSets.findIndex((set: any) => 
+                  set.id === finishedSet.id && 
+                  set.translationId === finishedSet.translationId && 
+                  set.label === finishedSet.label
+                );
+                
+                if (labelSetIndex !== -1) {
+                  this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...details };
+                }
+                
+                // If this is the currently selected set, update it as well
+                if (this.selectedLabelSet && 
+                    this.selectedLabelSet.id === finishedSet.id && 
+                    this.selectedLabelSet.translationId === finishedSet.translationId && 
+                    this.selectedLabelSet.label === finishedSet.label) {
+                  this.selectedLabelSet = { ...this.selectedLabelSet, ...details };
+                }
+              },
+              (error) => {
+                console.error('Error fetching detailed info for finished set:', error);
+              }
+            );
+          });
+        }
         
         // Update the list without showing loading state
-        this.labelSets = updatedLabelSets;
+        this.labelSets = preservedLabelSets;
         
         // Silently update selectedLabelSet if it exists
         if (this.selectedLabelSet) {
-          const updatedSelectedSet = updatedLabelSets.find((set: any) => set.id === this.selectedLabelSet.id);
+          const updatedSelectedSet = preservedLabelSets.find((set: any) => set.id === this.selectedLabelSet.id);
           if (updatedSelectedSet) {
             this.selectedLabelSet = updatedSelectedSet;
           }
+        }
+        
+        // Show notification if any sets finished processing
+        if (finishedProcessingSets.length > 0) {
+          const setNames = finishedProcessingSets.map(set => set.name).join(', ');
+          this.snackBar.open(`Translation set(s) finished processing: ${setNames}`, 'Close', {
+            duration: 4000
+          });
         }
         
         // Check if polling should continue
@@ -864,6 +969,18 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         // Only update if this is still the most recent request
         if (requestId === this.currentLabelSetRequestId) {
           this.selectedLabelSet = { ...this.selectedLabelSet, ...details };
+          
+          // Also update the corresponding item in labelSets array to preserve detailed information
+          const labelSetIndex = this.labelSets.findIndex((set: any) => 
+            set.id === this.selectedLabelSet.id && 
+            set.translationId === this.selectedLabelSet.translationId && 
+            set.label === this.selectedLabelSet.label
+          );
+          
+          if (labelSetIndex !== -1) {
+            this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...details };
+          }
+          
           this.loadingLabelSetDetails = false;
           
           // Load translation-set members after details have been loaded
