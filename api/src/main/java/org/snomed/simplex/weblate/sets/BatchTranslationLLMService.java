@@ -53,8 +53,8 @@ public class BatchTranslationLLMService extends AbstractWeblateSetProcessingServ
 		int pageSize = Math.min(requestedTotalBatchSize, MAX_PAGE_SIZE);
 		queryBuilder.pageSize(pageSize);
 
-		int halfProgressChunkSize = Math.round(((float) pageSize / requestedTotalBatchSize) / 2);
-		int progress = 0;
+		int halfProgressChunkPercent = Math.round((((float) pageSize / requestedTotalBatchSize) / 2) * 100);
+		int progressPercent = 0;
 
 		int unitsProcessed = 0;
 		int page = 1;
@@ -72,8 +72,8 @@ public class BatchTranslationLLMService extends AbstractWeblateSetProcessingServ
 				return;
 			}
 			Map<String, List<String>> sourceSuggestionMap = translationLLMService.suggestTranslations(translationSet, unitSources, false, false);
-			progress += halfProgressChunkSize;
-			setProgress(translationSet, progress);
+			progressPercent += halfProgressChunkPercent;
+			setProgress(translationSet, progressPercent);
 
 			// Push suggestions to Weblate
 			Map<String, WeblateUnit> sourceStringToUnit = unitsToProcess.stream().collect(Collectors.toMap(unit -> unit.getSource().get(0), Function.identity()));
@@ -88,8 +88,8 @@ public class BatchTranslationLLMService extends AbstractWeblateSetProcessingServ
 			}
 
 			weblateClient.uploadTranslations(translationSet, translationsToUpload);
-			progress += halfProgressChunkSize;
-			setProgress(translationSet, progress);
+			progressPercent += halfProgressChunkPercent;
+			setProgress(translationSet, progressPercent);
 
 			unitsProcessed += thisBatchSize;
 			nextPageAvailable = unitPage.next() != null;
