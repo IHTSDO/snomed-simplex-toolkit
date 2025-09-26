@@ -57,10 +57,10 @@ public class BatchTranslationLLMService extends AbstractWeblateSetProcessingServ
 		int progressPercent = 0;
 
 		int unitsProcessed = 0;
-		int page = 1;
 		boolean nextPageAvailable;
 		do {
-			queryBuilder.page(page++);
+			// Always load the first page of untranslated units. The content will change as we save translations in this loop.
+			queryBuilder.page(1);
 			WeblatePage<WeblateUnit> unitPage = weblateClient.getUnitPage(queryBuilder);
 			int thisBatchSize = unitPage.results().size();
 
