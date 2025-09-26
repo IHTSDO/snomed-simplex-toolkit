@@ -141,10 +141,10 @@
                         Manage
                     </button>
                         <mat-menu #actionsMenu="matMenu">
-                            <button mat-menu-item (click)="openAssignWorkDialog()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                            <!-- <button mat-menu-item (click)="openAssignWorkDialog()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                                 <mat-icon class="large-icon">people</mat-icon>
                                 Assign Work
-                            </button>
+                            </button> -->
                             <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                                 <mat-icon class="large-icon">flash_on</mat-icon>
                                 Setup AI Translation
