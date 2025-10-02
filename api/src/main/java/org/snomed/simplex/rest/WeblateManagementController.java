@@ -44,20 +44,16 @@ public class WeblateManagementController {
 		return weblateService.getSharedSets();
 	}
 
-	@PostMapping("shared-components/{slug}/refresh")
+	@PostMapping("shared-components/{slug}/initialise")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void refreshSharedSet(@PathVariable String slug, @RequestParam(required = false, defaultValue = "1") int startPage) throws ServiceException {
+	public void initialiseSharedSet(@PathVariable String slug,
+		@RequestParam(required = false, defaultValue = "1") int startPage,
+		@RequestParam(required = false) String startConceptId) throws ServiceException {
 		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
 		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.TRANSLATION_SET_CREATE);
 		ContentJob contentJob = new ContentJob(rootCodeSystem, "Update shared set %s".formatted(slug), null);
 		jobService.queueContentJob(contentJob, null, activity,
-				asyncJob -> weblateService.updateSharedSet(slug, startPage));
-	}
-
-	@DeleteMapping("shared-components/{slug}")
-	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void deleteSharedSet(@PathVariable String slug) throws ServiceException {
-		weblateService.deleteSharedSet(slug);
+				asyncJob -> weblateService.initialiseSharedSet(slug, startPage, startConceptId));
 	}
 
 	@GetMapping(value = "/component-csv", produces = "text/csv")

@@ -6,14 +6,17 @@ import java.util.Date;
  * Builder for constructing Weblate unit query parameters.
  */
 public class UnitQueryBuilder {
-    private final String projectSlug;
+	public static final String AND = " AND ";
+	public static final String NOT = " NOT ";
+	private final String projectSlug;
     private final String componentSlug;
     private String languageCode = "en";
     private String compositeLabel;
     private String state;
-    private Date changedSince;
-    private int pageSize = 100;
-    private boolean fastestSort = true;
+	private Boolean hasScreenshot;
+	private Date changedSince;
+	private int pageSize = 100;
+	private boolean fastestSort = true;
 	private int page = 1;
 
 	public UnitQueryBuilder(String projectSlug, String componentSlug) {
@@ -35,6 +38,11 @@ public class UnitQueryBuilder {
         this.state = state;
         return this;
     }
+
+	public UnitQueryBuilder hasScreenshot(Boolean hasScreenshot) {
+		this.hasScreenshot = hasScreenshot;
+		return this;
+	}
 
     public UnitQueryBuilder pageSize(int pageSize) {
         this.pageSize = pageSize;
@@ -59,24 +67,32 @@ public class UnitQueryBuilder {
     public String build() {
         StringBuilder query = new StringBuilder()
                 .append("project").append(":").append(projectSlug)
-                .append(" AND ")
+                .append(AND)
                 .append("component").append(":").append(componentSlug)
-                .append(" AND ")
+                .append(AND)
                 .append("language").append(":").append(languageCode);
 
         if (compositeLabel != null) {
-            query.append(" AND label:").append(compositeLabel);
+            query.append(AND).append(" label:").append(compositeLabel);
         }
 
         if (state != null) {
-            query.append(" AND state:").append(state);
+            query.append(AND).append("state:").append(state);
         }
 
         if (changedSince != null) {
             // Format the timestamp for Weblate API - use ISO 8601 format
             String formattedTime = String.format("%tFT%<tT.%<tLZ", changedSince);
-            query.append(" AND changed:>").append(formattedTime);
+            query.append(AND).append("changed:>").append(formattedTime);
         }
+
+		if (hasScreenshot != null) {
+			query.append(AND);
+			if (!hasScreenshot) {
+				query.append(NOT);
+			}
+			query.append("has:screenshot");
+		}
 
 		String sort = fastestSort ? "&sort_by=id" : "";
 		return "/units/?q=%s&page_size=%s&page=%s%s&format=json".formatted(

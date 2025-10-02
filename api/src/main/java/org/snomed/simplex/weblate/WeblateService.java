@@ -36,6 +36,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.snomed.simplex.weblate.WeblateClient.COMMON_PROJECT;
+
 @Service
 public class WeblateService {
 
@@ -48,17 +50,19 @@ public class WeblateService {
 	private final ExecutorService addLanguageExecutorService;
 	private final SupportRegister supportRegister;
 	private final AuthenticationClient authenticationClient;
+	private final WeblateDiagramService weblateDiagramService;
 	private final WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory, SupportRegister supportRegister,
-		AuthenticationClient authenticationClient, WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService) {
+		AuthenticationClient authenticationClient, WeblateDiagramService weblateDiagramService, WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClientFactory = weblateClientFactory;
 		this.supportRegister = supportRegister;
 		this.authenticationClient = authenticationClient;
+		this.weblateDiagramService = weblateDiagramService;
 		this.weblateLanguageInitialisationJobService = weblateLanguageInitialisationJobService;
 		addLanguageExecutorService = Executors.newFixedThreadPool(1, new DefaultThreadFactory("Weblate-add-language-thread"));
 	}
@@ -73,7 +77,7 @@ public class WeblateService {
 			weblateUser = adminClient.createUser(getUserDetails());
 		}
 		if (weblateUser.getUsername().equals(weblateUser.getFullName())) {
-//			// Fix name
+			// Fix name
 			logger.info("Automatically updating Weblate user details {}", username);
 			adminClient.updateDetails(getUserDetails());
 		}
@@ -89,48 +93,62 @@ public class WeblateService {
 		return new Page<>(components);
 	}
 
-	public ChangeSummary updateSharedSet(String slug, int startPage) throws ServiceException {
+	public ChangeSummary initialiseSharedSet(String component, int startPage, String startConceptId) throws ServiceException {
 		String project = commonProject;
-		ServiceHelper.requiredParameter("slug", slug);
+		ServiceHelper.requiredParameter("slug", component);
 		ServiceHelper.requiredParameter("project", project);
 
 		WeblateClient weblateClient = weblateClientFactory.getClient();
 
-		UnitSupplier unitStream = weblateClient.getUnitStream(project, slug, startPage);
+		UnitSupplier unitStream = weblateClient.getUnitStream(project, component, startPage, false);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
 
 		int processed = 0;
+		boolean firstConceptFound = startConceptId == null;
 		List<WeblateUnit> batch;
 		while (!(batch = unitStream.getBatch(1_000)).isEmpty()) {
-			List<Long> conceptIds = batch.stream()
-					.map(WeblateUnit::getKey)
-					.map(Long::parseLong)
-					.toList();
-			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
-
-			Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
-			for (WeblateUnit unit : batch) {
-				String conceptId = unit.getKey();
-				Concept concept = conceptMap.get(conceptId);
-				String explanation = WeblateExplanationCreator.getMarkdown(concept);
-				if (unit.getExplanation() == null || unit.getExplanation().isEmpty()) {
-					unit.setExplanation(explanation);
-					weblateClient.patchUnitExplanation(unit.getId(), unit.getExplanation());
+			List<Long> conceptIds = new ArrayList<>();
+			for (WeblateUnit weblateUnit : batch) {
+				if (!firstConceptFound && startConceptId.equals(weblateUnit.getContext())) {
+					firstConceptFound = true;
 				}
-				processed++;
-				if (processed % 1_000 == 0) {
-					logger.info("Processed {} units", String.format("%,d", processed));
+				if (firstConceptFound) {
+					conceptIds.add(Long.parseLong(weblateUnit.getContext()));
 				}
 			}
+			processed = updateSharedSetBatch(conceptIds, component, snowstormClient, codeSystem, batch, weblateClient, processed);
 		}
 
 		if (processed == 0) {
-			logger.warn("No concepts matched {}/{}", project, slug);
+			logger.warn("No concepts matched {}/{}", project, component);
 		}
 
-		logger.info("Component {}/{} updated with {} units", project, slug, processed);
+		logger.info("Component {}/{} updated with {} units", project, component, processed);
 		return new ChangeSummary(processed, 0, 0, processed);
+	}
+
+	private int updateSharedSetBatch(List<Long> conceptIds, String component, SnowstormClient snowstormClient, CodeSystem codeSystem,
+			List<WeblateUnit> batch, WeblateClient weblateClient, int processed) {
+
+		if (conceptIds.isEmpty()) {
+			return processed;
+		}
+		List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
+		Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
+		for (WeblateUnit unit : batch) {
+			String conceptId = unit.getKey();
+			Concept concept = conceptMap.get(conceptId);
+			String explanation = WeblateExplanationCreator.getMarkdown(concept);
+			unit.setExplanation(explanation);
+			weblateClient.patchUnitExplanation(unit.getId(), unit.getExplanation());
+			weblateDiagramService.createWeblateScreenshot(unit, concept, COMMON_PROJECT, component, weblateClient);
+			processed++;
+			if (processed % 1_000 == 0) {
+				logger.info("Processed {} units", String.format("%,d", processed));
+			}
+		}
+		return processed;
 	}
 
 	@Async

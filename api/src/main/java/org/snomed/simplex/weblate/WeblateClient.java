@@ -146,8 +146,8 @@ public class WeblateClient {
 		return restTemplate.exchange(url, HttpMethod.GET, null, UNITS_RESPONSE_TYPE).getBody();
 	}
 
-	public UnitSupplier getUnitStream(String projectSlug, String componentSlug, int startPage) {
-		return new WeblateUnitStream(projectSlug, componentSlug, startPage, this);
+	public UnitSupplier getUnitStream(String projectSlug, String componentSlug, int startPage, Boolean hasScreenshot) {
+		return new WeblateUnitStream(projectSlug, componentSlug, hasScreenshot, startPage, this);
 	}
 
 	protected static @NotNull String getUnitQuery(UnitQueryBuilder builder) {
