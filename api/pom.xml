@@ -19,7 +19,7 @@
 		<!-- BOM Overrides -->
 		<spring.version>6.2.11</spring.version>
 		<spring-boot.version>3.5.5</spring-boot.version>
-		<elasticsearch.version>8.15.5</elasticsearch.version>
+		<elasticsearch.version>8.16.7</elasticsearch.version>
 		<langchain4j.version>1.4.0</langchain4j.version>
 		<spring.security.version>6.5.5</spring.security.version>
 		<spring-cloud.version>2025.0.0</spring-cloud.version>
