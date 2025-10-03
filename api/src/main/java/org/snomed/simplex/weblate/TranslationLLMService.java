@@ -27,9 +27,10 @@ public class TranslationLLMService {
 		String languageCode = translationSet.getLanguageCode();
 		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(languageCode);
 		String languageAdvice = translationSet.getAiLanguageAdvice();
+		Map<String, String> aiGoldenSet = translationSet.getAiGoldenSet();
 		String languageAdviceFormatted = "";
 		if (Strings.isNotEmpty(languageAdvice)) {
-			languageAdviceFormatted = "%s\n".formatted(languageAdvice);
+			languageAdviceFormatted = "%s".formatted(languageAdvice);
 		}
 		String responseFormat = "For each term provided, return the term number and the %s translation.\n".formatted(languageCode) +
 			"Use the exact formatting below:\n" +
@@ -56,14 +57,30 @@ public class TranslationLLMService {
 					%s
 					%s
 					%s
+					Examples:
+					%s
 					English terms:
 					%s
 					"""
-			).formatted(systemAdvice, responseFormat, guidelines, languageAdviceFormatted, englishTerms),
+			).formatted(systemAdvice, responseFormat, guidelines, languageAdviceFormatted, formatGoldenExamples(aiGoldenSet), englishTerms),
 			fast
 		);
 
 		return processResponse(englishTerm, response);
+	}
+
+	private String formatGoldenExamples(Map<String, String> aiGoldenSet) {
+		StringBuilder builder = new StringBuilder();
+		int lineNum = 1;
+		for (Map.Entry<String, String> entry : aiGoldenSet.entrySet()) {
+			String key = entry.getKey();
+			if (key.isEmpty() || !key.contains("|")) {
+				continue;
+			}
+			key = key.split("\\|")[1];
+			builder.append(lineNum++).append("|").append(key).append(" → ").append(entry.getValue()).append("\n");
+		}
+		return builder.toString();
 	}
 
 	private @NotNull Map<String, List<String>> processResponse(List<String> englishTerm, String response) {
@@ -95,10 +112,9 @@ public class TranslationLLMService {
 			"""
 				Guidelines:
 				- Provide X_TRANSLATIONS after each line number. If a translation cannot be found output the line number and pipe but leave the translation blank.
-				- Preserve the original order of the terms; do not reorder, group, or summarize them.
+				- Preserve the original order of the lines; do not reorder, group, or summarize them.
 				- Preserve all modifiers, qualifiers, any body location descriptors.
-				- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.
-				""";
+				- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.""";
 
 		if (multipleSuggestions) {
 			guidelines = guidelines.replace("X_TRANSLATIONS", "two translations");

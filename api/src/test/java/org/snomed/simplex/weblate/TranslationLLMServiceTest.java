@@ -37,10 +37,11 @@ class TranslationLLMServiceTest {
 		// Arrange
 		when(mockTranslationSet.getLanguageCode()).thenReturn("es");
 		when(mockTranslationSet.getAiLanguageAdvice()).thenReturn(null);
-		
+		when(mockTranslationSet.getAiGoldenSet()).thenReturn(Map.of("195967001|Asthma", "asma"));
+
 		List<String> englishTerms = List.of("Heart attack", "Diabetes mellitus");
 		String mockResponse = "1|Ataque al corazón\n2|Diabetes mellitus";
-		
+
 		ArgumentCaptor<String> requestCaptor = ArgumentCaptor.forClass(String.class);
 		when(mockLLMService.chat(requestCaptor.capture(), eq(false))).thenReturn(mockResponse);
 
@@ -59,7 +60,7 @@ class TranslationLLMServiceTest {
 		// Verify LLM service was called with correct parameters and assert the actual request string
 		verify(mockLLMService).chat(requestCaptor.capture(), eq(false));
 		String actualRequest = requestCaptor.getValue();
-		
+
 		String expectedRequest = """
 			Translate the following clinical terminology terms from English to es.
 			For each term provided, return the term number and the es translation.
@@ -67,16 +68,18 @@ class TranslationLLMServiceTest {
 			<term number>|<translation>
 			Guidelines:
 			- Provide one translation after each line number. If a translation cannot be found output the line number and pipe but leave the translation blank.
-			- Preserve the original order of the terms; do not reorder, group, or summarize them.
+			- Preserve the original order of the lines; do not reorder, group, or summarize them.
 			- Preserve all modifiers, qualifiers, any body location descriptors.
 			- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.
 
+			Examples:
+			1|Asthma → asma
 
 			English terms:
 			1|Heart attack
 			2|Diabetes mellitus
 			""";
-		
+
 		assertEquals(expectedRequest.trim(), actualRequest.trim());
 	}
 
@@ -85,10 +88,10 @@ class TranslationLLMServiceTest {
 		// Arrange
 		when(mockTranslationSet.getLanguageCode()).thenReturn("fr");
 		when(mockTranslationSet.getAiLanguageAdvice()).thenReturn(null);
-		
+
 		List<String> englishTerms = List.of("Chest pain", "High blood pressure");
 		String mockResponse = "1|Douleur thoracique|Douleur de poitrine\n2|Hypertension artérielle|Pression artérielle élevée";
-		
+
 		when(mockLLMService.chat(anyString(), eq(false))).thenReturn(mockResponse);
 
 		// Act
@@ -112,10 +115,10 @@ class TranslationLLMServiceTest {
 		// Arrange
 		when(mockTranslationSet.getLanguageCode()).thenReturn("de");
 		when(mockTranslationSet.getAiLanguageAdvice()).thenReturn(null);
-		
+
 		List<String> englishTerms = List.of("Fever");
 		String mockResponse = "1|Fieber";
-		
+
 		when(mockLLMService.chat(anyString(), eq(true))).thenReturn(mockResponse);
 
 		// Act
@@ -137,10 +140,10 @@ class TranslationLLMServiceTest {
 		// Arrange
 		when(mockTranslationSet.getLanguageCode()).thenReturn("it");
 		when(mockTranslationSet.getAiLanguageAdvice()).thenReturn("Use medical terminology appropriate for Italian healthcare professionals.");
-		
+
 		List<String> englishTerms = List.of("Pneumonia");
 		String mockResponse = "1|Polmonite";
-		
+
 		when(mockLLMService.chat(anyString(), eq(false))).thenReturn(mockResponse);
 
 		// Act
@@ -154,7 +157,7 @@ class TranslationLLMServiceTest {
 		assertEquals(List.of("Polmonite"), result.get("Pneumonia"));
 
 		// Verify LLM service was called and the request contains language advice
-		verify(mockLLMService).chat(argThat(request -> 
+		verify(mockLLMService).chat(argThat(request ->
 			request.contains("Use medical terminology appropriate for Italian healthcare professionals.")), eq(false));
 	}
 
@@ -163,10 +166,10 @@ class TranslationLLMServiceTest {
 		// Arrange
 		when(mockTranslationSet.getLanguageCode()).thenReturn("pt");
 		when(mockTranslationSet.getAiLanguageAdvice()).thenReturn(null);
-		
+
 		List<String> englishTerms = List.of("Headache");
 		String mockResponse = "";
-		
+
 		when(mockLLMService.chat(anyString(), eq(false))).thenReturn(mockResponse);
 
 		// Act
@@ -183,10 +186,10 @@ class TranslationLLMServiceTest {
 		// Arrange
 		when(mockTranslationSet.getLanguageCode()).thenReturn("nl");
 		when(mockTranslationSet.getAiLanguageAdvice()).thenReturn(null);
-		
+
 		List<String> englishTerms = List.of("Back pain", "Headache");
 		String mockResponse = "1|Rugpijn\ninvalid_line_without_pipe\n2|Hoofdpijn";
-		
+
 		when(mockLLMService.chat(anyString(), eq(false))).thenReturn(mockResponse);
 
 		// Act
@@ -207,10 +210,10 @@ class TranslationLLMServiceTest {
 		// Arrange
 		when(mockTranslationSet.getLanguageCode()).thenReturn("sv");
 		when(mockTranslationSet.getAiLanguageAdvice()).thenReturn(null);
-		
+
 		List<String> englishTerms = List.of("Cough", "Sneeze");
 		String mockResponse = "1|Host\nabc|Invalid term number\n2|Nys";
-		
+
 		when(mockLLMService.chat(anyString(), eq(false))).thenReturn(mockResponse);
 
 		// Act
@@ -232,17 +235,17 @@ class TranslationLLMServiceTest {
 		// Arrange
 		when(mockTranslationSet.getLanguageCode()).thenReturn("ja");
 		when(mockTranslationSet.getAiLanguageAdvice()).thenReturn("Use hiragana and katakana appropriately.");
-		
+
 		List<String> englishTerms = List.of("Stomach ache", "Nausea");
 		String mockResponse = "1|胃痛\n2|吐き気";
-		
+
 		when(mockLLMService.chat(anyString(), eq(false))).thenReturn(mockResponse);
 
 		// Act
 		translationLLMService.suggestTranslations(mockTranslationSet, englishTerms, false, false);
 
 		// Assert - Verify the request format contains expected elements
-		verify(mockLLMService).chat(argThat(request -> 
+		verify(mockLLMService).chat(argThat(request ->
 			request.contains("Translate the following clinical terminology terms from English to ja.") &&
 			request.contains("For each term provided, return the term number and the ja translation.") &&
 			request.contains("Use the exact formatting below:") &&
@@ -261,17 +264,17 @@ class TranslationLLMServiceTest {
 		// Arrange
 		when(mockTranslationSet.getLanguageCode()).thenReturn("ko");
 		when(mockTranslationSet.getAiLanguageAdvice()).thenReturn(null);
-		
+
 		List<String> englishTerms = List.of("Dizziness");
 		String mockResponse = "1|현기증|어지러움";
-		
+
 		when(mockLLMService.chat(anyString(), eq(false))).thenReturn(mockResponse);
 
 		// Act
 		translationLLMService.suggestTranslations(mockTranslationSet, englishTerms, true, false);
 
 		// Assert - Verify the request format for multiple suggestions
-		verify(mockLLMService).chat(argThat(request -> 
+		verify(mockLLMService).chat(argThat(request ->
 			request.contains("For each term provided, return the term number and the top two ko translations.") &&
 			request.contains("<term number>|<translation1>|<translation2>") &&
 			request.contains("two translations")
