@@ -80,7 +80,7 @@ public class ReleaseServiceClient {
 	public static final String FIRST_SNOMEDCT_RELEASE_DATE = "2002-01-01";
 
 	private static final Cache<String, RestTemplate> clientCache = CacheBuilder.newBuilder()
-			.expireAfterAccess(5L, TimeUnit.MINUTES).build();
+			.expireAfterWrite(5L, TimeUnit.MINUTES).build();
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
