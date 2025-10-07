@@ -71,10 +71,13 @@ public class TranslationLLMService {
 
 	private String formatGoldenExamples(Map<String, String> aiGoldenSet) {
 		StringBuilder builder = new StringBuilder();
+		if (aiGoldenSet == null) {
+			return builder.toString();
+		}
 		int lineNum = 1;
 		for (Map.Entry<String, String> entry : aiGoldenSet.entrySet()) {
 			String key = entry.getKey();
-			if (key.isEmpty() || !key.contains("|")) {
+			if (!key.contains("|")) {
 				continue;
 			}
 			key = key.split("\\|")[1];
