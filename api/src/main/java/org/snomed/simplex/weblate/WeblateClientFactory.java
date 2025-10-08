@@ -60,7 +60,7 @@ public class WeblateClientFactory {
 		}
 	}
 
-	WeblateAdminClient getAdminClient() {
+	public WeblateAdminClient getAdminClient() {
 		long currentTime = System.currentTimeMillis();
 		long timeSinceCreation = currentTime - adminClientCreationTime;
 

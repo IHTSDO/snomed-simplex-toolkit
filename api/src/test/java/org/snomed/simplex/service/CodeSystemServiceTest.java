@@ -6,8 +6,8 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,7 +18,7 @@ class CodeSystemServiceTest {
 	@Autowired
 	private CodeSystemService codeSystemService;
 
-	@MockBean
+	@MockitoBean
 	private SnowstormClientFactory snowstormClientFactory;
 
 	@Test

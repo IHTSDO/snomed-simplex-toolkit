@@ -9,6 +9,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.util.TimerUtil;
+import org.snomed.simplex.weblate.WeblateAdminClient;
 import org.snomed.simplex.weblate.WeblateClient;
 import org.snomed.simplex.weblate.WeblateClientFactory;
 import org.snomed.simplex.weblate.WeblateSetRepository;
@@ -62,8 +63,8 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 		}
 		translationSet.setLanguageCode(languageCode);
 
-		WeblateClient weblateClient = weblateClientFactory.getClient();
-		if (!weblateClient.isTranslationExistsSearchByLanguageRefset(translationSet.getLanguageCodeWithRefsetId())) {
+		WeblateAdminClient weblateAdminClient = weblateClientFactory.getAdminClient();
+		if (!weblateAdminClient.isTranslationExistsSearchByLanguageRefset(translationSet.getLanguageCodeWithRefsetId())) {
 			throw new ServiceExceptionWithStatusCode("Translation does not exist in Translation Tool, " +
 				"please start language initialisation job or wait for it to finish.", HttpStatus.CONFLICT);
 		}

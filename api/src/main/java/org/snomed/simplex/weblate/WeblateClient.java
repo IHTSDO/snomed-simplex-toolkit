@@ -11,8 +11,6 @@ import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.weblate.domain.*;
 import org.snomed.simplex.weblate.pojo.BulkAddLabelRequest;
-import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequest;
-import org.snomed.simplex.weblate.pojo.WeblateAddLanguageRequestPlural;
 import org.snomed.simplex.weblate.pojo.WeblateUnitTranslation;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
@@ -125,6 +123,7 @@ public class WeblateClient {
 		throw new ServiceExceptionWithStatusCode(message, httpStatus);
 	}
 
+	// Run by admin user
 	public void patchUnitExplanation(String id, String explanation) {
 		// Docs: https://docs.weblate.org/en/latest/api.html#patch--api-units-(int-id)-
 		Map<String, String> patchBody = new HashMap<>();
@@ -313,45 +312,6 @@ public class WeblateClient {
 			logger.error("Error finding unit for concept ID {}: {}", conceptId, e.getMessage(), e);
 			return null;
 		}
-	}
-
-	public boolean isLanguageExists(String languageCode) {
-		try {
-			restTemplate.getForEntity("/languages/%s/".formatted(languageCode), String.class);
-			return true;
-		} catch (HttpClientErrorException.NotFound e) {
-			return false;
-		}
-	}
-
-	public void createLanguage(String languageCodeWithRefset, String languageName, String direction) throws ServiceExceptionWithStatusCode {
-		try {
-			// Step 2: Prepare Form Data
-			WeblateAddLanguageRequest addLanguageRequest = new WeblateAddLanguageRequest(languageCodeWithRefset, languageName,
-					direction, 0, new WeblateAddLanguageRequestPlural(2, "n != 1"));
-
-			// Step 4: Execute the Request
-			restTemplate.exchange("/languages/", HttpMethod.POST, new HttpEntity<>(addLanguageRequest, getJsonHeaders()), String.class);
-
-		} catch (HttpClientErrorException e) {
-			throw new ServiceExceptionWithStatusCode(("Failed to create new language. " +
-					"Translation Tool status code:%s").formatted(e.getStatusCode().value()), HttpStatus.INTERNAL_SERVER_ERROR, e);
-		}
-	}
-
-	public boolean isTranslationExistsSearchByLanguageRefset(String languageCodeWithRefsetId) {
-		try {
-			restTemplate.getForEntity("/translations/common/snomedct/%s/".formatted(languageCodeWithRefsetId), String.class);
-			return true;
-		} catch (HttpClientErrorException.NotFound e) {
-			return false;
-		}
-	}
-
-	public void createTranslation(String languageCode) {
-		Map<String, String> requestBody = new HashMap<>();
-		requestBody.put("language_code", languageCode);
-		restTemplate.postForEntity("/components/common/snomedct/translations/", new HttpEntity<>(requestBody, getJsonHeaders()), String.class);
 	}
 
 	public Map<String, Object> getComponentLanguageStats(String project, String languageCode) {

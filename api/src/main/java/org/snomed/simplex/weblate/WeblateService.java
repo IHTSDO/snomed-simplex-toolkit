@@ -224,21 +224,21 @@ public class WeblateService {
 		addLanguageExecutorService.submit(() ->{
 			SecurityContextHolder.setContext(securityContext);
 			try {
-				WeblateClient weblateClient = weblateClientFactory.getClient();
+				WeblateAdminClient weblateAdminClient = weblateClientFactory.getAdminClient();
 
 				// LanguageCode format = lang-refsetid, example fr-100000100
-				if (!weblateClient.isLanguageExists(languageCodeWithRefset)) {
+				if (!weblateAdminClient.isLanguageExists(languageCodeWithRefset)) {
 					logger.info("Language {} does not exist in Translation Tool, creating...", languageCodeWithRefset);
 					String refsetTerm = langRefset.getPtOrFsnOrConceptId();
 					String leftToRight = "ltr";
 					// This request is quick because it's not creating any terms.
-					weblateClient.createLanguage(languageCodeWithRefset, refsetTerm, leftToRight);
+					weblateAdminClient.createLanguage(languageCodeWithRefset, refsetTerm, leftToRight);
 				}
 
-				if (!weblateClient.isTranslationExistsSearchByLanguageRefset(languageCodeWithRefset)) {
+				if (!weblateAdminClient.isTranslationExistsSearchByLanguageRefset(languageCodeWithRefset)) {
 					logger.info("Translation {} does not exist in Translation Tool, creating...", languageCodeWithRefset);
 					// This request takes a long time because it's creating a new translation of the terms.
-					weblateClient.createTranslation(languageCodeWithRefset);
+					weblateAdminClient.createTranslation(languageCodeWithRefset);
 				}
 			} catch (ServiceExceptionWithStatusCode e) {
 				supportRegister.handleSystemError(CodeSystem.SHARED, "Failed to add Translation Tool language.", e);
