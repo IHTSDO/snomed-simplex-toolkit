@@ -66,9 +66,13 @@ export class SelectEditionComponent implements OnInit {
       (error) => {
         console.error(error);
         this.loading = false;
-        this.snackBar.open('Failed to load roles', 'Dismiss', {
-          duration: 5000
-        });
+        // Don't show error message if user is not authenticated (401 or 403)
+        // This happens when users visit the app before logging in
+        if (error.status !== 401 && error.status !== 403) {
+          this.snackBar.open('Failed to load roles', 'Dismiss', {
+            duration: 5000
+          });
+        }
       }
     );
   }
