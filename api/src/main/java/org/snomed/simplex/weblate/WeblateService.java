@@ -182,12 +182,6 @@ public class WeblateService {
 		}
 	}
 
-	public void deleteSharedSet(String slug) throws ServiceException {
-		WeblateClient weblateClient = weblateClientFactory.getClient();
-		weblateClient.deleteComponent(commonProject, slug);
-		// Will need to delete from git too.
-	}
-
 	public List<WeblateUser> getUsersForRefset(String refsetId) throws ServiceException {
 		WeblateClient weblateClient = weblateClientFactory.getClient();
 
