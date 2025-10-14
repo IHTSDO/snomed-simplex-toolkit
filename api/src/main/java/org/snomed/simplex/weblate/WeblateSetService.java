@@ -85,12 +85,12 @@ public class WeblateSetService {
 		batchTranslationLLMService = new BatchTranslationLLMService(processingContext);
 	}
 
-	public List<WeblateTranslationSet> findByCodeSystem(String codeSystem) throws ServiceExceptionWithStatusCode {
+	public List<WeblateTranslationSet> findByCodeSystem(String codeSystem) {
 		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystemOrderByName(codeSystem);
 		return filterAndCompleteSets(list);
 	}
 
-	public List<WeblateTranslationSet> findByCodeSystemAndRefset(String codeSystem, String refsetId) throws ServiceExceptionWithStatusCode {
+	public List<WeblateTranslationSet> findByCodeSystemAndRefset(String codeSystem, String refsetId) {
 		List<WeblateTranslationSet> list = weblateSetRepository.findByCodesystemAndRefsetOrderByName(codeSystem, refsetId);
 		return filterAndCompleteSets(list);
 	}

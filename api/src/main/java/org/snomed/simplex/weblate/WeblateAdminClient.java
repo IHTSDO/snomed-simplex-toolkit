@@ -38,7 +38,6 @@ public class WeblateAdminClient {
 
 	private final RestTemplate restTemplate;
 	private final Logger logger = LoggerFactory.getLogger(WeblateAdminClient.class);
-	private String commonProjectUrl;
 
 	public WeblateAdminClient(RestTemplate restTemplate) {
 		this.restTemplate = restTemplate;
@@ -97,18 +96,6 @@ public class WeblateAdminClient {
 			weblateGroup = createGroupWithTranslationRoles(weblateGroupRequest, languageCodeWithRefset);
 		}
 		return weblateGroup;
-	}
-
-	private String getCommonProjectUrl() throws ServiceExceptionWithStatusCode {
-		if (commonProjectUrl == null) {
-			ResponseEntity<WeblateProject> response = restTemplate.getForEntity("/projects/common/?format=json", WeblateProject.class);
-			WeblateProject project = response.getBody();
-			if (project == null) {
-				throw new ServiceExceptionWithStatusCode("Failed to load common Weblate project.", HttpStatus.INTERNAL_SERVER_ERROR);
-			}
-			commonProjectUrl = project.url();
-		}
-		return commonProjectUrl;
 	}
 
 	public WeblateGroup getUserGroupByName(String groupName) {

@@ -84,8 +84,8 @@ public class CodeSystemService {
 	public CodeSystem getCodeSystemDetails(String codeSystemShortName) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem codeSystem = snowstormClient.getCodeSystemForDisplay(codeSystemShortName);
-//		classifyService.addClassificationStatus(codeSystem);
-//		validateService.addValidationStatus(codeSystem);
+		classifyService.addClassificationStatus(codeSystem);
+		validateService.addValidationStatus(codeSystem);
 		securityService.updateUserRolePermissionCache(Collections.singletonList(codeSystem));
 
 		runStatusChecks(codeSystem, snowstormClient);
