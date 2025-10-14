@@ -157,7 +157,7 @@ public class TranslationController {
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public List<WeblateTranslationSet> listWeblateSets(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceExceptionWithStatusCode {
+	public List<WeblateTranslationSet> listWeblateSets(@PathVariable String codeSystem, @PathVariable String refsetId) {
 		return weblateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
 	}
 
