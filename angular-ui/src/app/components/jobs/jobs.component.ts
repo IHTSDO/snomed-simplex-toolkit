@@ -70,7 +70,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     },
     {
       value: 'weblateTranslation',
-      viewValue: 'Snowlate Translation',
+      viewValue: 'Translation Tool Translation',
       artifactTypes: ['translation'],
     },
     {
@@ -258,9 +258,9 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     );
     
     if (failedActivity) {
-      return 'Snowlate language initialization failed';
+      return 'Translation Tool language initialization failed';
     }
-    return 'Snowlate linking failed';
+    return 'Translation Tool linking failed';
   }
 
   private manageActivitiesPolling() {
@@ -522,8 +522,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       
       this.simplexService.linkTranslationToWeblate(this.edition, this.artifact.conceptId).subscribe(
         (response) => {
-          console.log('Snowlate linking response:', response); // Debug: see the job response
-          this.snackBar.open('Snowlate linking job created successfully', 'Dismiss', {
+          console.log('Translation Tool linking response:', response); // Debug: see the job response
+          this.snackBar.open('Translation Tool linking job created successfully', 'Dismiss', {
             duration: 5000,
           });
           // Load the new job to show it in the list
@@ -535,8 +535,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
           this.saving = false;
         },
         (error) => {
-          console.error('Failed to link to Snowlate:', error);
-          this.snackBar.open('Failed to link to Snowlate', 'Dismiss', {
+          console.error('Failed to link to Translation Tool:', error);
+          this.snackBar.open('Failed to link to Translation Tool', 'Dismiss', {
             duration: 5000,
           });
           this.saving = false;
