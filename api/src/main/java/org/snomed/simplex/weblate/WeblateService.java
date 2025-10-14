@@ -26,9 +26,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -67,7 +65,7 @@ public class WeblateService {
 		addLanguageExecutorService = Executors.newFixedThreadPool(1, new DefaultThreadFactory("Weblate-add-language-thread"));
 	}
 
-	public void runUserAccessCheck() {
+	public WeblateUser getCreateWeblateUser() {
 		WeblateAdminClient adminClient = weblateClientFactory.getAdminClient();
 		String username = SecurityUtil.getUsername();
 		WeblateUser weblateUser = adminClient.getWeblateUser(username);
@@ -81,6 +79,29 @@ public class WeblateService {
 			logger.info("Automatically updating Weblate user details {}", username);
 			adminClient.updateDetails(getUserDetails());
 		}
+		return weblateUser;
+	}
+
+	public void runUserAccessCheck(Set<String> requiredLanguageCodeRefsetIds) throws ServiceExceptionWithStatusCode {
+		WeblateUser weblateUser = getCreateWeblateUser();
+		WeblateAdminClient adminClient = weblateClientFactory.getAdminClient();
+		Set<WeblateGroup> usersCurrentGroups = adminClient.getUserGroups(weblateUser);
+
+		// Example "Translation Team nl-58888888102"
+		for (String requiredLanguageCodeRefsetId : requiredLanguageCodeRefsetIds) {
+			String requiredGroupName = getGroupName(requiredLanguageCodeRefsetId);
+			Optional<WeblateGroup> groupOptional = usersCurrentGroups.stream().filter(group -> requiredGroupName.equals(group.getName())).findFirst();
+			if (groupOptional.isEmpty()) {
+				// User is not in required group
+				WeblateGroup weblateGroup = adminClient.getCreateUserGroup(requiredGroupName, requiredLanguageCodeRefsetId);
+				logger.info("Automatically adding Weblate user {} to group '{}'", weblateUser.getUsername(), requiredGroupName);
+				adminClient.addUserToGroup(weblateUser, weblateGroup);
+			}
+		}
+	}
+
+	private String getGroupName(String languageCodeRefsetId) {
+		return "Translation Team %s".formatted(languageCodeRefsetId);
 	}
 
 	private AuthenticationClient.UserDetails getUserDetails() {
@@ -182,15 +203,13 @@ public class WeblateService {
 		}
 	}
 
-	public List<WeblateUser> getUsersForRefset(String refsetId) throws ServiceException {
-		WeblateClient weblateClient = weblateClientFactory.getClient();
+	public List<WeblateUser> getUsersForLanguage(String languageCode, String refsetId) {
+		String languageCodeWithRefset = "%s-%s".formatted(languageCode, refsetId);
+		String groupName = getGroupName(languageCodeWithRefset);
+		WeblateAdminClient adminClient = weblateClientFactory.getAdminClient();
 
 		// Step 1: Fetch all groups and find the one matching the refset
-		List<WeblateGroup> groups = weblateClient.listGroups();
-		WeblateGroup targetGroup = groups.stream()
-			.filter(group -> group.getName().matches("Translation Team ..-" + refsetId))
-			.findFirst()
-			.orElse(null);
+		WeblateGroup targetGroup = adminClient.getUserGroupByName(groupName);
 
 		if (targetGroup == null) {
 			logger.info("No translation team group found for refset: {}", refsetId);
@@ -198,7 +217,7 @@ public class WeblateService {
 		}
 
 		// Step 2: Fetch all users and filter by the target group
-		List<WeblateUserResponse> allUsers = weblateClient.listUsers();
+		List<WeblateUserResponse> allUsers = adminClient.listUsers();
 		String targetGroupUrl = targetGroup.getUrl();
 
 		List<WeblateUser> usersInGroup = allUsers.stream()
@@ -235,6 +254,9 @@ public class WeblateService {
 					weblateAdminClient.createLanguage(languageCodeWithRefset, refsetTerm, leftToRight);
 				}
 
+				String groupName = getGroupName(languageCodeWithRefset);
+				weblateAdminClient.getCreateUserGroup(groupName, languageCodeWithRefset);
+
 				if (!weblateAdminClient.isTranslationExistsSearchByLanguageRefset(languageCodeWithRefset)) {
 					logger.info("Translation {} does not exist in Translation Tool, creating...", languageCodeWithRefset);
 					// This request takes a long time because it's creating a new translation of the terms.
@@ -250,5 +272,4 @@ public class WeblateService {
 	public WeblateLanguageInitialisationJobService getWeblateLanguageInitialisationJobService() {
 		return weblateLanguageInitialisationJobService;
 	}
-
 }

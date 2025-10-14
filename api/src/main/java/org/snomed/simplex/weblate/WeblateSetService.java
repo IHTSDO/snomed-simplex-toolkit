@@ -104,13 +104,13 @@ public class WeblateSetService {
 		return first.get();
 	}
 
-	private List<WeblateTranslationSet> filterAndCompleteSets(List<WeblateTranslationSet> list) throws ServiceExceptionWithStatusCode {
+	private List<WeblateTranslationSet> filterAndCompleteSets(List<WeblateTranslationSet> list) {
 		List<WeblateTranslationSet> deleting = list.stream().filter(set -> set.getStatus() == TranslationSetStatus.DELETING).toList();
 		List<WeblateTranslationSet> deleted = new ArrayList<>();
 		if (!deleting.isEmpty()) {
-			WeblateClient weblateClient = weblateClientFactory.getClient();
+			WeblateAdminClient weblateAdminClient = weblateClientFactory.getAdminClient();
 			for (WeblateTranslationSet set : deleting) {
-				WeblateLabel label = weblateClient.getLabel(WeblateClient.COMMON_PROJECT, set.getCompositeLabel());
+				WeblateLabel label = weblateAdminClient.getLabel(WeblateClient.COMMON_PROJECT, set.getCompositeLabel());
 				if (label == null) {
 					weblateSetRepository.delete(set);
 					deleted.add(set);
@@ -238,14 +238,15 @@ public class WeblateSetService {
 				jobType, translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
 
 			WeblateClient weblateClient = weblateClientFactory.getClient();
+			WeblateAdminClient weblateAdminClient = weblateClientFactory.getAdminClient();
 			if (jobType.equals(JOB_TYPE_CREATE)) {
-				creationService.doCreateSet(translationSet, weblateClient, snowstormClientFactory);
+				creationService.doCreateSet(translationSet, weblateAdminClient, snowstormClientFactory);
 			} else if (jobType.equals(JOB_TYPE_DELETE)) {
-				doDeleteSet(translationSet, weblateClient);
+				doDeleteSet(translationSet, weblateAdminClient);
 			} else if (jobType.equals(JOB_TYPE_ASSIGN_WORK)) {
 				String requestJson = (String) jobMessage.get(REQUEST_OBJECT);
 				AssignWorkRequest request = objectMapper.readValue(requestJson, AssignWorkRequest.class);
-				assignService.doAssignWorkToUsers(translationSet, request, weblateClient);
+				assignService.doAssignWorkToUsers(translationSet, request, weblateClient, weblateAdminClient);
 			} else if (jobType.equals(JOB_TYPE_BATCH_AI_TRANSLATE)) {
 				String requestJson = (String) jobMessage.get(REQUEST_OBJECT);
 				BatchTranslateRequest request = objectMapper.readValue(requestJson, BatchTranslateRequest.class);
@@ -297,7 +298,7 @@ public class WeblateSetService {
 		}
 	}
 
-	private void doDeleteSet(WeblateTranslationSet translationSet, WeblateClient weblateClient) {
+	private void doDeleteSet(WeblateTranslationSet translationSet, WeblateAdminClient weblateClient) {
 		weblateClient.deleteLabelAsync(WeblateClient.COMMON_PROJECT, translationSet.getCompositeLabel());
 	}
 

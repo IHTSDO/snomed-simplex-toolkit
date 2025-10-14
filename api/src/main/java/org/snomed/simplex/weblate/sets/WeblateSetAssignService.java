@@ -6,6 +6,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.AssignWorkRequest;
 import org.snomed.simplex.weblate.UnitQueryBuilder;
+import org.snomed.simplex.weblate.WeblateAdminClient;
 import org.snomed.simplex.weblate.WeblateClient;
 import org.snomed.simplex.weblate.WeblateSetRepository;
 import org.snomed.simplex.weblate.domain.*;
@@ -35,7 +36,7 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 		queueJob(translationSet, JOB_TYPE_ASSIGN_WORK, request);
 	}
 
-	public void doAssignWorkToUsers(WeblateTranslationSet translationSet, AssignWorkRequest request, WeblateClient weblateClient) throws ServiceExceptionWithStatusCode {
+	public void doAssignWorkToUsers(WeblateTranslationSet translationSet, AssignWorkRequest request, WeblateClient weblateClient, WeblateAdminClient weblateAdminClient) throws ServiceExceptionWithStatusCode {
 		String languageCodeWithRefset = translationSet.getLanguageCodeWithRefsetId();
 		String label = translationSet.getCompositeLabel();
 
@@ -61,7 +62,7 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 		List<WorkDistribution> workDistribution = calculateWorkDistribution(request, totalUnits);
 
 		// Pre-create and cache all user labels to avoid repeated lookups
-		Map<String, WeblateLabel> userLabels = createUserLabels(request, weblateClient);
+		Map<String, WeblateLabel> userLabels = createUserLabels(request, weblateAdminClient);
 
 		// Process units page by page to minimize memory usage
 		int processedUnits = 0;
@@ -87,7 +88,7 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 					processedUnits++;
 				}
 
-				doApplyLabels(weblateClient, unitsByUser, userLabels);
+				doApplyLabels(weblateAdminClient, unitsByUser, userLabels);
 
 				// Update progress every page
 				setProgress(translationSet, Math.min(90, (int) (((float) processedUnits / (float) totalUnits) * 100)));
@@ -105,7 +106,7 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 		logger.info("Work assignment completed for label: {}", label);
 	}
 
-	private void doApplyLabels(WeblateClient weblateClient, Map<String, List<String>> unitsByUser, Map<String, WeblateLabel> userLabels) throws ServiceExceptionWithStatusCode {
+	private void doApplyLabels(WeblateAdminClient weblateAdminClient, Map<String, List<String>> unitsByUser, Map<String, WeblateLabel> userLabels) throws ServiceExceptionWithStatusCode {
 		// Apply labels in bulk for each user
 		for (Map.Entry<String, List<String>> entry : unitsByUser.entrySet()) {
 			String username = entry.getKey();
@@ -113,7 +114,7 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 			WeblateLabel labelObj = userLabels.get(username);
 
 			if (labelObj != null && !unitIds.isEmpty()) {
-				weblateClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, labelObj.id(), unitIds);
+				weblateAdminClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, labelObj.id(), unitIds);
 				logger.debug("Bulk assigned {} units to user {}", unitIds.size(), username);
 			}
 		}
@@ -122,7 +123,7 @@ public class WeblateSetAssignService extends AbstractWeblateSetProcessingService
 	/**
 	 * Pre-create and cache all user labels to avoid repeated lookups
 	 */
-	private Map<String, WeblateLabel> createUserLabels(AssignWorkRequest request, WeblateClient weblateClient) {
+	private Map<String, WeblateLabel> createUserLabels(AssignWorkRequest request, WeblateAdminClient weblateClient) {
 		Map<String, WeblateLabel> userLabels = new HashMap<>();
 
 		for (AssignWorkRequest.WorkAssignment assignment : request.getAssignments()) {

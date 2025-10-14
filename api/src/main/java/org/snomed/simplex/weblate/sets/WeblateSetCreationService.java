@@ -78,7 +78,7 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 		queueJob(translationSet, JOB_TYPE_CREATE);
 	}
 
-	public void doCreateSet(WeblateTranslationSet translationSet, WeblateClient weblateClient, SnowstormClientFactory snowstormClientFactory) throws ServiceExceptionWithStatusCode {
+	public void doCreateSet(WeblateTranslationSet translationSet, WeblateAdminClient weblateAdminClient, SnowstormClientFactory snowstormClientFactory) throws ServiceExceptionWithStatusCode {
 		TimerUtil timerUtil = new TimerUtil("Adding label %s".formatted(translationSet.getLabel()));
 		// Update status to processing
 		translationSet.setStatus(TranslationSetStatus.PROCESSING);
@@ -89,21 +89,21 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 		String code;
 		String compositeLabel = translationSet.getCompositeLabel();
 
-		WeblateLabel weblateLabel = weblateClient.getCreateLabel(WeblateClient.COMMON_PROJECT, compositeLabel, translationSet.getName());
+		WeblateLabel weblateLabel = weblateAdminClient.getCreateLabel(WeblateClient.COMMON_PROJECT, compositeLabel, translationSet.getName());
 
 		List<String> codes = new ArrayList<>();
 		int done = 0;
 		while ((code = conceptIdStream.get()) != null) {
 			codes.add(code);
 			if (codes.size() == labelBatchSize) {
-				bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
+				bulkAddLabelsToBatch(compositeLabel, codes, weblateAdminClient, weblateLabel);
 				timerUtil.checkpoint("Completed batch");
 				done += labelBatchSize;
 				updateProcessingTotal(translationSet, done, conceptIdStream.getTotal());
 			}
 		}
 		if (!codes.isEmpty()) {
-			bulkAddLabelsToBatch(compositeLabel, codes, weblateClient, weblateLabel);
+			bulkAddLabelsToBatch(compositeLabel, codes, weblateAdminClient, weblateLabel);
 			updateProcessingTotal(translationSet, conceptIdStream.getTotal(), conceptIdStream.getTotal());
 		}
 		timerUtil.finish();
@@ -132,9 +132,9 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 		weblateSetRepository.save(translationSet);
 	}
 
-	private void bulkAddLabelsToBatch(String label, List<String> codes, WeblateClient weblateClient, WeblateLabel weblateLabel) throws ServiceExceptionWithStatusCode {
+	private void bulkAddLabelsToBatch(String label, List<String> codes, WeblateAdminClient weblateAdminClient, WeblateLabel weblateLabel) throws ServiceExceptionWithStatusCode {
 		logger.info("Adding batch of label:{} to {} units", label, codes.size());
-		weblateClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, weblateLabel.id(), codes);
+		weblateAdminClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, weblateLabel.id(), codes);
 		logger.info("Added label batch");
 		codes.clear();
 	}

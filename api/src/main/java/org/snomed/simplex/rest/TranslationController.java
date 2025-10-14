@@ -36,6 +36,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @Tag(name = "Translation", description = "-")
@@ -110,7 +112,7 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		weblateService.runUserAccessCheck();
+		weblateService.getCreateWeblateUser();
 		WeblateLanguageInitialisationRequest request = new WeblateLanguageInitialisationRequest(refsetId);
 		WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService = weblateService.getWeblateLanguageInitialisationJobService();
 		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, refsetId, ActivityType.WEBLATE_LANGUAGE_INITIALISATION, weblateLanguageInitialisationJobService, request);
@@ -123,8 +125,12 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		weblateService.runUserAccessCheck();
-		return weblateService.getUsersForRefset(refsetId);
+		String languageCode = theCodeSystem.getTranslationLanguages().get(refsetId);
+		if (languageCode == null) {
+			throw new ServiceExceptionWithStatusCode("Language code not found for refset %s".formatted(refsetId), HttpStatus.CONFLICT);
+		}
+		weblateService.getCreateWeblateUser();
+		return weblateService.getUsersForLanguage(languageCode, refsetId);
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/assign-work")
@@ -136,15 +142,17 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		weblateService.runUserAccessCheck();
+		weblateService.getCreateWeblateUser();
 		weblateSetService.assignWorkToUsers(codeSystem, refsetId, label, request);
 	}
 
 	@GetMapping("{codeSystem}/translations/weblate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<WeblateTranslationSet> listAllWeblateSets(@PathVariable String codeSystem) throws ServiceExceptionWithStatusCode {
-		weblateService.runUserAccessCheck();
-		return weblateSetService.findByCodeSystem(codeSystem);
+		List<WeblateTranslationSet> translationSets = weblateSetService.findByCodeSystem(codeSystem);
+		Set<String> languageCodeRefsetIds = translationSets.stream().map(WeblateTranslationSet::getLanguageCodeWithRefsetId).collect(Collectors.toSet());
+		weblateService.runUserAccessCheck(languageCodeRefsetIds);
+		return translationSets;
 	}
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set")

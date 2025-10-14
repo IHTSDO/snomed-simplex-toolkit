@@ -9,8 +9,10 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.util.FileUtils;
-import org.snomed.simplex.weblate.domain.*;
-import org.snomed.simplex.weblate.pojo.BulkAddLabelRequest;
+import org.snomed.simplex.weblate.domain.WeblateComponent;
+import org.snomed.simplex.weblate.domain.WeblatePage;
+import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
+import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.snomed.simplex.weblate.pojo.WeblateUnitTranslation;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
@@ -24,7 +26,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 
 public class WeblateClient {
 	public static final String COMMON_PROJECT = "common";
@@ -34,13 +35,9 @@ public class WeblateClient {
 	private final RestTemplate restTemplate;
 	private final SupportRegister supportRegister;
 
-	public static final ParameterizedTypeReference<WeblateComponent> SET_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<WeblatePage<WeblateUnit>> UNITS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
-	public static final ParameterizedTypeReference<WeblatePage<WeblateLabel>> LABELS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<Map<String, Object>> PARAMETERIZED_TYPE_REFERENCE_MAP = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<List<Map<String, Object>>> PARAMETERIZED_TYPE_REFERENCE_LIST_OF_MAPS = new ParameterizedTypeReference<>() {};
-	public static final ParameterizedTypeReference<WeblateResponse<WeblateGroup>> GROUPS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
-	public static final ParameterizedTypeReference<WeblateResponse<WeblateUserResponse>> USERS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 
 	protected WeblateClient(RestTemplate restTemplate, SupportRegister supportRegister) {
 		this.restTemplate = restTemplate;
@@ -170,24 +167,6 @@ public class WeblateClient {
 			throw new ServiceException("Failed to create temp file for translation upload.", e);
 		} finally {
 			FileUtils.deleteOrLogWarning(translationUploadFile);
-		}
-	}
-
-	public void patchUnitLabels(String id, List<WeblateLabel> labels) {
-		// Docs: https://docs.weblate.org/en/latest/api.html#patch--api-units-(int-id)-
-		Map<String, Object> patchBody = new HashMap<>();
-		patchBody.put("labels", labels.stream().map(WeblateLabel::id).toList());
-		restTemplate.exchange(UNITS_URL.formatted(id), HttpMethod.PATCH, new HttpEntity<>(patchBody, getJsonHeaders()), Void.class);
-	}
-
-	public void bulkAddLabels(String projectSlug, Integer labelId, List<String> contextIds) throws ServiceExceptionWithStatusCode {
-		// This is a custom Weblate endpoint
-		String url = "/units/bulk_add_label/";
-		try {
-			BulkAddLabelRequest request = new BulkAddLabelRequest(projectSlug, labelId, contextIds);
-			restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(request, getJsonHeaders()), Void.class);
-		} catch (HttpClientErrorException e) {
-			throw new ServiceExceptionWithStatusCode("Error bulk assigning label: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -334,57 +313,6 @@ public class WeblateClient {
 		}
 	}
 
-	public WeblateLabel getCreateLabel(String project, String label, String description) {
-		try {
-			WeblateLabel existing = getLabel(project, label);
-			if (existing != null) return existing;
-
-			WeblateLabel newLabel = new WeblateLabel(null, label, description, "blue");
-			String url = getLabelsUrl(project);
-			restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(newLabel, getJsonHeaders()), Void.class);
-			return getLabel(project, label);
-		} catch (HttpClientErrorException e) {
-			return null;
-		}
-	}
-
-	public WeblateLabel getLabel(String project, String label) {
-		String url = getLabelsUrl(project);
-		ResponseEntity<WeblatePage<WeblateLabel>> response = restTemplate.exchange(
-			url,
-			HttpMethod.GET,
-			null,
-			LABELS_RESPONSE_TYPE
-		);
-		WeblatePage<WeblateLabel> page = response.getBody();
-		if (page != null) {
-			Optional<WeblateLabel> existing = page.results().stream().filter(result -> result.name().equals(label)).findFirst();
-			return existing.orElse(null);
-		} else {
-			return null;
-		}
-	}
-
-	private static @NotNull String getLabelsUrl(String project) {
-		return "/projects/%s/labels/?format=json".formatted(project);
-	}
-
-	public void deleteLabelAsync(String project, String label) {
-		// Run the deletion in background without error handling
-		CompletableFuture.runAsync(() -> {
-			try {
-				WeblateLabel weblateLabel = getLabel(project, label);
-				if (weblateLabel != null) {
-					String url = "/projects/%s/labels/%s/".formatted(project, weblateLabel.id());
-					restTemplate.delete(url);
-				}
-			} catch (Exception e) {
-				// Fire and forget - no error handling
-				logger.info("Background label deletion failed for project {} label {}: {}", project, label, e.getMessage());
-			}
-		});
-	}
-
 	public File downloadTranslationSubset(WeblateTranslationSet translationSet) throws IOException {
 		String languageCodeWithRefsetId = translationSet.getLanguageCodeWithRefsetId();
 		String compositeLabel = translationSet.getCompositeLabel();
@@ -403,24 +331,6 @@ public class WeblateClient {
 			}
 		}
 		return tempFile;
-	}
-
-	public List<WeblateGroup> listGroups() {
-		ResponseEntity<WeblateResponse<WeblateGroup>> response = restTemplate.exchange("/groups/?format=json", HttpMethod.GET, null, GROUPS_RESPONSE_TYPE);
-		WeblateResponse<WeblateGroup> weblateResponse = response.getBody();
-		if (weblateResponse == null) {
-			return new ArrayList<>();
-		}
-		return weblateResponse.getResults();
-	}
-
-	public List<WeblateUserResponse> listUsers() {
-		ResponseEntity<WeblateResponse<WeblateUserResponse>> response = restTemplate.exchange("/users/?format=json", HttpMethod.GET, null, USERS_RESPONSE_TYPE);
-		WeblateResponse<WeblateUserResponse> weblateResponse = response.getBody();
-		if (weblateResponse == null) {
-			return new ArrayList<>();
-		}
-		return weblateResponse.getResults();
 	}
 
 	protected RestTemplate getRestTemplate() {
