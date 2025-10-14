@@ -66,15 +66,13 @@ export interface GoldenExample {
 			
 			<!-- Step 2: Golden Examples -->
 			<div *ngIf="currentStep === 2">
-				<p>Create golden examples for: <strong>{{ data.labelSetName }}</strong></p>
-				
 				<div *ngIf="loadingExamples" class="loading-container">
 					<mat-spinner diameter="40"></mat-spinner>
 					<p>Loading sample concepts...</p>
 				</div>
 				
 				<div *ngIf="!loadingExamples" class="golden-examples-section">
-					<h4>Golden Examples</h4>
+					<h4>Golden Examples for <strong>{{ data.labelSetName }}</strong></h4>
 					<p class="section-description">
 						Let us create five strong examples to demonstrate the correct translation approach for this set.
 					</p>
@@ -232,7 +230,7 @@ export interface GoldenExample {
 		}
 		
 		.golden-examples-section {
-			margin-top: 24px;
+			margin-top: 10px;
 		}
 		
 		.section-description {
