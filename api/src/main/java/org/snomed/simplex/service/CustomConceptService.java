@@ -134,8 +134,20 @@ public class CustomConceptService {
 						concept.setClassAxioms(new ArrayList<>());
 					}
 					if (!concept.getModuleId().equals(defaultModule)) {
-						throw new ServiceException(format("Concept with code '%s' on row %s is from a different module and can not be modified using this function.",
+						if (!concept.isActive()) {
+							// Reactivation of concept from dependant module
+							concept.setActive(true);
+							concept.setEffectiveTime(null);
+							concept.setModuleId(defaultModule);
+							concept.setClassAxioms(Collections.emptyList());// This will get corrected later in the flow
+							concept.setInactivationIndicator(null);
+							concept.setAssociationTargets(Collections.emptyMap());
+							changed = true;
+							changeSummary.incrementAdded();
+						} else {
+							throw new ServiceException(format("Concept with code '%s' on row %s is from a different module and can not be modified using this function.",
 								conceptCode, intent.getRowNumber()));
+						}
 					}
 
 					if (intent.isInactive()) {
@@ -150,8 +162,8 @@ public class CustomConceptService {
 						if (!concept.isActive()) {
 							// Reactivate concept
 							concept.setActive(true);
-							concept.getClassAxioms().forEach(axiom -> axiom.setActive(true));
-							concept.getRelationships().forEach(rel -> rel.setActive(true));
+							activateLatestSet(concept.getClassAxioms());
+							activateLatestSet(concept.getRelationships());
 							changed = true;
 							changeSummary.incrementUpdated();
 						}
@@ -247,6 +259,30 @@ public class CustomConceptService {
 			}
 		}
 		return changeSummary;
+	}
+
+	private void activateLatestSet(Collection<? extends Component>  components) {
+		// Only activate the components with the latest effectiveTime within the set
+		if (components.isEmpty()) {
+			return;
+		}
+		TreeSet<String> dates = new TreeSet<>();
+		boolean someNullDates = false;
+		for (Component component : components) {
+			if (component.getEffectiveTime() == null) {
+				someNullDates = true;
+				dates.add("_");
+			} else {
+				dates.add(component.getEffectiveTime());
+			}
+		}
+		String latestDate = dates.descendingIterator().next();
+		for (Component component : components) {
+			String componentEffectiveTime = component.getEffectiveTime();
+			if ((someNullDates && componentEffectiveTime == null) || (!someNullDates && latestDate.equals(componentEffectiveTime))) {
+				component.setActive(true);
+			}
+		}
 	}
 
 	private static String getLanguageCode(CodeSystem codeSystem, String langRefsetId) {

@@ -156,7 +156,15 @@ public class Concept extends Component {
 		return inactivationIndicator;
 	}
 
+	public void setInactivationIndicator(String inactivationIndicator) {
+		this.inactivationIndicator = inactivationIndicator;
+	}
+
 	public Map<String, List<String>> getAssociationTargets() {
 		return associationTargets;
+	}
+
+	public void setAssociationTargets(Map<String, List<String>> associationTargets) {
+		this.associationTargets = associationTargets;
 	}
 }
