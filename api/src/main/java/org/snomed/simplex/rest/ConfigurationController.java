@@ -29,10 +29,12 @@ public class ConfigurationController {
 		Map<String, String> properties = new HashMap<>();
 		addProperty("spring.application.name", properties);
 		addProperty("snowstorm.url", properties);
+		addProperty("snowstorm.derivatives.url", properties);
 		addProperty("snomed-release-service.url", properties);
 		addProperty("snomed-release-service.username", properties);
 		addProperty("ims-security.api-url", properties);
 		addProperty("rvf.url", properties);
+		addProperty("weblate.url", properties);
 		addProperty("jms.queue.prefix", properties);
 		return properties;
 	}

@@ -35,7 +35,7 @@ public class SnowstormClientFactory {
 		this.snowstormUrl = snowstormUrl;
 		logger.info("Snowstorm URL set as '{}'", snowstormUrl);
 		if (!Strings.isNullOrEmpty(snowstormAltDerivativesUrl)) {
-			logger.info("Snowstorm Derivatives URL set as '{}'", snowstormUrl);
+			logger.info("Snowstorm Derivatives URL set as '{}'", snowstormAltDerivativesUrl);
 			derivativesClient = new SnowstormClient(snowstormAltDerivativesUrl, null, objectMapper);
 		} else {
 			derivativesClient = null;
