@@ -51,7 +51,7 @@ public class AuthenticationClient {
 
 	public UserDetails fetchUserDetails(String authenticationToken) {
 		if (dummyResponse) {
-			return new UserDetails("test", "Test", "User", "test@snomed.org", "Test User", true);
+			return new UserDetails("test", "Test", "User", "test@snomed.org", "Test User");
 		}
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Cookie", authenticationToken);
@@ -59,7 +59,7 @@ public class AuthenticationClient {
 		return response.getBody();
 	}
 
-	public record UserDetails(String login, String firstName, String lastName, String email, String displayName, boolean active) {
+	public record UserDetails(String login, String firstName, String lastName, String email, String displayName) {
 	}
 
 }

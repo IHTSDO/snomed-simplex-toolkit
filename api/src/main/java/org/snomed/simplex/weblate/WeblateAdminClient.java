@@ -74,7 +74,7 @@ public class WeblateAdminClient {
 		requestBody.put("username", userDetails.login());
 		requestBody.put("full_name", "%s %s".formatted(userDetails.firstName(), userDetails.lastName()));
 		requestBody.put("email", userDetails.email());
-		requestBody.put("is_active", userDetails.active());
+		requestBody.put("is_active", true);
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		return new HttpEntity<>(requestBody, headers);
