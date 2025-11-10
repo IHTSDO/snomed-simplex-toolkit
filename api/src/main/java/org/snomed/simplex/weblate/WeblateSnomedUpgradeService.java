@@ -97,12 +97,8 @@ public class WeblateSnomedUpgradeService {
 			if (!workingList.contains(currentConceptId)) {
 				int index = previousConceptId == null ? 0 : workingList.indexOf(previousConceptId) + 1;
 				workingList.add(index, currentConceptId);
-				System.out.println("New concept " + currentConceptId + " has been inserted.");
 				newRows.put(currentConceptId, getSourceRow(currentConcept));
 				previousConceptId = currentConceptId;
-				if (newRows.size() == 10) {
-					return;
-				}
 			}
 		}
 	}
@@ -224,11 +220,6 @@ public class WeblateSnomedUpgradeService {
 			logger.info("Pulling hierarchy-sorted list of all concepts from Snowstorm.");
 			String newVersionBranch = updatePlan.newVersionBranch();
 			insertNewCodesWithCorrectOrder(workingList, newRows, newVersionBranch, snowstormClient);
-			System.out.println("newRows:");
-			for (String value : newRows.values()) {
-				System.out.println("- " + value);
-			}
-			System.out.println();
 
 			// - Recreate the source file, including the new rows
 			logger.info("Creating and uploading new list of SNOMED CT concepts to Translation Tool.");
