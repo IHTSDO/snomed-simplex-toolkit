@@ -26,9 +26,9 @@ public class WeblateUnitStream implements UnitSupplier {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	private Iterator<WeblateUnit> iterator;
-	public WeblateUnitStream(String projectSlug, String componentSlug, Boolean hasScreenshot, int startPage, WeblateClient weblateClient) {
+	public WeblateUnitStream(String projectSlug, String componentSlug, Boolean hasScreenshotFilter, int startPage, WeblateClient weblateClient) {
 		nextUrl = "%s&page=%s".formatted(getUnitQuery(UnitQueryBuilder.of(projectSlug, componentSlug)
-				.hasScreenshot(hasScreenshot)
+				.hasScreenshot(hasScreenshotFilter)
 				.pageSize(PAGE_SIZE)
 				.fastestSort(true)), startPage);
 		this.weblateClient = weblateClient;

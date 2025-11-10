@@ -54,6 +54,11 @@ public class ConceptMini {
 		return conceptId;
 	}
 
+	@JsonIgnore
+	public Long getConceptIdLong() {
+		return Long.parseLong(conceptId);
+	}
+
 	public boolean isActive() {
 		return active;
 	}

@@ -7,6 +7,9 @@ public class Concepts {
 
 	public static final String FOUNDATION_METADATA_CONCEPT_TAG = "foundation metadata concept";
 
+	// 138875005 |SNOMED CT Concept (SNOMED RT+CTV3)|
+	public static final String ROOT_SNOMEDCT = "138875005";
+
 	// 900000000000443000 |Module (core metadata concept)|
 	public static final String MODULE = "900000000000443000";
 

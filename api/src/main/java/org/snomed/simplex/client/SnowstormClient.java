@@ -557,6 +557,17 @@ public class SnowstormClient {
 		return new ConceptSortedHierarchyStream(branch, focusConcept, this);
 	}
 
+	public List<Long> getConceptChangeReport(String branchPath, int changedSince) throws ServiceExceptionWithStatusCode {
+		ParameterizedTypeReference<Page<String>> listOfConceptIds = new ParameterizedTypeReference<>() {};
+		ResponseEntity<Page<String>> response = restTemplate.exchange("/%s/concepts/change-report?changedSince=%s".formatted(branchPath, changedSince), HttpMethod.GET, null,
+			listOfConceptIds);
+		Page<String> body = response.getBody();
+		if (body == null) {
+			throw new ServiceExceptionWithStatusCode("Concept change report failed.", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		return body.getItems().stream().map(Long::parseLong).toList();
+	}
+
 	protected List<ConceptMini> getConceptList(String branch, String ecl) {
 		List<ConceptMini> list = new ArrayList<>();
 		Supplier<ConceptMini> conceptStream = getConceptStream(branch, ecl);
@@ -584,6 +595,7 @@ public class SnowstormClient {
 					searchRequest.put("eclFilter", ecl);
 					searchRequest.put("limit", 10_000);
 					searchRequest.put("searchAfter", searchAfter);
+					searchRequest.put("includeLeafFlag", true);
 
 					String url = format("/%s/concepts/search", branch);
 					ResponseEntity<Page<ConceptMini>> pageResponse = restTemplate.exchange(url,

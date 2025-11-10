@@ -10,7 +10,8 @@ public enum ActivityType {
 	UPGRADE("Upgrade"), CLASSIFY("Classify"), VALIDATE("Validate"), AUTOMATIC_FIX("Automatic Fix"),
 	UPDATE_CONFIGURATION("Update configuration"), BUILD_RELEASE("Build release"), FINALIZE_RELEASE("Finalize release"),
 
-	WEBLATE_LANGUAGE_INITIALISATION("Initialise Translation Tool language"),
+	WEBLATE_SNOMED_INITIALISATION("Initialise SNOMED CT in Translation Tool"),
+	WEBLATE_SNOMED_UPGRADE("Upgrade SNOMED CT in Translation Tool"),
 	TRANSLATION_SET_CREATE("Create translation set"),
 	AI_BATCH_TRANSLATION("AI batch translation");
 

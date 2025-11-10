@@ -8,6 +8,8 @@ import org.snomed.simplex.client.domain.ConceptMini;
 import java.util.*;
 import java.util.function.Supplier;
 
+import static java.lang.Boolean.TRUE;
+
 public class ConceptSortedHierarchyStream implements Supplier<ConceptMini> {
 
 	private final String branch;
@@ -16,6 +18,7 @@ public class ConceptSortedHierarchyStream implements Supplier<ConceptMini> {
 
 	private Deque<List<ConceptMini>> stack = null;
 	private final Set<Long> coveredConcepts = new LongOpenHashSet();
+	private int apiHits;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -23,6 +26,7 @@ public class ConceptSortedHierarchyStream implements Supplier<ConceptMini> {
 		this.branch = branch;
 		this.focusConcept = focusConcept;
 		this.snowstormClient = snowstormClient;
+		apiHits = 0;
 	}
 
 	@Override
@@ -31,6 +35,7 @@ public class ConceptSortedHierarchyStream implements Supplier<ConceptMini> {
 			// Create stack with just focus concept
 			stack = new ArrayDeque<>();
 			List<ConceptMini> conceptList = snowstormClient.getConceptList(branch, focusConcept);
+			apiHits++;
 			stack.push(conceptList);
 		}
 
@@ -38,20 +43,25 @@ public class ConceptSortedHierarchyStream implements Supplier<ConceptMini> {
 		do {
 			nextConcept = getNextConceptFromStack(stack);
 			if (nextConcept == null) {
+				logger.info("Completed concept stream using focus concept {}, {} API calls were made.", focusConcept, apiHits);
 				return null;
 			}
 		} while(coveredConcepts.contains(Long.parseLong(nextConcept.getConceptId())));
 
 		// Load children of this concept and add to list
-		Supplier<ConceptMini> children = snowstormClient.getConceptStream(branch, "<!" + nextConcept.getConceptId());
-		List<ConceptMini> childrenList = new ArrayList<>();
-		ConceptMini child;
-		while ((child = children.get()) != null) {
-			childrenList.add(child);
-		}
-		if (!childrenList.isEmpty()) {
-			childrenList.sort(Comparator.comparing(c -> c.getPtOrFsnOrConceptId().toLowerCase()));
-			stack.push(childrenList);
+		Object isLeafInferred = nextConcept.getExtraFields().get("isLeafInferred");
+		if (isLeafInferred != TRUE) {
+			Supplier<ConceptMini> children = snowstormClient.getConceptStream(branch, "<!" + nextConcept.getConceptId());
+			apiHits++;
+			List<ConceptMini> childrenList = new ArrayList<>();
+			ConceptMini child;
+			while ((child = children.get()) != null) {
+				childrenList.add(child);
+			}
+			if (!childrenList.isEmpty()) {
+				childrenList.sort(Comparator.comparing(c -> c.getPtOrFsnOrConceptId().toLowerCase()));
+				stack.push(childrenList);
+			}
 		}
 
 		coveredConcepts.add(Long.parseLong(nextConcept.getConceptId()));

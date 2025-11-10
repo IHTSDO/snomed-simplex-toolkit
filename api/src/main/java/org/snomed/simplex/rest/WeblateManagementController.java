@@ -1,71 +1,60 @@
 package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
-import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
-import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.rest.pojos.TranslationToolUpdatePlan;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.job.ContentJob;
-import org.snomed.simplex.weblate.WeblateService;
-import org.snomed.simplex.weblate.domain.WeblateComponent;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.UUID;
+import org.snomed.simplex.weblate.WeblateSnomedUpgradeService;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Tag(name = "Weblate Management")
 @RequestMapping("api/weblate")
 public class WeblateManagementController {
 
-	private final WeblateService weblateService;
+	private final WeblateSnomedUpgradeService weblateSnomedUpgradeService;
 	private final ContentProcessingJobService jobService;
 	private final SnowstormClientFactory snowstormClientFactory;
 
-	public WeblateManagementController(WeblateService weblateService, ContentProcessingJobService jobService,
+	public WeblateManagementController(WeblateSnomedUpgradeService weblateSnomedUpgradeService, ContentProcessingJobService jobService,
 			SnowstormClientFactory snowstormClientFactory) {
-		this.weblateService = weblateService;
+		this.weblateSnomedUpgradeService = weblateSnomedUpgradeService;
 		this.jobService = jobService;
 		this.snowstormClientFactory = snowstormClientFactory;
 	}
 
-	@GetMapping("shared-components")
-	public Page<WeblateComponent> getSharedSets() throws ServiceException {
-		return weblateService.getSharedSets();
+	@PostMapping("snomed-initialise")
+	@PostAuthorize("hasPermission('AUTHOR', '')")
+	public TranslationToolUpdatePlan translationToolSnomedInitialise() throws ServiceExceptionWithStatusCode {
+		return doUpdate(true, "Initialise SNOMED CT in Translation Tool", null);
 	}
 
-	@PostMapping("shared-components/{slug}/initialise")
-	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void initialiseSharedSet(@PathVariable String slug,
-		@RequestParam(required = false, defaultValue = "1") int startPage,
-		@RequestParam(required = false) String startConceptId) throws ServiceException {
+	@PostMapping("snomed-upgrade")
+	@PostAuthorize("hasPermission('AUTHOR', '')")
+	public TranslationToolUpdatePlan translationToolSnomedUpgrade(@RequestParam(required = false) Integer upgradeToEffectiveTime) throws ServiceExceptionWithStatusCode {
+		return doUpdate(false, "Upgrade SNOMED CT in Translation Tool", upgradeToEffectiveTime);
+	}
+
+	private TranslationToolUpdatePlan doUpdate(boolean initial, String message, Integer upgradeToEffectiveTime) throws ServiceExceptionWithStatusCode {
 		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
-		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.TRANSLATION_SET_CREATE);
-		ContentJob contentJob = new ContentJob(rootCodeSystem, "Update shared set %s".formatted(slug), null);
-		jobService.queueContentJob(contentJob, null, activity,
-				asyncJob -> weblateService.initialiseSharedSet(slug, startPage, startConceptId));
-	}
+		TranslationToolUpdatePlan updatePlan = weblateSnomedUpgradeService.getUpdatePlan(initial, upgradeToEffectiveTime);
 
-	@GetMapping(value = "/component-csv", produces = "text/csv")
-	public void createCollection(@RequestParam String branch, @RequestParam String focusConcept,
-								 HttpServletResponse response) throws ServiceException, IOException {
+		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.WEBLATE_SNOMED_UPGRADE);
+		ContentJob contentJob = new ContentJob(rootCodeSystem, message, null);
+		jobService.queueContentJob(contentJob, null, activity, job -> weblateSnomedUpgradeService.runSnomedUpgrade(updatePlan, job));
 
-		response.setContentType("text/csv");
-		File folder = new File("weblate-components");
-		folder.mkdirs();
-		File outputFile = new File(folder, UUID.randomUUID() + ".csv");
-		LoggerFactory.getLogger(getClass()).info("Created temporary file {}", outputFile.getAbsolutePath());
-		weblateService.createConceptSet(branch, focusConcept, outputFile, SecurityContextHolder.getContext());
+		return updatePlan;
 	}
 
 }

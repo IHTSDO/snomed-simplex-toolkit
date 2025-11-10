@@ -8,16 +8,16 @@ import org.snomed.simplex.client.AuthenticationClient;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
-import org.snomed.simplex.client.domain.Concept;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
-import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.external.WeblateLanguageInitialisationJobService;
-import org.snomed.simplex.service.job.ChangeSummary;
-import org.snomed.simplex.weblate.domain.*;
+import org.snomed.simplex.weblate.domain.WeblateComponent;
+import org.snomed.simplex.weblate.domain.WeblateGroup;
+import org.snomed.simplex.weblate.domain.WeblateUser;
+import org.snomed.simplex.weblate.domain.WeblateUserResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContext;
@@ -26,15 +26,14 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import static org.snomed.simplex.weblate.WeblateClient.COMMON_PROJECT;
 
 @Service
 public class WeblateService {
@@ -48,19 +47,17 @@ public class WeblateService {
 	private final ExecutorService addLanguageExecutorService;
 	private final SupportRegister supportRegister;
 	private final AuthenticationClient authenticationClient;
-	private final WeblateDiagramService weblateDiagramService;
 	private final WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public WeblateService(SnowstormClientFactory snowstormClientFactory, WeblateClientFactory weblateClientFactory, SupportRegister supportRegister,
-		AuthenticationClient authenticationClient, WeblateDiagramService weblateDiagramService, WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService) {
+		AuthenticationClient authenticationClient, WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClientFactory = weblateClientFactory;
 		this.supportRegister = supportRegister;
 		this.authenticationClient = authenticationClient;
-		this.weblateDiagramService = weblateDiagramService;
 		this.weblateLanguageInitialisationJobService = weblateLanguageInitialisationJobService;
 		addLanguageExecutorService = Executors.newFixedThreadPool(1, new DefaultThreadFactory("Weblate-add-language-thread"));
 	}
@@ -112,64 +109,6 @@ public class WeblateService {
 		List<WeblateComponent> components = weblateClientFactory.getClient().listComponents(commonProject);
 		components = components.stream().filter(c -> !c.slug().equals("glossary")).toList();
 		return new Page<>(components);
-	}
-
-	public ChangeSummary initialiseSharedSet(String component, int startPage, String startConceptId) throws ServiceException {
-		String project = commonProject;
-		ServiceHelper.requiredParameter("slug", component);
-		ServiceHelper.requiredParameter("project", project);
-
-		WeblateClient weblateClient = weblateClientFactory.getClient();
-
-		UnitSupplier unitStream = weblateClient.getUnitStream(project, component, startPage, false);
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
-
-		int processed = 0;
-		boolean firstConceptFound = startConceptId == null;
-		List<WeblateUnit> batch;
-		while (!(batch = unitStream.getBatch(1_000)).isEmpty()) {
-			List<Long> conceptIds = new ArrayList<>();
-			for (WeblateUnit weblateUnit : batch) {
-				if (!firstConceptFound && startConceptId.equals(weblateUnit.getContext())) {
-					firstConceptFound = true;
-				}
-				if (firstConceptFound) {
-					conceptIds.add(Long.parseLong(weblateUnit.getContext()));
-				}
-			}
-			processed = updateSharedSetBatch(conceptIds, component, snowstormClient, codeSystem, batch, weblateClient, processed);
-		}
-
-		if (processed == 0) {
-			logger.warn("No concepts matched {}/{}", project, component);
-		}
-
-		logger.info("Component {}/{} updated with {} units", project, component, processed);
-		return new ChangeSummary(processed, 0, 0, processed);
-	}
-
-	private int updateSharedSetBatch(List<Long> conceptIds, String component, SnowstormClient snowstormClient, CodeSystem codeSystem,
-			List<WeblateUnit> batch, WeblateClient weblateClient, int processed) {
-
-		if (conceptIds.isEmpty()) {
-			return processed;
-		}
-		List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
-		Map<String, Concept> conceptMap = concepts.stream().collect(Collectors.toMap(Concept::getConceptId, Function.identity()));
-		for (WeblateUnit unit : batch) {
-			String conceptId = unit.getKey();
-			Concept concept = conceptMap.get(conceptId);
-			String explanation = WeblateExplanationCreator.getMarkdown(concept);
-			unit.setExplanation(explanation);
-			weblateClient.patchUnitExplanation(unit.getId(), unit.getExplanation());
-			weblateDiagramService.createWeblateScreenshot(unit, concept, COMMON_PROJECT, component, weblateClient);
-			processed++;
-			if (processed % 1_000 == 0) {
-				logger.info("Processed {} units", String.format("%,d", processed));
-			}
-		}
-		return processed;
 	}
 
 	@Async
