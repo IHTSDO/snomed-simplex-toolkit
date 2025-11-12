@@ -50,7 +50,8 @@ public class WeblateManagementController {
 		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
 		TranslationToolUpdatePlan updatePlan = weblateSnomedUpgradeService.getUpdatePlan(initial, upgradeToEffectiveTime);
 
-		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION, ActivityType.WEBLATE_SNOMED_UPGRADE);
+		Activity activity = new Activity("SNOMEDCT", ComponentType.TRANSLATION,
+			initial ? ActivityType.WEBLATE_SNOMED_INITIALISATION : ActivityType.WEBLATE_SNOMED_UPGRADE);
 		ContentJob contentJob = new ContentJob(rootCodeSystem, message, null);
 		jobService.queueContentJob(contentJob, null, activity, job -> weblateSnomedUpgradeService.runSnomedUpgrade(updatePlan, job));
 

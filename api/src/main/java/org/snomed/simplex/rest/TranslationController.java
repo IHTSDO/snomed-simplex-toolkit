@@ -115,7 +115,7 @@ public class TranslationController {
 		weblateService.getCreateWeblateUser();
 		WeblateLanguageInitialisationRequest request = new WeblateLanguageInitialisationRequest(refsetId);
 		WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService = weblateService.getWeblateLanguageInitialisationJobService();
-		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, refsetId, ActivityType.WEBLATE_SNOMED_INITIALISATION, weblateLanguageInitialisationJobService, request);
+		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, refsetId, ActivityType.WEBLATE_LANGUAGE_INITIALISATION, weblateLanguageInitialisationJobService, request);
 	}
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate/users")
