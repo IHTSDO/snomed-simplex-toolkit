@@ -136,10 +136,8 @@ public class CustomConceptService {
 					if (!concept.getModuleId().equals(defaultModule)) {
 						if (!concept.isActive()) {
 							// Reactivation of concept from dependant module
-							concept.setActive(true);
 							concept.setEffectiveTime(null);
 							concept.setModuleId(defaultModule);
-							concept.setClassAxioms(Collections.emptyList());// This will get corrected later in the flow
 							concept.setInactivationIndicator(null);
 							concept.setAssociationTargets(Collections.emptyMap());
 							changed = true;
@@ -178,8 +176,15 @@ public class CustomConceptService {
 							}
 						}
 						if (!relationshipAlreadyCorrect) {
-							concept.setClassAxioms(Collections.singletonList(
-									new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0)))));
+							if (concept.getClassAxioms().isEmpty()) {
+								concept.addAxiom(new Axiom());
+							}
+							Axiom axiom = concept.getClassAxioms().get(0);
+							axiom.setEffectiveTime(null);
+							axiom.setActive(true);
+							axiom.setModuleId(defaultModule);
+							axiom.setDefinitionStatus("PRIMITIVE");
+							axiom.setRelationships(Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0)));
 							copyInferredRelationshipsFromParent(concept, parentConcept);
 							changed = true;
 							changeSummary.incrementUpdated();
@@ -280,7 +285,10 @@ public class CustomConceptService {
 		for (Component component : components) {
 			String componentEffectiveTime = component.getEffectiveTime();
 			if ((someNullDates && componentEffectiveTime == null) || (!someNullDates && latestDate.equals(componentEffectiveTime))) {
-				component.setActive(true);
+				if (!component.isActive()) {
+					component.setActive(true);
+					component.setEffectiveTime(null);
+				}
 			}
 		}
 	}
