@@ -113,148 +113,7 @@ public class CustomConceptService {
 
 			List<Concept> conceptsToSave = new ArrayList<>();
 			for (ConceptIntent intent : intents) {
-				Concept concept;
-				String conceptCode = intent.getConceptCode();
-				Concept parentConcept = null;
-				if (!intent.isInactive()) {
-					parentConcept = getParentConceptOrThrow(intent, parentConceptMap, intent.getRowNumber());
-				}
-
-				boolean changed = false;
-				if (conceptCode != null) {
-					// Existing concept
-					concept = existingConceptMap.get(conceptCode);
-					if (concept == null) {
-						throw new ServiceException(format("Concept with code '%s' on row %s could not be found.", conceptCode, intent.getRowNumber()));
-					}
-					if (concept.getRelationships() == null) {
-						concept.setRelationships(new ArrayList<>());
-					}
-					if (concept.getClassAxioms() == null) {
-						concept.setClassAxioms(new ArrayList<>());
-					}
-					if (!concept.getModuleId().equals(defaultModule)) {
-						if (!concept.isActive()) {
-							// Reactivation of concept from dependant module
-							concept.setEffectiveTime(null);
-							concept.setModuleId(defaultModule);
-							concept.setInactivationIndicator(null);
-							concept.setAssociationTargets(Collections.emptyMap());
-							changed = true;
-							changeSummary.incrementAdded();
-						} else {
-							throw new ServiceException(format("Concept with code '%s' on row %s is from a different module and can not be modified using this function.",
-								conceptCode, intent.getRowNumber()));
-						}
-					}
-
-					if (intent.isInactive()) {
-						if (concept.isActive()) {
-							concept.setActive(false);// Snowstorm will delete this concept automatically if it has never been released.
-							concept.getClassAxioms().forEach(axiom -> axiom.setActive(false));
-							changed = true;
-							changeSummary.incrementRemoved();
-						}
-					} else {
-						// Intent is active
-						if (!concept.isActive()) {
-							// Reactivate concept
-							concept.setActive(true);
-							activateLatestSet(concept.getClassAxioms());
-							activateLatestSet(concept.getRelationships());
-							changed = true;
-							changeSummary.incrementUpdated();
-						}
-						boolean relationshipAlreadyCorrect = false;
-						if (concept.getClassAxioms().size() == 1) {
-							Axiom axiom = concept.getClassAxioms().get(0);
-							if (axiom.getRelationships().size() == 1) {
-								Relationship relationship = axiom.getRelationships().get(0);
-								if (IS_A.equals(relationship.getTypeId()) && parentConcept.getConceptId().equals(relationship.getDestinationId())) {
-									relationshipAlreadyCorrect = true;
-								}
-							}
-						}
-						if (!relationshipAlreadyCorrect) {
-							if (concept.getClassAxioms().isEmpty()) {
-								concept.addAxiom(new Axiom());
-							}
-							Axiom axiom = concept.getClassAxioms().get(0);
-							axiom.setEffectiveTime(null);
-							axiom.setActive(true);
-							axiom.setModuleId(defaultModule);
-							axiom.setDefinitionStatus("PRIMITIVE");
-							axiom.setRelationships(Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0)));
-							copyInferredRelationshipsFromParent(concept, parentConcept);
-							changed = true;
-							changeSummary.incrementUpdated();
-						}
-					}
-				} else {
-					// New concept
-					concept = new Concept(defaultModule)
-							.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0))));
-					copyInferredRelationshipsFromParent(concept, parentConcept);
-					changeSummary.incrementAdded();
-					changed = true;
-				}
-
-				if (!intent.isInactive()) {
-					// Build set of needed descriptions
-					Map<String, Description> termLangDescriptionMap = new HashMap<>();// Map to reuse description if lang + term is the same
-					for (String langRefsetId : langRefsetIds) {
-						String language = getLanguageCode(codeSystem, langRefsetId);
-						List<String> terms = intent.getLangRefsetTerms().getOrDefault(langRefsetId, Collections.emptyList());
-						if (!terms.isEmpty()) {
-							// Create PT from first term in the list
-							String pt = terms.get(0);
-							termLangDescriptionMap.computeIfAbsent(language + "_" + pt,
-											i -> new Description(Description.Type.SYNONYM, language, pt, null))
-									.addAcceptability(langRefsetId, Description.Acceptability.PREFERRED);
-
-							// If US English also create an FSN using PT and stated parent semantic tag
-							if (langRefsetId.equals(Concepts.US_LANG_REFSET)) {
-								String enSemanticTag = parentConcept.getEnSemanticTag();
-								String fsn = String.format("%s %s", pt, enSemanticTag);
-								termLangDescriptionMap.put(language + "_" + fsn,
-										new Description(Description.Type.FSN, language, fsn, null)
-												.addAcceptability(langRefsetId, Description.Acceptability.PREFERRED));
-							}
-
-							// Create acceptable synonyms from all other terms in this lang refset
-							for (int i = 1; i < terms.size(); i++) {
-								String term = terms.get(i);
-								termLangDescriptionMap.computeIfAbsent(language + "_" + term,
-												t -> new Description(Description.Type.SYNONYM, language, term, null))
-										.addAcceptability(langRefsetId, Description.Acceptability.ACCEPTABLE);
-							}
-						}
-					}
-
-					// Merge into existing descriptions
-					boolean existingConceptNotYetChanged = concept.getConceptId() != null && !changed;
-					List<Description> descriptions = new ArrayList<>(termLangDescriptionMap.values());
-					for (String langRefsetId : langRefsetIds) {
-						String language = getLanguageCode(codeSystem, langRefsetId);
-						List<Description> langRefsetRelevantDescriptions = descriptions.stream()
-								.filter(description -> description.getAcceptabilityMap().containsKey(langRefsetId)).toList();
-						boolean updateConceptDescriptions = translationService.updateConceptDescriptions(concept.getConceptId(),
-								concept.getDescriptions(), new ArrayList<>(langRefsetRelevantDescriptions),
-								language, langRefsetId, true, new DummyChangeMonitor(), new ChangeSummary());
-						if (updateConceptDescriptions) {
-							if (existingConceptNotYetChanged) {
-								existingConceptNotYetChanged = false;
-								changeSummary.incrementUpdated();
-							}
-							changed = true;
-						}
-					}
-				}
-
-				if (changed) {
-					conceptsToSave.add(concept);
-				}
-				asyncJob.incrementRecordsProcessed();
+				processConceptIntent(codeSystem, langRefsetIds, asyncJob, intent, parentConceptMap, existingConceptMap, defaultModule, changeSummary, conceptsToSave);
 			}
 			if (!conceptsToSave.isEmpty()) {
 				logger.info("Create/Update {} concepts on {}, Job:{}", conceptsToSave.size(), codeSystem.getWorkingBranchPath(), jobId);
@@ -264,6 +123,171 @@ public class CustomConceptService {
 			}
 		}
 		return changeSummary;
+	}
+
+	private void processConceptIntent(CodeSystem codeSystem, Collection<String> langRefsetIds, ContentJob asyncJob, ConceptIntent intent, Map<String, Concept> parentConceptMap,
+			Map<String, Concept> existingConceptMap, String defaultModule, ChangeSummary changeSummary, List<Concept> conceptsToSave) throws ServiceException {
+
+		Concept concept;
+		String conceptCode = intent.getConceptCode();
+		Concept parentConcept = null;
+		if (!intent.isInactive()) {
+			parentConcept = getParentConceptOrThrow(intent, parentConceptMap, intent.getRowNumber());
+		}
+
+		boolean changed = false;
+		if (conceptCode != null) {
+			// Existing concept
+			concept = existingConceptMap.get(conceptCode);
+			changed = updateExistingConcept(intent, defaultModule, changeSummary, concept, conceptCode, changed, parentConcept);
+		} else {
+			// New concept
+			concept = new Concept(defaultModule)
+					.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0))));
+			copyInferredRelationshipsFromParent(concept, parentConcept);
+			changeSummary.incrementAdded();
+			changed = true;
+		}
+
+		if (!intent.isInactive()) {
+			changed = processDescriptions(codeSystem, langRefsetIds, intent, changeSummary, parentConcept, concept, changed);
+		}
+
+		if (changed) {
+			conceptsToSave.add(concept);
+		}
+		asyncJob.incrementRecordsProcessed();
+	}
+
+	private boolean updateExistingConcept(ConceptIntent intent, String defaultModule, ChangeSummary changeSummary, Concept concept, String conceptCode, boolean changed, Concept parentConcept) throws ServiceException {
+		if (concept == null) {
+			throw new ServiceException(format("Concept with code '%s' on row %s could not be found.", conceptCode, intent.getRowNumber()));
+		}
+		if (concept.getRelationships() == null) {
+			concept.setRelationships(new ArrayList<>());
+		}
+		if (concept.getClassAxioms() == null) {
+			concept.setClassAxioms(new ArrayList<>());
+		}
+		if (!concept.getModuleId().equals(defaultModule)) {
+			if (!concept.isActive()) {
+				// Reactivation of concept from dependant module
+				concept.setEffectiveTime(null);
+				concept.setModuleId(defaultModule);
+				concept.setInactivationIndicator(null);
+				concept.setAssociationTargets(Collections.emptyMap());
+				changed = true;
+				changeSummary.incrementAdded();
+			} else {
+				throw new ServiceException(format("Concept with code '%s' on row %s is from a different module and can not be modified using this function.",
+					conceptCode, intent.getRowNumber()));
+			}
+		}
+
+		if (intent.isInactive()) {
+			if (concept.isActive()) {
+				concept.setActive(false);// Snowstorm will delete this concept automatically if it has never been released.
+				concept.getClassAxioms().forEach(axiom -> axiom.setActive(false));
+				changed = true;
+				changeSummary.incrementRemoved();
+			}
+		} else {
+			// Intent is active
+			if (!concept.isActive()) {
+				// Reactivate concept
+				concept.setActive(true);
+				activateLatestSet(concept.getClassAxioms());
+				activateLatestSet(concept.getRelationships());
+				changed = true;
+				changeSummary.incrementUpdated();
+			}
+			boolean relationshipAlreadyCorrect = isAxiomRelationshipAlreadyCorrect(concept, parentConcept);
+			if (!relationshipAlreadyCorrect) {
+				if (concept.getClassAxioms().isEmpty()) {
+					concept.addAxiom(new Axiom());
+				}
+				Axiom axiom = concept.getClassAxioms().get(0);
+				axiom.setEffectiveTime(null);
+				axiom.setActive(true);
+				axiom.setModuleId(defaultModule);
+				axiom.setDefinitionStatus("PRIMITIVE");
+				axiom.setRelationships(Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0)));
+				copyInferredRelationshipsFromParent(concept, parentConcept);
+				changed = true;
+				changeSummary.incrementUpdated();
+			}
+		}
+		return changed;
+	}
+
+	private static boolean isAxiomRelationshipAlreadyCorrect(Concept concept, Concept parentConcept) {
+		if (concept.getClassAxioms().size() == 1) {
+			Axiom axiom = concept.getClassAxioms().get(0);
+			if (axiom.getRelationships().size() == 1) {
+				Relationship relationship = axiom.getRelationships().get(0);
+				return IS_A.equals(relationship.getTypeId()) && parentConcept.getConceptId().equals(relationship.getDestinationId());
+			}
+		}
+		return false;
+	}
+
+	private boolean processDescriptions(CodeSystem codeSystem, Collection<String> langRefsetIds, ConceptIntent intent, ChangeSummary changeSummary, Concept parentConcept, Concept concept, boolean changed) throws ServiceException {
+		// Build set of needed descriptions
+		Map<String, Description> termLangDescriptionMap = new HashMap<>();// Map to reuse description if lang + term is the same
+		for (String langRefsetId : langRefsetIds) {
+			String language = getLanguageCode(codeSystem, langRefsetId);
+			List<String> terms = intent.getLangRefsetTerms().getOrDefault(langRefsetId, Collections.emptyList());
+			if (!terms.isEmpty()) {
+				// Create PT from first term in the list
+				String pt = terms.get(0);
+				termLangDescriptionMap.computeIfAbsent(language + "_" + pt,
+						i -> new Description(Description.Type.SYNONYM, language, pt, null))
+					.addAcceptability(langRefsetId, Description.Acceptability.PREFERRED);
+
+				// If US English also create an FSN using PT and stated parent semantic tag
+				if (langRefsetId.equals(Concepts.US_LANG_REFSET)) {
+					String enSemanticTag = parentConcept.getEnSemanticTag();
+					String fsn = String.format("%s %s", pt, enSemanticTag);
+					termLangDescriptionMap.put(language + "_" + fsn,
+						new Description(Description.Type.FSN, language, fsn, null)
+							.addAcceptability(langRefsetId, Description.Acceptability.PREFERRED));
+				}
+
+				// Create acceptable synonyms from all other terms in this lang refset
+				for (int i = 1; i < terms.size(); i++) {
+					String term = terms.get(i);
+					termLangDescriptionMap.computeIfAbsent(language + "_" + term,
+							t -> new Description(Description.Type.SYNONYM, language, term, null))
+						.addAcceptability(langRefsetId, Description.Acceptability.ACCEPTABLE);
+				}
+			}
+		}
+
+		// Merge into existing descriptions
+		changed = mergeRequiredDescriptionsWithExisting(codeSystem, langRefsetIds, changeSummary, concept, changed, termLangDescriptionMap);
+
+		return changed;
+	}
+
+	private boolean mergeRequiredDescriptionsWithExisting(CodeSystem codeSystem, Collection<String> langRefsetIds, ChangeSummary changeSummary, Concept concept, boolean changed, Map<String, Description> termLangDescriptionMap) throws ServiceException {
+		boolean existingConceptNotYetChanged = concept.getConceptId() != null && !changed;
+		List<Description> descriptions = new ArrayList<>(termLangDescriptionMap.values());
+		for (String langRefsetId : langRefsetIds) {
+			String language = getLanguageCode(codeSystem, langRefsetId);
+			List<Description> langRefsetRelevantDescriptions = descriptions.stream()
+				.filter(description -> description.getAcceptabilityMap().containsKey(langRefsetId)).toList();
+			boolean updateConceptDescriptions = translationService.updateConceptDescriptions(concept.getConceptId(),
+				concept.getDescriptions(), new ArrayList<>(langRefsetRelevantDescriptions),
+				language, langRefsetId, true, new DummyChangeMonitor(), new ChangeSummary());
+			if (updateConceptDescriptions) {
+				if (existingConceptNotYetChanged) {
+					existingConceptNotYetChanged = false;
+					changeSummary.incrementUpdated();
+				}
+				changed = true;
+			}
+		}
+		return changed;
 	}
 
 	private void activateLatestSet(Collection<? extends Component>  components) {
