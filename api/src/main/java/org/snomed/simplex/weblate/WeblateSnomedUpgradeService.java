@@ -173,7 +173,7 @@ public class WeblateSnomedUpgradeService {
 		String[] values = line.split(",");
 		String code = null;
 		if (values.length == 4) {
-			code = values[2];
+			code = values[2].replace("\"", "");
 		} else {
 			// Some of the terms contain commas which are not escaped. A standard CVS reader can't deal with this, so using regex if colum count is high
 			Matcher matcher = NUMBER_PATTERN.matcher(line);
