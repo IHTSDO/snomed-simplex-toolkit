@@ -154,6 +154,11 @@ export class ValidationResultsComponent implements OnChanges {
     tab?.focus();
   }
 
+  downloadValidationResults() {
+    const editionDetails = this.editionDetailsSignal();
+    window.open('api/codesystems/' + this.editionDetails.shortName + '/validate/spreadsheet');
+  }
+  
   toggleAdvice() {
     this.adviceVisible.update((visible) => !visible);
   }

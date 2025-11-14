@@ -53,8 +53,8 @@
       Warnings: {{ localIssues().warningCount }}
     </p>
 
-    <div class="elevated">
-      <mat-accordion *ngIf="localIssues().fixes && localIssues().fixes.length > 0">
+    <div class="elevated" *ngIf="localIssues().fixes && localIssues().fixes.length > 0">
+      <mat-accordion>
         <mat-expansion-panel *ngFor="let fix of localIssues().fixes">
           <mat-expansion-panel-header>
             <mat-panel-title>
@@ -73,6 +73,9 @@
           </mat-list>
         </mat-expansion-panel>
       </mat-accordion>
+      <div style="text-align: right;">
+        <button mat-button (click)="downloadValidationResults()">Download Validation Results</button>
+      </div>
     </div>
   </div>
 </div>

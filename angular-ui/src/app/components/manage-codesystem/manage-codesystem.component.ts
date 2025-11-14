@@ -101,10 +101,6 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     }
   }
 
-  downloadValidationResults() {
-    window.open('api/codesystems/' + this.edition.shortName + '/validate/spreadsheet');
-  }
-
   private alert(message: string) {
     this.snackBar.open(message, 'Dismiss', {
       duration: 5000
