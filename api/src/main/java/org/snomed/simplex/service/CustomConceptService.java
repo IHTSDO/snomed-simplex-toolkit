@@ -143,7 +143,7 @@ public class CustomConceptService {
 		} else {
 			// New concept
 			concept = new Concept(defaultModule)
-					.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0))));
+				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0))));
 			copyInferredRelationshipsFromParent(concept, parentConcept);
 			changeSummary.incrementAdded();
 			changed = true;
@@ -308,11 +308,9 @@ public class CustomConceptService {
 		String latestDate = dates.descendingIterator().next();
 		for (Component component : components) {
 			String componentEffectiveTime = component.getEffectiveTime();
-			if ((someNullDates && componentEffectiveTime == null) || (!someNullDates && latestDate.equals(componentEffectiveTime))) {
-				if (!component.isActive()) {
-					component.setActive(true);
-					component.setEffectiveTime(null);
-				}
+			if (((someNullDates && componentEffectiveTime == null) || (!someNullDates && latestDate.equals(componentEffectiveTime))) && !component.isActive()) {
+				component.setActive(true);
+				component.setEffectiveTime(null);
 			}
 		}
 	}

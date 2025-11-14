@@ -84,8 +84,7 @@ public class ConceptMini {
 	}
 
 	public String getIdAndFsnTerm() {
-		DescriptionMini fsn = getFsn();
-		return String.format("%s |%s|", conceptId, fsn != null ? fsn.getTerm() : "");
+		return String.format("%s |%s|", conceptId, fsn != null ? getFsn().getTerm() : "");
 	}
 
 	@JsonAnyGetter

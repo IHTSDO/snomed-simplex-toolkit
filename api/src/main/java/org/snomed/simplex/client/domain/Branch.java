@@ -1,7 +1,6 @@
 package org.snomed.simplex.client.domain;
 
 import java.util.Map;
-import java.util.Set;
 
 public class Branch {
 
@@ -26,7 +25,6 @@ public class Branch {
 	private String path;
 	private Long headTimestamp;
 	private Map<String, Object> metadata;
-	private Set<String> userRoles;
 
 	public String getPath() {
 		return path;
@@ -41,8 +39,7 @@ public class Branch {
 	}
 
 	public String getDefaultModule() {
-		String key = "defaultModuleId";
-		return getMetadataValue(key);
+		return getMetadataValue(DEFAULT_MODULE_ID_METADATA_KEY);
 	}
 
 	public String getMetadataValue(String key) {

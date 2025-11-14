@@ -105,10 +105,8 @@ public class ValidationServiceClient {
 				throw new ServiceException("Failed to build validation request.", e);
 			}
 		} finally {
-			if (tempFile != null) {
-				if (!tempFile.delete()) {
-					logger.warn("Failed to delete temp file {}", tempFile.getAbsoluteFile());
-				}
+			if (tempFile != null && (!tempFile.delete())) {
+				logger.warn("Failed to delete temp file {}", tempFile.getAbsoluteFile());
 			}
 		}
 	}
@@ -173,9 +171,7 @@ public class ValidationServiceClient {
 		return new HttpEntity<>(body, headers);
 	}
 
-	public void downloadLatestValidationAsSpreadsheet(CodeSystem codeSystem, SnowstormClient snowstormClient,
-													  ValidationReport validationReport, OutputStream outputStream) throws ServiceException {
-
+	public void downloadLatestValidationAsSpreadsheet(ValidationReport validationReport, OutputStream outputStream) throws ServiceException {
 		try (Workbook validationReportSpreadsheet = spreadsheetService.createValidationReportSpreadsheet(validationReport)) {
 			validationReportSpreadsheet.write(outputStream);
 		} catch (IOException e) {

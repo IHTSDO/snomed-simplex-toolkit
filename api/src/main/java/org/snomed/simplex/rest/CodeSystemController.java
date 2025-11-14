@@ -90,7 +90,7 @@ public class CodeSystemController {
 			`name` will have words 'Edition' and 'Extension' removed then 'Edition' added at the end.
 
 			`dependantCodeSystem` is optional, by default the International Edition is used.
-			
+
 			`dependantCodeSystemVersion` is optional, by default the latest version is used.
 			""")
 	@PostMapping
@@ -167,8 +167,7 @@ public class CodeSystemController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		ValidationReport validationReport = getCompletedValidationReportOrThrow(theCodeSystem);
 		response.setHeader("Content-Disposition", "attachment; filename=\"Simplex_Validation_Report.xlsx\"");
-		validationServiceClient.downloadLatestValidationAsSpreadsheet(
-				theCodeSystem, snowstormClient, validationReport, response.getOutputStream());
+		validationServiceClient.downloadLatestValidationAsSpreadsheet(validationReport, response.getOutputStream());
 	}
 
 	private ValidationReport getCompletedValidationReportOrThrow(CodeSystem theCodeSystem) throws ServiceException {
