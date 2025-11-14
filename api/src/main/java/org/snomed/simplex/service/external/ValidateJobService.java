@@ -118,6 +118,9 @@ public class ValidateJobService extends ExternalFunctionJobService<Void> {
 
 	private CodeSystemValidationStatus getStatusFromRVFReport(CodeSystem codeSystem, CodeSystemValidationStatus status) throws ServiceException {
 		ValidationReport validationReport = validationServiceClient.getValidation(codeSystem.getLatestValidationReport());
+		if (validationReport.status() == ValidationReport.State.FAILED) {
+			return CodeSystemValidationStatus.SYSTEM_ERROR;
+		}
 		ExternalServiceJob tempJob = new ExternalServiceJob(codeSystem, "temp job");
 		setValidationJobStatusAndMessage(tempJob, validationReport);
 		if (tempJob.getStatus() == JobStatus.USER_CONTENT_ERROR) {
