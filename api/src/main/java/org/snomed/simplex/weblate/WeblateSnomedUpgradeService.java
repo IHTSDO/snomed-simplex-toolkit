@@ -100,7 +100,7 @@ public class WeblateSnomedUpgradeService {
 		return new TranslationToolUpdatePlan(previousVersion, newVersionDate, newVersion, codeSystem);
 	}
 
-	private void insertNewConceptStubsIntoWeblate(TranslationToolUpdatePlan updatePlan, WeblateClient weblateClient, SnowstormClient snowstormClient) throws ServiceExceptionWithStatusCode {
+	private void insertNewConceptStubsIntoWeblate(TranslationToolUpdatePlan updatePlan, WeblateClient weblateClient) throws ServiceExceptionWithStatusCode {
 		File existingSourceFile = null;
 		File releaseFile = null;
 		try {
@@ -113,8 +113,6 @@ public class WeblateSnomedUpgradeService {
 			Pair<String, File> releaseFileNameAndFile = codeSystemService.downloadVersionPackage(updatePlan.codeSystem(), updatePlan.newVersion());
 			releaseFile = releaseFileNameAndFile.getRight();
 			logger.info("Loading hierarchy-sorted list from release file.");
-			boolean contains = workingList.contains(80625007L);
-			System.out.println(contains);
 			gatherNewRows(releaseFile, workingList, newRows);
 
 			// - Recreate the source file, including the new rows and the inactive rows that are no longer part of the hierarchy.
@@ -161,28 +159,27 @@ public class WeblateSnomedUpgradeService {
 				}
 
 				// Sort children by PT and add to the stack
-				Set<org.ihtsdo.otf.snomedboot.domain.Concept> inferredChildren = currentConcept.getInferredChildren();
-				List<Pair<String, ConceptImpl>> sortedChildren = new ArrayList<>(inferredChildren.size());
-				for (org.ihtsdo.otf.snomedboot.domain.Concept inferredChild : inferredChildren) {
-					if (inferredChild instanceof ConceptImpl childImpl) {
-						sortedChildren.add(Pair.of(componentFactory.getPt(childImpl).toLowerCase(), childImpl));
-					}
-				}
-				Comparator<Pair<String, ConceptImpl>> comparing = Comparator.comparing(Pair::getLeft);
-				sortedChildren.sort(comparing.reversed());
-				if (currentConcept.getId() == 41796003L) {
-					System.out.println();
-				}
-				for (Pair<String, ConceptImpl> sortedChild : sortedChildren) {
-					nextConcepts.addFirst(sortedChild.getRight());
-				}
+				addSortedChildren(currentConcept, componentFactory, nextConcepts);
 				previousConceptId = currentConcept.getId();
 			}
-			if (coveredConcepts.size() % 10_000 == 0) {
-				if (logger.isInfoEnabled()) {
-					logger.info("Processed {} concepts", NumberFormat.getInstance().format(coveredConcepts.size()));
-				}
+			if (coveredConcepts.size() % 10_000 == 0 && logger.isInfoEnabled()) {
+				logger.info("Processed {} concepts", NumberFormat.getInstance().format(coveredConcepts.size()));
 			}
+		}
+	}
+
+	private static void addSortedChildren(ConceptImpl currentConcept, ComponentStoreComponentFactoryWithPT componentFactory, LinkedList<ConceptImpl> nextConcepts) {
+		Set<org.ihtsdo.otf.snomedboot.domain.Concept> inferredChildren = currentConcept.getInferredChildren();
+		List<Pair<String, ConceptImpl>> sortedChildren = new ArrayList<>(inferredChildren.size());
+		for (org.ihtsdo.otf.snomedboot.domain.Concept inferredChild : inferredChildren) {
+			if (inferredChild instanceof ConceptImpl childImpl) {
+				sortedChildren.add(Pair.of(componentFactory.getPt(childImpl).toLowerCase(), childImpl));
+			}
+		}
+		Comparator<Pair<String, ConceptImpl>> comparing = Comparator.comparing(Pair::getLeft);
+		sortedChildren.sort(comparing.reversed());
+		for (Pair<String, ConceptImpl> sortedChild : sortedChildren) {
+			nextConcepts.addFirst(sortedChild.getRight());
 		}
 	}
 
@@ -203,12 +200,9 @@ public class WeblateSnomedUpgradeService {
 
 				for (Long code : workingList) {
 					if (newRows.containsKey(code)) {
-						String row = newRows.get(code);
-						writer.write(row);
-						System.out.println("+ " + row);
+						writer.write(newRows.get(code));
 					} else {
 						String line = reader.readLine();
-						System.out.println("> " + line);
 						assertExpectedLine(code, line);
 						writer.write(line);
 					}
@@ -287,7 +281,7 @@ public class WeblateSnomedUpgradeService {
 		logger.info("Starting update of SNOMED CT concepts in Translation Tool. Current version:{}, New version:{}.", updatePlan.currentVersion(), updatePlan.newVersionDate());
 
 		// 1. Insert new concepts into the list on Weblate
-		insertNewConceptStubsIntoWeblate(updatePlan, weblateClient, snowstormClient);
+		insertNewConceptStubsIntoWeblate(updatePlan, weblateClient);
 		contentJob.setRecordsProcessed(20);
 
 		// 2. Update concept details of those concepts that are new or changed
