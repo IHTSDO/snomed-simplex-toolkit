@@ -1,5 +1,14 @@
 package org.snomed.simplex.weblate;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import org.apache.commons.lang3.tuple.Pair;
+import org.ihtsdo.otf.snomedboot.ReleaseImportException;
+import org.ihtsdo.otf.snomedboot.ReleaseImporter;
+import org.ihtsdo.otf.snomedboot.factory.LoadingProfile;
+import org.ihtsdo.otf.snomedboot.factory.implementation.HighLevelComponentFactoryAdapterImpl;
+import org.ihtsdo.otf.snomedboot.factory.implementation.standard.ComponentStore;
+import org.ihtsdo.otf.snomedboot.factory.implementation.standard.ConceptImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -9,6 +18,7 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationToolUpdatePlan;
+import org.snomed.simplex.service.CodeSystemService;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.util.FileUtils;
@@ -17,9 +27,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.text.NumberFormat;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -32,17 +42,21 @@ public class WeblateSnomedUpgradeService {
 
 	public static final String TRANSLATION_TOOL_DEPENDENCY = "translation-tool-dependency-date";
 	public static final String MAIN_BRANCH = "MAIN";
-	public static final Pattern NUMBER_PATTERN = Pattern.compile(".*\",([\\d]{6,18}),\".*");
+	public static final Pattern NUMBER_PATTERN = Pattern.compile(".*\",\"?([\\d]{6,18})\"?,\".*");
 	public final Logger logger = LoggerFactory.getLogger(WeblateSnomedUpgradeService.class);
 
 	private final WeblateClientFactory weblateClientFactory;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final WeblateDiagramService weblateDiagramService;
+	private final CodeSystemService codeSystemService;
 
-	public WeblateSnomedUpgradeService(WeblateClientFactory weblateClientFactory, WeblateDiagramService weblateDiagramService, SnowstormClientFactory snowstormClientFactory) {
+	public WeblateSnomedUpgradeService(WeblateClientFactory weblateClientFactory, WeblateDiagramService weblateDiagramService, SnowstormClientFactory snowstormClientFactory,
+			CodeSystemService codeSystemService) {
+
 		this.weblateClientFactory = weblateClientFactory;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateDiagramService = weblateDiagramService;
+		this.codeSystemService = codeSystemService;
 	}
 
 	public TranslationToolUpdatePlan getUpdatePlan(boolean initial, Integer upgradeToEffectiveTime) throws ServiceExceptionWithStatusCode {
@@ -59,8 +73,8 @@ public class WeblateSnomedUpgradeService {
 			previousVersion = Integer.parseInt(translationToolDependency);
 		}
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
-		Integer newVersion;
-		String newVersionBranch;
+		Integer newVersionDate;
+		CodeSystemVersion newVersion;
 		if (upgradeToEffectiveTime != null) {
 			if (previousVersion != null && previousVersion > upgradeToEffectiveTime) {
 				throw new ServiceExceptionWithStatusCode(("Can not downgrade. " +
@@ -69,41 +83,110 @@ public class WeblateSnomedUpgradeService {
 			List<CodeSystemVersion> versions = snowstormClient.getVersions(codeSystem);
 			Optional<CodeSystemVersion> first = versions.stream().filter(version -> version.effectiveDate().equals(upgradeToEffectiveTime)).findFirst();
 			if (first.isPresent()) {
-				newVersion = upgradeToEffectiveTime;
-				newVersionBranch = first.get().branchPath();
+				newVersionDate = upgradeToEffectiveTime;
+				newVersion = first.get();
 			} else {
 				throw new ServiceExceptionWithStatusCode(("Requested version %s not found.").formatted(upgradeToEffectiveTime), HttpStatus.CONFLICT);
 			}
 		} else {
-			CodeSystem.CodeSystemVersion latestVersion = codeSystem.getLatestVersion();
-			newVersion = latestVersion.effectiveDate();
-			newVersionBranch = latestVersion.branchPath();
+			CodeSystemVersion latestVersion = codeSystem.getLatestVersion();
+			newVersionDate = latestVersion.effectiveDate();
+			newVersion = latestVersion;
 		}
-		if (newVersion.equals(previousVersion)) {
+		if (newVersionDate.equals(previousVersion)) {
 			throw new ServiceExceptionWithStatusCode(("No new version available. " +
-				"Previous version is %s, latest version is %s").formatted(previousVersion, newVersion), HttpStatus.CONFLICT);
+				"Previous version is %s, latest version is %s").formatted(previousVersion, newVersionDate), HttpStatus.CONFLICT);
 		}
-		return new TranslationToolUpdatePlan(previousVersion, newVersion, newVersionBranch);
+		return new TranslationToolUpdatePlan(previousVersion, newVersionDate, newVersion, codeSystem);
 	}
 
-	private void insertNewCodesWithCorrectOrder(List<Long> workingList, Map<Long, String> newRows, String versionBranch, SnowstormClient snowstormClient) {
-		// Iterate snowstorm hierarchy stream
-		Supplier<ConceptMini> allActiveConceptsStream = snowstormClient.getConceptSortedHierarchyStream(versionBranch, Concepts.ROOT_SNOMEDCT);
-		ConceptMini currentConcept;
-		Long previousConceptId = null;
-		while ((currentConcept = allActiveConceptsStream.get()) != null) {
-			Long currentConceptId = currentConcept.getConceptIdLong();
-			// When we find a concept not in the list, insert into list, after the previous concept in the ordered stream
-			if (!workingList.contains(currentConceptId)) {
-				int index = previousConceptId == null ? 0 : workingList.indexOf(previousConceptId) + 1;
-				workingList.add(index, currentConceptId);
-				newRows.put(currentConceptId, getSourceRow(currentConcept));
-				previousConceptId = currentConceptId;
+	private void insertNewConceptStubsIntoWeblate(TranslationToolUpdatePlan updatePlan, WeblateClient weblateClient, SnowstormClient snowstormClient) throws ServiceExceptionWithStatusCode {
+		File existingSourceFile = null;
+		File releaseFile = null;
+		try {
+			logger.info("Downloading existing SNOMED CT concept list from Translation Tool.");
+			existingSourceFile = weblateClient.downloadSnomedSourceList();
+			List<Long> workingList = getCurrentConceptList(existingSourceFile);
+			Map<Long, String> newRows = new Long2ObjectOpenHashMap<>();
+
+			logger.info("Downloading target release.");
+			Pair<String, File> releaseFileNameAndFile = codeSystemService.downloadVersionPackage(updatePlan.codeSystem(), updatePlan.newVersion());
+			releaseFile = releaseFileNameAndFile.getRight();
+			logger.info("Loading hierarchy-sorted list from release file.");
+			boolean contains = workingList.contains(80625007L);
+			System.out.println(contains);
+			gatherNewRows(releaseFile, workingList, newRows);
+
+			// - Recreate the source file, including the new rows and the inactive rows that are no longer part of the hierarchy.
+			// We keep inactive rows because they may be part of current translation efforts for extensions that have not upgraded yet.
+			logger.info("Uploading new list of SNOMED CT concepts to Translation Tool.");
+			createNewSourceFileAndUpload(existingSourceFile, workingList, newRows, weblateClient);
+		} finally {
+			FileUtils.deleteOrLogWarning(existingSourceFile);
+			FileUtils.deleteOrLogWarning(releaseFile);
+		}
+	}
+
+	private void gatherNewRows(File releaseFile, List<Long> workingList, Map<Long, String> newRows) throws ServiceExceptionWithStatusCode {
+		ComponentStore componentStore = new ComponentStore();
+		LoadingProfile loadingProfile = LoadingProfile.light;
+
+		// Component factory that records PTs
+		ComponentStoreComponentFactoryWithPT componentFactory = new ComponentStoreComponentFactoryWithPT(componentStore, Concepts.US_LANG_REFSET);
+		// Component factory that records inferred children
+		HighLevelComponentFactoryAdapterImpl highLevelComponentFactoryAdapter = new HighLevelComponentFactoryAdapterImpl(loadingProfile, componentFactory, componentFactory);
+
+		try {
+			try (FileInputStream releaseZip = new FileInputStream(releaseFile)) {
+				new ReleaseImporter().loadSnapshotReleaseFiles(releaseZip, loadingProfile, highLevelComponentFactoryAdapter, false);
+			}
+		} catch (IOException | ReleaseImportException e) {
+			throw new ServiceExceptionWithStatusCode("Failed to load SNOMED from release file %s".formatted(releaseFile.getName()), HttpStatus.INTERNAL_SERVER_ERROR, e);
+		}
+		Map<Long, ConceptImpl> allConceptMap = componentStore.getConcepts();
+		ConceptImpl rootConcept = allConceptMap.get(Long.parseLong(Concepts.ROOT_SNOMEDCT));
+		Set<Long> coveredConcepts = new LongOpenHashSet();
+
+		LinkedList<ConceptImpl> nextConcepts = new LinkedList<>();
+		nextConcepts.add(rootConcept);
+		Long previousConceptId = rootConcept.getId();
+		while (!nextConcepts.isEmpty()) {
+			ConceptImpl currentConcept = nextConcepts.remove();
+			if (coveredConcepts.add(currentConcept.getId())) {
+				if (!workingList.contains(currentConcept.getId())) {
+					// Add this concept
+					int i = workingList.indexOf(previousConceptId);
+					workingList.add(i + 1, currentConcept.getId());
+					newRows.put(currentConcept.getId(), getSourceRow(currentConcept, componentFactory.getPt(currentConcept)));
+				}
+
+				// Sort children by PT and add to the stack
+				Set<org.ihtsdo.otf.snomedboot.domain.Concept> inferredChildren = currentConcept.getInferredChildren();
+				List<Pair<String, ConceptImpl>> sortedChildren = new ArrayList<>(inferredChildren.size());
+				for (org.ihtsdo.otf.snomedboot.domain.Concept inferredChild : inferredChildren) {
+					if (inferredChild instanceof ConceptImpl childImpl) {
+						sortedChildren.add(Pair.of(componentFactory.getPt(childImpl).toLowerCase(), childImpl));
+					}
+				}
+				Comparator<Pair<String, ConceptImpl>> comparing = Comparator.comparing(Pair::getLeft);
+				sortedChildren.sort(comparing.reversed());
+				if (currentConcept.getId() == 41796003L) {
+					System.out.println();
+				}
+				for (Pair<String, ConceptImpl> sortedChild : sortedChildren) {
+					nextConcepts.addFirst(sortedChild.getRight());
+				}
+				previousConceptId = currentConcept.getId();
+			}
+			if (coveredConcepts.size() % 10_000 == 0) {
+				if (logger.isInfoEnabled()) {
+					logger.info("Processed {} concepts", NumberFormat.getInstance().format(coveredConcepts.size()));
+				}
 			}
 		}
 	}
 
-	private void recreateAndUploadSourceFile(File existingSourceFile, List<Long> workingList, Map<Long, String> newRows, WeblateClient weblateClient) throws ServiceExceptionWithStatusCode {
+	private void createNewSourceFileAndUpload(File existingSourceFile, List<Long> workingList, Map<Long, String> newRows, WeblateClient weblateClient) throws ServiceExceptionWithStatusCode {
 		File newSourceFile = null;
 		try {
 			newSourceFile = File.createTempFile("new_source_file" + UUID.randomUUID(), ".csv");
@@ -111,13 +194,21 @@ public class WeblateSnomedUpgradeService {
 			try (BufferedReader reader = new BufferedReader(new FileReader(existingSourceFile));
 				 BufferedWriter writer = new BufferedWriter(new FileWriter(newSourceFile))) {
 
-				writer.write(reader.readLine());// Copy header
+				String header = reader.readLine();
+				if (!header.contains("source")) {
+					throw new ServiceExceptionWithStatusCode("Unexpected header in existing Translation Tool source file: '%s'".formatted(header), HttpStatus.CONFLICT);
+				}
+				writer.write("source,target,context,developer_comments");// Copy header
 				writer.newLine();
+
 				for (Long code : workingList) {
 					if (newRows.containsKey(code)) {
-						writer.write(newRows.get(code));
+						String row = newRows.get(code);
+						writer.write(row);
+						System.out.println("+ " + row);
 					} else {
 						String line = reader.readLine();
+						System.out.println("> " + line);
 						assertExpectedLine(code, line);
 						writer.write(line);
 					}
@@ -142,10 +233,9 @@ public class WeblateSnomedUpgradeService {
 		}
 	}
 
-	private String getSourceRow(ConceptMini conceptMini) {
-		String pt = conceptMini.getPt().getTerm();
-		String code = conceptMini.getConceptId();
-		String fsn = conceptMini.getFsn().getTerm();
+	private String getSourceRow(ConceptImpl currentConcept, String pt) {
+		String code = currentConcept.getId().toString();
+		String fsn = currentConcept.getFsn();
 		return "\"%s\",\"%s\",%s,\"http://snomed.info/id/%s - %s\""
 			.formatted(pt, pt, code, code, fsn);
 	}
@@ -194,7 +284,7 @@ public class WeblateSnomedUpgradeService {
 		contentJob.setRecordsTotal(100);// Percent rather than records
 		contentJob.setRecordsProcessed(5);
 
-		logger.info("Starting update of SNOMED CT concepts in Translation Tool. Current version:{}, New version:{}.", updatePlan.currentVersion(), updatePlan.newVersion());
+		logger.info("Starting update of SNOMED CT concepts in Translation Tool. Current version:{}, New version:{}.", updatePlan.currentVersion(), updatePlan.newVersionDate());
 
 		// 1. Insert new concepts into the list on Weblate
 		insertNewConceptStubsIntoWeblate(updatePlan, weblateClient, snowstormClient);
@@ -203,30 +293,9 @@ public class WeblateSnomedUpgradeService {
 		// 2. Update concept details of those concepts that are new or changed
 		ChangeSummary changeSummary = updateDetailsOfNewOrChangedConcepts(updatePlan, contentJob, snowstormClient, weblateClient);
 
-		snowstormClient.upsertBranchMetadata(MAIN_BRANCH, Map.of(TRANSLATION_TOOL_DEPENDENCY, updatePlan.newVersion().toString()));
+		snowstormClient.upsertBranchMetadata(MAIN_BRANCH, Map.of(TRANSLATION_TOOL_DEPENDENCY, updatePlan.newVersionDate().toString()));
 
 		return changeSummary;
-	}
-
-	private void insertNewConceptStubsIntoWeblate(TranslationToolUpdatePlan updatePlan, WeblateClient weblateClient, SnowstormClient snowstormClient) throws ServiceExceptionWithStatusCode {
-		File existingSourceFile = null;
-		try {
-			logger.info("Downloading existing SNOMED CT concept list from Translation Tool.");
-			existingSourceFile = weblateClient.downloadSnomedSourceList();
-			List<Long> workingList = getCurrentConceptList(existingSourceFile);
-
-			//- Insert new concepts into correct place in the list -
-			Map<Long, String> newRows = new HashMap<>();
-			logger.info("Pulling hierarchy-sorted list of all concepts from Snowstorm.");
-			String newVersionBranch = updatePlan.newVersionBranch();
-			insertNewCodesWithCorrectOrder(workingList, newRows, newVersionBranch, snowstormClient);
-
-			// - Recreate the source file, including the new rows
-			logger.info("Creating and uploading new list of SNOMED CT concepts to Translation Tool.");
-			recreateAndUploadSourceFile(existingSourceFile, workingList, newRows, weblateClient);
-		} finally {
-			FileUtils.deleteOrLogWarning(existingSourceFile);
-		}
 	}
 
 	private @NotNull ChangeSummary updateDetailsOfNewOrChangedConcepts(TranslationToolUpdatePlan updatePlan, ContentJob contentJob,
@@ -236,7 +305,7 @@ public class WeblateSnomedUpgradeService {
 		List<Long> conceptUpdateFilter = null;// null if first run, then update everything
 		if (updatePlan.currentVersion() != null) {
 			logger.info("Getting list of new or updated concepts from Snowstorm.");
-			conceptUpdateFilter = snowstormClient.getConceptChangeReport(updatePlan.newVersionBranch(), updatePlan.currentVersion());
+			conceptUpdateFilter = snowstormClient.getConceptChangeReport(updatePlan.newVersion().branchPath(), updatePlan.currentVersion());
 			contentJob.setRecordsTotal(conceptUpdateFilter.size());
 			logger.info("{} concepts need their details and diagrams updating.", conceptUpdateFilter.size());
 		} else {

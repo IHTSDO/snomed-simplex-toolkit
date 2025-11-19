@@ -31,7 +31,6 @@ import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.snomed.simplex.service.validation.ValidationFixList;
 import org.snomed.simplex.service.validation.ValidationService;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.*;
@@ -81,7 +80,7 @@ public class CodeSystemController {
 	}
 
 	@GetMapping("{codeSystem}")
-	@PostAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public CodeSystem getCodeSystemDetails(@PathVariable String codeSystem) throws ServiceException {
 		return codeSystemService.getCodeSystemDetails(codeSystem);
 	}

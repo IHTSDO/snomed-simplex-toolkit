@@ -49,8 +49,6 @@ public class CodeSystem {
 
 	private Branch branchObject;
 
-	public record CodeSystemVersion(int effectiveDate, String branchPath, String releasePackage) {}
-
 	public CodeSystem() {
 	}
 

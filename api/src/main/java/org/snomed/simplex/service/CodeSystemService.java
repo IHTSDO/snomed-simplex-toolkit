@@ -312,9 +312,12 @@ public class CodeSystemService {
 		}
 	}
 
-	public Pair<String, File> downloadVersionPackage(CodeSystem codeSystem, CodeSystemVersion codeSystemVersion) throws ServiceException {
+	public Pair<String, File> downloadVersionPackage(CodeSystem codeSystem, CodeSystemVersion codeSystemVersion) throws ServiceExceptionWithStatusCode {
 		try {
 			String filename = codeSystemVersion.releasePackage();
+			if (filename == null) {
+				throw new ServiceExceptionWithStatusCode("Target CodeSystem version has no package set.", HttpStatus.CONFLICT);
+			}
 			File tempFile = File.createTempFile("release-download" + UUID.randomUUID(), "tmp");
 			logger.info("Downloading versioned package {}", filename);
 			try (InputStream inputStream = versionedPackagesResourceManager.readResourceStream(filename)) {

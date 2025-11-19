@@ -7,6 +7,7 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemBuildStatus;
+import org.snomed.simplex.client.domain.CodeSystemVersion;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.client.srs.domain.SRSBuild;
 import org.snomed.simplex.domain.JobStatus;
@@ -48,7 +49,7 @@ public class ReleaseCandidateJobService extends ExternalFunctionJobService<Strin
 	@Override
 	protected String doCallService(CodeSystem codeSystem, ExternalServiceJob job, String effectiveTime) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem.CodeSystemVersion latestVersion = codeSystem.getLatestVersion();
+		CodeSystemVersion latestVersion = codeSystem.getLatestVersion();
 		if (latestVersion != null && Integer.parseInt(effectiveTime) <= latestVersion.effectiveDate()) {
 			job.setStatus(JobStatus.USER_CONTENT_ERROR);
 			job.setErrorMessage(("The latest version of this Code System is %s. " +

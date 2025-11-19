@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.CodeSystemVersion;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
@@ -139,7 +140,7 @@ public class ValidationServiceClient {
 		body.add("effectiveTime", effectiveTime);
 
 		String previousPackage = "empty-rf2-snapshot.zip";
-		CodeSystem.CodeSystemVersion latestVersion = codeSystem.getLatestVersion();
+		CodeSystemVersion latestVersion = codeSystem.getLatestVersion();
 		if (latestVersion != null) {
 			if (latestVersion.releasePackage() == null) {
 				throw new ServiceExceptionWithStatusCode("Failed to start validation. Latest release package is not set.",
