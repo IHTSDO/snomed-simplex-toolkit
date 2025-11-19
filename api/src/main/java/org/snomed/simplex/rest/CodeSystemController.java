@@ -380,6 +380,8 @@ public class CodeSystemController {
 
 	private void respondWithFile(HttpServletResponse response, String filename, File file) {
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+		response.setHeader("Content-Length", String.valueOf(file.length()));
+		response.setContentType("application/zip");
 		try (FileInputStream fileInputStream = new FileInputStream(file)) {
 			if (!response.isCommitted()) {
 				StreamUtils.copy(fileInputStream, response.getOutputStream());

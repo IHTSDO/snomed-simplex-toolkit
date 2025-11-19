@@ -44,29 +44,19 @@ export class DownloadReleasesComponent implements OnInit, OnDestroy {
 
   downloadRelease(version: any) {
       this.downloadReleaseDisabled = true;
-      this.snackBar.open(
-        `Requesting Release Package. The download will start soon.`,
-        'Dismiss',
-        {
-          duration: 5000,
-        }
-      );
-      this.simplexService.getReleasePackage(this.edition.shortName, version.effectiveDate).subscribe(
-        (fileBlob: Blob) => {
-          const filename = version.releasePackage; // Example filename
-          this.simplexService.triggerDownload(fileBlob, filename);
-          setTimeout(() => {
-            this.downloadReleaseDisabled = false;
-          }, 5000);
-        },
-        (error) => {
-          console.error('Download failed:', error);
-          this.snackBar.open(`Download failed`, 'Dismiss', {
-            duration: 5000,
-          });
-        }
-      );
-
+      // Use direct download link to allow Chrome's native download progress
+      const downloadUrl = `/api/codesystems/${this.edition.shortName}/versions/${version.effectiveDate}/package`;
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      
+      // Re-enable button after a short delay
+      setTimeout(() => {
+        this.downloadReleaseDisabled = false;
+      }, 1000);
   }
 
   ngOnDestroy(): void {
