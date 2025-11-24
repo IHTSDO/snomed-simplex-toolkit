@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -99,6 +100,8 @@ public class WeblateClientFactory {
 		return new RestTemplateBuilder()
 				.rootUri(url)
 				.defaultHeader("Cookie", authenticationToken)
+				.connectTimeout(Duration.ofSeconds(30))
+				.readTimeout(Duration.ofMinutes(5))
 				.build();
 	}
 
