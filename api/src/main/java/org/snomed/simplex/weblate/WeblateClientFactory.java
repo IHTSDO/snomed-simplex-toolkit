@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
@@ -36,7 +37,8 @@ public class WeblateClientFactory {
 	private final String adminPassword;
 
 	public WeblateClientFactory(@Value("${weblate.url}") String url, SupportRegister supportRegister,
-			@Value("${weblate.admin.username}") String adminUsername, @Value("${weblate.admin.password}") String adminPassword,
+			@Value("${weblate.admin.username}") String adminUsername,
+			@Value("${weblate.admin.password}") String adminPassword,
 			AuthenticationClient authenticationClient) throws ServiceException {
 
 		this.clientCache = CacheBuilder.newBuilder().expireAfterAccess(5L, TimeUnit.MINUTES).build();
@@ -53,11 +55,14 @@ public class WeblateClientFactory {
 		try {
 			String authenticationToken = SecurityUtil.getAuthenticationToken();
 			if (authenticationToken == null || authenticationToken.isEmpty()) {
-				throw new ServiceExceptionWithStatusCode("Authentication token is missing. Unable to process request.", HttpStatus.FORBIDDEN);
+				throw new ServiceExceptionWithStatusCode("Authentication token is missing. Unable to process request.",
+						HttpStatus.FORBIDDEN);
 			}
-			return clientCache.get(authenticationToken, () -> new WeblateClient(getRestTemplate(authenticationToken), supportRegister));
+			return clientCache.get(authenticationToken,
+					() -> new WeblateClient(getRestTemplate(authenticationToken), supportRegister));
 		} catch (ExecutionException e) {
-			throw new ServiceExceptionWithStatusCode("Failed to create Snowstorm client", HttpStatus.INTERNAL_SERVER_ERROR, e);
+			throw new ServiceExceptionWithStatusCode("Failed to create Snowstorm client",
+					HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 	}
 
@@ -73,7 +78,8 @@ public class WeblateClientFactory {
 					try {
 						adminClient = createAdminClient(authenticationClient, adminUsername, adminPassword);
 						adminClientCreationTime = currentTime;
-						logger.info("Admin client recreated after {} minutes", TimeUnit.MILLISECONDS.toMinutes(timeSinceCreation));
+						logger.info("Admin client recreated after {} minutes",
+								TimeUnit.MILLISECONDS.toMinutes(timeSinceCreation));
 					} catch (ServiceException e) {
 						logger.error("Failed to recreate admin client", e);
 						// Return the existing client if recreation fails
@@ -85,9 +91,11 @@ public class WeblateClientFactory {
 		return adminClient;
 	}
 
-	private WeblateAdminClient createAdminClient(AuthenticationClient authenticationClient, String adminUsername, String adminPassword) throws ServiceException {
+	private WeblateAdminClient createAdminClient(AuthenticationClient authenticationClient, String adminUsername,
+			String adminPassword) throws ServiceException {
 		try {
-			String weblateAdminAuthenticationToken = authenticationClient.fetchAuthenticationToken(adminUsername, adminPassword);
+			String weblateAdminAuthenticationToken = authenticationClient.fetchAuthenticationToken(adminUsername,
+					adminPassword);
 			return new WeblateAdminClient(getRestTemplate(weblateAdminAuthenticationToken));
 		} catch (HttpClientErrorException.BadRequest e) {
 			String message = "Failed to create Weblate admin client. Check IMS is up and Weblate admin credentials.";
@@ -97,12 +105,19 @@ public class WeblateClientFactory {
 	}
 
 	private RestTemplate getRestTemplate(String authenticationToken) {
-		return new RestTemplateBuilder()
+		SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+		int connectTimeout = (int) Duration.ofSeconds(60).toMillis();
+		int readTimeout = (int) Duration.ofMinutes(5).toMillis();
+		factory.setConnectTimeout(connectTimeout);
+		factory.setReadTimeout(readTimeout);
+		logger.info("Creating RestTemplate with connectTimeout: {}ms, readTimeout: {}ms", connectTimeout, readTimeout);
+
+		RestTemplate restTemplate = new RestTemplateBuilder()
 				.rootUri(url)
 				.defaultHeader("Cookie", authenticationToken)
-				.connectTimeout(Duration.ofSeconds(30))
-				.readTimeout(Duration.ofMinutes(5))
 				.build();
+		restTemplate.setRequestFactory(factory);
+		return restTemplate;
 	}
 
 	public String getApiUrl() {
