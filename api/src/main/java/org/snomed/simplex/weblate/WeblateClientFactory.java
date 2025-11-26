@@ -12,10 +12,10 @@ import org.snomed.simplex.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
@@ -105,7 +105,7 @@ public class WeblateClientFactory {
 	}
 
 	private RestTemplate getRestTemplate(String authenticationToken) {
-		SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+		HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
 		int connectTimeout = (int) Duration.ofSeconds(60).toMillis();
 		int readTimeout = (int) Duration.ofMinutes(5).toMillis();
 		factory.setConnectTimeout(connectTimeout);

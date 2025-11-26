@@ -310,6 +310,11 @@ public class WeblateSnomedUpgradeService {
 		// Process weblate units in order
 		UnitSupplier unitStream = weblateClient.getUnitStream(WeblateClient.COMMON_PROJECT, WeblateClient.SNOMEDCT_COMPONENT, 1, null);
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
+
+		// Set working branch as version branch to ensure reading the correct version components
+		codeSystem = new CodeSystem(codeSystem.getName(), codeSystem.getShortName(), codeSystem.getBranchPath());
+		codeSystem.setSimplexWorkingBranch(updatePlan.newVersion().branchPath());
+
 		int processed = 0;
 		List<WeblateUnit> batch;
 		while (!(batch = unitStream.getBatch(1_000)).isEmpty()) {
@@ -344,11 +349,9 @@ public class WeblateSnomedUpgradeService {
 			String conceptId = unit.getKey();
 			Concept concept = conceptMap.get(conceptId);
 			String explanation = WeblateExplanationCreator.getMarkdown(concept);
-			if (unit.getExplanation() == null || unit.getExplanation().isEmpty()) {
-				unit.setExplanation(explanation);
-				weblateClient.patchUnitExplanation(unit.getId(), unit.getExplanation());
-				weblateDiagramService.createWeblateScreenshot(unit, concept, COMMON_PROJECT, SNOMEDCT_COMPONENT, weblateClient);
-			}
+			unit.setExplanation(explanation);
+			weblateClient.patchUnitExplanation(unit.getId(), unit.getExplanation());
+			weblateDiagramService.createWeblateScreenshot(unit, concept, COMMON_PROJECT, SNOMEDCT_COMPONENT, weblateClient);
 			processed++;
 			if (processed % 1_000 == 0 && logger.isInfoEnabled()) {
 				logger.info("Processed {} units", String.format("%,d", processed));
