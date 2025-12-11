@@ -152,9 +152,24 @@
                         <mat-option *ngFor="let type of artifactTypes" [value]="type">{{type | titlecase}}</mat-option>
                     </mat-select>
 
-                    <mat-select *ngIf="controlName === 'languageCode'" formControlName="languageCode">
-                        <mat-option *ngFor="let languageCode of languageCodes" [value]="languageCode.code">{{languageCode.code}} - {{languageCode.name}}</mat-option>
-                    </mat-select>
+                    <!-- Language Code Autocomplete -->
+                    <ng-container *ngIf="controlName === 'languageCode'">
+                        <input matInput formControlName="languageCode" 
+                            [matAutocomplete]="languageCodeAuto" 
+                            placeholder="Search by language name or code">
+                        <mat-autocomplete #languageCodeAuto="matAutocomplete" 
+                            [displayWith]="displayLanguageCode"
+                            (optionSelected)="form.get('languageCode')?.setValue($event.option.value.code)">
+                            <mat-option *ngFor="let languageCode of filteredLanguageCodes | async" [value]="languageCode">
+                                {{languageCode.code}} - {{languageCode.name}}
+                            </mat-option>
+                        </mat-autocomplete>
+                    </ng-container>
+                    <button *ngIf="controlName === 'languageCode' && form.controls[controlName]['value']" matSuffix 
+                        mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
+                        [disabled]="form.get(controlName).disabled">
+                        <mat-icon>close</mat-icon>
+                    </button>
         
 
                     <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>

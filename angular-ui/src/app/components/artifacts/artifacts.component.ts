@@ -1,8 +1,8 @@
 import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { lastValueFrom, Subject, Subscription } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { lastValueFrom, Subject, Subscription, Observable } from 'rxjs';
+import { takeUntil, map, startWith } from 'rxjs/operators';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { ConceptsListComponent } from './concepts-list/concepts-list.component';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
@@ -40,6 +40,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   saving = false;
   private subscriptions: Subscription = new Subscription();
   languageCodes: any[] = [];
+  filteredLanguageCodes: Observable<any[]>;
 
 
   artifactTypes = ["subset", "map", "translation"];
@@ -72,7 +73,27 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
     this.subscriptions.add(editionSubscription);
     this.simplexService.getLanguageCodes().subscribe(data => {
       this.languageCodes = data;
+      this.setupLanguageCodeFilter();
     })
+  }
+
+  setupLanguageCodeFilter() {
+    const languageCodeControl = this.form.get('languageCode');
+    if (languageCodeControl) {
+      this.filteredLanguageCodes = languageCodeControl.valueChanges.pipe(
+        startWith(''),
+        map(value => {
+          const filterValue = typeof value === 'string' ? value.toLowerCase() : '';
+          if (!filterValue) {
+            return this.languageCodes;
+          }
+          return this.languageCodes.filter(lang => 
+            lang.name.toLowerCase().includes(filterValue) || 
+            lang.code.toLowerCase().includes(filterValue)
+          );
+        })
+      );
+    }
   }
 
   toggleFormControls(typeValue: string) {
@@ -81,11 +102,26 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
         this.form.removeControl('languageCode');
     } else if (typeValue == 'translation') {
         this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
-        this.form.addControl('languageCode', this.fb.control('', [Validators.required, this.languageCodeValidator]));
+        const languageCodeControl = this.fb.control('', [Validators.required, this.languageCodeValidator]);
+        this.form.addControl('languageCode', languageCodeControl);
+        this.setupLanguageCodeFilter();
     } else {
         this.form.removeControl('languageCode');
         this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
     }
+  }
+
+  displayLanguageCode(languageCode: any): string {
+    if (!languageCode) {
+      return '';
+    }
+    // If it's already a string (the code), find the full language object
+    if (typeof languageCode === 'string') {
+      const lang = this.languageCodes.find(l => l.code === languageCode);
+      return lang ? `${lang.code} - ${lang.name}` : languageCode;
+    }
+    // If it's an object, display it
+    return `${languageCode.code} - ${languageCode.name}`;
   }
 
   languageCodeValidator(control: AbstractControl): ValidationErrors | null {
