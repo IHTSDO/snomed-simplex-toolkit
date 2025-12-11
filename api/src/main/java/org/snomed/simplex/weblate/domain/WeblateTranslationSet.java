@@ -95,6 +95,19 @@ public final class WeblateTranslationSet {
 		return "%s_%s_%s".formatted(getCodesystem().replace("SNOMEDCT-", ""), getRefset(), getLabel());
 	}
 
+	public String getHumanReadableSelectionLabel() {
+		if (subsetType == TranslationSubsetType.SUB_TYPE) {
+			return "Concept and subtypes: %s".formatted(ecl.replace("<<", "").strip());
+		}
+		if (subsetType == TranslationSubsetType.ECL) {
+			return "ECL: %s".formatted(ecl);
+		}
+		if (subsetType == TranslationSubsetType.REFSET) {
+			return "Members of the refset: %s".formatted(ecl.replace("^", "").strip());
+		}
+		return ecl;
+	}
+
 	public String getId() {
 		return id;
 	}

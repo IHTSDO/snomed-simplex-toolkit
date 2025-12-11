@@ -62,7 +62,7 @@
     
                 <br><br>
                 <div>
-                    <div class="component-row">
+                    <div class="component-row" *ngIf="selectedLabelSet.status !== 'READY'">
                         <div class="component-col align-right">
                             <span class="details-field-name">Status</span>
                         </div>
@@ -72,23 +72,15 @@
                     </div>
                     <div class="component-row">
                         <div class="component-col align-right">
-                            <span class="details-field-name">Translation</span>
+                            <span class="details-field-name">Selection Criteria</span>
                         </div>
                         <div class="component-col">
-                            <span class="details-field-value">{{ selectedLabelSet.translationName }}</span>
-                        </div>
-                    </div>
-                    <div class="component-row">
-                        <div class="component-col align-right">
-                            <span class="details-field-name">Language Code</span>
-                        </div>
-                        <div class="component-col">
-                            <span class="details-field-value">{{ selectedLabelSet.languageCode }}</span>
+                            <span class="details-field-value">{{ selectedLabelSet.humanReadableSelectionLabel }}</span>
                         </div>
                     </div>
                     <div class="component-row" *ngIf="selectedLabelSet.size">
                         <div class="component-col align-right">
-                            <span class="details-field-name">Count of Selected Concepts</span>
+                            <span class="details-field-name">Selected Concepts</span>
                         </div>
                         <div class="component-col">
                             <span class="details-field-value">{{ selectedLabelSet.size }}</span>
@@ -96,7 +88,7 @@
                     </div>
                     <div class="component-row" *ngIf="selectedLabelSet.size">
                         <div class="component-col align-right">
-                            <span class="details-field-name">Count of Translated Concepts</span>
+                            <span class="details-field-name">Translated so far</span>
                         </div>
                         <div class="component-col">
                             <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
