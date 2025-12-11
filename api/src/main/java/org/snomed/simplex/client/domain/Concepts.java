@@ -28,4 +28,13 @@ public class Concepts {
 	// 116680003 |Is a (attribute)|
 	public static final String IS_A = "116680003";
 
+	// 900000000000534007 |Module dependency reference set (foundation metadata concept)|
+	public static final String MODULE_DEPENDENCY_REFERENCE_SET = "900000000000534007";
+
+	// 900000000000207008 |SNOMED CT core module (core metadata concept)|
+	public static final String CORE_MODULE = "900000000000207008";
+
+	// 900000000000012004 |SNOMED CT model component module (core metadata concept)|
+	public static final String MODEL_MODULE = "900000000000012004";
+
 }

@@ -16,6 +16,7 @@ public class RefsetMember {
 	private Map<String, String> additionalFields;
 	private boolean released;
 	private ReferencedComponent referencedComponent;
+	private boolean changed;
 
 	public RefsetMember() {
 		// Used by object mapper
@@ -28,6 +29,14 @@ public class RefsetMember {
 		this.moduleId = moduleId;
 		this.referencedComponentId = referencedComponentId;
 		additionalFields = new HashMap<>();
+	}
+
+	public void markChanged() {
+		this.changed = true;
+	}
+
+	public boolean isChanged() {
+		return changed;
 	}
 
 	public RefsetMember setAdditionalField(String fieldName, String value) {

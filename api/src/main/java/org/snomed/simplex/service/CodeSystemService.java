@@ -39,6 +39,8 @@ public class CodeSystemService {
 	public static final String CORE_METADATA_CONCEPT_TAG = "core metadata concept";
 	public static final Pattern SHORT_NAME_PATTERN = Pattern.compile("^SNOMEDCT-[A-Z0-9_-]+$");
 	public static final String SHORT_NAME_PREFIX = "SNOMEDCT-";
+	public static final String SOURCE_EFFECTIVE_TIME = "sourceEffectiveTime";
+	public static final String TARGET_EFFECTIVE_TIME = "targetEffectiveTime";
 
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final SupportRegister supportRegister;
@@ -152,7 +154,56 @@ public class CodeSystemService {
 		String userGroupName = getUserGroupName(createCodeSystemRequest.getShortName());
 		snowstormClient.setAuthorPermissions(newCodeSystem, userGroupName);
 
+		startAuthoring(newCodeSystem);
+
 		return newCodeSystem;
+	}
+
+	public void createUpdateMDRSRows(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
+		List<RefsetMember> mdrsRows = snowstormClient.loadAllRefsetMembers(Concepts.MODULE_DEPENDENCY_REFERENCE_SET, codeSystem, true);
+		// Filter out rows not in this module
+		mdrsRows = new ArrayList<>(mdrsRows.stream().filter(member -> member.getModuleId().equals(codeSystem.getDefaultModule())).toList());
+		processMDRSRows(mdrsRows, codeSystem.getDefaultModule(), codeSystem.getDependantVersionEffectiveTime());
+		List<RefsetMember> changedMembers = mdrsRows.stream().filter(RefsetMember::isChanged).toList();
+		if (!changedMembers.isEmpty()) {
+			snowstormClient.createUpdateRefsetMembers(mdrsRows, codeSystem);
+		}
+	}
+
+	void processMDRSRows(List<RefsetMember> activeMDRSRows, String defaultModule, int dependantVersionEffectiveTime) {
+		activeMDRSRows.sort(Comparator.comparing(RefsetMember::getModuleId)
+			.thenComparing(RefsetMember::getReferencedComponentId)
+			.thenComparing(member -> member.getAdditionalFields().get(SOURCE_EFFECTIVE_TIME)));
+
+		// Inactivate any duplicates
+		Map<String, RefsetMember> map = new HashMap<>();
+		for (RefsetMember refsetMember : activeMDRSRows) {
+			RefsetMember duplicate = map.put("%s_%s".formatted(refsetMember.getModuleId(), refsetMember.getReferencedComponentId()), refsetMember);
+			if (duplicate != null) {
+				duplicate.setActive(false);
+				duplicate.markChanged();
+			}
+		}
+
+		// Ensure rows for core and model modules
+		String dependantVersionEffectiveTimeString = "" + dependantVersionEffectiveTime;
+		createUpdateDependency(activeMDRSRows, defaultModule, dependantVersionEffectiveTimeString, Concepts.CORE_MODULE);
+		createUpdateDependency(activeMDRSRows, defaultModule, dependantVersionEffectiveTimeString, Concepts.MODEL_MODULE);
+	}
+
+	private static void createUpdateDependency(List<RefsetMember> activeMDRSRows, String defaultModule, String dependantVersionEffectiveTime, String targetModule) {
+		RefsetMember coreMember = activeMDRSRows.stream().filter(member -> member.isActive() && member.getReferencedComponentId().equals(targetModule)).findFirst()
+			.orElseGet(() -> {
+				RefsetMember newMember = new RefsetMember(Concepts.MODULE_DEPENDENCY_REFERENCE_SET, defaultModule, targetModule);
+				newMember.markChanged();
+				activeMDRSRows.add(newMember);
+				return newMember;
+			});
+		if (!"".equals(coreMember.getAdditionalFields().get(SOURCE_EFFECTIVE_TIME)) || !"dependantVersionEffectiveTime".equals(coreMember.getAdditionalFields().get(TARGET_EFFECTIVE_TIME))) {
+			coreMember.setAdditionalField(SOURCE_EFFECTIVE_TIME, "")
+				.setAdditionalField(TARGET_EFFECTIVE_TIME, dependantVersionEffectiveTime);
+			coreMember.markChanged();
+		}
 	}
 
 	public List<CodeSystemVersion> getVersionsWithPackages(CodeSystem theCodeSystem) throws ServiceException {
@@ -227,6 +278,7 @@ public class CodeSystemService {
 		publishingStatusCheck(codeSystem);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		clearBuildStatus(codeSystem, snowstormClient);
+		createUpdateMDRSRows(codeSystem, snowstormClient);
 		setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
 	}
 
