@@ -81,7 +81,7 @@ export class UpgradeEditionComponent {
         this.availableUpgrades = [];
         this.edition.editionStatus = 'MAINTENANCE';
         this.upgradeStarted.emit();
-        this.snackBar.open('Edition upgraded requested', 'Dismiss', {
+        this.snackBar.open('Edition upgrade requested', 'Dismiss', {
           duration: 5000
         });
       },
