@@ -240,9 +240,8 @@
                     <mat-error *ngIf="form.get('label')?.hasError('required')">Label is required</mat-error>
                 </mat-form-field>
 
-                <!-- ECL Input Method Selection -->
                 <div class="ecl-input-section">
-                    <h4>ECL Input Method</h4>
+                    <h4>Selection Method</h4>
                     <mat-radio-group [(ngModel)]="eclInputMethod" (change)="onEclInputMethodChange()" [ngModelOptions]="{standalone: true}">
                         <mat-radio-button value="subtype" 
                                          [disabled]="!selectedEdition?.branchPath"
