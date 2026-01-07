@@ -20,6 +20,7 @@ import org.snomed.simplex.service.job.DummyChangeMonitor;
 import org.snomed.simplex.service.spreadsheet.HeaderConfiguration;
 import org.snomed.simplex.service.spreadsheet.SheetHeader;
 import org.snomed.simplex.service.spreadsheet.SheetRowToComponentIntentExtractor;
+import org.snomed.simplex.translation.service.TranslationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 

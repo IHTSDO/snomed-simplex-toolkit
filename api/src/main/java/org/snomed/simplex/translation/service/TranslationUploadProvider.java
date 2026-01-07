@@ -1,4 +1,4 @@
-package org.snomed.simplex.service;
+package org.snomed.simplex.translation.service;
 
 import org.snomed.simplex.client.domain.Description;
 import org.snomed.simplex.exceptions.ServiceException;

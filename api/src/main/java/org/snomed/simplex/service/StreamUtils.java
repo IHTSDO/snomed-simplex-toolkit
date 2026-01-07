@@ -11,6 +11,8 @@ public class StreamUtils {
 
 	private static final Logger logger = LoggerFactory.getLogger(StreamUtils.class);
 
+	private StreamUtils() {}
+
 	public static void copyViaTempFile(InputStream input, OutputStream output, boolean closeOutputStream) throws IOException {
 		File tempFile = File.createTempFile("download" + UUID.randomUUID(), "tmp");
 		try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {

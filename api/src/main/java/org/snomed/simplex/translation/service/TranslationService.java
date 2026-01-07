@@ -1,4 +1,4 @@
-package org.snomed.simplex.service;
+package org.snomed.simplex.translation.service;
 
 import ch.qos.logback.classic.Level;
 import com.google.common.base.Strings;
@@ -20,11 +20,16 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.LanguageCode;
 import org.snomed.simplex.rest.pojos.TranslationRequest;
+import org.snomed.simplex.service.CSVOutputChangeMonitor;
+import org.snomed.simplex.service.ProgressMonitor;
+import org.snomed.simplex.service.RefsetToolTranslationZipReader;
+import org.snomed.simplex.service.SimpleRefsetService;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
+import org.snomed.simplex.weblate.WeblateClientFactory;
 import org.snomed.simplex.weblate.WeblateExplanationCreator;
 import org.snomed.simplex.weblate.pojo.WeblateFormat;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,6 +69,7 @@ public class TranslationService {
 	public static final Pattern TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN = Pattern.compile(".\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
 	public static final Pattern TITLE_CASE_LOWER_CASE_SECOND_LETTER_BUT_UPPER_LATER = Pattern.compile(".\\p{Lower}.*\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
 	public static final Pattern UPPER_CASE_ANY_LETTER_PATTERN = Pattern.compile(".*\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
+	private static final String LANGUAGE_CODES_ISO_639_1_TXT = "/language_codes_iso-639-1.txt";
 
 	private final List<LanguageCode> languageCodes = new ArrayList<>();
 
@@ -72,22 +78,27 @@ public class TranslationService {
 	private final SimpleRefsetService refsetService;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final AuthoringServicesClient authoringServicesClient;
+	private final TranslationMergeService translationMergeService;
+	private final WeblateClientFactory weblateClientFactory;
 
 	@Value("${simplex.mode:standard}")
 	private String simplexMode;
 
-	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory, AuthoringServicesClient authoringServicesClient) {
+	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory, AuthoringServicesClient authoringServicesClient,
+			TranslationMergeService translationMergeService, WeblateClientFactory weblateClientFactory) {
+
 		this.refsetService = refsetService;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.authoringServicesClient = authoringServicesClient;
+		this.translationMergeService = translationMergeService;
+		this.weblateClientFactory = weblateClientFactory;
 	}
 
 	@PostConstruct
 	public void init() throws ServiceException {
-		String languageCodesFilePath = "/language_codes_iso-639-1.txt";
-		InputStream inputStream = getClass().getResourceAsStream(languageCodesFilePath);
+		InputStream inputStream = getClass().getResourceAsStream(LANGUAGE_CODES_ISO_639_1_TXT);
 		if (inputStream == null) {
-			throw new ServiceException(format("Language codes file '%s' missing within application.", languageCodesFilePath));
+			throw new ServiceException(format("Language codes file '%s' missing within application.", LANGUAGE_CODES_ISO_639_1_TXT));
 		}
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
 			String line;
@@ -688,4 +699,9 @@ public class TranslationService {
 		return WeblateExplanationCreator.getMarkdown(concept);
 	}
 
+	public void synchroniseSnowstormToTranslationService(CodeSystem codeSystem, SnowstormClient snowstormClient, String languageCode, String refsetId) throws ServiceException {
+		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
+		WebateTranslationSource webateTranslationSource = new WebateTranslationSource(weblateClientFactory.getClient(), languageCode, refsetId);
+		translationMergeService.applyMerge(snowstormTranslationSource, webateTranslationSource, languageCode, refsetId);
+	}
 }

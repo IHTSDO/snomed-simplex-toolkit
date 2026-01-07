@@ -315,7 +315,7 @@ public class WeblateClient {
 		}
 	}
 
-	public File downloadTranslationSubset(WeblateTranslationSet translationSet) throws IOException {
+	public File downloadTranslationSubsetWithStatus(WeblateTranslationSet translationSet) throws IOException {
 		String languageCodeWithRefsetId = translationSet.getLanguageCodeWithRefsetId();
 		String compositeLabel = translationSet.getCompositeLabel();
 
@@ -325,16 +325,19 @@ public class WeblateClient {
 		return getFile(compositeLabel, response);
 	}
 
-	public File downloadSnomedSourceList() throws ServiceExceptionWithStatusCode {
-		return downloadTranslationFile("en");
+	public File downloadTranslation(String compositeLanguageCode) throws IOException {
+		String url = "/translations/%s/%s/%s/file/?format=csv-multi&fields=context,target&q=language:%s%s"
+			.formatted(COMMON_PROJECT, SNOMEDCT_COMPONENT, compositeLanguageCode, compositeLanguageCode, "%20NOT%20state:empty");
+		ResponseEntity<Resource> response = restTemplate.getForEntity(url, Resource.class);
+		return getFile(compositeLanguageCode, response);
 	}
 
-	private File downloadTranslationFile(String language) throws ServiceExceptionWithStatusCode {
+	public File downloadSnomedSourceList() throws ServiceExceptionWithStatusCode {
 		try {
-			ResponseEntity<Resource> response = restTemplate.getForEntity("/translations/common/snomedct/%s/file/".formatted(language), Resource.class);
+			ResponseEntity<Resource> response = restTemplate.getForEntity("/translations/common/snomedct/en/file/", Resource.class);
 			return getFile("source-" + UUID.randomUUID(), response);
 		} catch (IOException e) {
-			throw new ServiceExceptionWithStatusCode("Failed to download language source file for %s.".formatted(language), HttpStatus.INTERNAL_SERVER_ERROR, e);
+			throw new ServiceExceptionWithStatusCode("Failed to download language source file for en.", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 	}
 

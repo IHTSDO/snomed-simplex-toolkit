@@ -13,6 +13,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.snomed.simplex.translation.service.TranslationService;
 import org.snomed.simplex.weblate.WeblateClient;
 import org.snomed.simplex.weblate.WeblateClientFactory;
 import org.snomed.simplex.weblate.WeblateService;
@@ -31,6 +32,7 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 	private final WeblateClientFactory weblateClientFactory;
 	private final WeblateService weblateService;
 	private final Map<String, String> createLanguageErrors;
+	private final TranslationService translationService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -39,12 +41,14 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 			ActivityService activityService,
 			SnowstormClientFactory snowstormClientFactory,
 			WeblateClientFactory weblateClientFactory,
-			@Lazy WeblateService weblateService) {
+			@Lazy WeblateService weblateService,
+			TranslationService translationService) {
 
 		super(supportRegister, activityService);
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateClientFactory = weblateClientFactory;
 		this.weblateService = weblateService;
+		this.translationService = translationService;
 		createLanguageErrors = new ConcurrentHashMap<>();
 	}
 
@@ -67,8 +71,10 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 
 		// Initialize the language and translation in Weblate
 		String languageCodeWithRefset = "%s-%s".formatted(languageCode, request.refsetId());
-		weblateService.initialiseLanguageAndTranslationAsync(refset, languageCodeWithRefset, serviceException ->
-			createLanguageErrors.put(languageCodeWithRefset, serviceException.getMessage()));
+
+		// TODO: Skip this for testing
+//		weblateService.initialiseLanguageAndTranslationAsync(refset, languageCodeWithRefset, serviceException ->
+//			createLanguageErrors.put(languageCodeWithRefset, serviceException.getMessage()));
 
 		// Return the language code with refset ID for monitoring
 		logger.info("Started Weblate language initialization. Language:{}, refsetId:{}, jobId:{}",
@@ -111,6 +117,10 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 
 						SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 						CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(job.getCodeSystem());
+
+						// Pull content from Snowstorm, push into Weblate
+						translationService.synchroniseSnowstormToTranslationService(codeSystem, snowstormClient, languageCode, refset);
+
 						snowstormClient.addWeblateTranslationLanguage(refset, languageCode, codeSystem);
 						return true;
 					}
@@ -123,4 +133,5 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 			return false;
 		}
 	}
+
 }
