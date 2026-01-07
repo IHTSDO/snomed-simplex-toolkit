@@ -12,9 +12,9 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.AssignWorkRequest;
 import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
 import org.snomed.simplex.service.SupportRegister;
-import org.snomed.simplex.service.TranslationService;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.translation.service.TranslationService;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.weblate.domain.*;
 import org.snomed.simplex.weblate.sets.BatchTranslationLLMService;
@@ -278,7 +278,7 @@ public class WeblateSetService {
 		WeblateTranslationSet translationSet = findSubsetOrThrow(codeSystem.getShortName(), contentJob.getRefsetId(), label);
 		File subsetFile;
 		try {
-			subsetFile = weblateClient.downloadTranslationSubset(translationSet);
+			subsetFile = weblateClient.downloadTranslationSubsetWithStatus(translationSet);
 		} catch (IOException e) {
 			throw new ServiceExceptionWithStatusCode("Failed to download translation file from Translation Tool.", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}

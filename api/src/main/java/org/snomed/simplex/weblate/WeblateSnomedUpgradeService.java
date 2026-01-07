@@ -21,6 +21,7 @@ import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
+import org.snomed.simplex.weblate.rf2.RF2LoadingComponentFactoryWithPT;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -128,7 +129,7 @@ public class WeblateSnomedUpgradeService {
 		LoadingProfile loadingProfile = LoadingProfile.light;
 
 		// Component factory that records PTs
-		ComponentStoreComponentFactoryWithPT componentFactory = new ComponentStoreComponentFactoryWithPT(componentStore, Concepts.US_LANG_REFSET);
+		RF2LoadingComponentFactoryWithPT componentFactory = new RF2LoadingComponentFactoryWithPT(componentStore, Concepts.US_LANG_REFSET);
 		// Component factory that records inferred children
 		HighLevelComponentFactoryAdapterImpl highLevelComponentFactoryAdapter = new HighLevelComponentFactoryAdapterImpl(loadingProfile, componentFactory, componentFactory);
 
@@ -166,7 +167,7 @@ public class WeblateSnomedUpgradeService {
 		}
 	}
 
-	private static void addSortedChildren(ConceptImpl currentConcept, ComponentStoreComponentFactoryWithPT componentFactory, LinkedList<ConceptImpl> nextConcepts) {
+	private static void addSortedChildren(ConceptImpl currentConcept, RF2LoadingComponentFactoryWithPT componentFactory, LinkedList<ConceptImpl> nextConcepts) {
 		Set<org.ihtsdo.otf.snomedboot.domain.Concept> inferredChildren = currentConcept.getInferredChildren();
 		List<Pair<String, ConceptImpl>> sortedChildren = new ArrayList<>(inferredChildren.size());
 		for (org.ihtsdo.otf.snomedboot.domain.Concept inferredChild : inferredChildren) {
@@ -257,7 +258,7 @@ public class WeblateSnomedUpgradeService {
 		if (values.length == 4) {
 			code = values[2].replace("\"", "");
 		} else {
-			// Some of the terms contain commas which are not escaped. A standard CVS reader can't deal with this, so using regex if colum count is high
+			// Some of the terms contain commas which are not escaped. A standard CVS reader can't deal with this, so using regex if column count is high
 			Matcher matcher = NUMBER_PATTERN.matcher(line);
 			if (matcher.matches()) {
 				code = matcher.group(1);

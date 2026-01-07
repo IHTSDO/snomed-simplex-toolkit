@@ -7,7 +7,6 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.authoringservices.APTask;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
-import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
@@ -16,12 +15,11 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.*;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
-import org.snomed.simplex.service.TranslationService;
 import org.snomed.simplex.service.external.WeblateLanguageInitialisationJobService;
 import org.snomed.simplex.service.external.WeblateLanguageInitialisationRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ContentJob;
-import org.snomed.simplex.service.job.JobType;
+import org.snomed.simplex.translation.service.TranslationService;
 import org.snomed.simplex.weblate.TranslationLLMService;
 import org.snomed.simplex.weblate.WeblateService;
 import org.snomed.simplex.weblate.WeblateSetService;
@@ -45,17 +43,6 @@ import java.util.stream.Collectors;
 @RequestMapping("api")
 public class TranslationController {
 
-	public static final AsyncJob DUMMY_COMPLETE = new AsyncJob(null, null) {
-		@Override
-		public JobType getJobType() {
-			return JobType.REFSET_CHANGE;
-		}
-
-		@Override
-		public JobStatus getStatus() {
-			return JobStatus.COMPLETE;
-		}
-	};
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final TranslationService translationService;
 	private final ContentProcessingJobService jobService;
