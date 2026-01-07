@@ -499,12 +499,22 @@ public class SnowstormClient {
 		return new ServiceExceptionWithStatusCode(format("Failed to %s", action), HttpStatus.resolve(e.getStatusCode().value()), e);
 	}
 
-	public void exportRF2(OutputStream outputStream, String snowstormExportType, CodeSystem codeSystem, String transientEffectiveTime) throws ServiceException {
-		Map<String, String> requestBody = new HashMap<>();
-		requestBody.put("branchPath", codeSystem.getWorkingBranchPath());
-		requestBody.put("type", snowstormExportType);
-		if (transientEffectiveTime != null) {
-			requestBody.put("transientEffectiveTime", transientEffectiveTime);
+	public enum ExportType {
+		DELTA, SNAPSHOT
+	}
+
+	public void exportRF2(OutputStream outputStream, SnowstormExportConfiguration exportConfiguration) throws ServiceException {
+		Map<String, Object> requestBody = new HashMap<>();
+		requestBody.put("branchPath", exportConfiguration.getCodeSystem().getWorkingBranchPath());
+		requestBody.put("type", exportConfiguration.getExportType().name());
+		if (exportConfiguration.getTransientEffectiveTime() != null) {
+			requestBody.put("transientEffectiveTime", exportConfiguration.getTransientEffectiveTime());
+		}
+		if (exportConfiguration.getModuleIds() != null) {
+			requestBody.put("moduleIds", exportConfiguration.getModuleIds());
+		}
+		if (exportConfiguration.isLanguageOnly()) {
+			requestBody.put("languageOnly", true);
 		}
 		URI location = restTemplate.execute("/exports", HttpMethod.POST,
 				httpRequest -> {

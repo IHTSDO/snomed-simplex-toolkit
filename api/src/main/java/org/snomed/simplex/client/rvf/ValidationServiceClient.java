@@ -5,6 +5,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
+import org.snomed.simplex.client.SnowstormExportConfiguration;
 import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemVersion;
@@ -38,6 +39,8 @@ import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
+
+import static org.snomed.simplex.client.SnowstormClient.ExportType.DELTA;
 
 @Service
 public class ValidationServiceClient {
@@ -93,7 +96,7 @@ public class ValidationServiceClient {
 				Branch branch = snowstormClient.getBranchOrThrow(branchPath);
 				headTimestamp = branch.getHeadTimestamp();
 				try (OutputStream outputStream = new FileOutputStream(tempFile)) {
-					snowstormClient.exportRF2(outputStream, "DELTA", codeSystem, effectiveTime);
+					snowstormClient.exportRF2(outputStream, new SnowstormExportConfiguration(DELTA, codeSystem).setTransientEffectiveTime(effectiveTime));
 				}
 			} catch (IOException e) {
 				throw new ServiceException("Failed to export RF2 for validation.", e);

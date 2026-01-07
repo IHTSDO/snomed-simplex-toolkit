@@ -8,6 +8,7 @@ import org.snomed.simplex.client.domain.Description;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.translation.service.TranslationUploadProvider;
 import org.snomed.simplex.util.FileUtils;
 import org.springframework.http.HttpStatus;
 

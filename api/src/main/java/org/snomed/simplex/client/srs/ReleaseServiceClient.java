@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.AuthenticationClient;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.SnowstormExportConfiguration;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemBuildStatus;
 import org.snomed.simplex.client.domain.ConceptMini;
@@ -55,6 +56,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
+import static org.snomed.simplex.client.SnowstormClient.ExportType.DELTA;
 
 @Service
 public class ReleaseServiceClient {
@@ -242,7 +244,9 @@ public class ReleaseServiceClient {
 		logger.info("Created build {}", build.id());
 		try {
 			File tempFile = Files.createTempFile(codeSystem.getShortName() + UUID.randomUUID(), ".zip").toFile();
-			snowstormClient.exportRF2(new FileOutputStream(tempFile), "DELTA", codeSystem, effectiveTime);
+			try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
+				snowstormClient.exportRF2(outputStream, new SnowstormExportConfiguration(DELTA, codeSystem).setTransientEffectiveTime(effectiveTime));
+			}
 			logger.info("Exported RF2 delta");
 
 			File deltaReleaseDirectory;

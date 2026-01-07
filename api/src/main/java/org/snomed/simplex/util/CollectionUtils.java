@@ -6,6 +6,8 @@ import java.util.Collections;
 
 public class CollectionUtils {
 
+	private CollectionUtils() {}
+
 	public static <T> Collection<T> orEmpty(Collection<T> collection) {
 		return collection != null ? collection : Collections.emptyList();
 	}
