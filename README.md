@@ -43,6 +43,9 @@ The toolkit assumes that Snowstorm will be running on the same machine on port 8
 the same folder as the jar file. Then copy in any lines that need to be changed from the default configuration file 
 [src/main/resources/**application.properties**](/src/main/resources/application.properties).  
 
+### Set the Web Path
+The Angular files are hosted from the jar but when deploying using the debian package the index.html is copied to a "web-override" folder so that the `<base href="/">` tag can be changed at deployment time. 
+
 ## Run
 Start the application on the command line using Java:
 ```
