@@ -6,5 +6,10 @@ echo $*
 
 APP_NAME=[[packageName]]
 
+DIRECTORY="web-override"
+sudo mkdir -p $APP_DIR/$DIRECTORY
+sudo chown $APP_NAME.$APP_NAME $APP_DIR/$DIRECTORY
+sudo chmod 755 $APP_DIR/$DIRECTORY
+
 supervisorctl update $APP_NAME || true
 supervisorctl start $APP_NAME || true

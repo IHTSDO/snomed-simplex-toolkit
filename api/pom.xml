@@ -303,6 +303,11 @@
 											<dst>/etc/supervisor/conf.d/${packageName}.conf</dst>
 											<type>file</type>
 										</data>
+										<data>
+											<src>${basedir}/../angular-ui/dist/simplex-ui/browser/index.html</src>
+											<dst>/opt/${packageName}/web-override/index.html</dst>
+											<type>file</type>
+										</data>
 									</dataSet>
 								</configuration>
 							</execution>
