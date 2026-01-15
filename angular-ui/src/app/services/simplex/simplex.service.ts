@@ -50,13 +50,13 @@ export class SimplexService {
   }
 
   public refreshUIConfiguration(): void {
-    this.http.get('/api/ui-configuration').subscribe((config) => {
+    this.http.get('api/ui-configuration').subscribe((config) => {
       this.uiConfigurationService.setConfiguration(config);
     });
   }
 
   public getEditions(): Observable<any> {
-    return this.http.get('/api/codesystems').pipe(catchError(this.handleError.bind(this)));
+    return this.http.get('api/codesystems').pipe(catchError(this.handleError.bind(this)));
   }
 
   public getEdition(edition: string): Observable<any> {
@@ -84,7 +84,7 @@ export class SimplexService {
   }
 
   public createEdition(edition: any): Observable<any> {
-    return this.http.post('/api/codesystems', edition).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post('api/codesystems', edition).pipe(catchError(this.handleError.bind(this)));
   }
 
   public createSimpleRefset(edition: string, simpleRefset: any): Observable<any> {
@@ -209,59 +209,59 @@ export class SimplexService {
   }
 
   public getRoles(): Observable<any> {
-    return this.http.get('/api/auth').pipe(catchError(this.handleError.bind(this)));
+    return this.http.get('api/auth').pipe(catchError(this.handleError.bind(this)));
   }
 
   public startValidation(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/validate`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/validate`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getValidationResultSpreadsheet(edition: string): Observable<any> {
-    const apiUrl = `/api/codesystems/${edition}/validate/spreadsheet`;
+    const apiUrl = `api/codesystems/${edition}/validate/spreadsheet`;
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
       catchError(this.handleError.bind(this))
     );
   }
 
   public getValidationResults(edition: string): Observable<any> {
-    return this.http.get(`/api/codesystems/${edition}/validate/issues`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/codesystems/${edition}/validate/issues`).pipe(catchError(this.handleError.bind(this)));
   }
 
 
   // Release workflow mangement //
 
   public startAuthoring(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/start-authoring`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/start-authoring`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   public startReleasePreparation(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/start-release-prep`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/start-release-prep`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   public approveContentForRelease(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/approve-content-for-release`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/approve-content-for-release`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   public createReleaseCandidate(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/create-release-candidate`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/create-release-candidate`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   public finalizeRelease(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/finalize-release`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/finalize-release`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   public startMaintenance(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/start-maintenance`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/start-maintenance`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   // ---------------------------- //
 
   getProductPackagingConfiguration(edition: string): Observable<any> {
-    return this.http.get(`/api/codesystems/${edition}/product-packaging/configuration`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/codesystems/${edition}/product-packaging/configuration`).pipe(catchError(this.handleError.bind(this)));
   }
 
   updateProductPackagingConfiguration(edition: string, configuration: any): Observable<any> {
-    return this.http.put(`/api/codesystems/${edition}/product-packaging/configuration`, configuration).pipe(catchError(this.handleError.bind(this)));
+    return this.http.put(`api/codesystems/${edition}/product-packaging/configuration`, configuration).pipe(catchError(this.handleError.bind(this)));
   }
 
   upgradeEdition(edition: string, newDependantVersion: number): Observable<any> {
@@ -269,61 +269,61 @@ export class SimplexService {
       "newDependantVersion": newDependantVersion,
       "contentAutomations": true
     }
-    return this.http.post(`/api/codesystems/${edition}/upgrade`, data).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/upgrade`, data).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getReleaseCandidatePackage(edition: string): Observable<Blob> {
-    const apiUrl = `/api/codesystems/${edition}/release-candidate`; 
+    const apiUrl = `api/codesystems/${edition}/release-candidate`;
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
         catchError(this.handleError.bind(this))
     );
   }
 
   getReleasePackages(edition: string): Observable<any> {
-    return this.http.get(`/api/codesystems/${edition}/versions`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/codesystems/${edition}/versions`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getReleasePackage(edition: string, version: string): Observable<Blob> {
-    const apiUrl = `/api/codesystems/${edition}/versions/${version}/package`; 
+    const apiUrl = `api/codesystems/${edition}/versions/${version}/package`;
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
         catchError(this.handleError.bind(this))
     );
   }
 
   public getLanguageCodes(): Observable<any> {
-    return this.http.get(`/api/language-codes`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/language-codes`).pipe(catchError(this.handleError.bind(this)));
   }
 
   // Translation Tool utils
 
   public getSharedSets(): Observable<any> {
-    return this.http.get(`/api/weblate/shared-components`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/weblate/shared-components`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public createSharedSet(set: any): Observable<any> {
     const ecl = set.ecl;
     delete set.ecl;
-    return this.http.post(`/api/weblate/shared-components?ecl=${ecl}`, set).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/weblate/shared-components?ecl=${ecl}`, set).pipe(catchError(this.handleError.bind(this)));
   }
 
   public updateSharedSet(set: any): Observable<any> {
-    return this.http.put(`/api/weblate/shared-components/${set.slug}`, set).pipe(catchError(this.handleError.bind(this)));
+    return this.http.put(`api/weblate/shared-components/${set.slug}`, set).pipe(catchError(this.handleError.bind(this)));
   }
 
   public deleteSharedSet(set: any): Observable<any> {
-    return this.http.delete(`/api/weblate/shared-components/${set.slug}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.delete(`api/weblate/shared-components/${set.slug}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getSharedSetRecords(slug: string, offset: number, limit: number): Observable<any> {
-    return this.http.get(`/api/weblate/shared-components/${slug}/records`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/weblate/shared-components/${slug}/records`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public refreshSharedSet(slug: string): Observable<any> {
-    return this.http.post(`/api/weblate/shared-components/${slug}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/weblate/shared-components/${slug}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
   public linkTranslationToWeblate(edition: string, refsetId: string): Observable<any> {
-    return this.http.post(`/api/${edition}/translations/${refsetId}/weblate-setup`, {}).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-setup`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getLabelSets(edition: string): Observable<any> {
@@ -334,43 +334,43 @@ export class SimplexService {
     ];
     return of(mockLabelSets).pipe(delay(1000)); // 1 second delay
 
-    // return this.http.get(`/api/${edition}/label-sets`).pipe(catchError(this.handleError.bind(this)));
+    // return this.http.get(`api/${edition}/label-sets`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getLabelSetDetails(edition: string, labelSetId: string): Observable<any> {
-    return this.http.get(`/api/${edition}/label-sets/${labelSetId}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/label-sets/${labelSetId}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   getLabelSetMembers(edition: string, selectedTranslation: string, labelSetId: string): Observable<any> {
-    return this.http.get(`/api/${edition}/translations/${selectedTranslation}/weblate-set/${labelSetId}/sample-rows`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations/${selectedTranslation}/weblate-set/${labelSetId}/sample-rows`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSets(edition: string, refsetId: string): Observable<any> {
-    return this.http.get(`/api/${edition}/translations/${refsetId}/weblate-set`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations/${refsetId}/weblate-set`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getAllTranslationSets(edition: string): Observable<any> {
-    return this.http.get(`/api/${edition}/translations/weblate-set`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations/weblate-set`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public deleteTranslationSet(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.delete(`/api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.delete(`api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public createTranslationSet(edition: string, refsetId: string, translationSetData: any): Observable<any> {
-    return this.http.post(`/api/${edition}/translations/${refsetId}/weblate-set`, translationSetData).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set`, translationSetData).pipe(catchError(this.handleError.bind(this)));
   }
 
   public pullFromWeblate(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.post(`/api/${edition}/translations/${refsetId}/weblate-set/${label}/pull-content`, {}).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/pull-content`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSetDetails(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.get(`/api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getWeblateUsersForRefset(edition: string, refsetId: string): Observable<any> {
-    return this.http.get(`/api/${edition}/translations/${refsetId}/weblate/users`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations/${refsetId}/weblate/users`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public assignWorkToUsers(edition: string, refsetId: string, label: string, assignments: any[]): Observable<any> {
@@ -380,7 +380,7 @@ export class SimplexService {
         percentage: assignment.workPercentage
       }))
     };
-    return this.http.post(`/api/${edition}/translations/${refsetId}/weblate-set/${label}/assign-work`, request)
+    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/assign-work`, request)
       .pipe(catchError(this.handleError.bind(this)));
   }
 
@@ -388,7 +388,7 @@ export class SimplexService {
     const request = {
       size: batchSize
     };
-    return this.http.post(`/api/${edition}/translations/${refsetId}/weblate-set/${label}/run-ai-batch`, request)
+    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/run-ai-batch`, request)
       .pipe(catchError(this.handleError.bind(this)));
   }
 
