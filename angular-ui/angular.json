@@ -72,6 +72,8 @@
               "outputHashing": "all"
             },
             "development": {
+              "baseHref": "/simplex/",
+              "deployUrl": "/simplex/static/",
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true,
