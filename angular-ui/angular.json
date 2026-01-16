@@ -21,7 +21,7 @@
             "outputPath": {
               "base": "dist/simplex-ui"
             },
-            "deployUrl": "/static/",
+            "deployUrl": "/simplex/static/",
             "index": "src/index.html",
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
@@ -56,7 +56,7 @@
           },
           "configurations": {
             "production": {
-              "baseHref": "/",
+              "baseHref": "/simplex/",
               "budgets": [
                 {
                   "type": "initial",
