@@ -60,7 +60,7 @@ export class SimplexService {
   }
 
   public getEdition(edition: string): Observable<any> {
-    return this.http.get(`/api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getCodeSystemForBranch(branch: string): Observable<any> {
@@ -72,15 +72,15 @@ export class SimplexService {
   }
 
   public getSimpleRefsets(edition: string): Observable<any> {
-    return this.http.get(`/api/${edition}/refsets/simple`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/refsets/simple`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getSimpleMaps(edition: string): Observable<any> {
-    return this.http.get(`/api/${edition}/refsets/simple-map-to-snomed-with-correlation`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/refsets/simple-map-to-snomed-with-correlation`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslations(edition: string): Observable<any> {
-    return this.http.get(`/api/${edition}/translations`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public createEdition(edition: any): Observable<any> {
@@ -88,81 +88,81 @@ export class SimplexService {
   }
 
   public createSimpleRefset(edition: string, simpleRefset: any): Observable<any> {
-    return this.http.post(`/api/${edition}/refsets/simple`, simpleRefset).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/refsets/simple`, simpleRefset).pipe(catchError(this.handleError.bind(this)));
   }
 
   public createMap(edition: string, map: any): Observable<any> {
-    return this.http.post(`/api/${edition}/refsets/simple-map-to-snomed-with-correlation`, map).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/refsets/simple-map-to-snomed-with-correlation`, map).pipe(catchError(this.handleError.bind(this)));
   }
 
   public createTranslations(edition: string, translation: any): Observable<any> {
-    return this.http.post(`/api/${edition}/translations`, translation).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/translations`, translation).pipe(catchError(this.handleError.bind(this)));
   }
 
   public showCustomConcepts(edition: string): Observable<any> {
-    return this.http.post(`/api/${edition}/concepts/show`, {}).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/concepts/show`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
   public hideCustomConcepts(edition: string): Observable<any> {
-    return this.http.post(`/api/${edition}/concepts/hide`, {}).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/concepts/hide`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
   public deleteEdition(edition: string): Observable<any> {
-    return this.http.delete(`/api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.delete(`api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public uploadRefsetToolTranslation(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `/api/${edition}/translations/${refsetId}/refset-tool`;
+    const apiUrl = `api/${edition}/translations/${refsetId}/refset-tool`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
   public uploadWeblateTranslation(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `/api/${edition}/translations/${refsetId}/weblate`;
+    const apiUrl = `api/${edition}/translations/${refsetId}/weblate`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
   public uploadSpreadsheetRefset(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `/api/${edition}/refsets/simple/${refsetId}/spreadsheet`;
+    const apiUrl = `api/${edition}/refsets/simple/${refsetId}/spreadsheet`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
   public uploadRefsetToolSubset(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `/api/${edition}/refsets/simple/${refsetId}/refset-tool`;
+    const apiUrl = `api/${edition}/refsets/simple/${refsetId}/refset-tool`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
   public uploadSpreadsheetMap(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `/api/${edition}/refsets/simple-map-to-snomed-with-correlation/${refsetId}/spreadsheet`;
+    const apiUrl = `api/${edition}/refsets/simple-map-to-snomed-with-correlation/${refsetId}/spreadsheet`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
   public uploadConceptsSpreadsheet(edition: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `/api/${edition}/concepts/spreadsheet`;
+    const apiUrl = `api/${edition}/concepts/spreadsheet`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
   // New download method
   public downloadConceptsSpreadsheet(edition: string): Observable<Blob> {
-    const apiUrl = `/api/${edition}/concepts/spreadsheet`;
+    const apiUrl = `api/${edition}/concepts/spreadsheet`;
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
       catchError(this.handleError.bind(this))
     );
   }
 
   public downloadRefsetSpreadsheet(edition: string, refsetId: string ): Observable<Blob> {
-    const apiUrl = `/api/${edition}/refsets/simple/${refsetId}/spreadsheet`;
+    const apiUrl = `api/${edition}/refsets/simple/${refsetId}/spreadsheet`;
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
       catchError(this.handleError.bind(this))
     );
@@ -181,30 +181,30 @@ export class SimplexService {
   public getConcepts(edition: string, offset?: number, limit?: number): Observable<any> {
     if (!offset) offset = 0;
     if (!limit) limit = 100;
-    const url = `/api/${edition}/concepts?offset=${offset}&limit=${limit}`;
+    const url = `api/${edition}/concepts?offset=${offset}&limit=${limit}`;
     return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
   }
 
   public startClassification(edition: string): Observable<any> {
-    return this.http.post(`/api/codesystems/${edition}/classify`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/classify`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getJobs(edition: string, filter?: string): Observable<any> {
     if (!filter) {
-      return this.http.get(`/api/${edition}/jobs`).pipe(catchError(this.handleError.bind(this)));
+      return this.http.get(`api/${edition}/jobs`).pipe(catchError(this.handleError.bind(this)));
     } else if (filter === 'external') {
-      return this.http.get(`/api/${edition}/jobs?jobType=EXTERNAL_SERVICE`).pipe(catchError(this.handleError.bind(this)));
+      return this.http.get(`api/${edition}/jobs?jobType=EXTERNAL_SERVICE`).pipe(catchError(this.handleError.bind(this)));
     } else if (filter === 'concepts') {
-      return this.http.get(`/api/${edition}/jobs?jobType=CONCEPT_CHANGE`).pipe(catchError(this.handleError.bind(this)));
+      return this.http.get(`api/${edition}/jobs?jobType=CONCEPT_CHANGE`).pipe(catchError(this.handleError.bind(this)));
     } else {
-      return this.http.get(`/api/${edition}/jobs?refsetId=${filter}`).pipe(catchError(this.handleError.bind(this)));
+      return this.http.get(`api/${edition}/jobs?refsetId=${filter}`).pipe(catchError(this.handleError.bind(this)));
     }
   }
 
   public getActivities(edition: string, offset?: number, limit?: number): Observable<any> {
     if (!offset) offset = 0;
     if (!limit) limit = 20;
-    const url = `/api/${edition}/activities?offset=${offset}&limit=${limit}`;
+    const url = `api/${edition}/activities?offset=${offset}&limit=${limit}`;
     return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
   }
 

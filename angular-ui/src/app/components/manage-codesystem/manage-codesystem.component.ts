@@ -383,7 +383,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   }
 
   public downloadReleaseCandidateDirectly(): void {
-    const fileUrl = `/api/codesystems/${this.edition.shortName}/release-candidate`;
+    const fileUrl = `api/codesystems/${this.edition.shortName}/release-candidate`;
     window.open(fileUrl);
   }
   

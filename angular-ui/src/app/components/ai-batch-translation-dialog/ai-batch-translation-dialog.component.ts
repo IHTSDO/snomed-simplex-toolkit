@@ -204,7 +204,7 @@ export class AiBatchTranslationDialogComponent {
 			const batchSize = parseInt(this.batchForm.value.batchSize);
 			
 			// Build the API URL
-			const apiUrl = `/api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/run-ai-batch`;
+			const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/run-ai-batch`;
 			
 			// Prepare the request body
 			const requestBody = {

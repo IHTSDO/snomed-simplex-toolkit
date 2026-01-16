@@ -430,7 +430,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		this.loadingExamples = true;
 		
 		// Call the API with pageSize parameter of 1000
-		const apiUrl = `/api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/sample-rows?pageSize=1000`;
+		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/sample-rows?pageSize=1000`;
 		
 		this.http.get(apiUrl).subscribe({
 			next: (response: any) => {
@@ -466,7 +466,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		this.loadingSuggestions = true;
 
 		// Build the API URL
-		const apiUrl = `/api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/ai-suggestion`;
+		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/ai-suggestion`;
 
 		this.http.post(apiUrl, englishTerms).subscribe({
 			next: (response: any) => {
@@ -572,7 +572,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		const languageAdvice = this.languageRules.highLevelInfo || '';
 		
 		// Build the API URL for saving language advice
-		const apiUrl = `/api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/ai-language-advice`;
+		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/ai-language-advice`;
 		
 		// Prepare the request body
 		const requestBody = {
@@ -616,7 +616,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		this.loadingNewExample = true;
 		
 		// Build the API URL to fetch the specific sample row
-		const apiUrl = `/api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/sample-row/${conceptId.trim()}`;
+		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/sample-row/${conceptId.trim()}`;
 		
 		this.http.get(apiUrl).subscribe({
 			next: (response: any) => {
@@ -692,7 +692,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		});
 
 		// Build the API URL
-		const apiUrl = `/api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/ai-setup`;
+		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/weblate-set/${this.data.label}/ai-setup`;
 		
 		// Prepare the request body
 		const requestBody = {

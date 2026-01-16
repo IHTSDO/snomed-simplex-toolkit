@@ -30,7 +30,7 @@
         </div>
         <div class="component-col-right">
             <div *ngIf="!selectedSet && mode === 'view'"  class="waiting-panel">
-                <img src="/assets/artifact.png">
+                <img src="assets/artifact.png">
             </div>
             <div *ngIf="mode === 'edit'">
                 <app-create-shared-set (close)="setMode('view')"></app-create-shared-set>
