@@ -45,7 +45,7 @@ export class DownloadReleasesComponent implements OnInit, OnDestroy {
   downloadRelease(version: any) {
       this.downloadReleaseDisabled = true;
       // Use direct download link to allow Chrome's native download progress
-      const downloadUrl = `/api/codesystems/${this.edition.shortName}/versions/${version.effectiveDate}/package`;
+      const downloadUrl = `api/codesystems/${this.edition.shortName}/versions/${version.effectiveDate}/package`;
       const anchor = document.createElement('a');
       anchor.href = downloadUrl;
       anchor.style.display = 'none';
