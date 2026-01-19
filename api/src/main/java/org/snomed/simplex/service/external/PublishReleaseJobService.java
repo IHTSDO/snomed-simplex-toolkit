@@ -1,6 +1,5 @@
 package org.snomed.simplex.service.external;
 
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -70,7 +69,7 @@ public class PublishReleaseJobService extends ExternalFunctionJobService<Void> {
 		return false;
 	}
 
-	public @NotNull CodeSystem handleCodeSystemPublishing(String codeSystemShortName, CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
+	public CodeSystem handleCodeSystemPublishing(String codeSystemShortName, CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
 		String buildUrl = codeSystem.getLatestReleaseCandidateBuild();
 		SRSBuild build = releaseServiceClient.getBuild(buildUrl);
 		if (build.getTags().contains("PUBLISHED")) {

@@ -2,7 +2,6 @@ package org.snomed.simplex.service;
 
 import org.ihtsdo.otf.resourcemanager.ResourceManager;
 import org.ihtsdo.sso.integration.SecurityUtil;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -185,7 +184,7 @@ public class ActivityService {
 		repository.save(activity);
 	}
 
-	private static @NotNull Activity createActivity(String codeSystem, ComponentType componentType, ActivityType activityType) {
+	private static Activity createActivity(String codeSystem, ComponentType componentType, ActivityType activityType) {
 		return new Activity(SecurityUtil.getUsername(), codeSystem, componentType, activityType);
 	}
 

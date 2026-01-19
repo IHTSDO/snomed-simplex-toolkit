@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.logging.log4j.util.Strings;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.*;
@@ -723,7 +722,7 @@ public class SnowstormClient {
 		}
 	}
 
-	private static @NotNull List<Description> getNewDescriptionSet(Concept concept) {
+	private static List<Description> getNewDescriptionSet(Concept concept) {
 		List<Description> newDescriptionSet = new ArrayList<>();
 		for (Description description : concept.getDescriptions()) {
 			if (description.isRemove()) {
