@@ -211,7 +211,7 @@ public class WeblateSnomedUpgradeService {
 			}
 
 			// Upload new source file, force synchronous behaviour
-			weblateClient.uploadSnomedSourceListAndWaitForProcessing(newSourceFile);
+			weblateClient.uploadTranslationFileAndWaitForProcessing(newSourceFile, "en");
 
 		} catch (IOException e) {
 			throw new ServiceExceptionWithStatusCode("Failed to write source file.", HttpStatus.INTERNAL_SERVER_ERROR, e);
