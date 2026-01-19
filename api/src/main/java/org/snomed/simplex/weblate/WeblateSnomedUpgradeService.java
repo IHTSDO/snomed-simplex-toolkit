@@ -9,8 +9,6 @@ import org.ihtsdo.otf.snomedboot.factory.LoadingProfile;
 import org.ihtsdo.otf.snomedboot.factory.implementation.HighLevelComponentFactoryAdapterImpl;
 import org.ihtsdo.otf.snomedboot.factory.implementation.standard.ComponentStore;
 import org.ihtsdo.otf.snomedboot.factory.implementation.standard.ConceptImpl;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -234,7 +232,7 @@ public class WeblateSnomedUpgradeService {
 			.formatted(pt, pt, code, code, fsn);
 	}
 
-	private @NotNull List<Long> getCurrentConceptList(@NotNull File sourceFile) throws ServiceExceptionWithStatusCode {
+	private List<Long> getCurrentConceptList(File sourceFile) throws ServiceExceptionWithStatusCode {
 		List<Long> workingList = new ArrayList<>();
 		try (BufferedReader reader = new BufferedReader(new FileReader(sourceFile))) {
 			String line = reader.readLine();
@@ -253,7 +251,7 @@ public class WeblateSnomedUpgradeService {
 		return workingList;
 	}
 
-	private @Nullable Long getCodeFromWeblateRow(String line) {
+	private Long getCodeFromWeblateRow(String line) {
 		String[] values = line.split(",");
 		String code = null;
 		if (values.length == 4) {
@@ -292,7 +290,7 @@ public class WeblateSnomedUpgradeService {
 		return changeSummary;
 	}
 
-	private @NotNull ChangeSummary updateDetailsOfNewOrChangedConcepts(TranslationToolUpdatePlan updatePlan, ContentJob contentJob,
+	private ChangeSummary updateDetailsOfNewOrChangedConcepts(TranslationToolUpdatePlan updatePlan, ContentJob contentJob,
 			SnowstormClient snowstormClient, WeblateClient weblateClient) throws ServiceExceptionWithStatusCode {
 
 		// Get set of concepts that need updating

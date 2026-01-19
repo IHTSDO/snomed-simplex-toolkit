@@ -1,6 +1,5 @@
 package org.snomed.simplex.service.external;
 
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -95,7 +94,7 @@ public class ValidateJobService extends ExternalFunctionJobService<Void> {
 		codeSystem.setValidationStatus(status);
 	}
 
-	private @NotNull CodeSystemValidationStatus getStatusFromCurrentJob(CodeSystem codeSystem, ExternalServiceJob latestJob, CodeSystemValidationStatus status) {
+	private CodeSystemValidationStatus getStatusFromCurrentJob(CodeSystem codeSystem, ExternalServiceJob latestJob, CodeSystemValidationStatus status) {
 		switch (latestJob.getStatus()) {
 			case QUEUED, IN_PROGRESS -> status = CodeSystemValidationStatus.IN_PROGRESS;
 			case SYSTEM_ERROR -> status = CodeSystemValidationStatus.SYSTEM_ERROR;

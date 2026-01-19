@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
@@ -59,7 +58,7 @@ public class SnowstormClientFactory {
 		}
 	}
 
-	private static @NotNull String getAuthToken() throws ServiceExceptionWithStatusCode {
+	private static String getAuthToken() throws ServiceExceptionWithStatusCode {
 		String authenticationToken = SecurityUtil.getAuthenticationToken();
 		if (authenticationToken == null || authenticationToken.isEmpty()) {
 			throw new ServiceExceptionWithStatusCode("Authentication token is missing. Unable to process request.", HttpStatus.FORBIDDEN);

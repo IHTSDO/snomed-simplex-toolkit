@@ -1,7 +1,6 @@
 package org.snomed.simplex.weblate;
 
 import org.apache.logging.log4j.util.Strings;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.ai.LLMService;
@@ -86,7 +85,7 @@ public class TranslationLLMService {
 		return builder.toString();
 	}
 
-	private @NotNull Map<String, List<String>> processResponse(List<String> englishTerm, String response) {
+	private Map<String, List<String>> processResponse(List<String> englishTerm, String response) {
 		Map<String, List<String>> allSuggestions = new LinkedHashMap<>();
 		for (String line : response.split("\n")) {
 			if (line.contains("|")) {
@@ -110,7 +109,7 @@ public class TranslationLLMService {
 		return allSuggestions;
 	}
 
-	private static @NotNull String getGuidelines(boolean multipleSuggestions) {
+	private static String getGuidelines(boolean multipleSuggestions) {
 		String guidelines =
 			"""
 				Guidelines:

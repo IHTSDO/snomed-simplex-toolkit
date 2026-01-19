@@ -6,8 +6,6 @@ import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import jakarta.annotation.PostConstruct;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -166,7 +164,7 @@ public class TranslationService {
 		}
 	}
 
-	private static @NotNull String getLanguageCodeOrThrow(String languageRefsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+	private static String getLanguageCodeOrThrow(String languageRefsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		String languageCode = codeSystem.getTranslationLanguages().get(languageRefsetId);
 		if (languageCode == null) {
 			throw new ServiceExceptionWithStatusCode("Language code not set for translation.", HttpStatus.CONFLICT, JobStatus.SYSTEM_ERROR);
@@ -249,7 +247,7 @@ public class TranslationService {
 		return changeSummary;
 	}
 
-	private @NotNull String replaceBadCharacters(Description description) {
+	private String replaceBadCharacters(Description description) {
 		String fixedTerm = description.getTerm()
 				.replace(NON_BREAKING_SPACE_CHARACTER, " ")
 				.replace(EN_DASH, "-")
@@ -521,7 +519,7 @@ public class TranslationService {
 		return CASE_INSENSITIVE;
 	}
 
-	private static Description.@Nullable CaseSignificance getCaseSignificanceFromOtherDescriptions(String term, List<Description> otherDescriptions) {
+	private static Description.CaseSignificance getCaseSignificanceFromOtherDescriptions(String term, List<Description> otherDescriptions) {
 		if (otherDescriptions != null) {
 			// If first word matches an existing released description in the same concept use case sensitivity.
 			// Doesn't make complete sense to me but there is a drools rule stating this.

@@ -1,6 +1,5 @@
 package org.snomed.simplex.weblate;
 
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.AuthenticationClient;
@@ -266,7 +265,7 @@ public class WeblateAdminClient {
 		}
 	}
 
-	private static @NotNull String getLabelsUrl(String project) {
+	private static String getLabelsUrl(String project) {
 		return "/projects/%s/labels/?format=json".formatted(project);
 	}
 
