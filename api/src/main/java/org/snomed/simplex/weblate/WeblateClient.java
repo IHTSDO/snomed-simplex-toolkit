@@ -1,7 +1,5 @@
 package org.snomed.simplex.weblate;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -106,7 +104,7 @@ public class WeblateClient {
 		return date.toInstant().atZone(java.time.ZoneOffset.UTC).format(formatter);
 	}
 
-	private @Nullable WeblatePage<WeblateUnit> doGetUnitPage(String url) {
+	private WeblatePage<WeblateUnit> doGetUnitPage(String url) {
 		logger.info("Getting unit page from Weblate: {}", url);
 		return restTemplate.exchange(url, HttpMethod.GET, null, UNITS_RESPONSE_TYPE).getBody();
 	}
@@ -115,7 +113,7 @@ public class WeblateClient {
 		return new WeblateUnitStream(projectSlug, componentSlug, hasScreenshotFilter, startPage, this);
 	}
 
-	protected static @NotNull String getUnitQuery(UnitQueryBuilder builder) {
+	protected static String getUnitQuery(UnitQueryBuilder builder) {
 		return builder.build();
 	}
 
@@ -327,17 +325,21 @@ public class WeblateClient {
 		return getFile(compositeLabel, response);
 	}
 
-	public @NotNull File downloadSnomedSourceList() throws ServiceExceptionWithStatusCode {
+	public File downloadSnomedSourceList() throws ServiceExceptionWithStatusCode {
+		return downloadTranslationFile("en");
+	}
+
+	private File downloadTranslationFile(String language) throws ServiceExceptionWithStatusCode {
 		try {
-		ResponseEntity<Resource> response = restTemplate.getForEntity("/translations/common/snomedct/en/file/", Resource.class);
-		return getFile("source-"+ UUID.randomUUID(), response);
+			ResponseEntity<Resource> response = restTemplate.getForEntity("/translations/common/snomedct/%s/file/".formatted(language), Resource.class);
+			return getFile("source-" + UUID.randomUUID(), response);
 		} catch (IOException e) {
-			throw new ServiceExceptionWithStatusCode("Failed to download source file.", HttpStatus.INTERNAL_SERVER_ERROR, e);
+			throw new ServiceExceptionWithStatusCode("Failed to download language source file for %s.".formatted(language), HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
 	}
 
-	public void uploadSnomedSourceListAndWaitForProcessing(File sourceFile) throws ServiceExceptionWithStatusCode {
-		String lastChange = getSourceLastChange();
+	public void uploadTranslationFileAndWaitForProcessing(File sourceFile, String language) throws ServiceExceptionWithStatusCode {
+		String lastChange = getSourceLastChange(language);
 
 		// Create multipart request for upload
 		MultipartBodyBuilder builder = new MultipartBodyBuilder();
@@ -345,7 +347,7 @@ public class WeblateClient {
 		builder.part("method", "add");
 
 		// Upload the file
-		ResponseEntity<Map<String, Object>> response = restTemplate.exchange("/translations/common/snomedct/en/file/",
+		ResponseEntity<Map<String, Object>> response = restTemplate.exchange("/translations/common/snomedct/%s/file/".formatted(language),
 			HttpMethod.POST,
 			new HttpEntity<>(builder.build(), getFormHeaders()),
 			PARAMETERIZED_TYPE_REFERENCE_MAP
@@ -357,7 +359,7 @@ public class WeblateClient {
 
 		try {
 			logger.info("Waiting for Translation Tool to process new concept list upload...");
-			new ApiWaiter().waitForStatus(this::getSourceLastChange, newLastChange -> !lastChange.equals(newLastChange),
+			new ApiWaiter().waitForStatus(() -> getSourceLastChange(language), newLastChange -> !lastChange.equals(newLastChange),
 				30, TimeUnit.MINUTES, 30, TimeUnit.SECONDS);
 		} catch (ExecutionException | InterruptedException e) {
 			Thread.currentThread().interrupt();
@@ -365,9 +367,9 @@ public class WeblateClient {
 		}
 	}
 
-	private String getSourceLastChange() {
+	private String getSourceLastChange(String language) {
 		ResponseEntity<Map<String, Object>> sourceObject = restTemplate.exchange(
-			"/translations/common/snomedct/en/",
+			"/translations/common/snomedct/%s/".formatted(language),
 			HttpMethod.GET,
 			null,
 			PARAMETERIZED_TYPE_REFERENCE_MAP
@@ -379,7 +381,7 @@ public class WeblateClient {
 		return (String) body.get("last_change");
 	}
 
-	private static @NotNull File getFile(String compositeLabel, ResponseEntity<Resource> response) throws IOException {
+	private static File getFile(String compositeLabel, ResponseEntity<Resource> response) throws IOException {
 		File tempFile = File.createTempFile("translation_%s".formatted(compositeLabel), ".csv");
 		Resource body = response.getBody();
 		if (body != null) {
