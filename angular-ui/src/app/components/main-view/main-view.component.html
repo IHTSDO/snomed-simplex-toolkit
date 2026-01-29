@@ -1,44 +1,50 @@
-<mat-drawer-container class="drawer-container mat-typography">
-	<mat-drawer #drawer mode="side" disableClose="true" opened="true" *ngIf="!isInHome()">
-        <mat-nav-list>
-            <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'artifacts'}" (click)="navigateTo('artifact')">
+@if (translationMode) {
+    <router-outlet></router-outlet>
+}
+@else {
+    <mat-drawer-container class="drawer-container mat-typography">
+        <mat-drawer #drawer mode="side" disableClose="true" opened="true" *ngIf="!isInHome()">
+            <mat-nav-list>
+                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'artifacts'}" (click)="navigateTo('artifact')">
                 <span class="nav-item">
                   <mat-icon mat-list-icon>edit</mat-icon>
                   <span class="nav-item-name">Artifacts</span>
                 </span>
-              </mat-list-item>
-              <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'translation-dashboard'}" (click)="navigateTo('translation-dashboard')">
+                </mat-list-item>
+                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'translation-dashboard'}" (click)="navigateTo('translation-dashboard')">
                 <span class="nav-item">
                   <mat-icon mat-list-icon>translate</mat-icon>
                   <span class="nav-item-name">Translation Dashboard</span>
                 </span>
-              </mat-list-item>
-              <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'manage'}" (click)="navigateTo('manage')">
+                </mat-list-item>
+                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'manage'}" (click)="navigateTo('manage')">
                 <span class="nav-item">
                   <mat-icon mat-list-icon>settings</mat-icon>
                   <span class="nav-item-name">Manage Edition</span>
                 </span>
-              </mat-list-item>
-              <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'releases'}" (click)="navigateTo('releases')">
+                </mat-list-item>
+                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'releases'}" (click)="navigateTo('releases')">
                 <span class="nav-item">
                   <mat-icon mat-list-icon>library_books</mat-icon>
                   <span class="nav-item-name">Releases</span>
                 </span>
-            </mat-list-item>
-            <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'info'}" (click)="navigateTo('info')">
+                </mat-list-item>
+                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'info'}" (click)="navigateTo('info')">
               <span class="nav-item">
                 <mat-icon mat-list-icon>info</mat-icon>
                 <span class="nav-item-name">Edition info</span>
               </span>
-            </mat-list-item>
-        </mat-nav-list>
-    </mat-drawer>
+                </mat-list-item>
+            </mat-nav-list>
+        </mat-drawer>
 
-	<div class="example-sidenav-content">
         <div class="example-sidenav-content">
-            <router-outlet></router-outlet>
+            <div class="example-sidenav-content">
+                <router-outlet></router-outlet>
+            </div>
         </div>
-	</div>
-</mat-drawer-container>
+    </mat-drawer-container>
+}
+
 
 

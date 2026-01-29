@@ -1,9 +1,11 @@
 @import 'src/variables.scss';
 
 nav {
+    height: 5rem;
+
     a.logo {
-        height: 4rem;
-        font-size: 1.6rem;
+        height: 5rem;
+        font-size: 1.8rem;
 
         &:hover {
             text-decoration: none;
@@ -15,15 +17,15 @@ nav {
             letter-spacing: 1.5px;
             line-height: 4rem;
             vertical-align: top;
-            margin-left: 7rem;
+            margin-left: 6rem;
         }
 
         img.logo {
             vertical-align: initial;
-            height: 5.2rem;
+            height: 4rem;
             position: absolute;
-            top: 0.3rem;
-            left: 0.3rem;
+            top: 0;
+            left: 0;
         }
     }
 
@@ -73,15 +75,17 @@ nav {
             display: inline-block;
 
             a {
-                min-width: 8rem;
                 font-size: 1.4rem;
                 height: 3rem;
                 color: $white;
-                background-color: $bootstrap-dark;
                 line-height: 2rem;
                 font-weight: 300;
                 letter-spacing: 0.2rem;
                 cursor: pointer;
+
+                &.icons {
+                    font-size: 1.8rem;
+                }
 
                 &.add {
                     background-color: $fruit-salad;
@@ -109,6 +113,8 @@ nav {
 
                 a.dropdown-item {
                     font-weight: 300;
+                    height: 4rem;
+                    line-height: 3rem;
                     z-index: auto;
 
                     &:hover {
@@ -137,10 +143,38 @@ nav {
         }
     }
 
+    div.drawer-button {
+        color: $alto-white;
+        font-size: 1.8rem;
+        cursor: pointer;
+    }
+
+    div.drawer {
+        cursor: pointer;
+        height: 3rem;
+        width: 3rem;
+        color: $alto-white;
+        border-radius: 3rem;
+        text-align: center;
+
+        span {
+            font-size: 1.2rem;
+            line-height: 3rem;
+            font-weight: 300;
+            letter-spacing: 0.1rem;
+        }
+
+        span.queue-count {
+            color: $gallery-white;
+            background-color: $slate-grey;
+            letter-spacing: 0;
+        }
+    }
+
     div.logout {
         color: $alto-white;
         cursor: pointer;
-        height: 3rem;
+        height: 4rem;
 
         span {
             font-size: 1.2rem;

@@ -14,14 +14,16 @@ export class AuthenticationService {
     constructor(private http: HttpClient, private authoringService: AuthoringService) {
     }
 
-    setUser() {
-        this.http.get<User>('/auth').subscribe(user => {
-            this.user.next(user);
-        });
+    setUser(user) {
+        this.user.next(user);
     }
 
     getUser() {
         return this.user.asObservable();
+    }
+
+    httpGetUser() {
+        return this.http.get<User>('/auth');
     }
 
     logout() {

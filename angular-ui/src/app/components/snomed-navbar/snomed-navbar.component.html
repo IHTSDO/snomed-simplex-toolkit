@@ -1,31 +1,67 @@
-<nav class="navbar sticky-top navbar-dark bg-dark p-2 pe-2" *ngIf="!isInHome()">
+<nav class="navbar sticky-top navbar-dark bg-dark pe-2" *ngIf="!isInHome()">
     <a class="logo">
-        <a href="javascript:void(0)" (click)="goHome()"><img class="logo me-2 p-0" src="assets/simplex-logo.svg"></a>
-        <span class="title text-ghost-grey">
-            Simplex: {{ selectedEdition?.name }}
-            <mat-icon id="expand-editions" *ngIf="editions.length > 1" [matMenuTriggerFor]="menu2">
-                expand_more
-            </mat-icon>
-            <mat-menu #menu2="matMenu" id="edition-menu">
-                <br>
-                <button mat-menu-item *ngFor="let edition of editions" (click)="selectEdition(edition)">
-                    {{ edition.name }}
-                </button>
-            </mat-menu>
-        </span>
+        @if (translationMode) {
+            <a href="javascript:void(0)" (click)="goHome()"><img class="logo m-2 p-0" src="assets/small_logo.png"></a>
+            <span class="title text-ghost-grey">Translation Tool</span>
+        }
+        @else {
+            <a href="javascript:void(0)" (click)="goHome()"><img class="logo m-2 p-0" src="assets/simplex-logo.svg"></a>
+            <span class="title text-ghost-grey">Simplex</span>
+        }
     </a>
+
+    <ul class="dropdown-nav me-auto">
+        <li class="nav-item dropdown">
+            <a class="nav-link px-3 py-2 rounded dropdown-toggle text-end add" id="branchDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                {{ selectedEdition?.name }}
+            </a>
+            <div class="dropdown-menu" aria-labelledby="branchDropdown">
+                <ng-container *ngFor="let edition of editions | alphabetical:'branchPath'">
+                    <a class="dropdown-item ps-3 py-2" (click)="selectEdition(edition)">{{edition?.name}}</a>
+                </ng-container>
+            </div>
+        </li>
+    </ul>
+
+
     <div>
-        <button mat-icon-button class="nav-button" matTooltip="Simplex configuration" *ngIf="isAdmin()"(click)="goAdmin()"><mat-icon>build</mat-icon></button>
-        <button mat-icon-button [matMenuTriggerFor]="menu" class="nav-button" matTooltip="User menu"><mat-icon>person</mat-icon></button>
-        <mat-menu #menu="matMenu">
-            <button mat-menu-item (click)="logout()">Logout</button>
-            <button mat-menu-item (click)="removeAgreementAndReload()">See legal agreement</button>
-        </mat-menu>
-        <button mat-icon-button [matMenuTriggerFor]="menu3" class="nav-button" matTooltip="Help"><mat-icon>help</mat-icon></button>
-        <mat-menu #menu3="matMenu">
-            <a mat-menu-item href="https://confluence.ihtsdotools.org/display/SIMPLEXUG/Simple+Extension+%28Simplex%29+Tool+User+Guide" target="_blank">Simplex User Guide</a>
-            <a mat-menu-item href="https://ihtsdo.freshdesk.com/support/discussions/forums/4000002521" target="_blank">Simplex User Forum (Community Support)</a>
-        </mat-menu>
+        <button mat-icon-button class="nav-button p-0" matTooltip="Simplex configuration" *ngIf="isAdmin()"(click)="goAdmin()"><mat-icon>build</mat-icon></button>
     </div>
+
+    @if(user) {
+        <ul class="dropdown-nav float-end p-0 me-3">
+            <li class="nav-item dropdown">
+                <a class="nav-link p-2 me-2 user rounded-circle bg-cerulean" id="infoDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {{getInitials(user)}}
+                </a>
+                <div class="dropdown-menu dropdown-menu-end py-0" aria-labelledby="infoDropdown">
+                    <a class="dropdown-item ps-3 py-2" href="https://confluence.ihtsdotools.org/display/SIMPLEXUG/Simple+Extension+%28Simplex%29+Tool+User+Guide" target="_blank" (click)="logout()">Logout</a>
+                </div>
+            </li>
+        </ul>
+
+        <div class="drawer-button float-end me-3 mb-3 p-0" (click)="openDrawer()">
+            <span class="rounded px-2 text-center">
+                <i class="fa-solid fa-grip"></i>
+            </span>
+        </div>
+    }
+
+
+    <ul class="dropdown-nav float-end p-0 me-2">
+        <li class="nav-item dropdown">
+            <a class="nav-link px-3 py-2 icons rounded text-end" id="infoDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fa-solid fa-bars"></i>
+            </a>
+            <div class="dropdown-menu dropdown-menu-end py-0" aria-labelledby="infoDropdown">
+                <a class="dropdown-item ps-3 py-2" href="https://confluence.ihtsdotools.org/display/SIMPLEXUG/Simple+Extension+%28Simplex%29+Tool+User+Guide" target="_blank">Simplex User Guide</a>
+                <a class="dropdown-item ps-3 py-2" href="https://ihtsdo.freshdesk.com/support/discussions/forums/4000002521" target="_blank">Simplex User Forum (Community Support)</a>
+                <a class="dropdown-item ps-3 py-2" href="https://www.snomed.org/contact-us" target="_blank">Contact Us</a>
+                <a class="dropdown-item ps-3 py-2" href="https://www.snomed.org/" target="_blank">&copy; SNOMED International</a>
+            </div>
+        </li>
+    </ul>
+
+
 </nav>
 <div class="black-bar" *ngIf="isInHome()"></div>

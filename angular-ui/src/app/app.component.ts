@@ -11,6 +11,10 @@ import { SimplexService } from './services/simplex/simplex.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { LegalAgreementService } from './services/legal-agreement/legal-agreement.service';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import {User} from "./models/user";
+import {DrawerService} from "./services/drawer/drawer.service";
+import {ConfigService} from "./services/config/config.service";
+import {AuthenticationService} from "./services/authentication/authentication.service";
 
 @Component({
     selector: 'app-root',
@@ -25,6 +29,9 @@ export class AppComponent implements OnInit {
 
     versions: object;
     environment: string;
+    user: User;
+    drawerOpen: any;
+    drawerOpenSubscription: Subscription;
     scheduledAlerts: any[] = [];
 
     activeCodesystem: any;
@@ -35,13 +42,17 @@ export class AppComponent implements OnInit {
 
     constructor(private envService: EnvService,
                 private toastr: ToastrService,
+                private authenticationService: AuthenticationService,
                 private titleService: Title,
                 private route: ActivatedRoute,
                 private router: Router,
                 private simplexService: SimplexService,
+                private drawerService: DrawerService,
+                private configService: ConfigService,
                 private snackBar: MatSnackBar,
                 private uiConfigurationService: UiConfigurationService,
                 private legalAgreementService: LegalAgreementService) {
+        this.drawerOpenSubscription = this.drawerService.getDrawerOpen().subscribe(data => this.drawerOpen = data);
     }
 
     async ngOnInit() {
@@ -52,6 +63,13 @@ export class AppComponent implements OnInit {
             // If the user hasn't agreed yet, show the modal
             this.showLegalModal = true;
         }
+
+        this.configService.loadConfig().subscribe(data => {
+            this.authenticationService.httpGetUser().subscribe(user => {
+                this.user = user;
+                this.authenticationService.setUser(user);
+            });
+        });
     }
 
     closeWelcome() {
@@ -102,7 +120,7 @@ export class AppComponent implements OnInit {
           (editions) => {
             // remove editions with empty name
             editions.items = editions.items.filter((item) => item.name);
-            if (editions.items.length > 0) { this.selectedEdition = editions.items[0] } 
+            if (editions.items.length > 0) { this.selectedEdition = editions.items[0] }
           },
           (error) => {
             this.snackBar.open('Failed to load editions', 'Dismiss', {
