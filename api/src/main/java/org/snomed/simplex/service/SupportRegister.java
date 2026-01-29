@@ -4,8 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.domain.JobStatus;
+import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.snomed.simplex.util.ExceptionUtil;
 import org.springframework.stereotype.Service;
 
@@ -31,7 +33,6 @@ public class SupportRegister {
 
 	public void handleSystemError(AsyncJob job, String errorMessage, ServiceException exception) {
 		job.setStatus(JobStatus.SYSTEM_ERROR);
-		job.setErrorMessage(errorMessage);
 		if (exception != null) {
 			job.setServiceException(exception);
 		}
@@ -40,6 +41,11 @@ public class SupportRegister {
 		supportLog.error("Support Issue|System|CodeSystem:{}| Job:{},{}| MESSAGE:{}| STACK_TRACE:{}", job.getCodeSystem(), job.getId(),
 				job.getDisplay(), errorMessage, stackTrace);
 		supportLog.info("Stack trace", exception);
+		if (job instanceof ExternalServiceJob externalServiceJob) {
+			Activity activity = externalServiceJob.getActivity();
+			activity.setError(true);
+			activity.setMessage(job.getErrorMessage());
+		}
 	}
 
 	public void handleSystemError(CodeSystem codeSystem, String errorMessage, ServiceException exception) {
