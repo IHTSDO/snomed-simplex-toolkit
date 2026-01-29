@@ -1,1044 +1,1053 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialog } from '@angular/material/dialog';
-import { lastValueFrom, Subscription } from 'rxjs';
-import { SimplexService } from 'src/app/services/simplex/simplex.service';
-import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
-import { TerminologyService } from 'src/app/services/simplex/terminology.service';
-import { ActivatedRoute } from '@angular/router';
-import { AssignWorkDialogComponent } from '../assign-work-dialog/assign-work-dialog.component';
-import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
-import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
+import {ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
+import {FormBuilder, FormGroup, Validators} from '@angular/forms';
+import {MatSnackBar} from '@angular/material/snack-bar';
+import {MatDialog} from '@angular/material/dialog';
+import {lastValueFrom, Subscription} from 'rxjs';
+import {SimplexService} from 'src/app/services/simplex/simplex.service';
+import {UiConfigurationService} from 'src/app/services/ui-configuration/ui-configuration.service';
+import {TerminologyService} from 'src/app/services/simplex/terminology.service';
+import {ActivatedRoute} from '@angular/router';
+import {AssignWorkDialogComponent} from '../assign-work-dialog/assign-work-dialog.component';
+import {SetupAiTranslationDialogComponent} from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
+import {AiBatchTranslationDialogComponent} from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
+import * as config from '../../../assets/config.json';
+
 
 @Component({
-  selector: 'app-translation-dashboard',
-  templateUrl: './translation-dashboard.component.html',
-  styleUrl: './translation-dashboard.component.scss'
+    selector: 'app-translation-dashboard',
+    templateUrl: './translation-dashboard.component.html',
+    styleUrl: './translation-dashboard.component.scss'
 })
 export class TranslationDashboardComponent implements OnInit, OnDestroy {
-  selectedEdition: any;
-  private subscriptions: Subscription = new Subscription();
-  loading = false;
-  loadingSets = false;
-  loadingLabelSetMembers = false;
-  loadingTranslations = false;
-  loadingLabelSetDetails = false;
-  labelSets: any[] = [];
-  translations: any[] = [];
-  selectedTranslation: any;
-  selectedLabelSet: any;
-  selectedLabelSetMembers: any[] = [];
-  mode = 'view';
-  saving = false;
-  deleting = false;
-  private pollingInterval: any;
-  private isPolling = false;
-  private currentLabelSetRequestId = 0; // Track the most recent request
-  private isInitialized = false; // Flag to prevent duplicate initialization
-  private isSubscribedToEdition = false; // Flag to prevent duplicate edition subscriptions
-  private translationSetsLoaded = false; // Flag to track if translation sets have been loaded
-  
-  // ECL input method properties
-  eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'subtype';
-  selectedRefsetCode: string = '';
-  selectedDerivativeCode: string = '';
-  selectedSubtype: any = null;
-  
-  // Dynamic refsets loaded from server
-  refsets: any[] = [];
-  loadingRefsets = false;
-  refsetsLoaded = false; // Cache flag for refsets
-  
-  // Dynamic derivatives loaded from server
-  derivatives: any[] = [];
-  loadingDerivatives = false;
-  derivativesLoaded = false; // Cache flag for derivatives
-  
-  form: FormGroup = this.fb.group({
-    translation: ['', Validators.required],
-    name: ['', Validators.required],
-    label: [{value: '', disabled: true}, Validators.required],
-    ecl: ['', Validators.required]
-  });
+    selectedEdition: any;
+    private subscriptions: Subscription = new Subscription();
+    loading = false;
+    loadingSets = false;
+    loadingLabelSetMembers = false;
+    loadingTranslations = false;
+    loadingLabelSetDetails = false;
+    labelSets: any[] = [];
+    translations: any[] = [];
+    selectedTranslation: any;
+    selectedLabelSet: any;
+    selectedLabelSetMembers: any[] = [];
+    mode = 'view';
+    saving = false;
+    deleting = false;
+    private pollingInterval: any;
+    private isPolling = false;
+    private currentLabelSetRequestId = 0; // Track the most recent request
+    private isInitialized = false; // Flag to prevent duplicate initialization
+    private isSubscribedToEdition = false; // Flag to prevent duplicate edition subscriptions
+    private translationSetsLoaded = false; // Flag to track if translation sets have been loaded
 
-  // Computed property for skeleton loading state
-  get showSkeleton(): boolean {
-    // Show skeleton when any of these conditions are true:
-    // 1. Component is loading (initial load)
-    // 2. Translation sets are loading
-    // 3. Component is not initialized yet
-    // 4. No data has been loaded yet and translation sets haven't been loaded
-    return this.loading || this.loadingSets || !this.isInitialized || (this.labelSets.length === 0 && !this.translationSetsLoaded);
-  }
+    translationMode = config.translationMode;
 
-  // Computed property to determine which codesystem will be used
-  get selectedCodesystem(): string {
-    switch (this.eclInputMethod) {
-      case 'derivative':
-        return 'SNOMEDCT-DERIVATIVES';
-      case 'manual':
-        // Parse ECL input string to extract positive integer IDs (keep as strings)
-        const eclInput = this.form.get('ecl')?.value || '';
-        const idMatches = eclInput.match(/\b\d+\b/g);
-        
-        if (idMatches && idMatches.length > 0) {
-          // Keep IDs as strings and filter out any that are not positive integers
-          const extractedIds = idMatches.filter(id => id.length > 0 && !id.startsWith('0'));
-          
-          // Check if any extracted ID matches a derivative code
-          const hasDerivativeMatch = extractedIds.some(id => 
-            this.derivatives.some(derivative => derivative.code === id)
-          );
-          
-          if (hasDerivativeMatch) {
-            return 'SNOMEDCT-DERIVATIVES';
-          }
-        }
-        
-        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
-      case 'refset':
-      case 'subtype':
-      default:
-        return this.selectedEdition?.shortName || 'http://snomed.info/sct';
+    // ECL input method properties
+    eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'subtype';
+    selectedRefsetCode: string = '';
+    selectedDerivativeCode: string = '';
+    selectedSubtype: any = null;
+
+    // Dynamic refsets loaded from server
+    refsets: any[] = [];
+    loadingRefsets = false;
+    refsetsLoaded = false; // Cache flag for refsets
+
+    // Dynamic derivatives loaded from server
+    derivatives: any[] = [];
+    loadingDerivatives = false;
+    derivativesLoaded = false; // Cache flag for derivatives
+
+    form: FormGroup = this.fb.group({
+        translation: ['', Validators.required],
+        name: ['', Validators.required],
+        label: [{value: '', disabled: true}, Validators.required],
+        ecl: ['', Validators.required]
+    });
+
+    // Computed property for skeleton loading state
+    get showSkeleton(): boolean {
+        // Show skeleton when any of these conditions are true:
+        // 1. Component is loading (initial load)
+        // 2. Translation sets are loading
+        // 3. Component is not initialized yet
+        // 4. No data has been loaded yet and translation sets haven't been loaded
+        return this.loading || this.loadingSets || !this.isInitialized || (this.labelSets.length === 0 && !this.translationSetsLoaded);
     }
-  }
 
-  constructor(  private fb: FormBuilder,
+    // Computed property to determine which codesystem will be used
+    get selectedCodesystem(): string {
+        switch (this.eclInputMethod) {
+            case 'derivative':
+                return 'SNOMEDCT-DERIVATIVES';
+            case 'manual':
+                // Parse ECL input string to extract positive integer IDs (keep as strings)
+                const eclInput = this.form.get('ecl')?.value || '';
+                const idMatches = eclInput.match(/\b\d+\b/g);
+
+                if (idMatches && idMatches.length > 0) {
+                    // Keep IDs as strings and filter out any that are not positive integers
+                    const extractedIds = idMatches.filter(id => id.length > 0 && !id.startsWith('0'));
+
+                    // Check if any extracted ID matches a derivative code
+                    const hasDerivativeMatch = extractedIds.some(id =>
+                        this.derivatives.some(derivative => derivative.code === id)
+                    );
+
+                    if (hasDerivativeMatch) {
+                        return 'SNOMEDCT-DERIVATIVES';
+                    }
+                }
+
+                return this.selectedEdition?.shortName || 'http://snomed.info/sct';
+            case 'refset':
+            case 'subtype':
+            default:
+                return this.selectedEdition?.shortName || 'http://snomed.info/sct';
+        }
+    }
+
+    constructor(private fb: FormBuilder,
                 private simplexService: SimplexService,
                 private snackBar: MatSnackBar,
                 private uiConfigurationService: UiConfigurationService,
                 private changeDetectorRef: ChangeDetectorRef,
                 private terminologyService: TerminologyService,
                 private route: ActivatedRoute,
-                private dialog: MatDialog) {}
-
-
-
-  ngOnInit(): void {
-    if (!this.isSubscribedToEdition) {
-      const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
-        if (edition && !this.isInitialized) {
-          this.selectedEdition = edition;
-          this.isInitialized = true;
-          
-          if (!edition.namespace) {
-            this.refreshEdition();
-          } else {
-            this.getTranslations();
-          }
-          this.changeDetectorRef.detectChanges();
-        }
-      });
-      this.subscriptions.add(editionSubscription);
-      this.isSubscribedToEdition = true;
+                private dialog: MatDialog) {
     }
 
-    // Subscribe to route parameter changes to handle edition changes
-    const routeSubscription = this.route.params.subscribe(params => {
-      const editionParam = params['edition'];
-      if (editionParam && this.selectedEdition?.shortName !== editionParam) {
-        // Edition changed, reset component and reload
-        this.resetComponent();
-        
-        // Re-initialize with new edition
+
+    ngOnInit(): void {
         if (!this.isSubscribedToEdition) {
-          this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
-            if (edition && edition.shortName === editionParam) {
-              this.selectedEdition = edition;
-              this.isInitialized = true;
-              
-              if (!edition.namespace) {
-                this.refreshEdition();
-              } else {
-                this.getTranslations();
-              }
-              this.changeDetectorRef.detectChanges();
+            const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+                if (edition && !this.isInitialized) {
+                    this.selectedEdition = edition;
+                    this.isInitialized = true;
+
+                    if (!edition.namespace) {
+                        this.refreshEdition();
+                    } else {
+                        this.getTranslations();
+                    }
+                    this.changeDetectorRef.detectChanges();
+                }
+            });
+            this.subscriptions.add(editionSubscription);
+            this.isSubscribedToEdition = true;
+        }
+
+        // Subscribe to route parameter changes to handle edition changes
+        const routeSubscription = this.route.params.subscribe(params => {
+            const editionParam = params['edition'];
+            if (editionParam && this.selectedEdition?.shortName !== editionParam) {
+                // Edition changed, reset component and reload
+                this.resetComponent();
+
+                // Re-initialize with new edition
+                if (!this.isSubscribedToEdition) {
+                    this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+                        if (edition && edition.shortName === editionParam) {
+                            this.selectedEdition = edition;
+                            this.isInitialized = true;
+
+                            if (!edition.namespace) {
+                                this.refreshEdition();
+                            } else {
+                                this.getTranslations();
+                            }
+                            this.changeDetectorRef.detectChanges();
+                        }
+                    });
+                    this.isSubscribedToEdition = true;
+                }
             }
-          });
-          this.isSubscribedToEdition = true;
-        }
-      }
-    });
-    this.subscriptions.add(routeSubscription);
-
-    // Set up automatic label computation from name field
-    this.form.get('name')?.valueChanges.subscribe(name => {
-      if (name) {
-        const computedLabel = this.computeLabelFromName(name);
-        this.form.patchValue({ label: computedLabel }, { emitEvent: false });
-      }
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.stopPolling();
-    this.subscriptions.unsubscribe();
-    this.isInitialized = false; // Reset initialization flag
-    this.isSubscribedToEdition = false; // Reset subscription flag
-  }
-
-  // Method to handle component reuse when navigating to the same route
-  private resetComponent(): void {
-    this.isInitialized = false;
-    this.isSubscribedToEdition = false;
-    this.translationSetsLoaded = false; // Reset translation sets loaded flag
-    this.translations = [];
-    this.labelSets = [];
-    this.selectedLabelSet = null;
-    this.selectedLabelSetMembers = [];
-    this.stopPolling();
-    // Set loading states to show skeleton during reset
-    this.loading = true;
-    this.loadingSets = false;
-    this.loadingTranslations = false;
-    this.loadingLabelSetMembers = false;
-    this.loadingLabelSetDetails = false;
-  }
-
-  openWeblateUrl(url: string) {
-    if (url) {
-      window.open(url, '_blank');
-    }
-  }
-
-  openAssignWorkDialog(): void {
-    if (!this.selectedLabelSet) {
-      this.snackBar.open('Please select a translation set first.', 'Close', {
-        duration: 3000
-      });
-      return;
-    }
-
-    const dialogRef = this.dialog.open(AssignWorkDialogComponent, {
-      width: '500px',
-      data: {
-        edition: this.selectedEdition.shortName,
-        refsetId: this.selectedLabelSet.refset,
-        labelSetName: this.selectedLabelSet.name,
-        label: this.selectedLabelSet.label
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && result.action === 'assign') {
-        console.log('Work assignments:', result.assignments);
-        // Here you would implement the actual work assignment logic
-        const totalUsers = result.assignments.length;
-        const assignmentDetails = result.assignments
-          .map((assignment: any) => `${assignment.user.full_name} (${assignment.workPercentage}%)`)
-          .join(', ');
-        this.snackBar.open(`Work will be assigned to ${totalUsers} user(s): ${assignmentDetails}`, 'Close', {
-          duration: 5000
         });
-      }
-    });
-  }
+        this.subscriptions.add(routeSubscription);
 
-  setupAiTranslation(): void {
-    if (!this.selectedLabelSet) {
-      this.snackBar.open('Please select a translation set first.', 'Close', {
-        duration: 3000
-      });
-      return;
-    }
-
-    const dialogRef = this.dialog.open(SetupAiTranslationDialogComponent, {
-      width: '600px',
-      data: {
-        edition: this.selectedEdition.shortName,
-        refsetId: this.selectedLabelSet.refset,
-        labelSetName: this.selectedLabelSet.name,
-        label: this.selectedLabelSet.label,
-        selectedLabelSet: this.selectedLabelSet
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && result.action === 'setup') {
-        console.log('AI Translation setup:', result);
-        // Here you would implement the actual AI translation setup logic
-        this.snackBar.open(`AI Translation setup completed for ${result.goldenExamples.length} golden examples`, 'Close', {
-          duration: 5000
+        // Set up automatic label computation from name field
+        this.form.get('name')?.valueChanges.subscribe(name => {
+            if (name) {
+                const computedLabel = this.computeLabelFromName(name);
+                this.form.patchValue({label: computedLabel}, {emitEvent: false});
+            }
         });
-        
-        // Reload the translation sets to reflect any changes made during setup
-        this.getTranslationSets();
-        
-        // If a translation set is currently selected, reload its details to get updated AI setup information
-        if (this.selectedLabelSet) {
-          this.loadLabelSetDetails(this.selectedLabelSet);
-        }
-      }
-    });
-  }
-
-  runAiBatchTranslation(): void {
-    if (!this.selectedLabelSet) {
-      this.snackBar.open('Please select a translation set first.', 'Close', {
-        duration: 3000
-      });
-      return;
     }
 
-    const dialogRef = this.dialog.open(AiBatchTranslationDialogComponent, {
-      width: '500px',
-      data: {
-        edition: this.selectedEdition.shortName,
-        refsetId: this.selectedLabelSet.refset,
-        labelSetName: this.selectedLabelSet.name,
-        label: this.selectedLabelSet.label,
-        selectedLabelSet: this.selectedLabelSet
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result && result.action === 'batch_started') {
-        console.log('AI Batch Translation started:', result);
-        this.snackBar.open(`AI translation batch started for ${result.batchSize} concepts`, 'Close', {
-          duration: 5000
-        });
-        // Reload the translation sets to show updated status
-        this.getTranslationSets();
-      }
-    });
-  }
-
-  async refreshEdition() {
-      this.loading = true;
-      lastValueFrom(this.simplexService.getEdition(this.selectedEdition.shortName)).then(
-        (edition) => {
-          this.selectedEdition = edition;
-          // Only call getTranslations if we haven't already loaded translations
-          if (this.translations.length === 0) {
-            this.getTranslations();
-          } else {
-            // If translations are already loaded, clear the loading state
-            this.loading = false;
-          }
-        },
-        (error) => {
-          console.error(error);
-          this.loading = false;
-          this.snackBar.open('Failed to refresh edition', 'Dismiss', {
-            duration: 5000
-          });
-        }
-      );
-  }
-
-  get formKeys(): string[] {
-    return Object.keys(this.form.controls);
-  }
-
-  computeLabelFromName(name: string): string {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics (accented characters)
-      .replace(/\s+/g, '-') // Replace whitespace with hyphens
-      .replace(/[^a-z0-9-]/g, '') // Remove any other non-alphanumeric characters except hyphens
-      .replace(/-+/g, '-') // Replace multiple consecutive hyphens with single hyphen
-      .replace(/^-|-$/g, ''); // Remove leading and trailing hyphens
-  }
-
-  submit() {
-    if (this.form.valid) {
-      this.saving = true;
-      const formData = this.form.value;
-      
-      // Include the disabled label field value in the form data
-      formData.label = this.form.get('label')?.value;
-      
-      // Map form data to new API format
-      const apiPayload = {
-        name: formData.name,
-        label: formData.label,
-        ecl: formData.ecl,
-        subsetType: this.determineSubsetType(),
-        selectionCodesystem: this.determineSelectionCodesystem()
-      };
-      
-      // Create the translation set using the new API format
-      this.simplexService.createTranslationSet(
-        this.selectedEdition.shortName,
-        formData.translation, // This is now the translation ID
-        apiPayload
-      ).subscribe(
-        () => {
-          this.snackBar.open('Translation set is being created', 'Dismiss', {
-            duration: 5000
-          });
-          this.form.reset();
-          this.mode = 'view';
-          this.saving = false;
-          
-          // Reload the translation sets to show the new one
-          this.getTranslationSets();
-        },
-        (error) => {
-          console.error(error);
-          
-          // Extract error message from API response
-          let errorMessage = 'Failed to create translation set';
-          if (error.error && error.error.message) {
-            errorMessage = `${errorMessage}: ${error.error.message}`;
-          }
-          
-          this.snackBar.open(errorMessage, 'Dismiss', {
-            duration: 8000
-          });
-          this.saving = false;
-        }
-      );
+    ngOnDestroy(): void {
+        this.stopPolling();
+        this.subscriptions.unsubscribe();
+        this.isInitialized = false; // Reset initialization flag
+        this.isSubscribedToEdition = false; // Reset subscription flag
     }
-  }
 
-  getTranslationSets() {
-    // Prevent duplicate calls if already loading
-    if (this.loadingSets) {
-      return;
-    }
-    
-    this.loadingSets = true;
-    
-    this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
-      (allTranslationSets) => {
-        // Filter out translation sets with status "DELETING" and join with translations data
-        const newLabelSets = allTranslationSets
-          .filter((translationSet: any) => translationSet.status !== 'DELETING')
-          .map((translationSet: any) => {
-            const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
-            return {
-              ...translationSet,
-              translationId: translationSet.refset,
-              translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
-            };
-          });
-
-        // Preserve detailed information (translated, changedSinceCreatedOrLastPulled) from existing labelSets
-        // if they were previously loaded via the detailed API
-        this.labelSets = this.preserveDetailedInformation(newLabelSets);
-
-        this.loadingSets = false;
-        this.translationSetsLoaded = true; // Mark that translation sets have been loaded
-        // Clear the main loading state once we have data
-        if (this.loading) {
-          this.loading = false;
-        }
-        
-        // Check if any translation sets are processing and manage polling
-        this.managePolling();
-      },
-      (error) => {
-        console.error(error);
-        this.snackBar.open('Failed to fetch translation sets', 'Dismiss', {
-          duration: 5000
-        });
-        this.loadingSets = false;
-        this.loading = false;
-        this.translationSetsLoaded = true; // Mark as loaded even on error
+    // Method to handle component reuse when navigating to the same route
+    private resetComponent(): void {
+        this.isInitialized = false;
+        this.isSubscribedToEdition = false;
+        this.translationSetsLoaded = false; // Reset translation sets loaded flag
+        this.translations = [];
         this.labelSets = [];
-      }
-    );
-  }
-
-  private managePolling() {
-    const hasProcessingSets = this.labelSets.some((set: any) => set.status === 'PROCESSING');
-    
-    if (hasProcessingSets && !this.isPolling) {
-      this.startPolling();
-    } else if (!hasProcessingSets && this.isPolling) {
-      this.stopPolling();
+        this.selectedLabelSet = null;
+        this.selectedLabelSetMembers = [];
+        this.stopPolling();
+        // Set loading states to show skeleton during reset
+        this.loading = true;
+        this.loadingSets = false;
+        this.loadingTranslations = false;
+        this.loadingLabelSetMembers = false;
+        this.loadingLabelSetDetails = false;
     }
-  }
 
-  /**
-   * Preserves detailed information (translated, changedSinceCreatedOrLastPulled) from existing data
-   * when merging new translation set data from the list API
-   */
-  private preserveDetailedInformation(newLabelSets: any[]): any[] {
-    return newLabelSets.map((newSet: any) => {
-      // First check if this set matches the currently selected set with detailed information
-      if (this.selectedLabelSet && 
-          this.selectedLabelSet.id === newSet.id && 
-          this.selectedLabelSet.translationId === newSet.translationId && 
-          this.selectedLabelSet.label === newSet.label &&
-          (this.selectedLabelSet.translated > 0 || this.selectedLabelSet.changedSinceCreatedOrLastPulled > 0)) {
-        // Preserve the detailed values from the selected set
-        return {
-          ...newSet,
-          translated: this.selectedLabelSet.translated,
-          changedSinceCreatedOrLastPulled: this.selectedLabelSet.changedSinceCreatedOrLastPulled
-        };
-      }
-      
-      // Then check existing labelSets for any other sets with detailed information
-      const existingSet = this.labelSets.find((existing: any) => 
-        existing.id === newSet.id && 
-        existing.translationId === newSet.translationId && 
-        existing.label === newSet.label
-      );
-      
-      if (existingSet && (existingSet.translated > 0 || existingSet.changedSinceCreatedOrLastPulled > 0)) {
-        // Preserve the detailed values if they were previously loaded
-        return {
-          ...newSet,
-          translated: existingSet.translated,
-          changedSinceCreatedOrLastPulled: existingSet.changedSinceCreatedOrLastPulled
-        };
-      }
-      
-      return newSet;
-    });
-  }
-
-  private startPolling() {
-    this.isPolling = true;
-    this.pollingInterval = setInterval(() => {
-      this.pollTranslationSets();
-    }, 10000); // 10 seconds
-  }
-
-  private stopPolling() {
-    this.isPolling = false;
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
+    openWeblateUrl(url: string) {
+        if (url) {
+            window.open(url, '_blank');
+        }
     }
-  }
 
-  private pollTranslationSets() {
-    // Background reload without showing loading state
-    this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
-      (allTranslationSets) => {
-        // Filter out translation sets with status "DELETING" and join with translations data
-        const updatedLabelSets = allTranslationSets
-          .filter((translationSet: any) => translationSet.status !== 'DELETING')
-          .map((translationSet: any) => {
-            const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
-            return {
-              ...translationSet,
-              translationId: translationSet.refset,
-              translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
-            };
-          });
+    openAssignWorkDialog(): void {
+        if (!this.selectedLabelSet) {
+            this.snackBar.open('Please select a translation set first.', 'Close', {
+                duration: 3000
+            });
+            return;
+        }
 
-        // Preserve detailed information (translated, changedSinceCreatedOrLastPulled) from existing labelSets
-        // if they were previously loaded via the detailed API
-        const preservedLabelSets = this.preserveDetailedInformation(updatedLabelSets);
-        
-        // Check if any sets have finished processing (changed from PROCESSING to READY)
-        const previouslyProcessingSets = this.labelSets.filter((set: any) => set.status === 'PROCESSING');
-        const nowReadySets = preservedLabelSets.filter((set: any) => set.status === 'READY');
-        
-        // Find sets that were processing and are now ready
-        const finishedProcessingSets = nowReadySets.filter((nowReadySet: any) => 
-          previouslyProcessingSets.some((prevSet: any) => 
-            prevSet.id === nowReadySet.id && 
-            prevSet.translationId === nowReadySet.translationId && 
-            prevSet.label === nowReadySet.label
-          )
+        const dialogRef = this.dialog.open(AssignWorkDialogComponent, {
+            width: '500px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                refsetId: this.selectedLabelSet.refset,
+                labelSetName: this.selectedLabelSet.name,
+                label: this.selectedLabelSet.label
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result && result.action === 'assign') {
+                console.log('Work assignments:', result.assignments);
+                // Here you would implement the actual work assignment logic
+                const totalUsers = result.assignments.length;
+                const assignmentDetails = result.assignments
+                    .map((assignment: any) => `${assignment.user.full_name} (${assignment.workPercentage}%)`)
+                    .join(', ');
+                this.snackBar.open(`Work will be assigned to ${totalUsers} user(s): ${assignmentDetails}`, 'Close', {
+                    duration: 5000
+                });
+            }
+        });
+    }
+
+    export() {
+
+    }
+
+    setupAiTranslation(): void {
+        if (!this.selectedLabelSet) {
+            this.snackBar.open('Please select a translation set first.', 'Close', {
+                duration: 3000
+            });
+            return;
+        }
+
+        const dialogRef = this.dialog.open(SetupAiTranslationDialogComponent, {
+            width: '600px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                refsetId: this.selectedLabelSet.refset,
+                labelSetName: this.selectedLabelSet.name,
+                label: this.selectedLabelSet.label,
+                selectedLabelSet: this.selectedLabelSet
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result && result.action === 'setup') {
+                console.log('AI Translation setup:', result);
+                // Here you would implement the actual AI translation setup logic
+                this.snackBar.open(`AI Translation setup completed for ${result.goldenExamples.length} golden examples`, 'Close', {
+                    duration: 5000
+                });
+
+                // Reload the translation sets to reflect any changes made during setup
+                this.getTranslationSets();
+
+                // If a translation set is currently selected, reload its details to get updated AI setup information
+                if (this.selectedLabelSet) {
+                    this.loadLabelSetDetails(this.selectedLabelSet);
+                }
+            }
+        });
+    }
+
+    runAiBatchTranslation(): void {
+        if (!this.selectedLabelSet) {
+            this.snackBar.open('Please select a translation set first.', 'Close', {
+                duration: 3000
+            });
+            return;
+        }
+
+        const dialogRef = this.dialog.open(AiBatchTranslationDialogComponent, {
+            width: '500px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                refsetId: this.selectedLabelSet.refset,
+                labelSetName: this.selectedLabelSet.name,
+                label: this.selectedLabelSet.label,
+                selectedLabelSet: this.selectedLabelSet
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result && result.action === 'batch_started') {
+                console.log('AI Batch Translation started:', result);
+                this.snackBar.open(`AI translation batch started for ${result.batchSize} concepts`, 'Close', {
+                    duration: 5000
+                });
+                // Reload the translation sets to show updated status
+                this.getTranslationSets();
+            }
+        });
+    }
+
+    async refreshEdition() {
+        this.loading = true;
+        lastValueFrom(this.simplexService.getEdition(this.selectedEdition.shortName)).then(
+            (edition) => {
+                this.selectedEdition = edition;
+                // Only call getTranslations if we haven't already loaded translations
+                if (this.translations.length === 0) {
+                    this.getTranslations();
+                } else {
+                    // If translations are already loaded, clear the loading state
+                    this.loading = false;
+                }
+            },
+            (error) => {
+                console.error(error);
+                this.loading = false;
+                this.snackBar.open('Failed to refresh edition', 'Dismiss', {
+                    duration: 5000
+                });
+            }
         );
-        
-        // If any sets finished processing, fetch detailed information for all of them
-        if (finishedProcessingSets.length > 0) {
-          finishedProcessingSets.forEach((finishedSet: any) => {
-            this.simplexService.getTranslationSetDetails(
-              this.selectedEdition.shortName,
-              finishedSet.translationId,
-              finishedSet.label
+    }
+
+    get formKeys(): string[] {
+        return Object.keys(this.form.controls);
+    }
+
+    computeLabelFromName(name: string): string {
+        return name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics (accented characters)
+            .replace(/\s+/g, '-') // Replace whitespace with hyphens
+            .replace(/[^a-z0-9-]/g, '') // Remove any other non-alphanumeric characters except hyphens
+            .replace(/-+/g, '-') // Replace multiple consecutive hyphens with single hyphen
+            .replace(/^-|-$/g, ''); // Remove leading and trailing hyphens
+    }
+
+    submit() {
+        if (this.form.valid) {
+            this.saving = true;
+            const formData = this.form.value;
+
+            // Include the disabled label field value in the form data
+            formData.label = this.form.get('label')?.value;
+
+            // Map form data to new API format
+            const apiPayload = {
+                name: formData.name,
+                label: formData.label,
+                ecl: formData.ecl,
+                subsetType: this.determineSubsetType(),
+                selectionCodesystem: this.determineSelectionCodesystem()
+            };
+
+            // Create the translation set using the new API format
+            this.simplexService.createTranslationSet(
+                this.selectedEdition.shortName,
+                formData.translation, // This is now the translation ID
+                apiPayload
             ).subscribe(
-              (details) => {
-                // Update the corresponding item in labelSets array with detailed information
-                const labelSetIndex = this.labelSets.findIndex((set: any) => 
-                  set.id === finishedSet.id && 
-                  set.translationId === finishedSet.translationId && 
-                  set.label === finishedSet.label
-                );
-                
-                if (labelSetIndex !== -1) {
-                  this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...details };
+                () => {
+                    this.snackBar.open('Translation set is being created', 'Dismiss', {
+                        duration: 5000
+                    });
+                    this.form.reset();
+                    this.mode = 'view';
+                    this.saving = false;
+
+                    // Reload the translation sets to show the new one
+                    this.getTranslationSets();
+                },
+                (error) => {
+                    console.error(error);
+
+                    // Extract error message from API response
+                    let errorMessage = 'Failed to create translation set';
+                    if (error.error && error.error.message) {
+                        errorMessage = `${errorMessage}: ${error.error.message}`;
+                    }
+
+                    this.snackBar.open(errorMessage, 'Dismiss', {
+                        duration: 8000
+                    });
+                    this.saving = false;
                 }
-                
-                // If this is the currently selected set, update it as well
-                if (this.selectedLabelSet && 
-                    this.selectedLabelSet.id === finishedSet.id && 
-                    this.selectedLabelSet.translationId === finishedSet.translationId && 
-                    this.selectedLabelSet.label === finishedSet.label) {
-                  this.selectedLabelSet = { ...this.selectedLabelSet, ...details };
-                }
-              },
-              (error) => {
-                console.error('Error fetching detailed info for finished set:', error);
-              }
             );
-          });
         }
-        
-        // Update the list without showing loading state
-        this.labelSets = preservedLabelSets;
-        
-        // Silently update selectedLabelSet if it exists
-        if (this.selectedLabelSet) {
-          const updatedSelectedSet = preservedLabelSets.find((set: any) => set.id === this.selectedLabelSet.id);
-          if (updatedSelectedSet) {
-            this.selectedLabelSet = updatedSelectedSet;
-          }
+    }
+
+    getTranslationSets() {
+        // Prevent duplicate calls if already loading
+        if (this.loadingSets) {
+            return;
         }
-        
-        // Show notification if any sets finished processing
-        if (finishedProcessingSets.length > 0) {
-          const setNames = finishedProcessingSets.map(set => set.name).join(', ');
-          this.snackBar.open(`Translation set(s) finished processing: ${setNames}`, 'Close', {
-            duration: 4000
-          });
+
+        this.loadingSets = true;
+
+        this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
+            (allTranslationSets) => {
+                // Filter out translation sets with status "DELETING" and join with translations data
+                const newLabelSets = allTranslationSets
+                    .filter((translationSet: any) => translationSet.status !== 'DELETING')
+                    .map((translationSet: any) => {
+                        const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
+                        return {
+                            ...translationSet,
+                            translationId: translationSet.refset,
+                            translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
+                        };
+                    });
+
+                // Preserve detailed information (translated, changedSinceCreatedOrLastPulled) from existing labelSets
+                // if they were previously loaded via the detailed API
+                this.labelSets = this.preserveDetailedInformation(newLabelSets);
+
+                this.loadingSets = false;
+                this.translationSetsLoaded = true; // Mark that translation sets have been loaded
+                // Clear the main loading state once we have data
+                if (this.loading) {
+                    this.loading = false;
+                }
+
+                // Check if any translation sets are processing and manage polling
+                this.managePolling();
+            },
+            (error) => {
+                console.error(error);
+                this.snackBar.open('Failed to fetch translation sets', 'Dismiss', {
+                    duration: 5000
+                });
+                this.loadingSets = false;
+                this.loading = false;
+                this.translationSetsLoaded = true; // Mark as loaded even on error
+                this.labelSets = [];
+            }
+        );
+    }
+
+    private managePolling() {
+        const hasProcessingSets = this.labelSets.some((set: any) => set.status === 'PROCESSING');
+
+        if (hasProcessingSets && !this.isPolling) {
+            this.startPolling();
+        } else if (!hasProcessingSets && this.isPolling) {
+            this.stopPolling();
         }
-        
-        // Check if polling should continue
-        this.managePolling();
-      },
-      (error) => {
-        console.error('Background polling error:', error);
-        // Don't show error to user for background polling
-      }
-    );
-  }
+    }
 
+    /**
+     * Preserves detailed information (translated, changedSinceCreatedOrLastPulled) from existing data
+     * when merging new translation set data from the list API
+     */
+    private preserveDetailedInformation(newLabelSets: any[]): any[] {
+        return newLabelSets.map((newSet: any) => {
+            // First check if this set matches the currently selected set with detailed information
+            if (this.selectedLabelSet &&
+                this.selectedLabelSet.id === newSet.id &&
+                this.selectedLabelSet.translationId === newSet.translationId &&
+                this.selectedLabelSet.label === newSet.label &&
+                (this.selectedLabelSet.translated > 0 || this.selectedLabelSet.changedSinceCreatedOrLastPulled > 0)) {
+                // Preserve the detailed values from the selected set
+                return {
+                    ...newSet,
+                    translated: this.selectedLabelSet.translated,
+                    changedSinceCreatedOrLastPulled: this.selectedLabelSet.changedSinceCreatedOrLastPulled
+                };
+            }
 
+            // Then check existing labelSets for any other sets with detailed information
+            const existingSet = this.labelSets.find((existing: any) =>
+                existing.id === newSet.id &&
+                existing.translationId === newSet.translationId &&
+                existing.label === newSet.label
+            );
 
-  getLabelSetMembers(labelSet: any) {
-    this.loadingLabelSetMembers = true;
-    this.simplexService.getLabelSetMembers(this.selectedEdition.shortName, labelSet.refset, labelSet.label).subscribe(
-      (labelSetMembers) => {
-        this.selectedLabelSetMembers = labelSetMembers.results;
-        this.loadingLabelSetMembers = false;
-        this.changeDetectorRef.detectChanges();
-      },
-      (error) => {
-        console.error(error);
-        this.snackBar.open('Failed to fetch label set members', 'Dismiss', {
-          duration: 5000
+            if (existingSet && (existingSet.translated > 0 || existingSet.changedSinceCreatedOrLastPulled > 0)) {
+                // Preserve the detailed values if they were previously loaded
+                return {
+                    ...newSet,
+                    translated: existingSet.translated,
+                    changedSinceCreatedOrLastPulled: existingSet.changedSinceCreatedOrLastPulled
+                };
+            }
+
+            return newSet;
         });
-        this.loadingLabelSetMembers = false;
-      }
-    );
-  }
-
-  selectSet(labelSet: any) {
-    this.selectedLabelSet = labelSet;
-    
-    // Only load translation-set members if status is READY
-    if (labelSet.status === 'READY') {
-      this.loadLabelSetDetails(labelSet);
-    } else {
-      // Clear members if status is not READY
-      this.selectedLabelSetMembers = [];
-    }
-  }
-
-  setMode(mode: string) {
-    this.mode = mode;
-    if (mode === 'create') {
-      // Reset the form when entering create mode
-      this.form.reset();
-      // Reset ECL input method properties
-      this.eclInputMethod = 'subtype';
-      this.selectedRefsetCode = '';
-      this.selectedDerivativeCode = '';
-      this.selectedSubtype = null; // Reset subtype
-      // Reset cache flags to allow fresh data loading
-      this.refsetsLoaded = false;
-      this.derivativesLoaded = false;
-    }
-  }
-
-  getTranslations() {
-    // Prevent duplicate calls if already loading
-    if (this.loadingTranslations) {
-      return;
-    }
-    
-    this.loadingTranslations = true;
-    // Disable the translation form control while loading
-    this.form.get('translation')?.disable();
-    
-    this.simplexService.getTranslations(this.selectedEdition.shortName).subscribe(
-      (translations) => {
-        // Filter out translations with status "DELETING"
-        this.translations = translations.filter(translation => translation.status !== 'DELETING');
-        this.loadingTranslations = false;
-        // Re-enable the translation form control after loading
-        this.form.get('translation')?.enable();
-        
-        // Load translation sets after translations are loaded
-        this.getTranslationSets();
-      },
-      (error) => {
-        console.error(error);
-        this.snackBar.open('Failed to fetch translations', 'Dismiss', {
-          duration: 5000
-        });
-        this.loadingTranslations = false;
-        this.loading = false;
-        // Re-enable the translation form control after error
-        this.form.get('translation')?.enable();
-      }
-    );
-  }
-
-  onTranslationChange() {
-    if (this.selectedTranslation) {
-      // Clear current selection
-      this.selectedLabelSet = null;
-      this.selectedLabelSetMembers = [];
-      
-      // Load translation sets for the selected translation
-      this.getTranslationSets();
-    }
-  }
-
-  onEclInputMethodChange() {
-    // Clear the ECL field and selected refset/derivative/subtype when switching input methods
-    this.form.patchValue({ ecl: '' });
-    this.selectedRefsetCode = '';
-    this.selectedDerivativeCode = '';
-    this.selectedSubtype = null; // Clear subtype on method change
-    
-    // Load refsets from server when refset option is selected (only if not already loaded)
-    if (this.eclInputMethod === 'refset' && !this.refsetsLoaded) {
-      this.loadRefsetsFromServer();
-    }
-    
-    // Load derivatives from server when derivative option is selected (only if not already loaded)
-    if ((this.eclInputMethod === 'derivative' || this.eclInputMethod === 'manual') && !this.derivativesLoaded) {
-      this.loadDerivativesFromServer();
-    }
-    
-    // Validate branchPath is available when subtype option is selected
-    if (this.eclInputMethod === 'subtype' && !this.selectedEdition?.branchPath) {
-      this.snackBar.open('Branch path not available. Please ensure an edition is selected.', 'Dismiss', {
-        duration: 5000
-      });
-      // Reset to manual mode if branchPath is not available
-      this.eclInputMethod = 'manual';
-    }
-  }
-
-  onRefsetSelectionChange(refsetCode: string) {
-    // Set the selected refset code for the dropdown display
-    this.selectedRefsetCode = refsetCode;
-    
-    // Find the selected refset to get its display name
-    const selectedRefset = this.refsets.find(refset => refset.code === refsetCode);
-    if (selectedRefset) {
-      // Format ECL as: ^ refsetCode |refset display|
-      const eclValue = `^ ${selectedRefset.code} |${selectedRefset.display}|`;
-      this.form.patchValue({ ecl: eclValue });
-    }
-  }
-
-  onDerivativeSelectionChange(derivativeCode: string) {
-    // Set the selected derivative code for the dropdown display
-    this.selectedDerivativeCode = derivativeCode;
-    
-    // Find the selected derivative to get its display name
-    const selectedDerivative = this.derivatives.find(derivative => derivative.code === derivativeCode);
-    if (selectedDerivative) {
-      // Format ECL as: ^ derivativeCode |derivative display|
-      const eclValue = `^ ${selectedDerivative.code} |${selectedDerivative.display}|`;
-      this.form.patchValue({ ecl: eclValue });
-    }
-  }
-
-  onSubtypeSelectionChange(subtype: any) {
-    // Set the selected subtype
-    this.selectedSubtype = subtype;
-    
-    if (subtype && subtype.code) {
-      // Format ECL as: << subtypeCode |subtype display|
-      const eclValue = `<< ${subtype.code} |${subtype.display}|`;
-      this.form.patchValue({ ecl: eclValue });
-    } else {
-      // Clear ECL if no subtype selected
-      this.form.patchValue({ ecl: '' });
-    }
-  }
-
-  deleteTranslationSet() {
-    console.log('Delete button clicked');
-    console.log('selectedLabelSet:', this.selectedLabelSet);
-    
-    if (!this.selectedLabelSet) {
-      console.log('Missing required data for deletion');
-      return;
     }
 
-    const label = this.selectedLabelSet.label;
-    const translationId = this.selectedLabelSet.translationId;
-    console.log('Label from selectedLabelSet:', label);
-    console.log('Translation ID from selectedLabelSet:', translationId);
-    
-    if (!label) {
-      console.log('No label found in selectedLabelSet');
-      this.snackBar.open('No label found for this translation set', 'Dismiss', {
-        duration: 5000
-      });
-      return;
+    private startPolling() {
+        this.isPolling = true;
+        this.pollingInterval = setInterval(() => {
+            this.pollTranslationSets();
+        }, 10000); // 10 seconds
     }
 
-    // Show confirmation dialog
-    if (confirm(`Are you sure you want to delete the translation set "${this.selectedLabelSet.name}"?`)) {
-      this.deleting = true;
-      this.simplexService.deleteTranslationSet(
-        this.selectedEdition.shortName,
-        translationId,
-        label
-      ).subscribe(
-        () => {
-          this.snackBar.open('Translation set deleted successfully', 'Dismiss', {
-            duration: 5000
-          });
-          // Clear selection and reload translation sets
-          this.selectedLabelSet = null;
-          this.selectedLabelSetMembers = [];
-          this.getTranslationSets();
-          this.deleting = false;
-        },
-        (error) => {
-          console.error(error);
-          this.snackBar.open('Failed to delete translation set', 'Dismiss', {
-            duration: 5000
-          });
-          this.deleting = false;
+    private stopPolling() {
+        this.isPolling = false;
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
         }
-      );
     }
-  }
 
-  /**
-   * Loads refsets array from a specific ECL with moduleId replacement
-   * @param moduleId The module ID to replace in the ECL
-   * @param fhirBase Optional FHIR base URL (defaults to /snowstorm/snomed-ct/fhir)
-   * @param fhirUrl Optional FHIR URL parameter
-   * @param offset Optional offset for pagination
-   * @param count Optional count for pagination
-   * @returns Observable with the refsets array
-   */
-  loadRefsetsArray(moduleId: string, fhirBase?: string, fhirUrl?: string, offset?: number, count?: number) {
-    const baseEcl = `(< 446609009 |Simple type reference set (foundation metadata concept)| OR < 900000000000496009 |Simple map from SNOMED CT type reference set (foundation metadata concept)| OR < 1187636009 |Simple map to SNOMED CT type reference set (foundation metadata concept)| OR < 1193543008 |Simple map with correlation to SNOMED CT type reference set (foundation metadata concept)|) {{ C moduleId = ${moduleId} }}`;
-    
-    // Use the specified FHIR base or default to /snowstorm/snomed-ct/fhir
-    const serverUrl = fhirBase || '/snowstorm/snomed-ct/fhir';
-    
-    return this.terminologyService.expandValueSetFromServer(serverUrl, fhirUrl, baseEcl, '', offset, count);
-  }
+    private pollTranslationSets() {
+        // Background reload without showing loading state
+        this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
+            (allTranslationSets) => {
+                // Filter out translation sets with status "DELETING" and join with translations data
+                const updatedLabelSets = allTranslationSets
+                    .filter((translationSet: any) => translationSet.status !== 'DELETING')
+                    .map((translationSet: any) => {
+                        const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
+                        return {
+                            ...translationSet,
+                            translationId: translationSet.refset,
+                            translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
+                        };
+                    });
 
-  /**
-   * Determines the subset type based on the ECL input method
-   * @returns 'ECL', 'REFSET', or 'SUB_TYPE' (though SUB_TYPE is not yet implemented)
-   */
-  private determineSubsetType(): string {
-    switch (this.eclInputMethod) {
-      case 'manual':
-        return 'ECL';
-      case 'refset':
-        return 'REFSET';
-      case 'derivative':
-        return 'REFSET'; // Derivatives are also reference sets
-      case 'subtype':
-        return 'SUB_TYPE';
-      default:
-        return 'ECL';
+                // Preserve detailed information (translated, changedSinceCreatedOrLastPulled) from existing labelSets
+                // if they were previously loaded via the detailed API
+                const preservedLabelSets = this.preserveDetailedInformation(updatedLabelSets);
+
+                // Check if any sets have finished processing (changed from PROCESSING to READY)
+                const previouslyProcessingSets = this.labelSets.filter((set: any) => set.status === 'PROCESSING');
+                const nowReadySets = preservedLabelSets.filter((set: any) => set.status === 'READY');
+
+                // Find sets that were processing and are now ready
+                const finishedProcessingSets = nowReadySets.filter((nowReadySet: any) =>
+                    previouslyProcessingSets.some((prevSet: any) =>
+                        prevSet.id === nowReadySet.id &&
+                        prevSet.translationId === nowReadySet.translationId &&
+                        prevSet.label === nowReadySet.label
+                    )
+                );
+
+                // If any sets finished processing, fetch detailed information for all of them
+                if (finishedProcessingSets.length > 0) {
+                    finishedProcessingSets.forEach((finishedSet: any) => {
+                        this.simplexService.getTranslationSetDetails(
+                            this.selectedEdition.shortName,
+                            finishedSet.translationId,
+                            finishedSet.label
+                        ).subscribe(
+                            (details) => {
+                                // Update the corresponding item in labelSets array with detailed information
+                                const labelSetIndex = this.labelSets.findIndex((set: any) =>
+                                    set.id === finishedSet.id &&
+                                    set.translationId === finishedSet.translationId &&
+                                    set.label === finishedSet.label
+                                );
+
+                                if (labelSetIndex !== -1) {
+                                    this.labelSets[labelSetIndex] = {...this.labelSets[labelSetIndex], ...details};
+                                }
+
+                                // If this is the currently selected set, update it as well
+                                if (this.selectedLabelSet &&
+                                    this.selectedLabelSet.id === finishedSet.id &&
+                                    this.selectedLabelSet.translationId === finishedSet.translationId &&
+                                    this.selectedLabelSet.label === finishedSet.label) {
+                                    this.selectedLabelSet = {...this.selectedLabelSet, ...details};
+                                }
+                            },
+                            (error) => {
+                                console.error('Error fetching detailed info for finished set:', error);
+                            }
+                        );
+                    });
+                }
+
+                // Update the list without showing loading state
+                this.labelSets = preservedLabelSets;
+
+                // Silently update selectedLabelSet if it exists
+                if (this.selectedLabelSet) {
+                    const updatedSelectedSet = preservedLabelSets.find((set: any) => set.id === this.selectedLabelSet.id);
+                    if (updatedSelectedSet) {
+                        this.selectedLabelSet = updatedSelectedSet;
+                    }
+                }
+
+                // Show notification if any sets finished processing
+                if (finishedProcessingSets.length > 0) {
+                    const setNames = finishedProcessingSets.map(set => set.name).join(', ');
+                    this.snackBar.open(`Translation set(s) finished processing: ${setNames}`, 'Close', {
+                        duration: 4000
+                    });
+                }
+
+                // Check if polling should continue
+                this.managePolling();
+            },
+            (error) => {
+                console.error('Background polling error:', error);
+                // Don't show error to user for background polling
+            }
+        );
     }
-  }
 
-  /**
-   * Determines the selection codesystem based on the ECL input method and selected items
-   * @returns The codesystem identifier
-   */
-  private determineSelectionCodesystem(): string {
-    return this.selectedCodesystem;
-  }
 
-  /**
-   * Loads derivatives from the server using the fixed URL
-   */
-  loadDerivativesFromServer() {
-    this.loadingDerivatives = true;
-    
-    this.terminologyService.getDerivativesFromServer().subscribe(
-      (response) => {
-        if (response?.referenceSets) {
-          // Transform the response to match the expected derivatives format
-          this.derivatives = Object.values(response.referenceSets).map((refset: any) => ({
-            editionUri: 'http://snomed.info/sct/705115006', // Keep the same edition URI for consistency
-            code: refset.conceptId,
-            display: refset.pt?.term || refset.fsn?.term || `Derivative ${refset.conceptId}`,
-            fsn: refset.fsn?.term,
-            active: refset.active,
-            definitionStatus: refset.definitionStatus,
-            moduleId: refset.moduleId,
-            effectiveTime: refset.effectiveTime,
-            memberCount: response.memberCountsByReferenceSet?.[refset.conceptId] || 0
-          }));
+    getLabelSetMembers(labelSet: any) {
+        this.loadingLabelSetMembers = true;
+        this.simplexService.getLabelSetMembers(this.selectedEdition.shortName, labelSet.refset, labelSet.label).subscribe(
+            (labelSetMembers) => {
+                this.selectedLabelSetMembers = labelSetMembers.results;
+                this.loadingLabelSetMembers = false;
+                this.changeDetectorRef.detectChanges();
+            },
+            (error) => {
+                console.error(error);
+                this.snackBar.open('Failed to fetch label set members', 'Dismiss', {
+                    duration: 5000
+                });
+                this.loadingLabelSetMembers = false;
+            }
+        );
+    }
+
+    selectSet(labelSet: any) {
+        this.selectedLabelSet = labelSet;
+
+        // Only load translation-set members if status is READY
+        if (labelSet.status === 'READY') {
+            this.loadLabelSetDetails(labelSet);
         } else {
-          console.warn('No derivatives found in response:', response);
-          this.derivatives = [];
+            // Clear members if status is not READY
+            this.selectedLabelSetMembers = [];
         }
-        this.loadingDerivatives = false;
-        this.derivativesLoaded = true; // Mark as loaded for caching
-      },
-      (error) => {
-        console.error('Error loading derivatives:', error);
-        this.snackBar.open('Failed to load derivatives from server', 'Dismiss', {
-          duration: 5000
-        });
-        this.loadingDerivatives = false;
-        // Keep empty array as fallback
-        this.derivatives = [];
-      }
-    );
-  }
-
-  /**
-   * Loads refsets from the server using the selected edition's module ID
-   */
-  loadRefsetsFromServer() {
-    if (!this.selectedEdition?.defaultModule) {
-      console.warn('No default module available for loading refsets');
-      return;
     }
 
-    this.loadingRefsets = true;
-    
-    // Use the default module directly
-    const moduleId = this.selectedEdition.defaultModule;
-    console.log('Using defaultModule:', moduleId);
-    
-    // Use the branch path directly from the selected edition
-    const branchPath = this.selectedEdition.branchPath;
-    console.log('Using branchPath:', branchPath);
-    
-    this.terminologyService.getRefsetsFromNativeApi(branchPath, moduleId).subscribe(
-      (response) => {
-        if (response?.items && response.items.length > 0) {
-          // Transform the response to match the expected refsets format
-          this.refsets = response.items.map((item: any) => ({
-            code: item.conceptId,
-            display: item.pt?.term || item.fsn?.term || `Refset ${item.conceptId}`,
-            fsn: item.fsn?.term,
-            active: item.active,
-            definitionStatus: item.definitionStatus,
-            moduleId: item.moduleId,
-            effectiveTime: item.effectiveTime
-          }));
+    setMode(mode: string) {
+        this.mode = mode;
+        if (mode === 'create') {
+            // Reset the form when entering create mode
+            this.form.reset();
+            // Reset ECL input method properties
+            this.eclInputMethod = 'subtype';
+            this.selectedRefsetCode = '';
+            this.selectedDerivativeCode = '';
+            this.selectedSubtype = null; // Reset subtype
+            // Reset cache flags to allow fresh data loading
+            this.refsetsLoaded = false;
+            this.derivativesLoaded = false;
+        }
+    }
+
+    getTranslations() {
+        // Prevent duplicate calls if already loading
+        if (this.loadingTranslations) {
+            return;
+        }
+
+        this.loadingTranslations = true;
+        // Disable the translation form control while loading
+        this.form.get('translation')?.disable();
+
+        this.simplexService.getTranslations(this.selectedEdition.shortName).subscribe(
+            (translations) => {
+                // Filter out translations with status "DELETING"
+                this.translations = translations.filter(translation => translation.status !== 'DELETING');
+                this.loadingTranslations = false;
+                // Re-enable the translation form control after loading
+                this.form.get('translation')?.enable();
+
+                // Load translation sets after translations are loaded
+                this.getTranslationSets();
+            },
+            (error) => {
+                console.error(error);
+                this.snackBar.open('Failed to fetch translations', 'Dismiss', {
+                    duration: 5000
+                });
+                this.loadingTranslations = false;
+                this.loading = false;
+                // Re-enable the translation form control after error
+                this.form.get('translation')?.enable();
+            }
+        );
+    }
+
+    onTranslationChange() {
+        if (this.selectedTranslation) {
+            // Clear current selection
+            this.selectedLabelSet = null;
+            this.selectedLabelSetMembers = [];
+
+            // Load translation sets for the selected translation
+            this.getTranslationSets();
+        }
+    }
+
+    onEclInputMethodChange() {
+        // Clear the ECL field and selected refset/derivative/subtype when switching input methods
+        this.form.patchValue({ecl: ''});
+        this.selectedRefsetCode = '';
+        this.selectedDerivativeCode = '';
+        this.selectedSubtype = null; // Clear subtype on method change
+
+        // Load refsets from server when refset option is selected (only if not already loaded)
+        if (this.eclInputMethod === 'refset' && !this.refsetsLoaded) {
+            this.loadRefsetsFromServer();
+        }
+
+        // Load derivatives from server when derivative option is selected (only if not already loaded)
+        if ((this.eclInputMethod === 'derivative' || this.eclInputMethod === 'manual') && !this.derivativesLoaded) {
+            this.loadDerivativesFromServer();
+        }
+
+        // Validate branchPath is available when subtype option is selected
+        if (this.eclInputMethod === 'subtype' && !this.selectedEdition?.branchPath) {
+            this.snackBar.open('Branch path not available. Please ensure an edition is selected.', 'Dismiss', {
+                duration: 5000
+            });
+            // Reset to manual mode if branchPath is not available
+            this.eclInputMethod = 'manual';
+        }
+    }
+
+    onRefsetSelectionChange(refsetCode: string) {
+        // Set the selected refset code for the dropdown display
+        this.selectedRefsetCode = refsetCode;
+
+        // Find the selected refset to get its display name
+        const selectedRefset = this.refsets.find(refset => refset.code === refsetCode);
+        if (selectedRefset) {
+            // Format ECL as: ^ refsetCode |refset display|
+            const eclValue = `^ ${selectedRefset.code} |${selectedRefset.display}|`;
+            this.form.patchValue({ecl: eclValue});
+        }
+    }
+
+    onDerivativeSelectionChange(derivativeCode: string) {
+        // Set the selected derivative code for the dropdown display
+        this.selectedDerivativeCode = derivativeCode;
+
+        // Find the selected derivative to get its display name
+        const selectedDerivative = this.derivatives.find(derivative => derivative.code === derivativeCode);
+        if (selectedDerivative) {
+            // Format ECL as: ^ derivativeCode |derivative display|
+            const eclValue = `^ ${selectedDerivative.code} |${selectedDerivative.display}|`;
+            this.form.patchValue({ecl: eclValue});
+        }
+    }
+
+    onSubtypeSelectionChange(subtype: any) {
+        // Set the selected subtype
+        this.selectedSubtype = subtype;
+
+        if (subtype && subtype.code) {
+            // Format ECL as: << subtypeCode |subtype display|
+            const eclValue = `<< ${subtype.code} |${subtype.display}|`;
+            this.form.patchValue({ecl: eclValue});
         } else {
-          console.warn('No refsets found in response:', response);
-          this.refsets = [];
+            // Clear ECL if no subtype selected
+            this.form.patchValue({ecl: ''});
         }
-        this.loadingRefsets = false;
-        this.refsetsLoaded = true; // Mark as loaded for caching
-      },
-      (error) => {
-        console.error('Error loading refsets:', error);
-        this.snackBar.open('Failed to load refsets from server', 'Dismiss', {
-          duration: 5000
-        });
-        this.loadingRefsets = false;
-        // Keep the hardcoded refsets as fallback
-      }
-    );
-  }
-
-  loadLabelSetDetails(labelSet: any) {
-    if (!labelSet || !this.selectedEdition) {
-      return;
     }
 
-    // Increment request ID to track this as the most recent request
-    const requestId = ++this.currentLabelSetRequestId;
-    this.loadingLabelSetDetails = true;
-    
-    this.simplexService.getTranslationSetDetails(
-      this.selectedEdition.shortName,
-      labelSet.translationId,
-      labelSet.label
-    ).subscribe(
-      (details) => {
-        // Only update if this is still the most recent request
-        if (requestId === this.currentLabelSetRequestId) {
-          this.selectedLabelSet = { ...this.selectedLabelSet, ...details };
-          
-          // Also update the corresponding item in labelSets array to preserve detailed information
-          const labelSetIndex = this.labelSets.findIndex((set: any) => 
-            set.id === this.selectedLabelSet.id && 
-            set.translationId === this.selectedLabelSet.translationId && 
-            set.label === this.selectedLabelSet.label
-          );
-          
-          if (labelSetIndex !== -1) {
-            this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...details };
-          }
-          
-          this.loadingLabelSetDetails = false;
-          
-          // Load translation-set members after details have been loaded
-          this.getLabelSetMembers(this.selectedLabelSet);
-          
-          this.changeDetectorRef.detectChanges();
-        }
-      },
-      (error) => {
-        console.error('Error loading label set details:', error);
-        // Only update loading state if this is still the most recent request
-        if (requestId === this.currentLabelSetRequestId) {
-          this.loadingLabelSetDetails = false;
-          this.changeDetectorRef.detectChanges();
-        }
-      }
-    );
-  }
+    deleteTranslationSet() {
+        console.log('Delete button clicked');
+        console.log('selectedLabelSet:', this.selectedLabelSet);
 
-  pullFromWeblate() {
-    if (!this.selectedLabelSet) {
-      this.snackBar.open('No translation set selected', 'Dismiss', {
-        duration: 5000
-      });
-      return;
+        if (!this.selectedLabelSet) {
+            console.log('Missing required data for deletion');
+            return;
+        }
+
+        const label = this.selectedLabelSet.label;
+        const translationId = this.selectedLabelSet.translationId;
+        console.log('Label from selectedLabelSet:', label);
+        console.log('Translation ID from selectedLabelSet:', translationId);
+
+        if (!label) {
+            console.log('No label found in selectedLabelSet');
+            this.snackBar.open('No label found for this translation set', 'Dismiss', {
+                duration: 5000
+            });
+            return;
+        }
+
+        // Show confirmation dialog
+        if (confirm(`Are you sure you want to delete the translation set "${this.selectedLabelSet.name}"?`)) {
+            this.deleting = true;
+            this.simplexService.deleteTranslationSet(
+                this.selectedEdition.shortName,
+                translationId,
+                label
+            ).subscribe(
+                () => {
+                    this.snackBar.open('Translation set deleted successfully', 'Dismiss', {
+                        duration: 5000
+                    });
+                    // Clear selection and reload translation sets
+                    this.selectedLabelSet = null;
+                    this.selectedLabelSetMembers = [];
+                    this.getTranslationSets();
+                    this.deleting = false;
+                },
+                (error) => {
+                    console.error(error);
+                    this.snackBar.open('Failed to delete translation set', 'Dismiss', {
+                        duration: 5000
+                    });
+                    this.deleting = false;
+                }
+            );
+        }
     }
 
-    const label = this.selectedLabelSet.label;
-    const translationId = this.selectedLabelSet.translationId;
-    
-    if (!label) {
-      this.snackBar.open('No label found for this translation set', 'Dismiss', {
-        duration: 5000
-      });
-      return;
+    /**
+     * Loads refsets array from a specific ECL with moduleId replacement
+     * @param moduleId The module ID to replace in the ECL
+     * @param fhirBase Optional FHIR base URL (defaults to /snowstorm/snomed-ct/fhir)
+     * @param fhirUrl Optional FHIR URL parameter
+     * @param offset Optional offset for pagination
+     * @param count Optional count for pagination
+     * @returns Observable with the refsets array
+     */
+    loadRefsetsArray(moduleId: string, fhirBase?: string, fhirUrl?: string, offset?: number, count?: number) {
+        const baseEcl = `(< 446609009 |Simple type reference set (foundation metadata concept)| OR < 900000000000496009 |Simple map from SNOMED CT type reference set (foundation metadata concept)| OR < 1187636009 |Simple map to SNOMED CT type reference set (foundation metadata concept)| OR < 1193543008 |Simple map with correlation to SNOMED CT type reference set (foundation metadata concept)|) {{ C moduleId = ${moduleId} }}`;
+
+        // Use the specified FHIR base or default to /snowstorm/snomed-ct/fhir
+        const serverUrl = fhirBase || '/snowstorm/snomed-ct/fhir';
+
+        return this.terminologyService.expandValueSetFromServer(serverUrl, fhirUrl, baseEcl, '', offset, count);
     }
 
-    // Show confirmation dialog
-    if (confirm(`Are you sure you want to pull content from Translation Tool for "${this.selectedLabelSet.name}"?`)) {
-      this.simplexService.pullFromWeblate(
-        this.selectedEdition.shortName,
-        translationId,
-        label
-      ).subscribe(
-        () => {
-          this.snackBar.open('Task is scheduled', 'Dismiss', {
-            duration: 5000
-          });
-          // Reload the translation set to show updated data
-          this.getLabelSetMembers(this.selectedLabelSet);
-        },
-        (error) => {
-          console.error(error);
-          this.snackBar.open('Failed to pull content from Translation Tool', 'Dismiss', {
-            duration: 5000
-          });
+    /**
+     * Determines the subset type based on the ECL input method
+     * @returns 'ECL', 'REFSET', or 'SUB_TYPE' (though SUB_TYPE is not yet implemented)
+     */
+    private determineSubsetType(): string {
+        switch (this.eclInputMethod) {
+            case 'manual':
+                return 'ECL';
+            case 'refset':
+                return 'REFSET';
+            case 'derivative':
+                return 'REFSET'; // Derivatives are also reference sets
+            case 'subtype':
+                return 'SUB_TYPE';
+            default:
+                return 'ECL';
         }
-      );
     }
-  }
+
+    /**
+     * Determines the selection codesystem based on the ECL input method and selected items
+     * @returns The codesystem identifier
+     */
+    private determineSelectionCodesystem(): string {
+        return this.selectedCodesystem;
+    }
+
+    /**
+     * Loads derivatives from the server using the fixed URL
+     */
+    loadDerivativesFromServer() {
+        this.loadingDerivatives = true;
+
+        this.terminologyService.getDerivativesFromServer().subscribe(
+            (response) => {
+                if (response?.referenceSets) {
+                    // Transform the response to match the expected derivatives format
+                    this.derivatives = Object.values(response.referenceSets).map((refset: any) => ({
+                        editionUri: 'http://snomed.info/sct/705115006', // Keep the same edition URI for consistency
+                        code: refset.conceptId,
+                        display: refset.pt?.term || refset.fsn?.term || `Derivative ${refset.conceptId}`,
+                        fsn: refset.fsn?.term,
+                        active: refset.active,
+                        definitionStatus: refset.definitionStatus,
+                        moduleId: refset.moduleId,
+                        effectiveTime: refset.effectiveTime,
+                        memberCount: response.memberCountsByReferenceSet?.[refset.conceptId] || 0
+                    }));
+                } else {
+                    console.warn('No derivatives found in response:', response);
+                    this.derivatives = [];
+                }
+                this.loadingDerivatives = false;
+                this.derivativesLoaded = true; // Mark as loaded for caching
+            },
+            (error) => {
+                console.error('Error loading derivatives:', error);
+                this.snackBar.open('Failed to load derivatives from server', 'Dismiss', {
+                    duration: 5000
+                });
+                this.loadingDerivatives = false;
+                // Keep empty array as fallback
+                this.derivatives = [];
+            }
+        );
+    }
+
+    /**
+     * Loads refsets from the server using the selected edition's module ID
+     */
+    loadRefsetsFromServer() {
+        if (!this.selectedEdition?.defaultModule) {
+            console.warn('No default module available for loading refsets');
+            return;
+        }
+
+        this.loadingRefsets = true;
+
+        // Use the default module directly
+        const moduleId = this.selectedEdition.defaultModule;
+        console.log('Using defaultModule:', moduleId);
+
+        // Use the branch path directly from the selected edition
+        const branchPath = this.selectedEdition.branchPath;
+        console.log('Using branchPath:', branchPath);
+
+        this.terminologyService.getRefsetsFromNativeApi(branchPath, moduleId).subscribe(
+            (response) => {
+                if (response?.items && response.items.length > 0) {
+                    // Transform the response to match the expected refsets format
+                    this.refsets = response.items.map((item: any) => ({
+                        code: item.conceptId,
+                        display: item.pt?.term || item.fsn?.term || `Refset ${item.conceptId}`,
+                        fsn: item.fsn?.term,
+                        active: item.active,
+                        definitionStatus: item.definitionStatus,
+                        moduleId: item.moduleId,
+                        effectiveTime: item.effectiveTime
+                    }));
+                } else {
+                    console.warn('No refsets found in response:', response);
+                    this.refsets = [];
+                }
+                this.loadingRefsets = false;
+                this.refsetsLoaded = true; // Mark as loaded for caching
+            },
+            (error) => {
+                console.error('Error loading refsets:', error);
+                this.snackBar.open('Failed to load refsets from server', 'Dismiss', {
+                    duration: 5000
+                });
+                this.loadingRefsets = false;
+                // Keep the hardcoded refsets as fallback
+            }
+        );
+    }
+
+    loadLabelSetDetails(labelSet: any) {
+        if (!labelSet || !this.selectedEdition) {
+            return;
+        }
+
+        // Increment request ID to track this as the most recent request
+        const requestId = ++this.currentLabelSetRequestId;
+        this.loadingLabelSetDetails = true;
+
+        this.simplexService.getTranslationSetDetails(
+            this.selectedEdition.shortName,
+            labelSet.translationId,
+            labelSet.label
+        ).subscribe(
+            (details) => {
+                // Only update if this is still the most recent request
+                if (requestId === this.currentLabelSetRequestId) {
+                    this.selectedLabelSet = {...this.selectedLabelSet, ...details};
+
+                    // Also update the corresponding item in labelSets array to preserve detailed information
+                    const labelSetIndex = this.labelSets.findIndex((set: any) =>
+                        set.id === this.selectedLabelSet.id &&
+                        set.translationId === this.selectedLabelSet.translationId &&
+                        set.label === this.selectedLabelSet.label
+                    );
+
+                    if (labelSetIndex !== -1) {
+                        this.labelSets[labelSetIndex] = {...this.labelSets[labelSetIndex], ...details};
+                    }
+
+                    this.loadingLabelSetDetails = false;
+
+                    // Load translation-set members after details have been loaded
+                    this.getLabelSetMembers(this.selectedLabelSet);
+
+                    this.changeDetectorRef.detectChanges();
+                }
+            },
+            (error) => {
+                console.error('Error loading label set details:', error);
+                // Only update loading state if this is still the most recent request
+                if (requestId === this.currentLabelSetRequestId) {
+                    this.loadingLabelSetDetails = false;
+                    this.changeDetectorRef.detectChanges();
+                }
+            }
+        );
+    }
+
+    pullFromWeblate() {
+        if (!this.selectedLabelSet) {
+            this.snackBar.open('No translation set selected', 'Dismiss', {
+                duration: 5000
+            });
+            return;
+        }
+
+        const label = this.selectedLabelSet.label;
+        const translationId = this.selectedLabelSet.translationId;
+
+        if (!label) {
+            this.snackBar.open('No label found for this translation set', 'Dismiss', {
+                duration: 5000
+            });
+            return;
+        }
+
+        // Show confirmation dialog
+        if (confirm(`Are you sure you want to pull content from Translation Tool for "${this.selectedLabelSet.name}"?`)) {
+            this.simplexService.pullFromWeblate(
+                this.selectedEdition.shortName,
+                translationId,
+                label
+            ).subscribe(
+                () => {
+                    this.snackBar.open('Task is scheduled', 'Dismiss', {
+                        duration: 5000
+                    });
+                    // Reload the translation set to show updated data
+                    this.getLabelSetMembers(this.selectedLabelSet);
+                },
+                (error) => {
+                    console.error(error);
+                    this.snackBar.open('Failed to pull content from Translation Tool', 'Dismiss', {
+                        duration: 5000
+                    });
+                }
+            );
+        }
+    }
+
+
 }

@@ -29,11 +29,11 @@
                     [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
                         {{ set.name }}
                         <span class="pill pill-blue">{{ set.translationName }}</span>
-                        <mat-icon *ngIf="set.status === 'PROCESSING'" 
-                                 matTooltip="Status: {{ set.status }}&#10;{{ set.percentageProcessed }}% complete" 
+                        <mat-icon *ngIf="set.status === 'PROCESSING'"
+                                 matTooltip="Status: {{ set.status }}&#10;{{ set.percentageProcessed }}% complete"
                                  matTooltipClass="multiline-tooltip"
                                  class="processing-icon">schedule</mat-icon>
-                        <mat-icon *ngIf="set.status === 'FAILED'" 
+                        <mat-icon *ngIf="set.status === 'FAILED'"
                                 matTooltip="Status: {{ set.status }}"
                                 class="processing-icon">error</mat-icon>
                         <span *ngIf="set.size" class="artifact-info">{{ set.size }} concepts</span>
@@ -59,7 +59,7 @@
                         <h2>{{ selectedLabelSet.name }}</h2>
                     </div>
                 </div>
-    
+
                 <br><br>
                 <div>
                     <div class="component-row" *ngIf="selectedLabelSet.status !== 'READY'">
@@ -105,12 +105,12 @@
                             <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
                             <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
                                 {{ selectedLabelSet.changedSinceCreatedOrLastPulled || 0 }}
-                                <span *ngIf="selectedLabelSet.lastPulled" 
+                                <span *ngIf="selectedLabelSet.lastPulled"
                                       matTooltip="Last pulled: {{ selectedLabelSet.lastPulled | date:'medium' }}"
                                       class="last-pulled-hint">
                                     ({{ selectedLabelSet.lastPulled | timeAgo }})
                                 </span>
-                                <span *ngIf="!selectedLabelSet.lastPulled && selectedLabelSet.created" 
+                                <span *ngIf="!selectedLabelSet.lastPulled && selectedLabelSet.created"
                                       matTooltip="Created: {{ selectedLabelSet.created | date:'medium' }}"
                                       class="created-hint">
                                     ({{ selectedLabelSet.created | timeAgo }})
@@ -126,7 +126,7 @@
                         <mat-icon class="large-icon">translate</mat-icon>
                         Open in Translation Tool
                     </button>
-                    
+
                     <button mat-stroked-button [matMenuTriggerFor]="actionsMenu" [disabled]="selectedLabelSet.status === 'PROCESSING'"
                         style="margin-left: 10px;">
                         <mat-icon class="large-icon">more_vert</mat-icon>
@@ -141,8 +141,8 @@
                                 <mat-icon class="large-icon">flash_on</mat-icon>
                                 Setup AI Translation
                             </button>
-                            <button mat-menu-item (click)="runAiBatchTranslation()" 
-                                    [disabled]="selectedLabelSet.status === 'PROCESSING'" 
+                            <button mat-menu-item (click)="runAiBatchTranslation()"
+                                    [disabled]="selectedLabelSet.status === 'PROCESSING'"
                                     *ngIf="selectedLabelSet.aiSetupComplete">
                                 <mat-icon class="large-icon">flash_on</mat-icon>
                                 Run AI Translation
@@ -156,6 +156,14 @@
                                 <span>Delete Set</span>
                                 <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
                             </button>
+                            @if(translationMode) {
+                                <button mat-menu-item (click)="export()">
+                                    <mat-icon class="large-icon">file_download</mat-icon>
+                                    <span>Export</span>
+                                    <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+                                </button>
+                            }
+
                         </mat-menu>
                 </div>
                 <br><br>
@@ -187,7 +195,7 @@
                                     <i>{{ unit.context }} |{{ unit.source }}|</i>
                                 </td>
                             </ng-container>
-                            
+
                             <!-- Translation Column -->
                             <ng-container matColumnDef="translation">
                                 <th mat-header-cell *matHeaderCellDef>Translation</th>
@@ -195,7 +203,7 @@
                                     {{ unit.target }}
                                 </td>
                             </ng-container>
-                            
+
                             <tr mat-header-row *matHeaderRowDef="['concept', 'translation']"></tr>
                             <tr mat-row *matRowDef="let row; columns: ['concept', 'translation'];"></tr>
                         </table>
@@ -211,7 +219,7 @@
                 <mat-form-field>
                     <mat-label>Name</mat-label>
                     <input matInput formControlName="name">
-                    <button *ngIf="form.get('name')?.value" matSuffix 
+                    <button *ngIf="form.get('name')?.value" matSuffix
                         mat-icon-button aria-label="Clear" (click)="form.get('name')?.setValue('')">
                         <mat-icon>close</mat-icon>
                     </button>
@@ -222,7 +230,7 @@
                 <mat-form-field>
                     <mat-label>Translation</mat-label>
                     <mat-select formControlName="translation">
-                        <mat-option *ngFor="let translation of translations" 
+                        <mat-option *ngFor="let translation of translations"
                                    [value]="translation.id"
                                    [disabled]="!translation.isWeblate">
                             {{translation.pt.term}}{{!translation.isWeblate ? ' (Not linked to Translation Tool)' : ''}}
@@ -243,7 +251,7 @@
                 <div class="ecl-input-section">
                     <h4>Selection Method</h4>
                     <mat-radio-group [(ngModel)]="eclInputMethod" (change)="onEclInputMethodChange()" [ngModelOptions]="{standalone: true}">
-                        <mat-radio-button value="subtype" 
+                        <mat-radio-button value="subtype"
                                          [disabled]="!selectedEdition?.branchPath"
                                          [matTooltip]="!selectedEdition?.branchPath ? 'Branch path not available. Please ensure an edition is selected.' : ''">
                             Select a concept and all descendants
@@ -258,12 +266,12 @@
                 <mat-form-field *ngIf="eclInputMethod === 'manual'">
                     <mat-label>ECL</mat-label>
                     <input matInput formControlName="ecl">
-                    <button *ngIf="form.get('ecl')?.value" matSuffix 
+                    <button *ngIf="form.get('ecl')?.value" matSuffix
                         mat-icon-button aria-label="Clear" (click)="form.get('ecl')?.setValue('')">
                         <mat-icon>close</mat-icon>
                     </button>
                     <mat-error *ngIf="form.get('ecl')?.hasError('required')">ECL is required</mat-error>
-                    
+
                 </mat-form-field>
 
                 <!-- Refset Selection -->
@@ -311,7 +319,7 @@
                     </app-autocomplete-binding>
                 </div>
             </form>
-            
+
             <!-- Codesystem information -->
             <div class="codesystem-info" *ngIf="selectedCodesystem === 'SNOMEDCT-DERIVATIVES'">
                 <mat-icon class="info-icon">info</mat-icon>
@@ -319,7 +327,7 @@
                     The set will be created from concepts in the SNOMED CT Derivatives Edition.
                 </span>
             </div>
-            
+
             <div>
                 <button mat-flat-button (click)="mode = 'view'" *ngIf="!saving">Cancel</button>
                 <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="form.invalid">Create</button>

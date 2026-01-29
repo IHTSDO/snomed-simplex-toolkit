@@ -9,6 +9,9 @@ import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-con
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CookieService } from 'ngx-cookie-service';
+import * as config from '../../../assets/config.json';
+import {DrawerService} from "../../services/drawer/drawer.service";
+import {ConfigService, LauncherApp} from "../../services/config/config.service";
 
 @Component({
     selector: 'app-snomed-navbar',
@@ -19,6 +22,7 @@ export class SnomedNavbarComponent implements OnInit {
 
     @Input() selectedEdition: any = null;
 
+    translationMode = config.translationMode;
     environment: string;
     path: string;
 
@@ -45,16 +49,25 @@ export class SnomedNavbarComponent implements OnInit {
     loading = false;
     private readonly SELECTED_EDITION_COOKIE_NAME = 'selectedEdition';
 
+    apps: LauncherApp[] = [];
+
     constructor(
-        private authenticationService: AuthenticationService, 
+        private authenticationService: AuthenticationService,
         private location: Location,
         private snackBar: MatSnackBar,
         private legalAgreementService: LegalAgreementService,
         private uiConfigurationService: UiConfigurationService,
+        private configService: ConfigService,
         private route: ActivatedRoute,
         private router: Router,
         private simplexService: SimplexService,
+        private drawerService: DrawerService,
         private cookieService: CookieService) {
+            this.userSubscription = this.authenticationService.getUser().subscribe(data => {
+                this.user = data;
+                const allApps = this.configService.getLauncherApps();
+                this.apps = allApps.filter(a => !a.clientName || this.user.clientAccess.includes(a.clientName));
+            });
         }
 
     ngOnInit() {
@@ -111,23 +124,28 @@ export class SnomedNavbarComponent implements OnInit {
             this.selectedEdition = edition;
         });
     }
-        
+
+    openDrawer() {
+        this.drawerService.setDrawerOpen(true);
+        document.body.classList.add('app-drawer-open');
+    }
+
     loadEditions(editionParam: string | null) {
         if (!this.uiConfigurationService.getConfiguration()) {
             this.initialize();
         }
         this.editions = [];
         this.loading = true;
-        
+
         lastValueFrom(this.simplexService.getEditions()).then(
             (editions) => {
             // Remove editions with empty names
             editions.items = editions.items.filter((item) => item.name);
             this.editions = editions.items;
-        
+
             // Find the edition that matches the 'edition' parameter, if available
             const matchedEdition = this.editions.find((item) => item.shortName === editionParam);
-        
+
             // Select the matched edition or fall back to the first one
             if (editionParam && matchedEdition) {
                 this.selectEdition(matchedEdition);
@@ -135,7 +153,7 @@ export class SnomedNavbarComponent implements OnInit {
                 // Check for saved edition in cookie
                 const savedEditionShortName = this.getSavedEdition();
                 const savedEdition = this.editions.find((item) => item.shortName === savedEditionShortName);
-                
+
                 if (savedEdition) {
                     this.selectEdition(savedEdition);
                 } else {
@@ -149,7 +167,7 @@ export class SnomedNavbarComponent implements OnInit {
             }
         );
     }
-          
+
 
     logout() {
         this.simplexService.logout();
@@ -191,18 +209,32 @@ export class SnomedNavbarComponent implements OnInit {
         }
     }
 
+    getInitials(user: User): string {
+        let initials = '';
+
+        if (user.firstName) {
+            initials += user.firstName?.charAt(0).toUpperCase();
+        }
+
+        if (user.lastName) {
+            initials += user.lastName?.charAt(0).toUpperCase();
+        }
+
+        return initials;
+    }
+
     updateEditionInUrl(edition: string) {
         // Get the current active route
         const currentRoute = this.router.url;
         // Check if the current route has an 'edition' parameter, update it or append if not
         const newRoute = currentRoute.includes('/home') ? ['home'] :
                          currentRoute.includes('artifacts/') ? ['artifact', edition] :
-                         currentRoute.includes('artifact/') ? ['artifact', edition] :                 
+                         currentRoute.includes('artifact/') ? ['artifact', edition] :
                          currentRoute.includes('manage/') ? ['manage', edition] :
                          currentRoute.includes('info/') ? ['info', edition] :
                          currentRoute.includes('releases/') ? ['releases', edition] :
                          currentRoute.includes('translation-dashboard/') ? ['translation-dashboard', edition] : ['artifact', edition];
-    
+
         // Navigate to the new route while keeping the current path structure
         this.router.navigate(newRoute);
     }
@@ -214,5 +246,5 @@ export class SnomedNavbarComponent implements OnInit {
     goAdmin() {
         this.router.navigate(['/admin']);
     }
-    
+
 }
