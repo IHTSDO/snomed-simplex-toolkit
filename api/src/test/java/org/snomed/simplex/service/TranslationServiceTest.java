@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.snomed.simplex.client.domain.Concepts.US_LANG_REFSET;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 
@@ -104,7 +105,7 @@ class TranslationServiceTest {
 				List.of(new Concept("").setConceptId("880529761000119102"),
 						new Concept("").setConceptId("740215071000132100"),
 						new Concept("").setConceptId("674814021000119106")));
-		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
+		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), anyString());
 
 		service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"), false,
 				snowstormClientFactory.getClient(), new DummyProgressMonitor());
