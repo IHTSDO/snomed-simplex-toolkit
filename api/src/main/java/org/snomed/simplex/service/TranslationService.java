@@ -10,6 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.authoringservices.AuthoringServicesClient;
+import org.snomed.simplex.client.authoringservices.Project;
+import org.snomed.simplex.client.authoringservices.Task;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.Page;
@@ -23,6 +26,7 @@ import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.weblate.WeblateExplanationCreator;
 import org.snomed.simplex.weblate.pojo.WeblateFormat;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +41,7 @@ import static java.lang.Long.parseLong;
 import static java.lang.String.format;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
+import static org.springframework.data.util.Predicates.negate;
 
 @Service
 public class TranslationService {
@@ -55,10 +60,15 @@ public class TranslationService {
 
 	private final SimpleRefsetService refsetService;
 	private final SnowstormClientFactory snowstormClientFactory;
+	private final AuthoringServicesClient authoringServicesClient;
 
-	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory) {
+	@Value("${simplex.mode:standard}")
+	private String simplexMode;
+
+	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory, AuthoringServicesClient authoringServicesClient) {
 		this.refsetService = refsetService;
 		this.snowstormClientFactory = snowstormClientFactory;
+		this.authoringServicesClient = authoringServicesClient;
 	}
 
 	@PostConstruct
@@ -217,6 +227,7 @@ public class TranslationService {
 		int processed = 0;
 		int batchSize = 500;
 		ChangeSummary changeSummary = new ChangeSummary();
+		String translationWorkingBranchPath = getTranslationWorkingBranchPath(codeSystem, languageRefsetId);
 		for (List<Long> conceptIdBatch : Lists.partition(new ArrayList<>(conceptDescriptions.keySet()), batchSize)) {
 			if (processed > 0 && processed % 1_000 == 0) {
 				logger.info("Processed {} / {}", processed, conceptDescriptions.size());
@@ -234,8 +245,8 @@ public class TranslationService {
 				}
 			}
 			if (!conceptsToUpdate.isEmpty()) {
-				logger.info("Updating {} concepts on {}", conceptsToUpdate.size(), codeSystem.getWorkingBranchPath());
-				snowstormClient.createUpdateBrowserFormatConcepts(conceptsToUpdate, codeSystem);
+				logger.info("Updating {} concepts on {}", conceptsToUpdate.size(), translationWorkingBranchPath);
+				snowstormClient.createUpdateBrowserFormatConcepts(conceptsToUpdate, translationWorkingBranchPath);
 			}
 			processed += conceptIdBatch.size();
 			progressMonitor.setRecordsProcessed(processed);
@@ -243,8 +254,50 @@ public class TranslationService {
 
 		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
 		changeSummary.setNewTotal(newActiveCount);
-		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
+		logger.info("translation upload complete on {}: {}", translationWorkingBranchPath, changeSummary);
 		return changeSummary;
+	}
+
+	private String getTranslationWorkingBranchPath(CodeSystem codeSystem, String languageRefsetId) throws ServiceException {
+		if ("standard".equalsIgnoreCase(simplexMode)) {
+			return codeSystem.getWorkingBranchPath();
+		}
+
+		Set<Project> projects = authoringServicesClient.getProjects(codeSystem.getShortName(), true);
+		if (projects == null || projects.isEmpty()) {
+			throw new ServiceException("CodeSystem " + codeSystem.getShortName() + " has no translation projects.");
+		}
+
+		Project project = projects.iterator().next();
+		Set<Task> tasks = authoringServicesClient.getTasks(project.getKey());
+		tasks.removeIf(negate(Task::isOpen));
+		if (!tasks.isEmpty()) {
+			throw new ServiceException(tasks.size() + " tasks are currently open for project " + project.getKey());
+		}
+
+		String translationWorkingTask = tryCreateTranslationWorkingTask(project, languageRefsetId);
+		if (translationWorkingTask == null) {
+			throw new ServiceException("Failed to create task for translation project " + project.getKey() + ".");
+		}
+
+		return translationWorkingTask;
+	}
+
+	private String tryCreateTranslationWorkingTask(Project project, String languageRefsetId) throws ServiceExceptionWithStatusCode {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+
+		// Create task
+		Task task = authoringServicesClient.createTask(project.getKey(), "Translation Dashboard Import (reference set: " + languageRefsetId + ")");
+
+		// Create branch
+		String projectBranchPath = project.getBranchPath();
+		Branch branch = snowstormClient.createBranch(projectBranchPath, task.getKey());
+		String taskBranchPath = branch.getPath();
+
+		// Flag task as complex
+		snowstormClient.setAuthorFlag(taskBranchPath, Branch.BATCH_CHANGE, "true");
+
+		return taskBranchPath;
 	}
 
 	private String replaceBadCharacters(Description description) {

@@ -682,6 +682,10 @@ public class SnowstormClient {
 	}
 
 	public void createUpdateBrowserFormatConcepts(List<Concept> conceptsToUpdate, CodeSystem codeSystem) throws ServiceException {
+		createUpdateBrowserFormatConcepts(conceptsToUpdate, codeSystem.getWorkingBranchPath());
+	}
+
+	public void createUpdateBrowserFormatConcepts(List<Concept> conceptsToUpdate, String branchPath) throws ServiceException {
 		if (conceptsToUpdate == null || conceptsToUpdate.isEmpty()) {
 			return;
 		}
@@ -697,7 +701,6 @@ public class SnowstormClient {
 			}
 		}
 
-		String branchPath = codeSystem.getWorkingBranchPath();
 		deleteConcepts(conceptsToDelete, branchPath);
 
 		// Start an async bulk update job
@@ -711,6 +714,24 @@ public class SnowstormClient {
 			}
 			waitForAsyncJob(location, "COMPLETED", "FAILED");
 			logger.info("Completed bulk create/update on {}", branchPath);
+		}
+	}
+
+	public Branch setAuthorFlag(String branchPath, String name, String value) {
+		if (branchPath == null || branchPath.isBlank() || name == null || name.isBlank() || value == null || value.isBlank()) {
+			return null;
+		}
+
+		String authorFlagsUrl = postAuthorFlag(branchPath);
+		logger.trace("POST {}", authorFlagsUrl);
+
+		try {
+			Map<String, String> body = Map.of("name", name, "value", value);
+			ResponseEntity<Branch> responseEntity = restTemplate.postForEntity(authorFlagsUrl, new HttpEntity<>(body), Branch.class);
+			return responseEntity.getBody();
+		} catch (Exception e) {
+			logger.error("POST {} failed: {}", authorFlagsUrl, e.getMessage(), e);
+			return null;
 		}
 	}
 
@@ -881,6 +902,25 @@ public class SnowstormClient {
 		metadata.remove((Branch.SIMPLEX_TRANSLATION_METADATA_KEY + "%s").formatted(refsetId));
 		saveAllBranchMetadata(branchPath, metadata);
 		codeSystem.getTranslationLanguages().remove(refsetId);
+	}
+
+	public Branch createBranch(String parent, String name) {
+		if (parent == null || parent.isBlank() || name == null || name.isBlank()) {
+			return null;
+		}
+
+		try {
+			Map<String, String> body = Map.of("parent", parent, "name", name);
+			ResponseEntity<Branch> exchange = restTemplate.exchange("/branches", HttpMethod.POST, new HttpEntity<>(body), Branch.class);
+			return exchange.getBody();
+		} catch (Exception e) {
+			logger.error("Failed to create branch", e);
+			return null;
+		}
+	}
+
+	private String postAuthorFlag(String branchPath) {
+		return "/branches/" + branchPath + "/actions/set-author-flag";
 	}
 
 	private record ConceptBulkLoadRequest(Set<String> conceptIds) {
