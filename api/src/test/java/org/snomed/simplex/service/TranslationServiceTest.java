@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.snomed.simplex.client.domain.Concepts.US_LANG_REFSET;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 
@@ -91,8 +90,8 @@ class TranslationServiceTest {
 	void testBlankHeader() throws ServiceException {
 		SnowstormClient client = snowstormClientFactory.getClient();
 		try {
-			service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"), false,
-					client, new DummyProgressMonitor());
+			service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"),
+				client, new DummyProgressMonitor());
 			fail();
 		} catch (ServiceException e) {
 			assertEquals("Unrecognised CSV header ''", e.getMessage());
@@ -105,10 +104,10 @@ class TranslationServiceTest {
 				List.of(new Concept("").setConceptId("880529761000119102"),
 						new Concept("").setConceptId("740215071000132100"),
 						new Concept("").setConceptId("674814021000119106")));
-		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), anyString());
+		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
 
-		service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"), false,
-				snowstormClientFactory.getClient(), new DummyProgressMonitor());
+		service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"),
+			snowstormClientFactory.getClient(), new DummyProgressMonitor());
 
 		List<Concept> updatedConcepts = conceptsSentToUpdate.getValue();
 		assertEquals(3, updatedConcepts.size());
@@ -164,5 +163,46 @@ class TranslationServiceTest {
 		assertTrue(actualPTOptional.isPresent());
 		Description actualPT = actualPTOptional.get();
 		assertEquals("One", actualPT.getTerm());
+	}
+
+	@Test
+	void testCzImport() throws ServiceException, IOException {
+		File exportFile = ZipUtil.zipDirectoryRemovingCommentsAndBlankLines("src/test/resources/refset-translation-tool-example-export-cz");
+
+		String langRefset = "1100000100";
+		CodeSystem codeSystem = new CodeSystem();
+		codeSystem.setSimplexWorkingBranch("MAIN/SNOMEDCT-CZ");
+		codeSystem.setTranslationLanguages(Map.of(langRefset, "cs"));
+
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.any(), Mockito.any())).thenReturn(
+			List.of(
+				new Concept("").setConceptId("736477006"),
+				new Concept("").setConceptId("129289008"),
+				new Concept("").setConceptId("260342000"),
+				new Concept("").setConceptId("297871000"),
+				new Concept("").setConceptId("414737001"),
+				new Concept("").setConceptId("448224002")
+					.addDescription(new Description(Description.Type.SYNONYM, "en", "28 gauge", CASE_INSENSITIVE).setReleased(true))
+			));// two descriptions in this one
+		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
+
+		try (FileInputStream inputStream = new FileInputStream(exportFile)) {
+			service.uploadTranslationAsRefsetToolArchive(langRefset, codeSystem, inputStream, true, new DummyProgressMonitor());
+		}
+
+		List<Concept> actualConcepts = conceptsSentToUpdate.getValue();
+		List<Description> allDescriptions = actualConcepts.stream().map(Concept::getDescriptions).flatMap(List::stream).filter(d -> d.getLang().equals("cs")).toList();
+		int a = 0;
+		assertEquals("transformace lékové formy|CASE_INSENSITIVE", toString(allDescriptions.get(a++)));
+		assertEquals("drenáž - výkon|CASE_INSENSITIVE", toString(allDescriptions.get(a++)));
+		assertEquals("pozice na 8:30 hodinách|CASE_INSENSITIVE", toString(allDescriptions.get(a++)));
+		assertEquals("jazyk Teda|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a++)));
+		assertEquals("ml/cm H2O|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a++)));
+		assertEquals("ml/cm vody|CASE_INSENSITIVE", toString(allDescriptions.get(a++)));
+		assertEquals("28 Gauge|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a)));
+	}
+
+	private String toString(Description description) {
+		return "%s|%s".formatted(description.getTerm(), description.getCaseSignificance());
 	}
 }
