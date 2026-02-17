@@ -284,7 +284,7 @@ public class WeblateSetService {
 		}
 		try (FileInputStream fileInputStream = new FileInputStream(subsetFile)) {
 			contentJob.addUpload(fileInputStream, "weblate-automatic-download.csv");
-			ChangeSummary result = translationService.uploadTranslationAsWeblateCSV(true, contentJob);
+			ChangeSummary result = translationService.uploadTranslationAsWeblateCSV(contentJob);
 
 			// Update the last pulled timestamp after successful pull
 			translationSet.setLastPulled(new Date());

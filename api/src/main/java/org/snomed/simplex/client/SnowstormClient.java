@@ -682,10 +682,7 @@ public class SnowstormClient {
 	}
 
 	public void createUpdateBrowserFormatConcepts(List<Concept> conceptsToUpdate, CodeSystem codeSystem) throws ServiceException {
-		createUpdateBrowserFormatConcepts(conceptsToUpdate, codeSystem.getWorkingBranchPath());
-	}
-
-	public void createUpdateBrowserFormatConcepts(List<Concept> conceptsToUpdate, String branchPath) throws ServiceException {
+		String branchPath = codeSystem.getWorkingBranchPath();
 		if (conceptsToUpdate == null || conceptsToUpdate.isEmpty()) {
 			return;
 		}

@@ -2,6 +2,7 @@ package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.PostConstruct;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -293,8 +294,7 @@ public class TranslationController {
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob uploadTranslationFromWeblate(@PathVariable String codeSystem, @PathVariable String refsetId,
-			@RequestParam MultipartFile file,
-			@RequestParam(defaultValue = "true") boolean translationTermsUseTitleCase) throws ServiceException, IOException {
+			@RequestParam MultipartFile file) throws ServiceException, IOException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
@@ -302,7 +302,7 @@ public class TranslationController {
 		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation upload", refsetId)
 			.addUpload(file.getInputStream(), file.getOriginalFilename());
 		return jobService.queueContentJob(contentJob, refsetId, activity,
-			asyncJob -> translationService.uploadTranslationAsWeblateCSV(translationTermsUseTitleCase, asyncJob));
+			asyncJob -> translationService.uploadTranslationAsWeblateCSV(asyncJob));
 	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")

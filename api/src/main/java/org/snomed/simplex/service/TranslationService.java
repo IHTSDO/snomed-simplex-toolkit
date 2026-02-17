@@ -46,9 +46,19 @@ import static org.springframework.data.util.Predicates.negate;
 @Service
 public class TranslationService {
 
-	public static final String NON_BREAKING_SPACE_CHARACTER = " ";
+	public static final String NON_BREAKING_SPACE_CHARACTER = "\u00A0";
+	public static final String NARROW_NON_BREAKING_SPACE_CHARACTER = "\u202F";
+	public static final String FIGURE_SPACE_CHARACTER = "\u2007";
+	public static final String ZERO_WIDTH_SPACE = "\u200B";
+	public static final String ZERO_WIDTH_NON_JOINER = "\u200C";
+	public static final String ZERO_WIDTH_JOINER = "\u200D";
+	public static final String WORD_JOINER = "\u2060";
+	public static final String ZERO_WIDTH_NON_BREAKING_SPACE = "\uFEFF";
 	public static final String EN_DASH = "–";
 	public static final String EM_DASH = "—";
+	private static final String SPACE = " ";
+	private static final String DASH = "-";
+
 
 	public static final Pattern TITLE_CASE_UPPER_CASE_SECOND_LETTER_PATTERN = Pattern.compile(".\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
 	public static final Pattern TITLE_CASE_LOWER_CASE_SECOND_LETTER_BUT_UPPER_LATER = Pattern.compile(".\\p{Lower}.*\\p{Upper}.*", Pattern.UNICODE_CHARACTER_CLASS);
@@ -158,19 +168,19 @@ public class TranslationService {
 		return translationRefsets;
 	}
 
-	public ChangeSummary uploadTranslationAsWeblateCSV(boolean translationTermsUseTitleCase, ContentJob asyncJob) throws ServiceException {
+	public ChangeSummary uploadTranslationAsWeblateCSV(ContentJob asyncJob) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(),
-				translationTermsUseTitleCase, snowstormClient, asyncJob);
+			snowstormClient, asyncJob);
 	}
 
 	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
-			boolean translationTermsUseTitleCase, SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
+		SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
 
 		String languageCode = getLanguageCodeOrThrow(languageRefsetId, codeSystem);
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
 			return doUploadTranslation(() -> readTranslationsFromWeblateCSV(inputStream, languageCode, languageRefsetId),
-					languageRefsetId, translationTermsUseTitleCase, codeSystem, snowstormClient, progressMonitor, changeMonitor);
+					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor);
 		}
 	}
 
@@ -193,12 +203,12 @@ public class TranslationService {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
 			return doUploadTranslation(() -> new RefsetToolTranslationZipReader(inputStream, languageRefsetId, ignoreCaseInImport).readUpload(),
-					languageRefsetId, true, codeSystem, snowstormClient, progressMonitor, changeMonitor);
+					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor);
 		}
 	}
 
 	private ChangeSummary doUploadTranslation(TranslationUploadProvider uploadProvider, String languageRefsetId,
-			boolean translationTermsUseTitleCase, CodeSystem codeSystem, SnowstormClient snowstormClient,
+			CodeSystem codeSystem, SnowstormClient snowstormClient,
 			ProgressMonitor progressMonitor, ChangeMonitor changeMonitor) throws ServiceException {
 
 		logger.info("Reading translation file..");
@@ -224,37 +234,51 @@ public class TranslationService {
 			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 
+		String translationWorkingBranchPath = getTranslationWorkingBranchPath(codeSystem, languageRefsetId);
+		// Override CodeSystem working branch
+		codeSystem.setSimplexWorkingBranch(translationWorkingBranchPath);
+		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor);
+
+		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
+		changeSummary.setNewTotal(newActiveCount);
+		logger.info("translation upload complete on {}: {}", translationWorkingBranchPath, changeSummary);
+		return changeSummary;
+	}
+
+	private ChangeSummary doUpdates(CodeSystem codeSystem, Map<Long, List<Description>> conceptDescriptions, String languageRefsetId, String languageCode,
+			SnowstormClient snowstormClient, ChangeMonitor changeMonitor, ProgressMonitor progressMonitor) throws ServiceException {
+
+		boolean translationTermsUseTitleCase = isTitleCaseUsed(conceptDescriptions.values());
+
+		ChangeSummary changeSummary = new ChangeSummary();
 		int processed = 0;
 		int batchSize = 500;
-		ChangeSummary changeSummary = new ChangeSummary();
-		String translationWorkingBranchPath = getTranslationWorkingBranchPath(codeSystem, languageRefsetId);
+		List<Concept> conceptsToUpdate = new ArrayList<>();
 		for (List<Long> conceptIdBatch : Lists.partition(new ArrayList<>(conceptDescriptions.keySet()), batchSize)) {
 			if (processed > 0 && processed % 1_000 == 0) {
 				logger.info("Processed {} / {}", processed, conceptDescriptions.size());
 			}
 			List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
-			List<Concept> conceptsToUpdate = new ArrayList<>();
 			for (Concept concept : concepts) {
 				List<Description> uploadedDescriptions = new ArrayList<>(conceptDescriptions.get(parseLong(concept.getConceptId())));
 				boolean anyChange = updateConceptDescriptions(concept.getConceptId(), concept.getDescriptions(), uploadedDescriptions,
-						languageCode, languageRefsetId, translationTermsUseTitleCase,
-						changeMonitor, changeSummary);
+					languageCode, languageRefsetId, translationTermsUseTitleCase,
+					changeMonitor, changeSummary);
 
 				if (anyChange) {
 					conceptsToUpdate.add(concept);
 				}
-			}
-			if (!conceptsToUpdate.isEmpty()) {
-				logger.info("Updating {} concepts on {}", conceptsToUpdate.size(), translationWorkingBranchPath);
-				snowstormClient.createUpdateBrowserFormatConcepts(conceptsToUpdate, translationWorkingBranchPath);
+				if (conceptsToUpdate.size() >= batchSize) {
+					updateConcepts(codeSystem, snowstormClient, conceptsToUpdate);
+					conceptsToUpdate = new ArrayList<>();
+				}
 			}
 			processed += conceptIdBatch.size();
 			progressMonitor.setRecordsProcessed(processed);
 		}
-
-		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
-		changeSummary.setNewTotal(newActiveCount);
-		logger.info("translation upload complete on {}: {}", translationWorkingBranchPath, changeSummary);
+		if (!conceptsToUpdate.isEmpty()) {
+			updateConcepts(codeSystem, snowstormClient, conceptsToUpdate);
+		}
 		return changeSummary;
 	}
 
@@ -300,12 +324,50 @@ public class TranslationService {
 		return taskBranchPath;
 	}
 
+	private void updateConcepts(CodeSystem codeSystem, SnowstormClient snowstormClient, List<Concept> conceptsToUpdate) throws ServiceException {
+		logger.info("Updating {} concepts on {}", conceptsToUpdate.size(), codeSystem.getWorkingBranchPath());
+		snowstormClient.createUpdateBrowserFormatConcepts(conceptsToUpdate, codeSystem);
+	}
+
+	private boolean isTitleCaseUsed(Collection<List<Description>> values) {
+		// If _no_ lowercase letters found in the first 100 terms then title case is used.
+		int tested = 0;
+		int titleCaseFound = 0;
+		Iterator<List<Description>> iterator = values.iterator();
+		while (tested < 100 && iterator.hasNext()) {
+			List<Description> descriptions = iterator.next();
+			for (Description description : descriptions) {
+				tested++;
+				if (description.getTerm().isEmpty()) {
+					continue;
+				}
+				String firstLetter = description.getTerm().substring(0, 1);
+				if (!firstLetter.equals(firstLetter.toLowerCase())) {
+					// First letter is upper case = title case
+					titleCaseFound++;
+				}
+			}
+		}
+		return tested == titleCaseFound;
+	}
+
 	private String replaceBadCharacters(Description description) {
 		String fixedTerm = description.getTerm()
-				.replace(NON_BREAKING_SPACE_CHARACTER, " ")
-				.replace(EN_DASH, "-")
-				.replace(EM_DASH, "-");
+			// Replace with space
+				.replace(NON_BREAKING_SPACE_CHARACTER, SPACE)
+				.replace(NARROW_NON_BREAKING_SPACE_CHARACTER, SPACE)
+				.replace(FIGURE_SPACE_CHARACTER, SPACE)
+			// Remove characters
+				.replace(ZERO_WIDTH_SPACE, "")
+				.replace(ZERO_WIDTH_NON_JOINER, "")
+				.replace(ZERO_WIDTH_JOINER, "")
+				.replace(WORD_JOINER, "")
+				.replace(ZERO_WIDTH_NON_BREAKING_SPACE, "")
+			// Replace with dash
+				.replace(EN_DASH, DASH)
+				.replace(EM_DASH, DASH);
 		fixedTerm = fixedTerm.replaceAll(" +", " ");// Replace multiple spaces with single
+		fixedTerm = fixedTerm.trim();
 		if (!fixedTerm.equals(description.getTerm())) {
 			logger.info("Fixed term '{}' > '{}'", description.getTerm(), fixedTerm);
 		}
@@ -577,6 +639,9 @@ public class TranslationService {
 			// If first word matches an existing released description in the same concept use case sensitivity.
 			// Doesn't make complete sense to me but there is a drools rule stating this.
 			String firstWord = getFirstWord(term);
+			if (firstWord.matches("\\d+")) {
+				return null;
+			}
 			for (Description otherDescription : otherDescriptions) {
 				if (otherDescription.isReleased() && getFirstWord(otherDescription.getTerm()).equals(firstWord)) {
 					return otherDescription.getCaseSignificance();
