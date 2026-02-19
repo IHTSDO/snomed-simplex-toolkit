@@ -621,9 +621,11 @@ public class TranslationService {
 			return CASE_INSENSITIVE;
 		}
 
-		Description.CaseSignificance caseSignificanceFromOtherDescriptions = getCaseSignificanceFromOtherDescriptions(term, otherDescriptions);
-		if (caseSignificanceFromOtherDescriptions != null) {
-			return caseSignificanceFromOtherDescriptions;
+		if (titleCaseUsed) {
+			Description.CaseSignificance caseSignificanceFromOtherDescriptions = getCaseSignificanceFromOtherDescriptions(term, otherDescriptions);
+			if (caseSignificanceFromOtherDescriptions != null) {
+				return caseSignificanceFromOtherDescriptions;
+			}
 		}
 
 		if (titleCaseUsed) {

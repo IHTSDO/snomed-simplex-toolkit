@@ -182,7 +182,9 @@ class TranslationServiceTest {
 				new Concept("").setConceptId("297871000"),
 				new Concept("").setConceptId("414737001"),
 				new Concept("").setConceptId("448224002")
-					.addDescription(new Description(Description.Type.SYNONYM, "en", "28 gauge", CASE_INSENSITIVE).setReleased(true))
+					.addDescription(new Description(Description.Type.SYNONYM, "en", "28 gauge", CASE_INSENSITIVE).setReleased(true)),
+				new Concept("").setConceptId("106845006")
+					.addDescription(new Description(Description.Type.SYNONYM, "cs", "čeleď skladokazovití", CASE_INSENSITIVE).setReleased(true))
 			));// two descriptions in this one
 		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
 
@@ -205,7 +207,9 @@ class TranslationServiceTest {
 		assertEquals("jazyk Teda|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a++)));
 		assertEquals("ml/cm H2O|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a++)));
 		assertEquals("ml/cm vody|CASE_INSENSITIVE", toString(allDescriptions.get(a++)));
-		assertEquals("28 Gauge|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a)));
+		assertEquals("28 Gauge|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a++)));
+		assertEquals("čeleď skladokazovití|CASE_INSENSITIVE", toString(allDescriptions.get(a++)));
+		assertEquals("čeleď Acaridae|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a)));
 	}
 
 	private String toString(Description description) {
