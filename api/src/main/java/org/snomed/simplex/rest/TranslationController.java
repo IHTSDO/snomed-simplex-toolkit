@@ -2,7 +2,6 @@ package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.PostConstruct;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -301,8 +300,7 @@ public class TranslationController {
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation upload", refsetId)
 			.addUpload(file.getInputStream(), file.getOriginalFilename());
-		return jobService.queueContentJob(contentJob, refsetId, activity,
-			asyncJob -> translationService.uploadTranslationAsWeblateCSV(asyncJob));
+		return jobService.queueContentJob(contentJob, refsetId, activity, translationService::uploadTranslationAsWeblateCSV);
 	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")
