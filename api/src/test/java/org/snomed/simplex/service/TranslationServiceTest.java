@@ -191,6 +191,12 @@ class TranslationServiceTest {
 		}
 
 		List<Concept> actualConcepts = conceptsSentToUpdate.getValue();
+
+		for (Concept concept : actualConcepts) {
+			Description pt = TranslationService.getPt(concept.getDescriptions(), langRefset);
+			assertNotNull(pt, () -> "Concept %s has no PT set".formatted(concept.getConceptId()));
+		}
+
 		List<Description> allDescriptions = actualConcepts.stream().map(Concept::getDescriptions).flatMap(List::stream).filter(d -> d.getLang().equals("cs")).toList();
 		int a = 0;
 		assertEquals("transformace lékové formy|CASE_INSENSITIVE", toString(allDescriptions.get(a++)));

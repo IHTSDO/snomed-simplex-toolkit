@@ -403,6 +403,12 @@ public class TranslationService {
 			}
 		}
 
+		// Ensure at least one PT for this lang-refset
+		if (!uploadedDescriptions.isEmpty() && getPt(uploadedDescriptions, languageRefsetId) == null) {
+			Description newPt = uploadedDescriptions.get(0);
+			newPt.getAcceptabilityMap().put(languageRefsetId, Description.Acceptability.PREFERRED);
+		}
+
 		// Remove any active descriptions in snowstorm with a matching concept, language and lang refset if the term is not in the latest CSV
 		List<Description> toRemove = new ArrayList<>();
 		for (Description snowstormDescription : existingDescriptions) {
@@ -513,7 +519,7 @@ public class TranslationService {
 			descriptionB.getTerm().equals(descriptionA.getTerm());
 	}
 
-	private Description getPt(List<Description> descriptions, String languageRefsetId) {
+	protected static Description getPt(List<Description> descriptions, String languageRefsetId) {
 		return descriptions.stream()
 				.filter(Component::isActive)
 				.filter(description -> description.getType() == SYNONYM)
