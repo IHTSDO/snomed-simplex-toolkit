@@ -83,15 +83,15 @@ public class AuthoringServicesClient {
 		return null;
 	}
 
-	private String getProjectsUrl(String codeSystemShortName, Boolean projectTranslation) {
+	private String getProjectsUrl(String codeSystemShortName, Boolean translationProject) {
 		UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath("/projects");
 
 		if (codeSystemShortName != null && !codeSystemShortName.isBlank()) {
 			uriBuilder.queryParam("codeSystemShortName", codeSystemShortName);
 		}
 
-		if (projectTranslation != null) {
-			uriBuilder.queryParam("projectTranslation", projectTranslation);
+		if (translationProject != null) {
+			uriBuilder.queryParam("translationProject", translationProject);
 		}
 
 		return uriBuilder.toUriString();
