@@ -234,14 +234,10 @@ public class TranslationService {
 			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 
-		String translationWorkingBranchPath = getTranslationWorkingBranchPath(codeSystem, languageRefsetId);
-		// Override CodeSystem working branch
-		codeSystem.setSimplexWorkingBranch(translationWorkingBranchPath);
 		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor);
-
 		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
 		changeSummary.setNewTotal(newActiveCount);
-		logger.info("translation upload complete on {}: {}", translationWorkingBranchPath, changeSummary);
+		logger.info("translation upload complete on {}: {}", changeSummary.getBranchPath(), changeSummary);
 		return changeSummary;
 	}
 
@@ -276,9 +272,15 @@ public class TranslationService {
 			processed += conceptIdBatch.size();
 			progressMonitor.setRecordsProcessed(processed);
 		}
+
 		if (!conceptsToUpdate.isEmpty()) {
+			String translationWorkingBranchPath = getTranslationWorkingBranchPath(codeSystem, languageRefsetId);
+			codeSystem.setSimplexWorkingBranch(translationWorkingBranchPath);
+			changeSummary.setBranchPath(translationWorkingBranchPath);
+
 			updateConcepts(codeSystem, snowstormClient, conceptsToUpdate);
 		}
+
 		return changeSummary;
 	}
 
@@ -296,7 +298,7 @@ public class TranslationService {
 		Set<Task> tasks = authoringServicesClient.getTasks(project.getKey());
 		tasks.removeIf(negate(Task::isOpen));
 		if (!tasks.isEmpty()) {
-			throw new ServiceException(tasks.size() + " tasks are currently open for project " + project.getKey());
+			throw new ServiceException(tasks.size() + " tasks are currently open for project " + project.getKey() + ". Tasks: " + tasks.stream().map(Task::getKey).collect(Collectors.joining(", ")));
 		}
 
 		String translationWorkingTask = tryCreateTranslationWorkingTask(project, languageRefsetId);
