@@ -19,6 +19,7 @@ import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.LanguageCode;
+import org.snomed.simplex.rest.pojos.TranslationRequest;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
@@ -171,16 +172,21 @@ public class TranslationService {
 	public ChangeSummary uploadTranslationAsWeblateCSV(ContentJob asyncJob) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(),
-			snowstormClient, asyncJob);
+			snowstormClient, asyncJob, asyncJob.getStringParameter(TranslationRequest.ASSIGNEE_USERNAME), asyncJob.getStringParameter(TranslationRequest.TASK_TITLE));
 	}
 
 	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
-		SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
+													   SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
+		return uploadTranslationAsWeblateCSV(languageRefsetId, codeSystem, inputStream, snowstormClient, progressMonitor, null, null);
+	}
+
+	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
+		SnowstormClient snowstormClient, ProgressMonitor progressMonitor, String assigneeUsername, String taskTitle) throws ServiceException {
 
 		String languageCode = getLanguageCodeOrThrow(languageRefsetId, codeSystem);
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
 			return doUploadTranslation(() -> readTranslationsFromWeblateCSV(inputStream, languageCode, languageRefsetId),
-					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor);
+					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor, assigneeUsername, taskTitle);
 		}
 	}
 
@@ -208,8 +214,14 @@ public class TranslationService {
 	}
 
 	private ChangeSummary doUploadTranslation(TranslationUploadProvider uploadProvider, String languageRefsetId,
+											  CodeSystem codeSystem, SnowstormClient snowstormClient,
+											  ProgressMonitor progressMonitor, ChangeMonitor changeMonitor) throws ServiceException {
+		return doUploadTranslation(uploadProvider, languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor, null, null);
+	}
+
+	private ChangeSummary doUploadTranslation(TranslationUploadProvider uploadProvider, String languageRefsetId,
 			CodeSystem codeSystem, SnowstormClient snowstormClient,
-			ProgressMonitor progressMonitor, ChangeMonitor changeMonitor) throws ServiceException {
+			ProgressMonitor progressMonitor, ChangeMonitor changeMonitor, String assigneeUsername, String taskTitle) throws ServiceException {
 
 		logger.info("Reading translation file..");
 		Map<Long, List<Description>> conceptDescriptions = uploadProvider.readUpload();
@@ -234,7 +246,7 @@ public class TranslationService {
 			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 
-		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor);
+		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor, assigneeUsername, taskTitle);
 		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
 		changeSummary.setNewTotal(newActiveCount);
 		logger.info("translation upload complete on {}: {}", changeSummary.getBranchPath(), changeSummary);
@@ -242,7 +254,7 @@ public class TranslationService {
 	}
 
 	private ChangeSummary doUpdates(CodeSystem codeSystem, Map<Long, List<Description>> conceptDescriptions, String languageRefsetId, String languageCode,
-			SnowstormClient snowstormClient, ChangeMonitor changeMonitor, ProgressMonitor progressMonitor) throws ServiceException {
+			SnowstormClient snowstormClient, ChangeMonitor changeMonitor, ProgressMonitor progressMonitor, String assigneeUsername, String taskTitle) throws ServiceException {
 
 		boolean translationTermsUseTitleCase = isTitleCaseUsed(conceptDescriptions.values());
 
@@ -274,7 +286,7 @@ public class TranslationService {
 		}
 
 		if (!conceptsToUpdate.isEmpty()) {
-			String translationWorkingBranchPath = getTranslationWorkingBranchPath(codeSystem, languageRefsetId);
+			String translationWorkingBranchPath = getTranslationWorkingBranchPath(codeSystem, languageRefsetId, assigneeUsername, taskTitle);
 			codeSystem.setSimplexWorkingBranch(translationWorkingBranchPath);
 			changeSummary.setBranchPath(translationWorkingBranchPath);
 
@@ -284,7 +296,7 @@ public class TranslationService {
 		return changeSummary;
 	}
 
-	private String getTranslationWorkingBranchPath(CodeSystem codeSystem, String languageRefsetId) throws ServiceException {
+	private String getTranslationWorkingBranchPath(CodeSystem codeSystem, String languageRefsetId, String assigneeUsername, String taskTitle) throws ServiceException {
 		if ("standard".equalsIgnoreCase(simplexMode)) {
 			return codeSystem.getWorkingBranchPath();
 		}
@@ -301,7 +313,7 @@ public class TranslationService {
 			throw new ServiceException(tasks.size() + " tasks are currently open for project " + project.getKey() + ". Tasks: " + tasks.stream().map(Task::getKey).collect(Collectors.joining(", ")));
 		}
 
-		String translationWorkingTask = tryCreateTranslationWorkingTask(project, languageRefsetId);
+		String translationWorkingTask = tryCreateTranslationWorkingTask(project, languageRefsetId, assigneeUsername, taskTitle);
 		if (translationWorkingTask == null) {
 			throw new ServiceException("Failed to create task for translation project " + project.getKey() + ".");
 		}
@@ -309,11 +321,12 @@ public class TranslationService {
 		return translationWorkingTask;
 	}
 
-	private String tryCreateTranslationWorkingTask(Project project, String languageRefsetId) throws ServiceExceptionWithStatusCode {
+	private String tryCreateTranslationWorkingTask(Project project, String languageRefsetId, String assigneeUsername, String taskTitle) throws ServiceExceptionWithStatusCode {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 
 		// Create task
-		Task task = authoringServicesClient.createTask(project.getKey(), "Translation Dashboard Import (reference set: " + languageRefsetId + ")");
+		taskTitle = taskTitle == null ? "Translation Dashboard Import (reference set: " + languageRefsetId + ")" : taskTitle;
+		Task task = authoringServicesClient.createTask(project.getKey(), taskTitle, assigneeUsername);
 
 		// Create branch
 		String projectBranchPath = project.getBranchPath();

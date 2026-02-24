@@ -231,12 +231,17 @@ public class TranslationController {
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/pull-content")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob pullWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
+	public AsyncJob pullWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label, @RequestBody(required = false) TranslationRequest translationRequest) throws ServiceExceptionWithStatusCode {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		final ContentJob weblatePull = new ContentJob(theCodeSystem, "Translation Tool pull", refsetId);
+		if (translationRequest != null) {
+			weblatePull.addParameter(TranslationRequest.ASSIGNEE_USERNAME, translationRequest.getAssigneeUsername());
+			weblatePull.addParameter(TranslationRequest.TASK_TITLE, translationRequest.getTaskTitle());
+		}
+
 		return jobService.queueContentJob(weblatePull, refsetId, activity,
 			job -> weblateSetService.pullTranslationSubset(weblatePull, label));
 	}

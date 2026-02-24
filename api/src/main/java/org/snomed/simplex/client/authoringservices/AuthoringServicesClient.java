@@ -12,6 +12,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -61,6 +62,10 @@ public class AuthoringServicesClient {
 	}
 
 	public Task createTask(String projectKey, String taskTitle) {
+		return createTask(projectKey, taskTitle, null);
+	}
+
+	public Task createTask(String projectKey, String taskTitle, String assigneeUsername) {
 		if (projectKey == null || projectKey.isBlank() || taskTitle == null || taskTitle.isBlank()) {
 			return null;
 		}
@@ -69,7 +74,13 @@ public class AuthoringServicesClient {
 		LOGGER.trace("POST {}", taskUrl);
 
 		try {
-			Map<String, String> body = Map.of("projectKey", projectKey, "summary", taskTitle);
+			Map<String, Object> body = new HashMap<>();
+			body.put("projectKey", projectKey);
+			body.put("summary", taskTitle);
+			if (assigneeUsername != null) {
+				body.put("assignee", Map.of("username", assigneeUsername));
+			}
+
 			ResponseEntity<Task> response = restTemplate.exchange(taskUrl, HttpMethod.POST, new HttpEntity<>(body, getAuthHttpHeader()), Task.class
 			);
 
