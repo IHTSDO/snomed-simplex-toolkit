@@ -2,7 +2,7 @@ package org.snomed.simplex.client.authoringservices;
 
 import java.util.Map;
 
-public class Project {
+public class APProject {
 	private String key;
 	private String title;
 	private String branchPath;

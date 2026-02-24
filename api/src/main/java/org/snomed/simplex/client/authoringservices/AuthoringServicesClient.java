@@ -29,12 +29,12 @@ public class AuthoringServicesClient {
 			.build();
 	}
 
-	public Set<Project> getProjects(String codeSystemShortName, Boolean projectTranslation) {
+	public Set<APProject> getProjects(String codeSystemShortName, Boolean projectTranslation) {
 		String projectsUrl = getProjectsUrl(codeSystemShortName, projectTranslation);
 		LOGGER.trace("GET {}", projectsUrl);
 
 		try {
-			ResponseEntity<Set<Project>> response = restTemplate.exchange(projectsUrl, HttpMethod.GET, getAuthCookieHttpEntity(), new ParameterizedTypeReference<>() {
+			ResponseEntity<Set<APProject>> response = restTemplate.exchange(projectsUrl, HttpMethod.GET, getAuthCookieHttpEntity(), new ParameterizedTypeReference<>() {
 			});
 			return response.getBody();
 		} catch (Exception e) {
@@ -43,7 +43,7 @@ public class AuthoringServicesClient {
 		}
 	}
 
-	public Set<Task> getTasks(String projectKey) {
+	public Set<APTask> getTasks(String projectKey) {
 		if (projectKey == null || projectKey.isBlank()) {
 			return Collections.emptySet();
 		}
@@ -52,7 +52,7 @@ public class AuthoringServicesClient {
 		LOGGER.trace("GET {}", tasksUrl);
 
 		try {
-			ResponseEntity<Set<Task>> response = restTemplate.exchange(tasksUrl, HttpMethod.GET, getAuthCookieHttpEntity(), new ParameterizedTypeReference<>() {
+			ResponseEntity<Set<APTask>> response = restTemplate.exchange(tasksUrl, HttpMethod.GET, getAuthCookieHttpEntity(), new ParameterizedTypeReference<>() {
 			});
 			return response.getBody();
 		} catch (Exception e) {
@@ -61,11 +61,11 @@ public class AuthoringServicesClient {
 		}
 	}
 
-	public Task createTask(String projectKey, String taskTitle) {
+	public APTask createTask(String projectKey, String taskTitle) {
 		return createTask(projectKey, taskTitle, null);
 	}
 
-	public Task createTask(String projectKey, String taskTitle, String assigneeUsername) {
+	public APTask createTask(String projectKey, String taskTitle, String assigneeUsername) {
 		if (projectKey == null || projectKey.isBlank() || taskTitle == null || taskTitle.isBlank()) {
 			return null;
 		}
@@ -81,7 +81,7 @@ public class AuthoringServicesClient {
 				body.put("assignee", Map.of("username", assigneeUsername));
 			}
 
-			ResponseEntity<Task> response = restTemplate.exchange(taskUrl, HttpMethod.POST, new HttpEntity<>(body, getAuthHttpHeader()), Task.class
+			ResponseEntity<APTask> response = restTemplate.exchange(taskUrl, HttpMethod.POST, new HttpEntity<>(body, getAuthHttpHeader()), APTask.class
 			);
 
 			if (response.getStatusCode().is2xxSuccessful()) {

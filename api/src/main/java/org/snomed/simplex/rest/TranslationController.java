@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.authoringservices.APTask;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.domain.JobStatus;
@@ -231,16 +232,22 @@ public class TranslationController {
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/pull-content")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob pullWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label, @RequestBody(required = false) TranslationRequest translationRequest) throws ServiceExceptionWithStatusCode {
+	public AsyncJob pullWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+			@RequestBody(required = false) APTaskRequest apTaskRequest) throws ServiceExceptionWithStatusCode {
+
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		final ContentJob weblatePull = new ContentJob(theCodeSystem, "Translation Tool pull", refsetId);
-		if (translationRequest != null) {
-			weblatePull.addParameter(TranslationRequest.ASSIGNEE_USERNAME, translationRequest.getAssigneeUsername());
-			weblatePull.addParameter(TranslationRequest.TASK_TITLE, translationRequest.getTaskTitle());
+
+		if (apTaskRequest == null) {
+			apTaskRequest = new APTaskRequest();
 		}
+		String assigneeUsername = apTaskRequest.getAssigneeUsername();
+		String taskTitle = apTaskRequest.getTaskTitle();
+		String branch = translationService.getCreateTranslationTask(theCodeSystem, assigneeUsername, taskTitle);
+		theCodeSystem.setSimplexWorkingBranch(branch);
 
 		return jobService.queueContentJob(weblatePull, refsetId, activity,
 			job -> weblateSetService.pullTranslationSubset(weblatePull, label));

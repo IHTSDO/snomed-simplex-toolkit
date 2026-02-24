@@ -6,7 +6,6 @@ public class ChangeSummary {
 	private int updated;
 	private int removed;
 	private int newTotal;
-	private String branchPath;
 
 	public ChangeSummary() {
 	}
@@ -50,14 +49,6 @@ public class ChangeSummary {
 		this.newTotal = newTotal;
 	}
 
-	public String getBranchPath() {
-		return branchPath;
-	}
-
-	public void setBranchPath(String branchPath) {
-		this.branchPath = branchPath;
-	}
-
 	@Override
 	public String toString() {
 		return "ChangeSummary{" +
@@ -65,7 +56,6 @@ public class ChangeSummary {
 			", updated=" + updated +
 			", removed=" + removed +
 			", newTotal=" + newTotal +
-			", branchPath=" + branchPath +
 			'}';
 	}
 }

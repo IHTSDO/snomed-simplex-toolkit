@@ -1,6 +1,6 @@
 package org.snomed.simplex.rest.pojos;
 
-public class TranslationRequest {
+public class APTaskRequest {
 	public static final String ASSIGNEE_USERNAME = "assigneeUsername";
 	public static final String TASK_TITLE = "taskTitle";
 
