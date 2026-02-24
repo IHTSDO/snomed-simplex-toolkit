@@ -2,7 +2,7 @@ package org.snomed.simplex.client.authoringservices;
 
 import java.util.Objects;
 
-public class Task {
+public class APTask {
 	private String key;
 	private String projectKey;
 	private String summary;

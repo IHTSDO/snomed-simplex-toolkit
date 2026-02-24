@@ -6,20 +6,20 @@ import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import jakarta.annotation.PostConstruct;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.authoringservices.APProject;
+import org.snomed.simplex.client.authoringservices.APTask;
 import org.snomed.simplex.client.authoringservices.AuthoringServicesClient;
-import org.snomed.simplex.client.authoringservices.Project;
-import org.snomed.simplex.client.authoringservices.Task;
 import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.LanguageCode;
-import org.snomed.simplex.rest.pojos.TranslationRequest;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
@@ -171,22 +171,16 @@ public class TranslationService {
 
 	public ChangeSummary uploadTranslationAsWeblateCSV(ContentJob asyncJob) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(),
-			snowstormClient, asyncJob, asyncJob.getStringParameter(TranslationRequest.ASSIGNEE_USERNAME), asyncJob.getStringParameter(TranslationRequest.TASK_TITLE));
+		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(), snowstormClient, asyncJob);
 	}
 
 	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
-													   SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
-		return uploadTranslationAsWeblateCSV(languageRefsetId, codeSystem, inputStream, snowstormClient, progressMonitor, null, null);
-	}
-
-	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
-		SnowstormClient snowstormClient, ProgressMonitor progressMonitor, String assigneeUsername, String taskTitle) throws ServiceException {
+			SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
 
 		String languageCode = getLanguageCodeOrThrow(languageRefsetId, codeSystem);
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
 			return doUploadTranslation(() -> readTranslationsFromWeblateCSV(inputStream, languageCode, languageRefsetId),
-					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor, assigneeUsername, taskTitle);
+					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor);
 		}
 	}
 
@@ -214,14 +208,8 @@ public class TranslationService {
 	}
 
 	private ChangeSummary doUploadTranslation(TranslationUploadProvider uploadProvider, String languageRefsetId,
-											  CodeSystem codeSystem, SnowstormClient snowstormClient,
-											  ProgressMonitor progressMonitor, ChangeMonitor changeMonitor) throws ServiceException {
-		return doUploadTranslation(uploadProvider, languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor, null, null);
-	}
-
-	private ChangeSummary doUploadTranslation(TranslationUploadProvider uploadProvider, String languageRefsetId,
 			CodeSystem codeSystem, SnowstormClient snowstormClient,
-			ProgressMonitor progressMonitor, ChangeMonitor changeMonitor, String assigneeUsername, String taskTitle) throws ServiceException {
+			ProgressMonitor progressMonitor, ChangeMonitor changeMonitor) throws ServiceException {
 
 		logger.info("Reading translation file..");
 		Map<Long, List<Description>> conceptDescriptions = uploadProvider.readUpload();
@@ -246,15 +234,15 @@ public class TranslationService {
 			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 
-		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor, assigneeUsername, taskTitle);
+		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor);
 		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
 		changeSummary.setNewTotal(newActiveCount);
-		logger.info("translation upload complete on {}: {}", changeSummary.getBranchPath(), changeSummary);
+		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
 		return changeSummary;
 	}
 
 	private ChangeSummary doUpdates(CodeSystem codeSystem, Map<Long, List<Description>> conceptDescriptions, String languageRefsetId, String languageCode,
-			SnowstormClient snowstormClient, ChangeMonitor changeMonitor, ProgressMonitor progressMonitor, String assigneeUsername, String taskTitle) throws ServiceException {
+			SnowstormClient snowstormClient, ChangeMonitor changeMonitor, ProgressMonitor progressMonitor) throws ServiceException {
 
 		boolean translationTermsUseTitleCase = isTitleCaseUsed(conceptDescriptions.values());
 
@@ -286,58 +274,71 @@ public class TranslationService {
 		}
 
 		if (!conceptsToUpdate.isEmpty()) {
-			String translationWorkingBranchPath = getTranslationWorkingBranchPath(codeSystem, languageRefsetId, assigneeUsername, taskTitle);
-			codeSystem.setSimplexWorkingBranch(translationWorkingBranchPath);
-			changeSummary.setBranchPath(translationWorkingBranchPath);
-
 			updateConcepts(codeSystem, snowstormClient, conceptsToUpdate);
 		}
 
 		return changeSummary;
 	}
 
-	private String getTranslationWorkingBranchPath(CodeSystem codeSystem, String languageRefsetId, String assigneeUsername, String taskTitle) throws ServiceException {
+	public @Nullable APTask getTranslationTask(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		if ("standard".equalsIgnoreCase(simplexMode)) {
+			return null;
+		}
+
+		APProject translationProject = getTranslationProject(codeSystem);
+		return getOpenTask(translationProject);
+	}
+
+	public String getCreateTranslationTask(CodeSystem codeSystem, String assigneeUsername, String taskTitle) throws ServiceExceptionWithStatusCode {
 		if ("standard".equalsIgnoreCase(simplexMode)) {
 			return codeSystem.getWorkingBranchPath();
 		}
 
-		Set<Project> projects = authoringServicesClient.getProjects(codeSystem.getShortName(), true);
-		if (projects == null || projects.isEmpty()) {
-			throw new ServiceException("CodeSystem " + codeSystem.getShortName() + " has no translation projects.");
-		}
-
-		Project project = projects.iterator().next();
-		Set<Task> tasks = authoringServicesClient.getTasks(project.getKey());
-		tasks.removeIf(negate(Task::isOpen));
-
-		int size = tasks.size();
-		if (tasks.isEmpty()) {
+		APProject translationProject = getTranslationProject(codeSystem);
+		APTask openTask = getOpenTask(translationProject);
+		if (openTask != null) {
+			// Reuse existing
+			return openTask.getBranchPath();
+		} else {
 			// Create new
-			String translationWorkingTask = tryCreateTranslationWorkingTask(project, languageRefsetId, assigneeUsername, taskTitle);
+			String translationWorkingTask = tryCreateTranslationWorkingTask(translationProject, assigneeUsername, taskTitle);
 			if (translationWorkingTask == null) {
-				throw new ServiceException("Failed to create task for translation project " + project.getKey() + ".");
+				throw new ServiceExceptionWithStatusCode("Failed to create task for translation project " + translationProject.getKey() + ".", HttpStatus.CONFLICT);
 			}
 
 			return translationWorkingTask;
-		} else if (Objects.equals(1, size)) {
-			// Reuse existing
-			return tasks.iterator().next().getBranchPath();
-		} else if (size > 1) {
-			// Too many available
-			String message = format("Too many tasks open for project %s (%d):%s", project.getKey(), size, tasks.stream().map(Task::getKey).collect(Collectors.joining(", ")));
-			throw new ServiceException(message);
-		} else {
-			// Shouldn't happen
-			throw new ServiceException("Cannot get a branch path for translation project " + project.getKey() + ".");
 		}
 	}
 
-	private String tryCreateTranslationWorkingTask(Project project, String languageRefsetId, String assigneeUsername, String taskTitle) throws ServiceExceptionWithStatusCode {
+	private @Nullable APTask getOpenTask(APProject translationProject) throws ServiceExceptionWithStatusCode {
+		Set<APTask> tasks = authoringServicesClient.getTasks(translationProject.getKey());
+		tasks.removeIf(negate(APTask::isOpen));
+
+		int size = tasks.size();
+		if (size == 1) {
+			return tasks.iterator().next();
+		} else if (size > 1) {
+			// Too many available
+			String message = format("Too many tasks open for project %s (%d):%s", translationProject.getKey(), size, tasks.stream().map(APTask::getKey).collect(Collectors.joining(", ")));
+			throw new ServiceExceptionWithStatusCode(message, HttpStatus.CONFLICT);
+		}
+		return null;
+	}
+
+	private APProject getTranslationProject(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		Set<APProject> projects = authoringServicesClient.getProjects(codeSystem.getShortName(), true);
+		if (projects == null || projects.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("CodeSystem " + codeSystem.getShortName() + " has no translation projects.", HttpStatus.CONFLICT);
+		}
+		return projects.iterator().next();
+	}
+
+	private String tryCreateTranslationWorkingTask(APProject project, String assigneeUsername, String taskTitle) throws ServiceExceptionWithStatusCode {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 
 		// Create task
-		taskTitle = taskTitle == null ? "Translation Dashboard Import (reference set: " + languageRefsetId + ")" : taskTitle;
-		Task task = authoringServicesClient.createTask(project.getKey(), taskTitle, assigneeUsername);
+		taskTitle = taskTitle == null ? "Translation Dashboard Import" : taskTitle;
+		APTask task = authoringServicesClient.createTask(project.getKey(), taskTitle, assigneeUsername);
 
 		// Create branch
 		String projectBranchPath = project.getBranchPath();

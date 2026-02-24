@@ -7,8 +7,6 @@ import org.snomed.simplex.service.ProgressMonitor;
 import org.springframework.util.StreamUtils;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
 
 public class ContentJob extends AsyncJob implements ProgressMonitor {
 
@@ -17,7 +15,6 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 	private String refsetId;
 	private File inputFileCopy;
 	private String inputFileOriginalName;
-	private final Map<String, Object> parameters = new HashMap<>();
 
 	public ContentJob(CodeSystem codeSystem, String display, String refsetId) {
 		super(codeSystem, display);
@@ -101,23 +98,4 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 		return inputFileOriginalName;
 	}
 
-	public void addParameter(String key, Object value) {
-		if (key == null || value == null) {
-			return;
-		}
-
-		this.parameters.put(key, value);
-	}
-
-	public Map<String, Object> getParameters() {
-		return parameters;
-	}
-
-	public String getStringParameter(String key) {
-		try {
-			return (String) parameters.get(key);
-		} catch (Exception e) {
-			return null;
-		}
-	}
 }
