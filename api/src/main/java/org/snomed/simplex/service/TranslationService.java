@@ -309,16 +309,27 @@ public class TranslationService {
 		Project project = projects.iterator().next();
 		Set<Task> tasks = authoringServicesClient.getTasks(project.getKey());
 		tasks.removeIf(negate(Task::isOpen));
-		if (!tasks.isEmpty()) {
-			throw new ServiceException(tasks.size() + " tasks are currently open for project " + project.getKey() + ". Tasks: " + tasks.stream().map(Task::getKey).collect(Collectors.joining(", ")));
-		}
 
-		String translationWorkingTask = tryCreateTranslationWorkingTask(project, languageRefsetId, assigneeUsername, taskTitle);
-		if (translationWorkingTask == null) {
-			throw new ServiceException("Failed to create task for translation project " + project.getKey() + ".");
-		}
+		int size = tasks.size();
+		if (tasks.isEmpty()) {
+			// Create new
+			String translationWorkingTask = tryCreateTranslationWorkingTask(project, languageRefsetId, assigneeUsername, taskTitle);
+			if (translationWorkingTask == null) {
+				throw new ServiceException("Failed to create task for translation project " + project.getKey() + ".");
+			}
 
-		return translationWorkingTask;
+			return translationWorkingTask;
+		} else if (Objects.equals(1, size)) {
+			// Reuse existing
+			return tasks.iterator().next().getBranchPath();
+		} else if (size > 1) {
+			// Too many available
+			String message = format("Too many tasks open for project %s (%d):%s", project.getKey(), size, tasks.stream().map(Task::getKey).collect(Collectors.joining(", ")));
+			throw new ServiceException(message);
+		} else {
+			// Shouldn't happen
+			throw new ServiceException("Cannot get a branch path for translation project " + project.getKey() + ".");
+		}
 	}
 
 	private String tryCreateTranslationWorkingTask(Project project, String languageRefsetId, String assigneeUsername, String taskTitle) throws ServiceExceptionWithStatusCode {
