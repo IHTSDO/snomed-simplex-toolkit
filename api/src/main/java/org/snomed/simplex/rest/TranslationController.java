@@ -83,6 +83,14 @@ public class TranslationController {
 		return translationService.listTranslations(snowstormClient.getCodeSystemOrThrow(codeSystem), snowstormClientFactory.getClient());
 	}
 
+	@GetMapping("{codeSystem}/translations/current-ap-task")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public APTask getTranslationAPTask(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return translationService.getTranslationTask(theCodeSystem);
+	}
+
 	@PostMapping("{codeSystem}/translations")
 	@PreAuthorize("hasPermission('ADMIN', #codeSystem)")// Admin needed because it changes branch metadata
 	public void createTranslation(@PathVariable String codeSystem, @RequestBody CreateTranslationRequest request) throws ServiceException {
