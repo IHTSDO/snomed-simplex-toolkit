@@ -129,7 +129,7 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 
 			return false;
 		} catch (Exception e) {
-			logger.warn("Error monitoring Weblate language initialization for {}: {}", languageCodeWithRefset, e.getMessage());
+			logger.warn("Error monitoring Weblate language initialization for {}: {}", languageCodeWithRefset, e.getMessage(), e);
 			return false;
 		}
 	}

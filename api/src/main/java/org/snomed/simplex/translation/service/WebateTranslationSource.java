@@ -1,8 +1,10 @@
 package org.snomed.simplex.translation.service;
 
+import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.weblate.WeblateClient;
+import org.snomed.simplex.weblate.pojo.WeblateUnitTranslation;
 import org.springframework.http.HttpStatus;
 
 import java.io.BufferedReader;
@@ -56,7 +58,18 @@ public class WebateTranslationSource implements TranslationSource {
 
 	@Override
 	public void writeTranslation(TranslationState translationState) throws ServiceExceptionWithStatusCode {
-		throw new UnsupportedOperationException("Not supported yet.");
+		List<WeblateUnitTranslation> translations = new ArrayList<>();
+		for (Map.Entry<Long, List<String>> entry : translationState.getConceptTerms().entrySet()) {
+			String context = entry.getKey().toString();
+			for (String term : entry.getValue()) {
+				translations.add(new WeblateUnitTranslation(context, term));
+			}
+		}
+		try {
+			weblateClient.uploadTranslations(compositeLanguageCode, translations);
+		} catch (ServiceException e) {
+			throw new ServiceExceptionWithStatusCode("Failed to upload translation file to Translation Tool.", HttpStatus.INTERNAL_SERVER_ERROR, e);
+		}
 	}
 
 	@Override

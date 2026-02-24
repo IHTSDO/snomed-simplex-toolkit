@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.*;
 
@@ -68,7 +69,13 @@ public class SecurityService {
 				CodeSystem codeSystem = client.getCodeSystemOrThrow(codesystem);
 				updateUserRolePermissionCache(Collections.singletonList(codeSystem));
 			} catch (ServiceException e) {
-				// Framework prevents throwing this up. Just return false.
+				// Framework prevents throwing this up.
+				Throwable cause = e.getCause();
+				if (cause instanceof HttpServerErrorException.BadGateway) {
+					logger.error("Permission check failed because Simplex got a BadGatewayException connecting to Snowstorm: {}", cause.getMessage(), cause);
+				} else {
+					logger.debug("hasPermission = false because of exception: {}", e.getMessage(), e);
+				}
 				return false;
 			}
 		}
