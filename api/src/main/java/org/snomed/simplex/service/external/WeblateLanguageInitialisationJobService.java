@@ -72,9 +72,8 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 		// Initialize the language and translation in Weblate
 		String languageCodeWithRefset = "%s-%s".formatted(languageCode, request.refsetId());
 
-		// TODO: Skip this for testing
-//		weblateService.initialiseLanguageAndTranslationAsync(refset, languageCodeWithRefset, serviceException ->
-//			createLanguageErrors.put(languageCodeWithRefset, serviceException.getMessage()));
+		weblateService.initialiseLanguageAndTranslationAsync(refset, languageCodeWithRefset, serviceException ->
+			createLanguageErrors.put(languageCodeWithRefset, serviceException.getMessage()));
 
 		// Return the language code with refset ID for monitoring
 		logger.info("Started Weblate language initialization. Language:{}, refsetId:{}, jobId:{}",
@@ -112,16 +111,20 @@ public class WeblateLanguageInitialisationJobService extends ExternalFunctionJob
 
 					// Language has been processed when total is a positive number
 					if (total > 0) {
-						logger.info("Weblate language initialization completed. Language:{}, total:{}, jobId:{}",
+						logger.info("Weblate blank language is present. Language:{}, total:{}, jobId:{}",
 								languageCodeWithRefset, total, job.getId());
 
 						SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 						CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(job.getCodeSystem());
 
 						// Pull content from Snowstorm, push into Weblate
-						translationService.synchroniseSnowstormToTranslationService(codeSystem, snowstormClient, languageCode, refset);
+						logger.info("Synchronise language content from Snowstorm to Weblate. Language:{}, total:{}, jobId:{}",
+							languageCodeWithRefset, total, job.getId());
+						translationService.synchroniseWholeTranslationFromSnowstormToTranslationTool(codeSystem, snowstormClient, languageCode, refset);
 
 						snowstormClient.addWeblateTranslationLanguage(refset, languageCode, codeSystem);
+						logger.info("Weblate language initialization completed. Language:{}, total:{}, jobId:{}",
+							languageCodeWithRefset, total, job.getId());
 						return true;
 					}
 				}

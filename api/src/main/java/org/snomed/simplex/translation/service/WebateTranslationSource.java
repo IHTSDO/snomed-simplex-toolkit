@@ -4,6 +4,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.weblate.WeblateClient;
+import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
 import org.snomed.simplex.weblate.pojo.WeblateUnitTranslation;
 import org.springframework.http.HttpStatus;
 
@@ -20,17 +21,28 @@ import static java.lang.Long.parseLong;
 public class WebateTranslationSource implements TranslationSource {
 
 	private final WeblateClient weblateClient;
-	private final String compositeLanguageCode;
+	private String compositeLanguageCode;
+	private WeblateTranslationSet translationSet;
 
 	public WebateTranslationSource(WeblateClient weblateClient, String languageCode, String refsetId) {
 		this.weblateClient = weblateClient;
 		compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
 	}
 
+	public WebateTranslationSource(WeblateClient weblateClient, WeblateTranslationSet translationSet) {
+		this.weblateClient = weblateClient;
+		this.translationSet = translationSet;
+	}
+
 	@Override
 	public TranslationState readTranslation() throws ServiceExceptionWithStatusCode {
 		try {
-			File weblateFile = weblateClient.downloadTranslation(compositeLanguageCode);
+			File weblateFile;
+			if (translationSet != null) {
+				weblateFile = weblateClient.downloadTranslationSubsetWithStatus(translationSet);
+			} else {
+				weblateFile = weblateClient.downloadTranslation(compositeLanguageCode);
+			}
 			return fileToTranslationState(weblateFile);
 		} catch (IOException e) {
 			throw new ServiceExceptionWithStatusCode("Failed to download translation file from Translation Tool.", HttpStatus.INTERNAL_SERVER_ERROR, e);

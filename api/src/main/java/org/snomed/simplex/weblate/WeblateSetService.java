@@ -5,6 +5,7 @@ import com.google.common.base.Strings;
 import org.ihtsdo.sso.integration.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
@@ -14,8 +15,8 @@ import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.translation.service.TranslationMergeService;
 import org.snomed.simplex.translation.service.TranslationService;
-import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.weblate.domain.*;
 import org.snomed.simplex.weblate.sets.BatchTranslationLLMService;
 import org.snomed.simplex.weblate.sets.ProcessingContext;
@@ -29,9 +30,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.*;
 
 @Service
@@ -51,6 +49,7 @@ public class WeblateSetService {
 	private final WeblateClientFactory weblateClientFactory;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final TranslationService translationService;
+	private final TranslationMergeService translationMergeService;
 	private final SupportRegister supportRegister;
 	private final WeblateSetCreationService creationService;
 	private final WeblateSetAssignService assignService;
@@ -65,13 +64,14 @@ public class WeblateSetService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public WeblateSetService(WeblateSetRepository weblateSetRepository, WeblateClientFactory weblateClientFactory, SnowstormClientFactory snowstormClientFactory,
-			TranslationService translationService, SupportRegister supportRegister, TranslationLLMService translationLLMService,
+			TranslationMergeService translationMergeService, TranslationService translationService, SupportRegister supportRegister, TranslationLLMService translationLLMService,
 			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix, @Value("${weblate.label.batch-size}") int labelBatchSize, ObjectMapper objectMapper) {
 
 		this.weblateSetRepository = weblateSetRepository;
 		this.weblateClientFactory = weblateClientFactory;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
+		this.translationMergeService = translationMergeService;
 		this.supportRegister = supportRegister;
 		this.jmsTemplate = jmsTemplate;
 		userIdToContextMap = new HashMap<>();
@@ -273,29 +273,15 @@ public class WeblateSetService {
 	}
 
 	public ChangeSummary pullTranslationSubset(ContentJob contentJob, String label) throws ServiceException {
-		WeblateClient weblateClient = weblateClientFactory.getClient();
 		CodeSystem codeSystem = contentJob.getCodeSystemObject();
 		WeblateTranslationSet translationSet = findSubsetOrThrow(codeSystem.getShortName(), contentJob.getRefsetId(), label);
-		File subsetFile;
-		try {
-			subsetFile = weblateClient.downloadTranslationSubsetWithStatus(translationSet);
-		} catch (IOException e) {
-			throw new ServiceExceptionWithStatusCode("Failed to download translation file from Translation Tool.", HttpStatus.INTERNAL_SERVER_ERROR, e);
-		}
-		try (FileInputStream fileInputStream = new FileInputStream(subsetFile)) {
-			contentJob.addUpload(fileInputStream, "weblate-automatic-download.csv");
-			ChangeSummary result = translationService.uploadTranslationAsWeblateCSV(contentJob);
 
-			// Update the last pulled timestamp after successful pull
-			translationSet.setLastPulled(new Date());
-			weblateSetRepository.save(translationSet);
-
-			return result;
-		} catch (IOException e) {
-			throw new ServiceExceptionWithStatusCode("Translation upload step failed.", HttpStatus.INTERNAL_SERVER_ERROR, e);
-		} finally {
-			FileUtils.deleteOrLogWarning(subsetFile);
-		}
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		translationService.synchroniseTranslationSetFromTranslationToolToSnowstorm(codeSystem, snowstormClient, translationSet);
+		// Update the last pulled timestamp after successful pull
+		translationSet.setLastPulled(new Date());
+		weblateSetRepository.save(translationSet);
+		return null;
 	}
 
 	private void doDeleteSet(WeblateTranslationSet translationSet, WeblateAdminClient weblateClient) {

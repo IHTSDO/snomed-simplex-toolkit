@@ -31,6 +31,7 @@ import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.weblate.WeblateClientFactory;
 import org.snomed.simplex.weblate.WeblateExplanationCreator;
+import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
 import org.snomed.simplex.weblate.pojo.WeblateFormat;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -699,9 +700,21 @@ public class TranslationService {
 		return WeblateExplanationCreator.getMarkdown(concept);
 	}
 
-	public void synchroniseSnowstormToTranslationService(CodeSystem codeSystem, SnowstormClient snowstormClient, String languageCode, String refsetId) throws ServiceException {
+	public void synchroniseWholeTranslationFromSnowstormToTranslationTool(CodeSystem codeSystem, SnowstormClient snowstormClient, String languageCode, String refsetId)
+			throws ServiceExceptionWithStatusCode {
+
 		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
 		WebateTranslationSource webateTranslationSource = new WebateTranslationSource(weblateClientFactory.getClient(), languageCode, refsetId);
 		translationMergeService.applyMerge(snowstormTranslationSource, webateTranslationSource, languageCode, refsetId);
+	}
+
+	public void synchroniseTranslationSetFromTranslationToolToSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient, WeblateTranslationSet translationSet)
+			throws ServiceExceptionWithStatusCode {
+
+		String languageCode = translationSet.getLanguageCode();
+		String refsetId = translationSet.getRefset();
+		WebateTranslationSource webateTranslationSource = new WebateTranslationSource(weblateClientFactory.getClient(), translationSet);
+		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
+		translationMergeService.applyMerge(webateTranslationSource, snowstormTranslationSource, languageCode, refsetId);
 	}
 }
