@@ -99,6 +99,7 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 		return inputFileOriginalName;
 	}
 
+	@JsonIgnore
 	public APTaskCreationCallable getTaskCreationCallable() {
 		return taskCreationCallable;
 	}
