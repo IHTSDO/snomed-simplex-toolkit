@@ -20,6 +20,7 @@ import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.LanguageCode;
+import org.snomed.simplex.service.job.APTaskCreationCallable;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
@@ -171,16 +172,17 @@ public class TranslationService {
 
 	public ChangeSummary uploadTranslationAsWeblateCSV(ContentJob asyncJob) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(), snowstormClient, asyncJob);
+		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(), snowstormClient,
+			asyncJob, asyncJob.getTaskCreationCallable());
 	}
 
 	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
-			SnowstormClient snowstormClient, ProgressMonitor progressMonitor) throws ServiceException {
+			SnowstormClient snowstormClient, ProgressMonitor progressMonitor, APTaskCreationCallable taskCreationCallable) throws ServiceException {
 
 		String languageCode = getLanguageCodeOrThrow(languageRefsetId, codeSystem);
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
 			return doUploadTranslation(() -> readTranslationsFromWeblateCSV(inputStream, languageCode, languageRefsetId),
-					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor);
+					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor, taskCreationCallable);
 		}
 	}
 
@@ -203,13 +205,13 @@ public class TranslationService {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
 			return doUploadTranslation(() -> new RefsetToolTranslationZipReader(inputStream, languageRefsetId, ignoreCaseInImport).readUpload(),
-					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor);
+					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor, null);
 		}
 	}
 
 	private ChangeSummary doUploadTranslation(TranslationUploadProvider uploadProvider, String languageRefsetId,
 			CodeSystem codeSystem, SnowstormClient snowstormClient,
-			ProgressMonitor progressMonitor, ChangeMonitor changeMonitor) throws ServiceException {
+			ProgressMonitor progressMonitor, ChangeMonitor changeMonitor, APTaskCreationCallable taskCreationCallable) throws ServiceException {
 
 		logger.info("Reading translation file..");
 		Map<Long, List<Description>> conceptDescriptions = uploadProvider.readUpload();
@@ -232,6 +234,11 @@ public class TranslationService {
 			// No change
 			int activeRefsetMembers = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
 			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
+		}
+
+		// Create task
+		if (taskCreationCallable != null) {
+			codeSystem.setSimplexWorkingBranch(taskCreationCallable.createTaskBranch());
 		}
 
 		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor);

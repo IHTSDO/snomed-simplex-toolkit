@@ -15,6 +15,7 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 	private String refsetId;
 	private File inputFileCopy;
 	private String inputFileOriginalName;
+	private APTaskCreationCallable taskCreationCallable;
 
 	public ContentJob(CodeSystem codeSystem, String display, String refsetId) {
 		super(codeSystem, display);
@@ -98,4 +99,11 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 		return inputFileOriginalName;
 	}
 
+	public APTaskCreationCallable getTaskCreationCallable() {
+		return taskCreationCallable;
+	}
+
+	public void setTaskCreationCallable(APTaskCreationCallable taskCreationCallable) {
+		this.taskCreationCallable = taskCreationCallable;
+	}
 }
