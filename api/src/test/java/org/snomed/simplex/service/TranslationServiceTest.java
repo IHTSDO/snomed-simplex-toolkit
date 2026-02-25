@@ -91,7 +91,7 @@ class TranslationServiceTest {
 		SnowstormClient client = snowstormClientFactory.getClient();
 		try {
 			service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"),
-				client, new DummyProgressMonitor());
+				client, new DummyProgressMonitor(), null);
 			fail();
 		} catch (ServiceException e) {
 			assertEquals("Unrecognised CSV header ''", e.getMessage());
@@ -107,7 +107,7 @@ class TranslationServiceTest {
 		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
 
 		service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"),
-			snowstormClientFactory.getClient(), new DummyProgressMonitor());
+			snowstormClientFactory.getClient(), new DummyProgressMonitor(), null);
 
 		List<Concept> updatedConcepts = conceptsSentToUpdate.getValue();
 		assertEquals(3, updatedConcepts.size());

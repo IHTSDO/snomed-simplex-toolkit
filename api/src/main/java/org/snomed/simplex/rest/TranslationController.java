@@ -248,14 +248,12 @@ public class TranslationController {
 
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		final ContentJob weblatePull = new ContentJob(theCodeSystem, "Translation Tool pull", refsetId);
-
 		if (apTaskRequest == null) {
 			apTaskRequest = new APTaskRequest();
 		}
 		String assigneeUsername = apTaskRequest.getAssigneeUsername();
 		String taskTitle = apTaskRequest.getTaskTitle();
-		String branch = translationService.getCreateTranslationTask(theCodeSystem, assigneeUsername, taskTitle);
-		theCodeSystem.setSimplexWorkingBranch(branch);
+		weblatePull.setTaskCreationCallable(() -> translationService.getCreateTranslationTask(theCodeSystem, assigneeUsername, taskTitle));
 
 		return jobService.queueContentJob(weblatePull, refsetId, activity,
 			job -> weblateSetService.pullTranslationSubset(weblatePull, label));
