@@ -131,7 +131,10 @@ public class WeblateClient {
 	}
 
 	public void uploadTranslations(WeblateTranslationSet translationSet, List<WeblateUnitTranslation> translationsToUpload) throws ServiceException {
-		String languageCodeWithRefsetId = translationSet.getLanguageCodeWithRefsetId();
+		uploadTranslations(translationSet.getLanguageCodeWithRefsetId(), translationsToUpload);
+	}
+
+	public void uploadTranslations(String languageCodeWithRefsetId, List<WeblateUnitTranslation> translationsToUpload) throws ServiceException {
 
 		File translationUploadFile = null;
 		try {
@@ -327,7 +330,7 @@ public class WeblateClient {
 
 	public File downloadTranslation(String compositeLanguageCode) throws IOException {
 		String url = "/translations/%s/%s/%s/file/?format=csv-multi&fields=context,target&q=language:%s%s"
-			.formatted(COMMON_PROJECT, SNOMEDCT_COMPONENT, compositeLanguageCode, compositeLanguageCode, "%20NOT%20state:empty");
+			.formatted(COMMON_PROJECT, SNOMEDCT_COMPONENT, compositeLanguageCode, compositeLanguageCode, " NOT state:empty");
 		ResponseEntity<Resource> response = restTemplate.getForEntity(url, Resource.class);
 		return getFile(compositeLanguageCode, response);
 	}

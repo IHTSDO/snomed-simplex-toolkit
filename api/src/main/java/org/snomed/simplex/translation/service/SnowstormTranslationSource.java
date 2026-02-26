@@ -53,7 +53,8 @@ public class SnowstormTranslationSource implements TranslationSource {
 			}
 
 			LightweightTermComponentFactory lightweightTermComponentFactory = new LightweightTermComponentFactory(language, languageRefsetId);
-			new ReleaseImporter().loadSnapshotReleaseFiles(new FileInputStream(tempFile), LoadingProfile.light, lightweightTermComponentFactory, false);
+			LoadingProfile loadingProfile = LoadingProfile.light.withRefset(languageRefsetId.toString());
+			new ReleaseImporter().loadSnapshotReleaseFiles(new FileInputStream(tempFile), loadingProfile, lightweightTermComponentFactory, false);
 			return getTranslationState(lightweightTermComponentFactory.getConceptTerms());
 		} catch (IOException | ServiceException | ReleaseImportException e) {
 			throw new ServiceExceptionWithStatusCode("Failed to load translation from terminology server.", HttpStatus.INTERNAL_SERVER_ERROR, e);

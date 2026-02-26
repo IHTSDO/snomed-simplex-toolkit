@@ -1,6 +1,9 @@
 package org.snomed.simplex.translation.service.repository;
 
+import io.micrometer.common.util.StringUtils;
 import org.ihtsdo.otf.resourcemanager.ResourceManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.config.TranslationCopyResourceManagerConfiguration;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.translation.domain.TranslationState;
@@ -12,10 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Repo to persist TranslationStates - they are a point in time snapshot or backup of a translation for a single language refset/dialect.
@@ -26,9 +26,19 @@ public class TranslationStateRepository {
 	public static final String TAB = "\t";
 	public static final String LINE_BREAK = "\n";
 	private final ResourceManager resourceManager;
+	public static final Logger LOGGER = LoggerFactory.getLogger(TranslationStateRepository.class);
 
 	public TranslationStateRepository(TranslationCopyResourceManagerConfiguration resourceManagerConfiguration, ResourceLoader resourceLoader) {
 		resourceManager = new ResourceManager(resourceManagerConfiguration, resourceLoader);
+		if (!resourceManagerConfiguration.isUseCloud()) {
+			String path = resourceManagerConfiguration.getLocal().getPath();
+			if (!StringUtils.isEmpty(path)) {
+				File localDir = new File(path);
+				if (localDir.mkdirs()) {
+					LOGGER.warn("Local directory {} created for translation state repository", path);
+				}
+			}
+		}
 	}
 
 	public void saveState(String langRefsetId, TranslationSourceType source, TranslationState translationState) throws ServiceExceptionWithStatusCode {
@@ -85,7 +95,7 @@ public class TranslationStateRepository {
 				String[] split = line.split(TAB);
 				if (split.length > 1) {
 					Long code = Long.parseLong(split[0]);
-					List<String> terms = Arrays.asList(split);
+					List<String> terms = new ArrayList<>(Arrays.asList(split));
 					terms.remove(0);
 					map.put(code, terms);
 				}
