@@ -8,6 +8,7 @@ public class APTask {
 	private String summary;
 	private String status;
 	private String branchPath;
+	private APAssignee assignee;
 
 	public String getKey() {
 		return key;
@@ -47,6 +48,14 @@ public class APTask {
 
 	public void setBranchPath(String branchPath) {
 		this.branchPath = branchPath;
+	}
+
+	public APAssignee getAssignee() {
+		return assignee;
+	}
+
+	public void setAssignee(APAssignee assignee) {
+		this.assignee = assignee;
 	}
 
 	public boolean isOpen() {
