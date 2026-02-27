@@ -1,5 +1,6 @@
 package org.snomed.simplex.weblate;
 
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -22,8 +23,6 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import com.google.common.collect.Lists;
 
 import java.io.*;
 import java.util.*;
@@ -310,6 +309,24 @@ public class WeblateClient {
 		}
 	}
 
+	public Set<String> getAllConceptIdsWithLabel(WeblateTranslationSet translationSet) {
+		Set<String> conceptIds = new HashSet<>();
+		int page = 1;
+		final int pageSize = 1000;
+		WeblatePage<WeblateUnit> unitPage;
+		do {
+			unitPage = getUnitPage(UnitQueryBuilder.of(COMMON_PROJECT, SNOMEDCT_COMPONENT)
+				.languageCode(translationSet.getLanguageCodeWithRefsetId())
+				.compositeLabel(translationSet.getCompositeLabel())
+				.pageSize(pageSize)
+				.page(page++));
+			if (unitPage != null) {
+				unitPage.results().stream().map(WeblateUnit::getContext).forEach(conceptIds::add);
+			}
+		} while (unitPage != null && unitPage.next() != null);
+		return conceptIds;
+	}
+
 	public Map<String, Object> getComponentLanguageStats(String project, String languageCode) {
 		Map<String, Object> emptyMap = Collections.emptyMap();
 		try {
@@ -330,12 +347,12 @@ public class WeblateClient {
 		}
 	}
 
-	public File downloadTranslationSubsetWithStatus(WeblateTranslationSet translationSet) throws IOException {
+	public File downloadTranslationSubsetWithState(WeblateTranslationSet translationSet, String state) throws IOException {
 		String languageCodeWithRefsetId = translationSet.getLanguageCodeWithRefsetId();
 		String compositeLabel = translationSet.getCompositeLabel();
-
-		String url = "/translations/%s/%s/%s/file/?format=csv-multi&q=label:%s+AND+state:>=translated&fields=context,target"
-			.formatted(COMMON_PROJECT, SNOMEDCT_COMPONENT, languageCodeWithRefsetId, compositeLabel);
+		String stateClause = state != null ? "+AND+state:>=%s".formatted(state) : "";
+		String url = ("/translations/%s/%s/%s/file/?format=csv-multi&q=label:%s%s&fields=context,target")
+			.formatted(COMMON_PROJECT, SNOMEDCT_COMPONENT, languageCodeWithRefsetId, compositeLabel, stateClause);
 		ResponseEntity<Resource> response = restTemplate.getForEntity(url, Resource.class);
 		return getFile(compositeLabel, response);
 	}

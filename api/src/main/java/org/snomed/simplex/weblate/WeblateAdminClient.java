@@ -265,6 +265,17 @@ public class WeblateAdminClient {
 		}
 	}
 
+	public void bulkRemoveLabels(String projectSlug, Integer labelId, List<String> contextIds) throws ServiceExceptionWithStatusCode {
+		// This is a custom Weblate endpoint
+		String url = "/units/bulk_remove_label/";
+		try {
+			BulkAddLabelRequest request = new BulkAddLabelRequest(projectSlug, labelId, contextIds);
+			restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(request, getJsonHeaders()), Void.class);
+		} catch (HttpClientErrorException e) {
+			throw new ServiceExceptionWithStatusCode("Error bulk removing label: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
 	private static String getLabelsUrl(String project) {
 		return "/projects/%s/labels/?format=json".formatted(project);
 	}
