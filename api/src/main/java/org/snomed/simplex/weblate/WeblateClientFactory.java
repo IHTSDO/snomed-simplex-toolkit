@@ -29,6 +29,7 @@ public class WeblateClientFactory {
 	private final SupportRegister supportRegister;
 	private WeblateAdminClient adminClient;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
+	private final int uploadBatchSize;
 
 	// Fields for admin client recreation
 	private long adminClientCreationTime;
@@ -39,11 +40,13 @@ public class WeblateClientFactory {
 	public WeblateClientFactory(@Value("${weblate.url}") String url, SupportRegister supportRegister,
 			@Value("${weblate.admin.username}") String adminUsername,
 			@Value("${weblate.admin.password}") String adminPassword,
+			@Value("${weblate.upload.batch-size}") int uploadBatchSize,
 			AuthenticationClient authenticationClient) throws ServiceException {
 
 		this.clientCache = CacheBuilder.newBuilder().expireAfterAccess(5L, TimeUnit.MINUTES).build();
 		this.url = url;
 		this.supportRegister = supportRegister;
+		this.uploadBatchSize = uploadBatchSize;
 		this.authenticationClient = authenticationClient;
 		this.adminUsername = adminUsername;
 		this.adminPassword = adminPassword;
@@ -59,7 +62,7 @@ public class WeblateClientFactory {
 						HttpStatus.FORBIDDEN);
 			}
 			return clientCache.get(authenticationToken,
-					() -> new WeblateClient(getRestTemplate(authenticationToken), supportRegister));
+					() -> new WeblateClient(getRestTemplate(authenticationToken), supportRegister, uploadBatchSize));
 		} catch (ExecutionException e) {
 			throw new ServiceExceptionWithStatusCode("Failed to create Snowstorm client",
 					HttpStatus.INTERNAL_SERVER_ERROR, e);
