@@ -23,6 +23,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import com.google.common.collect.Lists;
+
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -36,14 +38,16 @@ public class WeblateClient {
 	private static final Logger logger = LoggerFactory.getLogger(WeblateClient.class);
 	private final RestTemplate restTemplate;
 	private final SupportRegister supportRegister;
+	private final int uploadBatchSize;
 
 	public static final ParameterizedTypeReference<WeblatePage<WeblateUnit>> UNITS_RESPONSE_TYPE = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<Map<String, Object>> PARAMETERIZED_TYPE_REFERENCE_MAP = new ParameterizedTypeReference<>() {};
 	public static final ParameterizedTypeReference<List<Map<String, Object>>> PARAMETERIZED_TYPE_REFERENCE_LIST_OF_MAPS = new ParameterizedTypeReference<>() {};
 
-	protected WeblateClient(RestTemplate restTemplate, SupportRegister supportRegister) {
+	protected WeblateClient(RestTemplate restTemplate, SupportRegister supportRegister, int uploadBatchSize) {
 		this.restTemplate = restTemplate;
 		this.supportRegister = supportRegister;
+		this.uploadBatchSize = uploadBatchSize;
 	}
 
 	public List<WeblateComponent> listComponents(String projectSlug) {
@@ -135,7 +139,15 @@ public class WeblateClient {
 	}
 
 	public void uploadTranslations(String languageCodeWithRefsetId, List<WeblateUnitTranslation> translationsToUpload) throws ServiceException {
+		List<List<WeblateUnitTranslation>> batches = Lists.partition(translationsToUpload, uploadBatchSize);
+		logger.info("Uploading {} translations in {} batch(es) for {}", translationsToUpload.size(), batches.size(), languageCodeWithRefsetId);
+		for (int i = 0; i < batches.size(); i++) {
+			logger.info("Uploading translation batch {}/{} for {}", i + 1, batches.size(), languageCodeWithRefsetId);
+			uploadTranslationBatch(languageCodeWithRefsetId, batches.get(i));
+		}
+	}
 
+	private void uploadTranslationBatch(String languageCodeWithRefsetId, List<WeblateUnitTranslation> translationsToUpload) throws ServiceException {
 		File translationUploadFile = null;
 		try {
 			translationUploadFile = File.createTempFile(UUID.randomUUID() + "-translation-upload", ".txt");
