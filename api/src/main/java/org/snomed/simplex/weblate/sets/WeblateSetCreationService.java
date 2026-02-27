@@ -18,15 +18,9 @@ import org.snomed.simplex.weblate.domain.WeblateLabel;
 import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
 import org.springframework.http.HttpStatus;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
-import static org.snomed.simplex.weblate.WeblateSetService.JOB_TYPE_CREATE;
-import static org.snomed.simplex.weblate.WeblateSetService.JOB_TYPE_REFRESH;
-import static org.snomed.simplex.weblate.WeblateSetService.PERCENTAGE_PROCESSED_START;
+import static org.snomed.simplex.weblate.WeblateSetService.*;
 
 public class WeblateSetCreationService extends AbstractWeblateSetProcessingService {
 
@@ -101,8 +95,9 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 		translationSet.setStatus(TranslationSetStatus.PROCESSING);
 		weblateSetRepository.save(translationSet);
 
-		// Fetch current concept IDs that have this label in Weblate
-		Set<String> currentConceptIds = weblateClientFactory.getClient().getAllConceptIdsWithLabel(translationSet);
+		// Fetch current concept IDs that have this label in Weblate using a CSV download for performance
+		WeblateClient weblateClient = weblateClientFactory.getClient();
+		Set<String> currentConceptIds = weblateClient.getConceptIdsInWeblateSet(translationSet);
 		logger.info("Found {} existing units with label {}", currentConceptIds.size(), translationSet.getLabel());
 
 		// Run ECL against Snowstorm to get the updated concept ID set
