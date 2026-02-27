@@ -365,6 +365,10 @@ export class SimplexService {
     return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/pull-content`, apTaskRequest || {}).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public refreshWeblateSet(edition: string, refsetId: string, label: string): Observable<any> {
+    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getTranslationSetDetails(edition: string, refsetId: string, label: string): Observable<any> {
     return this.http.get(`api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
   }

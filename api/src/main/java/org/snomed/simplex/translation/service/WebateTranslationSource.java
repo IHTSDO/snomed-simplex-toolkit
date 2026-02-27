@@ -39,7 +39,7 @@ public class WebateTranslationSource implements TranslationSource {
 		try {
 			File weblateFile;
 			if (translationSet != null) {
-				weblateFile = weblateClient.downloadTranslationSubsetWithStatus(translationSet);
+				weblateFile = weblateClient.downloadTranslationSubsetWithState(translationSet, "translated");
 			} else {
 				weblateFile = weblateClient.downloadTranslation(compositeLanguageCode);
 			}

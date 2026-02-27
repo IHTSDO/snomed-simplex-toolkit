@@ -35,6 +35,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     mode = 'view';
     saving = false;
     deleting = false;
+    refreshingSet = false;
     private pollingInterval: any;
     private isPolling = false;
     private currentLabelSetRequestId = 0; // Track the most recent request
@@ -1071,6 +1072,48 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                 }
             );
         }
+    }
+
+    refreshTranslationSet() {
+        if (!this.selectedLabelSet) {
+            this.snackBar.open('No translation set selected', 'Dismiss', {
+                duration: 5000
+            });
+            return;
+        }
+
+        const label = this.selectedLabelSet.label;
+        const translationId = this.selectedLabelSet.translationId;
+
+        if (!label) {
+            this.snackBar.open('No label found for this translation set', 'Dismiss', {
+                duration: 5000
+            });
+            return;
+        }
+
+        this.refreshingSet = true;
+        this.snackBar.open('Refresh started. The translation set status will update shortly.', 'Dismiss', {
+            duration: 5000
+        });
+        this.simplexService.refreshWeblateSet(
+            this.selectedEdition.shortName,
+            translationId,
+            label
+        ).subscribe({
+            next: (updatedSet) => {
+                this.selectedLabelSet = { ...this.selectedLabelSet, ...updatedSet };
+                this.refreshingSet = false;
+                this.getTranslationSets();
+            },
+            error: (error) => {
+                console.error(error);
+                this.snackBar.open('Failed to refresh translation set', 'Dismiss', {
+                    duration: 5000
+                });
+                this.refreshingSet = false;
+            }
+        });
     }
 
 

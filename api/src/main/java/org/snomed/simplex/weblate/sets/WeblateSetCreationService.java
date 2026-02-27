@@ -19,10 +19,13 @@ import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
 import org.springframework.http.HttpStatus;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.snomed.simplex.weblate.WeblateSetService.JOB_TYPE_CREATE;
+import static org.snomed.simplex.weblate.WeblateSetService.JOB_TYPE_REFRESH;
 import static org.snomed.simplex.weblate.WeblateSetService.PERCENTAGE_PROCESSED_START;
 
 public class WeblateSetCreationService extends AbstractWeblateSetProcessingService {
@@ -76,6 +79,78 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 		weblateSetRepository.save(translationSet);
 
 		queueJob(translationSet, JOB_TYPE_CREATE);
+	}
+
+	public void refreshSet(WeblateTranslationSet translationSet) throws ServiceException {
+		if (translationSet.getStatus() == TranslationSetStatus.DELETING) {
+			throw new ServiceExceptionWithStatusCode("Cannot refresh a translation set that is being deleted.", HttpStatus.CONFLICT);
+		}
+
+		translationSet.setStatus(TranslationSetStatus.INITIALISING);
+		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
+
+		logger.info("Queueing Translation Tool Translation Set for refresh {}/{}/{}", translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
+		weblateSetRepository.save(translationSet);
+
+		queueJob(translationSet, JOB_TYPE_REFRESH);
+	}
+
+	public void doRefreshSet(WeblateTranslationSet translationSet, WeblateAdminClient weblateAdminClient, SnowstormClientFactory snowstormClientFactory) throws ServiceExceptionWithStatusCode {
+		TimerUtil timerUtil = new TimerUtil("Refreshing label %s".formatted(translationSet.getLabel()));
+
+		translationSet.setStatus(TranslationSetStatus.PROCESSING);
+		weblateSetRepository.save(translationSet);
+
+		// Fetch current concept IDs that have this label in Weblate
+		Set<String> currentConceptIds = weblateClientFactory.getClient().getAllConceptIdsWithLabel(translationSet);
+		logger.info("Found {} existing units with label {}", currentConceptIds.size(), translationSet.getLabel());
+
+		// Run ECL against Snowstorm to get the updated concept ID set
+		SnowstormClient.ConceptIdStream conceptIdStream = getConceptIdStream(translationSet, snowstormClientFactory);
+		Set<String> newConceptIds = new HashSet<>();
+		String code;
+		while ((code = conceptIdStream.get()) != null) {
+			newConceptIds.add(code);
+		}
+		logger.info("ECL returned {} concept IDs for label {}", newConceptIds.size(), translationSet.getLabel());
+
+		// Compute diff
+		List<String> toAdd = newConceptIds.stream().filter(id -> !currentConceptIds.contains(id)).toList();
+		List<String> toRemove = currentConceptIds.stream().filter(id -> !newConceptIds.contains(id)).toList();
+		logger.info("Refresh diff for {}: {} to add, {} to remove", translationSet.getLabel(), toAdd.size(), toRemove.size());
+
+		String compositeLabel = translationSet.getCompositeLabel();
+		WeblateLabel weblateLabel = weblateAdminClient.getCreateLabel(WeblateClient.COMMON_PROJECT, compositeLabel, translationSet.getName());
+
+		// Remove label from concepts no longer in the set
+		List<String> removeBatch = new ArrayList<>();
+		for (String id : toRemove) {
+			removeBatch.add(id);
+			if (removeBatch.size() == labelBatchSize) {
+				bulkRemoveLabelsBatch(compositeLabel, removeBatch, weblateAdminClient, weblateLabel);
+				timerUtil.checkpoint("Removed batch");
+			}
+		}
+		if (!removeBatch.isEmpty()) {
+			bulkRemoveLabelsBatch(compositeLabel, removeBatch, weblateAdminClient, weblateLabel);
+		}
+
+		// Add label to concepts newly in the set
+		List<String> addBatch = new ArrayList<>();
+		for (String id : toAdd) {
+			addBatch.add(id);
+			if (addBatch.size() == labelBatchSize) {
+				bulkAddLabelsToBatch(compositeLabel, addBatch, weblateAdminClient, weblateLabel);
+				timerUtil.checkpoint("Added batch");
+			}
+		}
+		if (!addBatch.isEmpty()) {
+			bulkAddLabelsToBatch(compositeLabel, addBatch, weblateAdminClient, weblateLabel);
+		}
+
+		translationSet.setSize(newConceptIds.size());
+		setProgressToComplete(translationSet);
+		timerUtil.finish();
 	}
 
 	public void doCreateSet(WeblateTranslationSet translationSet, WeblateAdminClient weblateAdminClient, SnowstormClientFactory snowstormClientFactory) throws ServiceExceptionWithStatusCode {
@@ -136,6 +211,13 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 		logger.info("Adding batch of label:{} to {} units", label, codes.size());
 		weblateAdminClient.bulkAddLabels(WeblateClient.COMMON_PROJECT, weblateLabel.id(), codes);
 		logger.info("Added label batch");
+		codes.clear();
+	}
+
+	private void bulkRemoveLabelsBatch(String label, List<String> codes, WeblateAdminClient weblateAdminClient, WeblateLabel weblateLabel) throws ServiceExceptionWithStatusCode {
+		logger.info("Removing batch of label:{} from {} units", label, codes.size());
+		weblateAdminClient.bulkRemoveLabels(WeblateClient.COMMON_PROJECT, weblateLabel.id(), codes);
+		logger.info("Removed label batch");
 		codes.clear();
 	}
 

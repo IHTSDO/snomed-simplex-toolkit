@@ -285,6 +285,18 @@ public class TranslationController {
 		weblateSetService.runAiBatchTranslate(translationSet, request);
 	}
 
+	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/refresh")
+	@Operation(summary = "Refresh a translation set by re-running its ECL selection.",
+			description = "Re-runs the ECL selection against Snowstorm to update which units in Translation Tool have the translation set label. " +
+				"The existing label assignments are cleared before the new selection is applied.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public WeblateTranslationSet refreshWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@PathVariable String label) throws ServiceException {
+
+		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		return weblateSetService.refreshSet(translationSet);
+	}
+
 	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")
 	@Operation(summary = "Asynchronously delete a translation set.",
 			description = "Deletes a Translation Tool translation set as an asynchronous operation. The status of the set will be set to DELETING immediately. " +

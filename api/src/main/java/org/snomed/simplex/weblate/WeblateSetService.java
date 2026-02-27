@@ -45,6 +45,7 @@ public class WeblateSetService {
 	public static final int PERCENTAGE_PROCESSED_START = 5;
 	public static final String JOB_TYPE_ASSIGN_WORK = "AssignWork";
 	public static final String JOB_TYPE_BATCH_AI_TRANSLATE = "BatchAiTranslate";
+	public static final String JOB_TYPE_REFRESH = "Refresh";
 	public static final String REQUEST_OBJECT = "requestObject";
 
 	private final WeblateSetRepository weblateSetRepository;
@@ -140,6 +141,11 @@ public class WeblateSetService {
 
 	public WeblateTranslationSet createSet(WeblateTranslationSet translationSet) throws ServiceException {
 		creationService.createSet(translationSet);
+		return translationSet;
+	}
+
+	public WeblateTranslationSet refreshSet(WeblateTranslationSet translationSet) throws ServiceException {
+		creationService.refreshSet(translationSet);
 		return translationSet;
 	}
 
@@ -241,6 +247,8 @@ public class WeblateSetService {
 			WeblateAdminClient weblateAdminClient = weblateClientFactory.getAdminClient();
 			if (jobType.equals(JOB_TYPE_CREATE)) {
 				creationService.doCreateSet(translationSet, weblateAdminClient, snowstormClientFactory);
+			} else if (jobType.equals(JOB_TYPE_REFRESH)) {
+				creationService.doRefreshSet(translationSet, weblateAdminClient, snowstormClientFactory);
 			} else if (jobType.equals(JOB_TYPE_DELETE)) {
 				doDeleteSet(translationSet, weblateAdminClient);
 			} else if (jobType.equals(JOB_TYPE_ASSIGN_WORK)) {
@@ -278,7 +286,7 @@ public class WeblateSetService {
 		WeblateTranslationSet translationSet = findSubsetOrThrow(codeSystem.getShortName(), contentJob.getRefsetId(), label);
 		File subsetFile;
 		try {
-			subsetFile = weblateClient.downloadTranslationSubsetWithStatus(translationSet);
+			subsetFile = weblateClient.downloadTranslationSubsetWithState(translationSet, "translated");
 		} catch (IOException e) {
 			throw new ServiceExceptionWithStatusCode("Failed to download translation file from Translation Tool.", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}
