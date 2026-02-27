@@ -5,11 +5,11 @@ import java.util.Map;
 
 public class Term {
 
-	private final String term;
+	private final String termString;
 	private final Map<Long, Long> acceptabilityMap;
 
-	public Term(String term) {
-		this.term = term;
+	public Term(String termString) {
+		this.termString = termString;
 		acceptabilityMap = new HashMap<>();
 	}
 
@@ -18,8 +18,8 @@ public class Term {
 		return this;
 	}
 
-	public String getTerm() {
-		return term;
+	public String getTermString() {
+		return termString;
 	}
 
 	public Map<Long, Long> getAcceptabilityMap() {
