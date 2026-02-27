@@ -249,12 +249,7 @@ public class TranslationService {
 			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 
-		// Create task
-		if (taskCreationCallable != null) {
-			codeSystem.setSimplexWorkingBranch(taskCreationCallable.createTaskBranch());
-		}
-
-		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor);
+		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor, taskCreationCallable);
 		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
 		changeSummary.setNewTotal(newActiveCount);
 		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
@@ -262,9 +257,15 @@ public class TranslationService {
 	}
 
 	private ChangeSummary doUpdates(CodeSystem codeSystem, Map<Long, List<Description>> conceptDescriptions, String languageRefsetId, String languageCode,
-			SnowstormClient snowstormClient, ChangeMonitor changeMonitor, ProgressMonitor progressMonitor) throws ServiceException {
+			SnowstormClient snowstormClient, ChangeMonitor changeMonitor, ProgressMonitor progressMonitor, APTaskCreationCallable taskCreationCallable) throws ServiceException {
 
 		boolean translationTermsUseTitleCase = isTitleCaseUsed(conceptDescriptions.values());
+
+		APTask translationTask = getTranslationTask(codeSystem);
+		if (translationTask != null) {
+			// Set branch to compare content with
+			codeSystem.setSimplexWorkingBranch(translationTask.getBranchPath());
+		}
 
 		ChangeSummary changeSummary = new ChangeSummary();
 		int processed = 0;
@@ -294,6 +295,11 @@ public class TranslationService {
 		}
 
 		if (!conceptsToUpdate.isEmpty()) {
+			// Create task
+			if (taskCreationCallable != null) {
+				// Set branch to upload to
+				codeSystem.setSimplexWorkingBranch(taskCreationCallable.createTaskBranch());
+			}
 			updateConcepts(codeSystem, snowstormClient, conceptsToUpdate);
 		}
 
