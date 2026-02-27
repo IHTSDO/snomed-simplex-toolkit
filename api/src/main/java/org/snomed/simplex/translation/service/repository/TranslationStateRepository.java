@@ -46,11 +46,17 @@ public class TranslationStateRepository {
 		try {
 			tempFile = File.createTempFile(UUID.randomUUID().toString(), ".txt");
 			writeToTsv(translationState, tempFile);
-			resourceManager.writeResource(getPath(langRefsetId, source), new FileInputStream(tempFile));
+			writeResource(tempFile, getPath(langRefsetId, source));
 		} catch (IOException e) {
 			throw new ServiceExceptionWithStatusCode("Failed to save translation state", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		} finally {
 			FileUtils.deleteOrLogWarning(tempFile);
+		}
+	}
+
+	private void writeResource(File tempFile, String path) throws IOException {
+		try (FileInputStream resourceInputStream = new FileInputStream(tempFile)) {
+			resourceManager.writeResource(path, resourceInputStream);
 		}
 	}
 

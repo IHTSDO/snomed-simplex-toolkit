@@ -67,13 +67,13 @@ public class SnowstormTranslationSource implements TranslationSource {
 
 		Comparator<Term> comparingPreferredThenAlphabetical = Comparator.comparing((Function<Term, Boolean>) term ->
 			term.getAcceptabilityMap().get(languageRefsetId).equals(Long.parseLong(Concepts.PREFERRED)), Comparator.reverseOrder())
-			.thenComparing(Term::getTerm);
+			.thenComparing(Term::getTermString);
 
 		for (Map.Entry<Long, Map<Long, Term>> entry : exportedConceptTerms.entrySet()) {
 			List<String> conceptTerms = entry.getValue().values().stream()
 				.filter(term -> term.getAcceptabilityMap().containsKey(languageRefsetId))
 				.sorted(comparingPreferredThenAlphabetical)
-				.map(Term::getTerm)
+				.map(Term::getTermString)
 				.toList();
 			stateConceptTerms.put(entry.getKey(), conceptTerms);
 		}
