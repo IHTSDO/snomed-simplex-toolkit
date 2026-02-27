@@ -1,6 +1,7 @@
 package org.snomed.simplex.weblate;
 
 import com.google.common.collect.Lists;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -309,24 +310,6 @@ public class WeblateClient {
 		}
 	}
 
-	public Set<String> getAllConceptIdsWithLabel(WeblateTranslationSet translationSet) {
-		Set<String> conceptIds = new HashSet<>();
-		int page = 1;
-		final int pageSize = 1000;
-		WeblatePage<WeblateUnit> unitPage;
-		do {
-			unitPage = getUnitPage(UnitQueryBuilder.of(COMMON_PROJECT, SNOMEDCT_COMPONENT)
-				.languageCode(translationSet.getLanguageCodeWithRefsetId())
-				.compositeLabel(translationSet.getCompositeLabel())
-				.pageSize(pageSize)
-				.page(page++));
-			if (unitPage != null) {
-				unitPage.results().stream().map(WeblateUnit::getContext).forEach(conceptIds::add);
-			}
-		} while (unitPage != null && unitPage.next() != null);
-		return conceptIds;
-	}
-
 	public Map<String, Object> getComponentLanguageStats(String project, String languageCode) {
 		Map<String, Object> emptyMap = Collections.emptyMap();
 		try {
@@ -345,6 +328,40 @@ public class WeblateClient {
 		} catch (HttpClientErrorException.NotFound e) {
 			return emptyMap;
 		}
+	}
+
+	public @NonNull Set<String> getConceptIdsInWeblateSet(WeblateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+		Set<String> currentConceptIds = new HashSet<>();
+		File subsetFile = null;
+		try {
+			subsetFile = downloadTranslationSubset(translationSet);
+			try (BufferedReader reader = new BufferedReader(new FileReader(subsetFile))) {
+				// Skip header
+				reader.readLine();
+				String line;
+				while ((line = reader.readLine()) != null) {
+					if (line.isBlank()) {
+						continue;
+					}
+					// Concept ID is in the first column
+					String[] columns = line.split(",", 2);
+					if (columns.length > 0 && !columns[0].isEmpty()) {
+						currentConceptIds.add(columns[0]);
+					}
+				}
+			}
+		} catch (IOException e) {
+			throw new ServiceExceptionWithStatusCode("Failed to download translation subset from Translation Tool.", HttpStatus.INTERNAL_SERVER_ERROR, e);
+		} finally {
+			if (subsetFile != null) {
+				FileUtils.deleteOrLogWarning(subsetFile);
+			}
+		}
+		return currentConceptIds;
+	}
+
+	public File downloadTranslationSubset(WeblateTranslationSet translationSet) throws IOException {
+		return downloadTranslationSubsetWithState(translationSet, "translated");
 	}
 
 	public File downloadTranslationSubsetWithState(WeblateTranslationSet translationSet, String state) throws IOException {
