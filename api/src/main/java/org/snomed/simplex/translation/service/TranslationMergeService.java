@@ -60,7 +60,20 @@ public class TranslationMergeService {
 		if (additions.get() > 0 || removals.get() > 0) {
 			logger.info("TranslationMerge {}-{} Applying {} additions and {} removals", languageCode, langRefsetId, additions.get(), removals.get());
 			applyIntent(targetState, sourceIntent);
-			target.writeTranslation(targetState);
+			// Build an additions-only state to avoid re-uploading unchanged translations.
+			// The full targetState is still saved to the repository for future diff operations.
+			TranslationState additionsState = new TranslationState();
+			Map<Long, List<String>> addedTerms = additionsState.getConceptTerms();
+			for (Map.Entry<Long, List<TermIntent>> entry : sourceIntent.getTermIntents().entrySet()) {
+				List<String> added = entry.getValue().stream()
+						.filter(ti -> ti.intent() == Intent.ADD)
+						.map(TermIntent::term)
+						.toList();
+				if (!added.isEmpty()) {
+					addedTerms.put(entry.getKey(), added);
+				}
+			}
+			target.writeTranslation(additionsState);
 			stateRepository.saveState(langRefsetId, source.getType(), sourceState);
 			stateRepository.saveState(langRefsetId, target.getType(), targetState);
 			logger.info("TranslationMerge {}-{} Merging complete", languageCode, langRefsetId);
