@@ -53,7 +53,9 @@ public class SnowstormTranslationSource implements TranslationSource {
 			}
 
 			LightweightTermComponentFactory lightweightTermComponentFactory = new LightweightTermComponentFactory(language, languageRefsetId);
-			LoadingProfile loadingProfile = LoadingProfile.light.withRefset(languageRefsetId.toString());
+			LoadingProfile loadingProfile = LoadingProfile.light
+				.withRefset(languageRefsetId.toString())
+				.withoutRelationships();
 			new ReleaseImporter().loadSnapshotReleaseFiles(new FileInputStream(tempFile), loadingProfile, lightweightTermComponentFactory, false);
 			return getTranslationState(lightweightTermComponentFactory.getConceptTerms());
 		} catch (IOException | ServiceException | ReleaseImportException e) {
