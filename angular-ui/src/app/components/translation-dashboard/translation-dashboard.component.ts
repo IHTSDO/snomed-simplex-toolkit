@@ -1,15 +1,16 @@
-import {ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
-import {FormBuilder, FormGroup, Validators} from '@angular/forms';
-import {MatSnackBar} from '@angular/material/snack-bar';
-import {MatDialog} from '@angular/material/dialog';
-import {lastValueFrom, Subscription} from 'rxjs';
-import {SimplexService} from 'src/app/services/simplex/simplex.service';
-import {UiConfigurationService} from 'src/app/services/ui-configuration/ui-configuration.service';
-import {TerminologyService} from 'src/app/services/simplex/terminology.service';
-import {ActivatedRoute} from '@angular/router';
-import {AssignWorkDialogComponent} from '../assign-work-dialog/assign-work-dialog.component';
-import {SetupAiTranslationDialogComponent} from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
-import {AiBatchTranslationDialogComponent} from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { lastValueFrom, Subscription } from 'rxjs';
+import { SimplexService } from 'src/app/services/simplex/simplex.service';
+import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
+import { TerminologyService } from 'src/app/services/simplex/terminology.service';
+import { ActivatedRoute } from '@angular/router';
+import { AssignWorkDialogComponent } from '../assign-work-dialog/assign-work-dialog.component';
+import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
+import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
+import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
 import * as config from '../../../assets/config.json';
 
 
@@ -62,7 +63,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     form: FormGroup = this.fb.group({
         translation: ['', Validators.required],
         name: ['', Validators.required],
-        label: [{value: '', disabled: true}, Validators.required],
+        label: [{ value: '', disabled: true }, Validators.required],
         ecl: ['', Validators.required]
     });
 
@@ -109,13 +110,13 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     }
 
     constructor(private fb: FormBuilder,
-                private simplexService: SimplexService,
-                private snackBar: MatSnackBar,
-                private uiConfigurationService: UiConfigurationService,
-                private changeDetectorRef: ChangeDetectorRef,
-                private terminologyService: TerminologyService,
-                private route: ActivatedRoute,
-                private dialog: MatDialog) {
+        private simplexService: SimplexService,
+        private snackBar: MatSnackBar,
+        private uiConfigurationService: UiConfigurationService,
+        private changeDetectorRef: ChangeDetectorRef,
+        private terminologyService: TerminologyService,
+        private route: ActivatedRoute,
+        private dialog: MatDialog) {
     }
 
 
@@ -170,7 +171,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         this.form.get('name')?.valueChanges.subscribe(name => {
             if (name) {
                 const computedLabel = this.computeLabelFromName(name);
-                this.form.patchValue({label: computedLabel}, {emitEvent: false});
+                this.form.patchValue({ label: computedLabel }, { emitEvent: false });
             }
         });
     }
@@ -240,7 +241,30 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     }
 
     export() {
+        if (!this.selectedLabelSet) {
+            this.snackBar.open('Please select a translation set first.', 'Close', {
+                duration: 3000
+            });
+            return;
+        }
 
+        const dialogRef = this.dialog.open(ExportTaskDialogComponent, {
+            width: '500px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                refsetId: this.selectedLabelSet.translationId,
+                labelSetName: this.selectedLabelSet.name,
+                label: this.selectedLabelSet.label
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result && result.action === 'export_started') {
+                console.log('Export to Authoring Platform started:', result);
+                // Refresh members to show any changed translations (though they won't change yet as the task is starting)
+                this.getLabelSetMembers(this.selectedLabelSet);
+            }
+        });
     }
 
     setupAiTranslation(): void {
@@ -566,7 +590,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                                 );
 
                                 if (labelSetIndex !== -1) {
-                                    this.labelSets[labelSetIndex] = {...this.labelSets[labelSetIndex], ...details};
+                                    this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...details };
                                 }
 
                                 // If this is the currently selected set, update it as well
@@ -574,7 +598,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                                     this.selectedLabelSet.id === finishedSet.id &&
                                     this.selectedLabelSet.translationId === finishedSet.translationId &&
                                     this.selectedLabelSet.label === finishedSet.label) {
-                                    this.selectedLabelSet = {...this.selectedLabelSet, ...details};
+                                    this.selectedLabelSet = { ...this.selectedLabelSet, ...details };
                                 }
                             },
                             (error) => {
@@ -707,7 +731,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
 
     onEclInputMethodChange() {
         // Clear the ECL field and selected refset/derivative/subtype when switching input methods
-        this.form.patchValue({ecl: ''});
+        this.form.patchValue({ ecl: '' });
         this.selectedRefsetCode = '';
         this.selectedDerivativeCode = '';
         this.selectedSubtype = null; // Clear subtype on method change
@@ -741,7 +765,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         if (selectedRefset) {
             // Format ECL as: ^ refsetCode |refset display|
             const eclValue = `^ ${selectedRefset.code} |${selectedRefset.display}|`;
-            this.form.patchValue({ecl: eclValue});
+            this.form.patchValue({ ecl: eclValue });
         }
     }
 
@@ -754,7 +778,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         if (selectedDerivative) {
             // Format ECL as: ^ derivativeCode |derivative display|
             const eclValue = `^ ${selectedDerivative.code} |${selectedDerivative.display}|`;
-            this.form.patchValue({ecl: eclValue});
+            this.form.patchValue({ ecl: eclValue });
         }
     }
 
@@ -765,10 +789,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         if (subtype && subtype.code) {
             // Format ECL as: << subtypeCode |subtype display|
             const eclValue = `<< ${subtype.code} |${subtype.display}|`;
-            this.form.patchValue({ecl: eclValue});
+            this.form.patchValue({ ecl: eclValue });
         } else {
             // Clear ECL if no subtype selected
-            this.form.patchValue({ecl: ''});
+            this.form.patchValue({ ecl: '' });
         }
     }
 
@@ -975,7 +999,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             (details) => {
                 // Only update if this is still the most recent request
                 if (requestId === this.currentLabelSetRequestId) {
-                    this.selectedLabelSet = {...this.selectedLabelSet, ...details};
+                    this.selectedLabelSet = { ...this.selectedLabelSet, ...details };
 
                     // Also update the corresponding item in labelSets array to preserve detailed information
                     const labelSetIndex = this.labelSets.findIndex((set: any) =>
@@ -985,7 +1009,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                     );
 
                     if (labelSetIndex !== -1) {
-                        this.labelSets[labelSetIndex] = {...this.labelSets[labelSetIndex], ...details};
+                        this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...details };
                     }
 
                     this.loadingLabelSetDetails = false;

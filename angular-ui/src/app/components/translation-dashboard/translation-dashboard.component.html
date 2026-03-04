@@ -147,10 +147,12 @@
                                 <mat-icon class="large-icon">flash_on</mat-icon>
                                 Run AI Translation
                             </button>
-                            <button mat-menu-item (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                                <mat-icon class="large-icon">cloud_download</mat-icon>
-                                Pull new translations from Translation Tool
-                            </button>
+                            @if(!translationMode) {
+                                <button mat-menu-item (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                                    <mat-icon class="large-icon">cloud_download</mat-icon>
+                                    Pull new translations from Translation Tool
+                                </button>
+                            }
                             <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
                                 <mat-icon class="large-icon">cancel</mat-icon>
                                 <span>Delete Set</span>
@@ -159,8 +161,7 @@
                             @if(translationMode) {
                                 <button mat-menu-item (click)="export()">
                                     <mat-icon class="large-icon">file_download</mat-icon>
-                                    <span>Export</span>
-                                    <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+                                    <span>Export to Authoring Platform</span>
                                 </button>
                             }
 
