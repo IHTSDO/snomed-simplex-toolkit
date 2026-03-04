@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Subscription, filter, lastValueFrom } from 'rxjs';
 import { User } from '../../models/user';
 import { AuthenticationService } from '../../services/authentication/authentication.service';
-import {Location} from '@angular/common';
+import { Location } from '@angular/common';
 import { LegalAgreementService } from 'src/app/services/legal-agreement/legal-agreement.service';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
@@ -10,8 +10,8 @@ import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CookieService } from 'ngx-cookie-service';
 import * as config from '../../../assets/config.json';
-import {DrawerService} from "../../services/drawer/drawer.service";
-import {ConfigService, LauncherApp} from "../../services/config/config.service";
+import { DrawerService } from "../../services/drawer/drawer.service";
+import { ConfigService, LauncherApp } from "../../services/config/config.service";
 
 @Component({
     selector: 'app-snomed-navbar',
@@ -63,12 +63,12 @@ export class SnomedNavbarComponent implements OnInit {
         private simplexService: SimplexService,
         private drawerService: DrawerService,
         private cookieService: CookieService) {
-            this.userSubscription = this.authenticationService.getUser().subscribe(data => {
-                this.user = data;
-                const allApps = this.configService.getLauncherApps();
-                this.apps = allApps.filter(a => !a.clientName || this.user.clientAccess.includes(a.clientName));
-            });
-        }
+        this.userSubscription = this.authenticationService.getUser().subscribe(data => {
+            this.user = data;
+            const allApps = this.configService.getLauncherApps();
+            this.apps = allApps.filter(a => !a.clientName || this.user.clientAccess.includes(a.clientName));
+        });
+    }
 
     ngOnInit() {
         this.getRoles();
@@ -81,7 +81,7 @@ export class SnomedNavbarComponent implements OnInit {
             if (url === '/admin') {
                 return;
             }
-            const editionParam = this.route.firstChild.snapshot.paramMap.get('edition?');
+            const editionParam = this.route.firstChild?.snapshot.paramMap.get('edition');
             // Load editions if the edition parameter is defined
             if (editionParam) {
                 this.loadEditions(editionParam);
@@ -94,20 +94,20 @@ export class SnomedNavbarComponent implements OnInit {
 
     getRoles() {
         lastValueFrom(this.simplexService.getRoles()).then(
-          (roles) => {
-            this.roles = roles;
-          },
-          (error) => {
-            console.error(error);
-            this.loading = false;
-            // Don't show error message if user is not authenticated (401 or 403)
-            // This happens when users visit the app before logging in
-            if (error.status !== 401 && error.status !== 403) {
-              this.snackBar.open('Failed to load roles', 'Dismiss', {
-                duration: 5000
-              });
+            (roles) => {
+                this.roles = roles;
+            },
+            (error) => {
+                console.error(error);
+                this.loading = false;
+                // Don't show error message if user is not authenticated (401 or 403)
+                // This happens when users visit the app before logging in
+                if (error.status !== 401 && error.status !== 403) {
+                    this.snackBar.open('Failed to load roles', 'Dismiss', {
+                        duration: 5000
+                    });
+                }
             }
-          }
         );
     }
     isAdmin(): boolean {
@@ -139,31 +139,31 @@ export class SnomedNavbarComponent implements OnInit {
 
         lastValueFrom(this.simplexService.getEditions()).then(
             (editions) => {
-            // Remove editions with empty names
-            editions.items = editions.items.filter((item) => item.name);
-            this.editions = editions.items;
+                // Remove editions with empty names
+                editions.items = editions.items.filter((item) => item.name);
+                this.editions = editions.items;
 
-            // Find the edition that matches the 'edition' parameter, if available
-            const matchedEdition = this.editions.find((item) => item.shortName === editionParam);
+                // Find the edition that matches the 'edition' parameter, if available
+                const matchedEdition = this.editions.find((item) => item.shortName === editionParam);
 
-            // Select the matched edition or fall back to the first one
-            if (editionParam && matchedEdition) {
-                this.selectEdition(matchedEdition);
-            } else {
-                // Check for saved edition in cookie
-                const savedEditionShortName = this.getSavedEdition();
-                const savedEdition = this.editions.find((item) => item.shortName === savedEditionShortName);
-
-                if (savedEdition) {
-                    this.selectEdition(savedEdition);
+                // Select the matched edition or fall back to the first one
+                if (editionParam && matchedEdition) {
+                    this.selectEdition(matchedEdition);
                 } else {
-                    this.selectEdition(this.editions[0]);
+                    // Check for saved edition in cookie
+                    const savedEditionShortName = this.getSavedEdition();
+                    const savedEdition = this.editions.find((item) => item.shortName === savedEditionShortName);
+
+                    if (savedEdition) {
+                        this.selectEdition(savedEdition);
+                    } else {
+                        this.selectEdition(this.editions[0]);
+                    }
                 }
-            }
-            this.loading = false;
+                this.loading = false;
             },
             (error) => {
-            console.error(error);
+                console.error(error);
             }
         );
     }
@@ -228,12 +228,12 @@ export class SnomedNavbarComponent implements OnInit {
         const currentRoute = this.router.url;
         // Check if the current route has an 'edition' parameter, update it or append if not
         const newRoute = currentRoute.includes('/home') ? ['home'] :
-                         currentRoute.includes('artifacts/') ? ['artifact', edition] :
-                         currentRoute.includes('artifact/') ? ['artifact', edition] :
-                         currentRoute.includes('manage/') ? ['manage', edition] :
-                         currentRoute.includes('info/') ? ['info', edition] :
-                         currentRoute.includes('releases/') ? ['releases', edition] :
-                         currentRoute.includes('translation-dashboard/') ? ['translation-dashboard', edition] : ['artifact', edition];
+            currentRoute.includes('artifacts') ? ['artifact', edition] :
+                currentRoute.includes('artifact') ? ['artifact', edition] :
+                    currentRoute.includes('manage') ? ['manage', edition] :
+                        currentRoute.includes('info') ? ['info', edition] :
+                            currentRoute.includes('releases') ? ['releases', edition] :
+                                currentRoute.includes('translation-dashboard') ? ['translation-dashboard', edition] : ['artifact', edition];
 
         // Navigate to the new route while keeping the current path structure
         this.router.navigate(newRoute);
