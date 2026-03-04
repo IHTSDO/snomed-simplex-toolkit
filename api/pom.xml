@@ -16,17 +16,18 @@
 		<java.version>17</java.version>
 		<packageName>snomed-simplex-toolkit</packageName>
 
+		<langchain4j.version>1.4.0</langchain4j.version>
+
 		<!-- BOM Overrides -->
 		<spring.version>6.2.11</spring.version>
 		<spring-boot.version>3.5.7</spring-boot.version>
 		<spring-data-elasticsearch.version>5.5.4</spring-data-elasticsearch.version>
 		<elasticsearch.version>8.19.8</elasticsearch.version>
-		<langchain4j.version>1.4.0</langchain4j.version>
 		<spring.security.version>6.5.5</spring.security.version>
 		<spring-cloud.version>2025.0.0</spring-cloud.version>
 		<tomcat-embed.version>10.1.48</tomcat-embed.version>
 		<activemq.version>6.1.7</activemq.version>
-		<snomed-boot.version>5.4.0</snomed-boot.version>
+		<snomed-boot.version>5.4.1-SNAPSHOT</snomed-boot.version>
 	</properties>
 
 	<dependencies>
