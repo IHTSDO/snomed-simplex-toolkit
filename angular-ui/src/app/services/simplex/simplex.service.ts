@@ -1,9 +1,9 @@
-import {HttpClient, HttpErrorResponse} from '@angular/common/http';
-import {Injectable} from '@angular/core';
-import {MatSnackBar} from '@angular/material/snack-bar';
-import {Observable, of, throwError} from 'rxjs';
-import {catchError, delay} from 'rxjs/operators';
-import {UiConfigurationService} from '../ui-configuration/ui-configuration.service';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError, delay } from 'rxjs/operators';
+import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
 
 @Injectable({
   providedIn: 'root'
@@ -19,29 +19,29 @@ export class SimplexService {
       this.snackBar.open(`Error: Can't contact simplex server`, 'Dismiss', {
         duration: 5000
       });
-    }  else {
-      this.snackBar.open(`Error: ${ error.error.message}`, 'Dismiss', {
+    } else {
+      this.snackBar.open(`Error: ${error.error.message}`, 'Dismiss', {
         duration: 15000
       });
-    } 
+    }
     // Return an observable with a user-facing error message
     console.error(error)
     return throwError(error);
   }
 
-  public login(): void{
+  public login(): void {
     let config: any = this.uiConfigurationService.getConfiguration();
     const redirectUrl = `${config.endpoints.imsEndpoint}login?serviceReferer=${window.location.href}`;
     window.location.href = redirectUrl;
   }
 
-  public logout(): void{
+  public logout(): void {
     let config: any = this.uiConfigurationService.getConfiguration();
     const redirectUrl = `${config.endpoints.imsEndpoint}logout?serviceReferer=${window.location.href}`;
     window.location.href = redirectUrl;
   }
 
-  public logoutAccount():  Observable<any> {
+  public logoutAccount(): Observable<any> {
     let config: any = this.uiConfigurationService.getConfiguration();
     let endpoint: string = config.endpoints.imsEndpoint;
     // endpoint = endpoint.replace('#/', '');
@@ -161,7 +161,7 @@ export class SimplexService {
     );
   }
 
-  public downloadRefsetSpreadsheet(edition: string, refsetId: string ): Observable<Blob> {
+  public downloadRefsetSpreadsheet(edition: string, refsetId: string): Observable<Blob> {
     const apiUrl = `api/${edition}/refsets/simple/${refsetId}/spreadsheet`;
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
       catchError(this.handleError.bind(this))
@@ -275,7 +275,7 @@ export class SimplexService {
   public getReleaseCandidatePackage(edition: string): Observable<Blob> {
     const apiUrl = `api/codesystems/${edition}/release-candidate`;
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
-        catchError(this.handleError.bind(this))
+      catchError(this.handleError.bind(this))
     );
   }
 
@@ -286,7 +286,7 @@ export class SimplexService {
   public getReleasePackage(edition: string, version: string): Observable<Blob> {
     const apiUrl = `api/codesystems/${edition}/versions/${version}/package`;
     return this.http.get(apiUrl, { responseType: 'blob' }).pipe(
-        catchError(this.handleError.bind(this))
+      catchError(this.handleError.bind(this))
     );
   }
 
@@ -328,9 +328,9 @@ export class SimplexService {
 
   public getLabelSets(edition: string): Observable<any> {
     const mockLabelSets = [
-      { id:'1', name: 'Top 1000 clinical findings', length: 1000 },
-      { id:'2', name: 'Nursing procedures', length: 145 },
-      { id:'3', name: 'Substances for allergies', length: 200 }
+      { id: '1', name: 'Top 1000 clinical findings', length: 1000 },
+      { id: '2', name: 'Nursing procedures', length: 145 },
+      { id: '3', name: 'Substances for allergies', length: 200 }
     ];
     return of(mockLabelSets).pipe(delay(1000)); // 1 second delay
 
@@ -361,8 +361,8 @@ export class SimplexService {
     return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set`, translationSetData).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public pullFromWeblate(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/pull-content`, {}).pipe(catchError(this.handleError.bind(this)));
+  public pullFromWeblate(edition: string, refsetId: string, label: string, apTaskRequest?: any): Observable<any> {
+    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/pull-content`, apTaskRequest || {}).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSetDetails(edition: string, refsetId: string, label: string): Observable<any> {
@@ -390,6 +390,14 @@ export class SimplexService {
     };
     return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/run-ai-batch`, request)
       .pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getCurrentAPTask(edition: string, refsetId: string, label: string): Observable<any> {
+    return this.http.get(`api/${edition}/translations/current-ap-task`)
+  }
+
+  public pollForExport(edition: string, id: string): Observable<any> {
+    return this.http.get(`api/${edition}/jobs/${id}`)
   }
 
 }

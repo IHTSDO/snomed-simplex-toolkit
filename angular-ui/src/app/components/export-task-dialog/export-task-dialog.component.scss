@@ -1,0 +1,58 @@
+.dialog-content {
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.export-form {
+  margin: 24px 0;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.loading-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  margin: 16px 0;
+}
+
+.info-icon {
+  color: #1976d2;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.info-text {
+  flex: 1;
+}
+
+.info-text p {
+  margin: 0;
+  color: #1976d2;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.loading-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+mat-dialog-content {
+  max-height: 600px;
+  overflow-y: auto;
+}

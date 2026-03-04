@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>Export to Authoring Platform</h2>
+<mat-dialog-content>
+    <div class="dialog-content">
+        <p>Create a new task in the Authoring Platform for: <strong>{{ data.labelSetName }}</strong></p>
+
+        @if(checkingForTask) {
+            Loading...
+        }
+        @else {
+            <form [formGroup]="exportForm" class="export-form">
+                <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Task Name</mat-label>
+                    <input matInput formControlName="taskName" placeholder="e.g. Translation of {{ data.labelSetName }}"
+                           required>
+                    <mat-error *ngIf="exportForm.get('taskName')?.hasError('required')">Task name is required</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="full-width">
+                    <mat-label>Assignee</mat-label>
+                    <mat-select formControlName="assignee" required>
+                        <mat-option *ngIf="loadingUsers" disabled>
+                            <div class="loading-option">
+                                <mat-spinner diameter="20"></mat-spinner>
+                                <span>Loading users...</span>
+                            </div>
+                        </mat-option>
+                        <mat-option *ngFor="let user of users" [value]="user.username">
+                            {{ user.full_name }} ({{ user.username }})
+                        </mat-option>
+                    </mat-select>
+                    <mat-error *ngIf="exportForm.get('assignee')?.hasError('required')">Assignee is required</mat-error>
+                </mat-form-field>
+            </form>
+
+            <div class="info-section">
+                <mat-icon class="info-icon">info</mat-icon>
+                <div class="info-text">
+                    <p>This will pull the latest translations from the Translation Tool and create a new task in the
+                        Authoring Platform.</p>
+                </div>
+            </div>
+        }
+
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()">Cancel</button>
+    <button mat-raised-button color="primary" [disabled]="loading || exportForm.invalid" (click)="onExport()">
+        <span *ngIf="loading" class="loading-content">
+            <mat-spinner diameter="20"></mat-spinner>
+            Exporting...
+        </span>
+        <span *ngIf="!loading">Export</span>
+    </button>
+</mat-dialog-actions>
