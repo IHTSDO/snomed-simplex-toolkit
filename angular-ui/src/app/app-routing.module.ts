@@ -9,20 +9,24 @@ import { AdminSettingsComponent } from './components/admin-settings/admin-settin
 import { TranslationDashboardComponent } from './components/translation-dashboard/translation-dashboard.component';
 
 const routes: Routes = [
-    { path: 'home', component: WelcomeComponent },
-    { path: 'admin', component: AdminSettingsComponent },
-    { path: 'artifacts', component: ArtifactsComponent },
-    { path: 'artifact/:edition?', component: ArtifactsComponent },
-    { path: 'manage/:edition?', component: ManageCodesystemComponent },
-    { path: 'info/:edition?', component: SelectEditionComponent },
-    { path: 'releases/:edition?', component: DownloadReleasesComponent },
-    { path: 'translation-dashboard/:edition?', component: TranslationDashboardComponent },
-    { path: '', redirectTo: '/home', pathMatch: 'full' }
+  { path: 'home', component: WelcomeComponent },
+  { path: 'admin', component: AdminSettingsComponent },
+  { path: 'artifacts', component: ArtifactsComponent },
+  { path: 'artifact/:edition', component: ArtifactsComponent },
+  { path: 'manage', component: ManageCodesystemComponent },
+  { path: 'manage/:edition', component: ManageCodesystemComponent },
+  { path: 'info', component: SelectEditionComponent },
+  { path: 'info/:edition', component: SelectEditionComponent },
+  { path: 'releases', component: DownloadReleasesComponent },
+  { path: 'releases/:edition', component: DownloadReleasesComponent },
+  { path: 'translation-dashboard', component: TranslationDashboardComponent },
+  { path: 'translation-dashboard/:edition', component: TranslationDashboardComponent },
+  { path: '', redirectTo: '/home', pathMatch: 'full' }
 ];
-  
+
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],
   exports: [RouterModule]
 })
-export class AppRoutingModule {}
+export class AppRoutingModule { }
