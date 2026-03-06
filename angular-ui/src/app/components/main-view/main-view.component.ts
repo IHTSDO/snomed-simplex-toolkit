@@ -2,7 +2,6 @@ import {ChangeDetectorRef, Component, Input, OnInit} from '@angular/core';
 import {ActivatedRoute, NavigationEnd, Router} from '@angular/router';
 import {filter} from 'rxjs';
 import {UiConfigurationService} from 'src/app/services/ui-configuration/ui-configuration.service';
-import * as config from '../../../assets/config.json';
 
 @Component({
     selector: 'app-main-view',
@@ -12,9 +11,11 @@ import * as config from '../../../assets/config.json';
 export class MainViewComponent implements OnInit {
     selectedEdition: string;
     selectedMenuItem: string;
-    translationMode = config.translationMode;
 
-    constructor(private router: Router, private route: ActivatedRoute, private uiService: UiConfigurationService, private changeDetectorRef: ChangeDetectorRef) {
+    authoringPlatformMode: boolean;
+
+    constructor(private router: Router, private route: ActivatedRoute, private uiService: UiConfigurationService, private changeDetectorRef: ChangeDetectorRef, private uiConfigurationService: UiConfigurationService) {
+        this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => this.authoringPlatformMode = data);
     }
 
     ngOnInit(): void {

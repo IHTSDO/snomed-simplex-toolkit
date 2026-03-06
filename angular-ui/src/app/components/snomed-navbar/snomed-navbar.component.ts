@@ -9,7 +9,6 @@ import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-con
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CookieService } from 'ngx-cookie-service';
-import * as config from '../../../assets/config.json';
 import { DrawerService } from "../../services/drawer/drawer.service";
 import { ConfigService, LauncherApp } from "../../services/config/config.service";
 
@@ -22,7 +21,6 @@ export class SnomedNavbarComponent implements OnInit {
 
     @Input() selectedEdition: any = null;
 
-    translationMode = config.translationMode;
     environment: string;
     path: string;
 
@@ -50,6 +48,7 @@ export class SnomedNavbarComponent implements OnInit {
     private readonly SELECTED_EDITION_COOKIE_NAME = 'selectedEdition';
 
     apps: LauncherApp[] = [];
+    authoringPlatformMode: boolean;
 
     constructor(
         private authenticationService: AuthenticationService,
@@ -63,6 +62,7 @@ export class SnomedNavbarComponent implements OnInit {
         private simplexService: SimplexService,
         private drawerService: DrawerService,
         private cookieService: CookieService) {
+        this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => this.authoringPlatformMode = data);
         this.userSubscription = this.authenticationService.getUser().subscribe(data => {
             this.user = data;
             const allApps = this.configService.getLauncherApps();

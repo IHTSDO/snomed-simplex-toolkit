@@ -11,8 +11,6 @@ import { AssignWorkDialogComponent } from '../assign-work-dialog/assign-work-dia
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
-import * as config from '../../../assets/config.json';
-
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -20,6 +18,7 @@ import * as config from '../../../assets/config.json';
     styleUrl: './translation-dashboard.component.scss'
 })
 export class TranslationDashboardComponent implements OnInit, OnDestroy {
+    authoringPlatformMode: boolean;
     selectedEdition: any;
     private subscriptions: Subscription = new Subscription();
     loading = false;
@@ -43,7 +42,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     private isSubscribedToEdition = false; // Flag to prevent duplicate edition subscriptions
     private translationSetsLoaded = false; // Flag to track if translation sets have been loaded
 
-    translationMode = config.translationMode;
+
 
     // ECL input method properties
     eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'subtype';
@@ -118,6 +117,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         private terminologyService: TerminologyService,
         private route: ActivatedRoute,
         private dialog: MatDialog) {
+        this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => this.authoringPlatformMode = data);
     }
 
 

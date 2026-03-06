@@ -1,7 +1,7 @@
 <h2 mat-dialog-title>Export to Authoring Platform</h2>
 <mat-dialog-content>
     <div class="dialog-content">
-        <p>Create a new task in the Authoring Platform for: <strong>{{ data.labelSetName }}</strong></p>
+        <p>Export to task in the Authoring Platform for: <strong>{{ data.labelSetName }}</strong></p>
 
         @if(checkingForTask) {
             Loading...
@@ -36,7 +36,7 @@
                 <mat-icon class="info-icon">info</mat-icon>
                 <div class="info-text">
                     <p>This will pull the latest translations from the Translation Tool and create a new task in the
-                        Authoring Platform.</p>
+                        Authoring Platform if necessary.</p>
                 </div>
             </div>
         }

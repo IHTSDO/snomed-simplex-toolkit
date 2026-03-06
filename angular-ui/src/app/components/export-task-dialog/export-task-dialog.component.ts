@@ -135,7 +135,7 @@ export class ExportTaskDialogComponent implements OnInit {
                                 }
                             }
                         })
-                    }, 30000);
+                    }, 15000);
                 },
                 error: (error) => {
                     console.error('Error exporting to authoring platform:', error);

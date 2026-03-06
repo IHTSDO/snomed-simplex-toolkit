@@ -70,6 +70,10 @@ export class AppComponent implements OnInit {
                 this.authenticationService.setUser(user);
             });
         });
+
+        this.uiConfigurationService.httpGetUIConfiguration().subscribe(data => {
+            this.uiConfigurationService.setAuthoringPlatformMode(!!data.features.authoringPlatformMode);
+        });
     }
 
     closeWelcome() {
