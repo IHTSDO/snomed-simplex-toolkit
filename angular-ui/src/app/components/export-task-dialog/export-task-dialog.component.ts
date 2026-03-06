@@ -125,11 +125,11 @@ export class ExportTaskDialogComponent implements OnInit {
                 taskData
             ).subscribe({
                 next: pullData => {
-                    const responseCheck = setTimeout(() => {
+                    const responseCheck = setInterval(() => {
                         this.simplexService.pollForExport(this.data.edition, pullData.id).subscribe({
                             next: data => {
                                 if (data.status === 'COMPLETE') {
-                                    clearTimeout(responseCheck);
+                                    clearInterval(responseCheck);
                                     this.toastr.success('EXPORT COMPLETE');
                                     this.loading = false;
                                 }
