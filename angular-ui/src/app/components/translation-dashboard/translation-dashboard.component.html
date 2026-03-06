@@ -132,49 +132,47 @@
                         <mat-icon class="large-icon">more_vert</mat-icon>
                         Manage
                     </button>
-                        <mat-menu #actionsMenu="matMenu">
-                            <!-- When FAILED, only Delete is shown -->
-                            <!-- <button mat-menu-item (click)="openAssignWorkDialog()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                                <mat-icon class="large-icon">people</mat-icon>
-                                Assign Work
-                            </button> -->
-                            <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
-                                    *ngIf="selectedLabelSet.status !== 'FAILED'">
-                                <mat-icon class="large-icon">flash_on</mat-icon>
-                                Setup AI Translation
+                    <mat-menu #actionsMenu="matMenu">
+                        <!-- When FAILED, only Delete is shown -->
+                        <!-- <button mat-menu-item (click)="openAssignWorkDialog()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                            <mat-icon class="large-icon">people</mat-icon>
+                            Assign Work
+                        </button> -->
+                        <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                                *ngIf="selectedLabelSet.status !== 'FAILED'">
+                            <mat-icon class="large-icon">flash_on</mat-icon>
+                            Setup AI Translation
+                        </button>
+                        <button mat-menu-item (click)="runAiBatchTranslation()"
+                                [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                                *ngIf="selectedLabelSet.status !== 'FAILED' && selectedLabelSet.aiSetupComplete">
+                            <mat-icon class="large-icon">flash_on</mat-icon>
+                            Run AI Translation
+                        </button>
+<!--                        @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {-->
+                            <button mat-menu-item (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                                <mat-icon class="large-icon">cloud_download</mat-icon>
+                                Pull new translations from Translation Tool
                             </button>
-                            <button mat-menu-item (click)="runAiBatchTranslation()"
-                                    [disabled]="selectedLabelSet.status === 'PROCESSING'"
-                                    *ngIf="selectedLabelSet.status !== 'FAILED' && selectedLabelSet.aiSetupComplete">
-                                <mat-icon class="large-icon">flash_on</mat-icon>
-                                Run AI Translation
+<!--                        }-->
+                        <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
+                                *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
+                            <mat-icon class="large-icon">refresh</mat-icon>
+                            Refresh Concept Selection in Translation Tool
+                            <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
+                        </button>
+                        <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
+                            <mat-icon class="large-icon">cancel</mat-icon>
+                            <span>Delete Set</span>
+                            <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+                        </button>
+<!--                        @if(authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {-->
+                            <button mat-menu-item (click)="export()">
+                                <mat-icon class="large-icon">file_download</mat-icon>
+                                <span>Export to Authoring Platform</span>
                             </button>
-                            @if(!translationMode) {
-                                <button mat-menu-item (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
-                                        *ngIf="selectedLabelSet.status !== 'FAILED'">
-                                    <mat-icon class="large-icon">cloud_download</mat-icon>
-                                    Pull new translations from Translation Tool
-                                </button>
-                            }
-                            <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
-                                    *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
-                                <mat-icon class="large-icon">refresh</mat-icon>
-                                Refresh Concept Selection in Translation Tool
-                                <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
-                            </button>
-                            <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
-                                <mat-icon class="large-icon">cancel</mat-icon>
-                                <span>Delete Set</span>
-                                <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
-                            </button>
-                            @if(translationMode && selectedLabelSet.status !== 'FAILED') {
-                                <button mat-menu-item (click)="export()">
-                                    <mat-icon class="large-icon">file_download</mat-icon>
-                                    <span>Export to Authoring Platform</span>
-                                </button>
-                            }
-
-                        </mat-menu>
+<!--                        }-->
+                    </mat-menu>
                 </div>
                 <br><br>
                 <h3>Translation Set Members</h3>

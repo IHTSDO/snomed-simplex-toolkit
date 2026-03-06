@@ -1,6 +1,6 @@
 <nav class="navbar sticky-top navbar-dark bg-dark pe-2" *ngIf="!isInHome()">
     <a class="logo">
-        @if (translationMode) {
+        @if (authoringPlatformMode) {
             <a href="javascript:void(0)" (click)="goHome()"><img class="logo m-2 p-0" src="assets/small_logo.png"></a>
             <span class="title text-ghost-grey">Translation Tool</span>
         }
