@@ -18,7 +18,7 @@ import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dia
     styleUrl: './translation-dashboard.component.scss'
 })
 export class TranslationDashboardComponent implements OnInit, OnDestroy {
-    authoringPlatformMode: boolean;
+    authoringPlatformMode = false;
     selectedEdition: any;
     private subscriptions: Subscription = new Subscription();
     loading = false;
@@ -117,11 +117,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         private terminologyService: TerminologyService,
         private route: ActivatedRoute,
         private dialog: MatDialog) {
-        this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => this.authoringPlatformMode = data);
     }
 
 
     ngOnInit(): void {
+        this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => {
+            this.authoringPlatformMode = data;
+            this.changeDetectorRef.detectChanges();
+        });
         if (!this.isSubscribedToEdition) {
             const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
                 if (edition && !this.isInitialized) {
