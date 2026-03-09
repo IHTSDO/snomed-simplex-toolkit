@@ -149,12 +149,12 @@
                             <mat-icon class="large-icon">flash_on</mat-icon>
                             Run AI Translation
                         </button>
-<!--                        @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {-->
+                        @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
                             <button mat-menu-item (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                                 <mat-icon class="large-icon">cloud_download</mat-icon>
                                 Pull new translations from Translation Tool
                             </button>
-<!--                        }-->
+                        }
                         <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
                                 *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
                             <mat-icon class="large-icon">refresh</mat-icon>
@@ -166,12 +166,12 @@
                             <span>Delete Set</span>
                             <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
                         </button>
-<!--                        @if(authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {-->
+                        @if(authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
                             <button mat-menu-item (click)="export()">
                                 <mat-icon class="large-icon">file_download</mat-icon>
                                 <span>Export to Authoring Platform</span>
                             </button>
-<!--                        }-->
+                        }
                     </mat-menu>
                 </div>
                 <br><br>

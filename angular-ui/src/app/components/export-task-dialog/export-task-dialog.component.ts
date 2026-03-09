@@ -50,7 +50,7 @@ export class ExportTaskDialogComponent implements OnInit {
     exportForm: FormGroup;
     users: WeblateUser[] = [];
 
-    currentAPTaskFound = false;
+    currentApTask: any;
 
     constructor(
         public dialogRef: MatDialogRef<ExportTaskDialogComponent>,
@@ -73,7 +73,7 @@ export class ExportTaskDialogComponent implements OnInit {
             next: data => {
                 this.checkingForTask = false;
                 if (data?.key) {
-                    this.currentAPTaskFound = true;
+                    this.currentApTask = data;
                 }
             }
         })
@@ -111,7 +111,7 @@ export class ExportTaskDialogComponent implements OnInit {
 
             let taskData = {};
 
-            if (this.currentAPTaskFound) {
+            if (this.currentApTask) {
                 taskData = {
                     taskTitle: this.exportForm.value.taskName,
                     assigneeUsername: this.exportForm.value.assignee

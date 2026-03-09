@@ -1,7 +1,7 @@
-import {Injectable} from '@angular/core';
-import {BehaviorSubject, Observable, Subject} from 'rxjs';
-import {catchError} from "rxjs/operators";
-import {HttpClient} from "@angular/common/http";
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { catchError } from "rxjs/operators";
+import { HttpClient } from "@angular/common/http";
 
 @Injectable({
     providedIn: 'root'
@@ -9,7 +9,7 @@ import {HttpClient} from "@angular/common/http";
 export class UiConfigurationService {
 
     private configuration: any;
-    private authoringPlatformMode = new Subject<boolean>();
+    private authoringPlatformMode = new BehaviorSubject<boolean>(false);
     private editionSubject = new BehaviorSubject<any>(null); // Initialized with a default value
 
     constructor(private http: HttpClient) {
