@@ -42,9 +42,11 @@ public class TranslationMergeService {
 
 		logger.info("TranslationMerge {}-{} Reading translations from {}", languageCode, langRefsetId, source.getType());
 		TranslationState sourceState = source.readTranslation();
+		logCounts(source, languageCode, langRefsetId, sourceState);
 
 		logger.info("TranslationMerge {}-{} Reading translations from {}", languageCode, langRefsetId, target.getType());
 		TranslationState targetState = target.readTranslation();
+		logCounts(target, languageCode, langRefsetId, targetState);
 
 		TranslationState previousSourceState = stateRepository.loadStateOrBlank(langRefsetId, source.getType());
 		TranslationIntent sourceIntent = inferIntent(previousSourceState, sourceState);
@@ -79,6 +81,15 @@ public class TranslationMergeService {
 			logger.info("TranslationMerge {}-{} Merging complete", languageCode, langRefsetId);
 		} else {
 			logger.info("TranslationMerge {}-{} No translation changes found", languageCode, langRefsetId);
+		}
+	}
+
+	private void logCounts(TranslationSource source, String languageCode, String langRefsetId, TranslationState sourceState) {
+		Map<Long, List<String>> stateConceptTerms = sourceState.getConceptTerms();
+		int totalTerms = stateConceptTerms.values().stream().mapToInt(List::size).sum();
+		if (logger.isInfoEnabled()) {
+			logger.info("TranslationMerge {}-{} Found {} terms across {} concepts from {}",
+				languageCode, langRefsetId, String.format("%,d", totalTerms), String.format("%,d", stateConceptTerms.size()), source.getType());
 		}
 	}
 

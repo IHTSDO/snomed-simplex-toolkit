@@ -162,7 +162,6 @@ public class WeblateClient {
 				}
 			}
 
-			// Create multipart request for screenshot upload
 			MultipartBodyBuilder builder = new MultipartBodyBuilder();
 			builder.part("conflicts", "ignore");// Ignore uploaded translations which are already translated.
 			builder.part("file", new FileSystemResource(translationUploadFile), MediaType.TEXT_PLAIN);
