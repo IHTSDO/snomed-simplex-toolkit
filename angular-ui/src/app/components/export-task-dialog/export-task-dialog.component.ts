@@ -10,7 +10,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { SimplexService } from '../../services/simplex/simplex.service';
-import {ToastrService} from "ngx-toastr";
+import { ToastrService } from "ngx-toastr";
 
 export interface WeblateUser {
     id: number;
@@ -106,12 +106,12 @@ export class ExportTaskDialogComponent implements OnInit {
     }
 
     onExport(): void {
-        if (this.exportForm.valid) {
+        if (this.currentApTask || this.exportForm.valid) {
             this.loading = true;
 
             let taskData = {};
 
-            if (this.currentApTask) {
+            if (!this.currentApTask) {
                 taskData = {
                     taskTitle: this.exportForm.value.taskName,
                     assigneeUsername: this.exportForm.value.assignee
