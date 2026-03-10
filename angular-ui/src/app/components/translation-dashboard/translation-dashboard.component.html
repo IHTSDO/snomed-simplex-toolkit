@@ -7,7 +7,9 @@
 <div class="main-container" *ngIf="selectedEdition">
     <div class="component-row">
         <div class="component-col-left">
-            <h1>Translation Dashboard</h1>
+            @if (!authoringPlatformMode) {
+                <h1>Translation Dashboard</h1>
+            }
             <h4>Translation Sets</h4>
             <mat-list id="components-list">
                 <div *ngIf="showSkeleton">
