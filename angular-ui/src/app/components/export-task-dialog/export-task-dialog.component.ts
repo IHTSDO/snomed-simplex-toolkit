@@ -51,6 +51,7 @@ export class ExportTaskDialogComponent implements OnInit {
     users: WeblateUser[] = [];
 
     currentApTask: any;
+    multipleTasksDetected: boolean = false;
 
     constructor(
         public dialogRef: MatDialogRef<ExportTaskDialogComponent>,
@@ -74,6 +75,12 @@ export class ExportTaskDialogComponent implements OnInit {
                 this.checkingForTask = false;
                 if (data?.key) {
                     this.currentApTask = data;
+                }
+            },
+            error: err => {
+                this.checkingForTask = false;
+                if (err.status === 409) {
+                    this.multipleTasksDetected = true;
                 }
             }
         })

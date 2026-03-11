@@ -7,55 +7,63 @@
         <mat-spinner diameter="20"></mat-spinner>
         }
         @else {
-        @if (currentApTask) {
-        <div class="border rounded p-3">
-            <h3 class="mb-3">Task Details</h3>
-            <p class="mb-3 ps-3"><b>{{currentApTask.key}}</b></p>
-            <p class="mb-3 ps-3"><b>{{currentApTask.summary}}</b></p>
-            <p class="mb-3 ps-3">assigned to <b>{{currentApTask.assignee.displayName}}</b></p>
-        </div>
+            @if (multipleTasksDetected) {
+                <div class="border border-danger rounded p-3">
+                    <h3 class="mb-3 text-mandy">Error</h3>
+                    <p class="text-mandy">Multiple tasks have been detected in the associated project, a single task only is required to proceed.</p>
+                </div>
+            }
+            @else {
+                @if (currentApTask) {
 
-        <div class="info-section">
-            <mat-icon class="info-icon">info</mat-icon>
-            <div class="info-text">
-                <p>This will pull the latest translations from the Translation Tool into the above mentioned task.</p>
-            </div>
-        </div>
-        } @else {
-        <form [formGroup]="exportForm" class="export-form">
-            <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Task Name</mat-label>
-                <input matInput formControlName="taskName" placeholder="e.g. Translation of {{ data.labelSetName }}"
-                    required>
-                <mat-error *ngIf="exportForm.get('taskName')?.hasError('required')">Task name is required</mat-error>
-            </mat-form-field>
+                    <div class="border rounded p-3">
+                        <h3 class="mb-3">Task Details</h3>
+                        <p class="mb-3 ps-3"><b>{{currentApTask.key}}</b></p>
+                        <p class="mb-3 ps-3"><b>{{currentApTask.summary}}</b></p>
+                        <p class="mb-3 ps-3">assigned to <b>{{currentApTask.assignee.displayName}}</b></p>
+                    </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Assignee</mat-label>
-                <mat-select formControlName="assignee" required>
-                    <mat-option *ngIf="loadingUsers" disabled>
-                        <div class="loading-option">
-                            <mat-spinner diameter="20"></mat-spinner>
-                            <span>Loading users...</span>
+                    <div class="info-section">
+                        <mat-icon class="info-icon">info</mat-icon>
+                        <div class="info-text">
+                            <p>This will pull the latest translations from the Translation Tool into the above mentioned task.</p>
                         </div>
-                    </mat-option>
-                    <mat-option *ngFor="let user of users" [value]="user.username">
-                        {{ user.full_name }} ({{ user.username }})
-                    </mat-option>
-                </mat-select>
-                <mat-error *ngIf="exportForm.get('assignee')?.hasError('required')">Assignee is required</mat-error>
-            </mat-form-field>
-        </form>
+                    </div>
+                } @else {
+                    <form [formGroup]="exportForm" class="export-form">
+                        <mat-form-field appearance="outline" class="full-width">
+                            <mat-label>Task Name</mat-label>
+                            <input matInput formControlName="taskName" placeholder="e.g. Translation of {{ data.labelSetName }}"
+                                   required>
+                            <mat-error *ngIf="exportForm.get('taskName')?.hasError('required')">Task name is required</mat-error>
+                        </mat-form-field>
 
-        <div class="info-section">
-            <mat-icon class="info-icon">info</mat-icon>
-            <div class="info-text">
-                <p>This will pull the latest translations from the Translation Tool and create a new task in the
-                    Authoring Platform.</p>
-            </div>
-        </div>
-        }
+                        <mat-form-field appearance="outline" class="full-width">
+                            <mat-label>Assignee</mat-label>
+                            <mat-select formControlName="assignee" required>
+                                <mat-option *ngIf="loadingUsers" disabled>
+                                    <div class="loading-option">
+                                        <mat-spinner diameter="20"></mat-spinner>
+                                        <span>Loading users...</span>
+                                    </div>
+                                </mat-option>
+                                <mat-option *ngFor="let user of users" [value]="user.username">
+                                    {{ user.full_name }} ({{ user.username }})
+                                </mat-option>
+                            </mat-select>
+                            <mat-error *ngIf="exportForm.get('assignee')?.hasError('required')">Assignee is required</mat-error>
+                        </mat-form-field>
+                    </form>
 
+                    <div class="info-section">
+                        <mat-icon class="info-icon">info</mat-icon>
+                        <div class="info-text">
+                            <p>This will pull the latest translations from the Translation Tool and create a new task in the
+                                Authoring Platform.</p>
+                        </div>
+                    </div>
+                }
+            }
         }
 
     </div>
