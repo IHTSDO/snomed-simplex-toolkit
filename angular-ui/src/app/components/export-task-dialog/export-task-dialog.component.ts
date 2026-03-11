@@ -140,6 +140,13 @@ export class ExportTaskDialogComponent implements OnInit {
                                     this.toastr.success('EXPORT COMPLETE');
                                     this.loading = false;
                                 }
+
+                                if (data.status === 'SYSTEM_ERROR') {
+                                    clearInterval(responseCheck);
+                                    this.toastr.error('EXPORT FAILED');
+                                    this.loading = false;
+                                    this.multipleTasksDetected = true;
+                                }
                             }
                         })
                     }, 15000);
