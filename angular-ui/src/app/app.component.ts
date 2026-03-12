@@ -56,7 +56,14 @@ export class AppComponent implements OnInit {
     }
 
     async ngOnInit() {
-        this.titleService.setTitle('Simplex');
+        this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => {
+            if (data) {
+                this.titleService.setTitle('Translation Dashboard');
+            } else {
+                this.titleService.setTitle('Simplex');
+            }
+        });
+
         this.environment = this.envService.env;
         this.assignFavicon();
         if (!this.legalAgreementService.hasAgreed()) {
