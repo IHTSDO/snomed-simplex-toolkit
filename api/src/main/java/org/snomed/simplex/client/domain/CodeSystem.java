@@ -15,6 +15,7 @@ import java.util.Set;
 public class CodeSystem {
 
 	public static final CodeSystem SHARED = new CodeSystem("Shared", "Shared", "");
+	public static final String SNOMEDCT = "SNOMEDCT";
 
 	private String name;
 	private String shortName;

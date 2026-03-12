@@ -14,15 +14,21 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.*;
+import org.snomed.simplex.domain.activity.Activity;
+import org.snomed.simplex.domain.activity.ActivityType;
+import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationToolUpdatePlan;
 import org.snomed.simplex.service.CodeSystemService;
+import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.weblate.domain.WeblateUnit;
 import org.snomed.simplex.weblate.rf2.RF2LoadingComponentFactoryWithPT;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -48,14 +54,48 @@ public class WeblateSnomedUpgradeService {
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final WeblateDiagramService weblateDiagramService;
 	private final CodeSystemService codeSystemService;
+	private final ContentProcessingJobService jobService;
+
+	@Value("${weblate.snomed.upgrade.enabled:false}")
+	private boolean upgradeEnabled;
 
 	public WeblateSnomedUpgradeService(WeblateClientFactory weblateClientFactory, WeblateDiagramService weblateDiagramService, SnowstormClientFactory snowstormClientFactory,
-			CodeSystemService codeSystemService) {
+			CodeSystemService codeSystemService, ContentProcessingJobService jobService) {
 
 		this.weblateClientFactory = weblateClientFactory;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.weblateDiagramService = weblateDiagramService;
 		this.codeSystemService = codeSystemService;
+		this.jobService = jobService;
+	}
+
+	@Scheduled(cron = "${weblate.snomed.upgrade.check.cron}")
+	public void scheduledSnomedUpgrade() {
+		if (!upgradeEnabled) {
+			logger.debug("Scheduled SNOMED CT upgrade is disabled (weblate.snomed.upgrade.enabled=false).");
+			return;
+		}
+		logger.info("Running scheduled Translation Tool SNOMED CT upgrade.");
+		try {
+			runUpdate(false, "Scheduled SNOMED CT upgrade in Translation Tool", null);
+		} catch (ServiceExceptionWithStatusCode e) {
+			logger.warn("Scheduled SNOMED upgrade did not run: {}", e.getMessage());
+		}
+	}
+
+	public TranslationToolUpdatePlan runUpdate(boolean initial, String message, Integer upgradeToEffectiveTime) throws ServiceExceptionWithStatusCode {
+		TranslationToolUpdatePlan updatePlan = getUpdatePlan(initial, upgradeToEffectiveTime);
+		if (updatePlan == null) {
+			return null;
+		}
+
+		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
+		Activity activity = new Activity(CodeSystem.SNOMEDCT, ComponentType.TRANSLATION,
+				initial ? ActivityType.WEBLATE_SNOMED_INITIALISATION : ActivityType.WEBLATE_SNOMED_UPGRADE);
+		ContentJob contentJob = new ContentJob(rootCodeSystem, message, null);
+		jobService.queueContentJob(contentJob, null, activity, job -> runSnomedUpgrade(updatePlan, job));
+
+		return updatePlan;
 	}
 
 	public TranslationToolUpdatePlan getUpdatePlan(boolean initial, Integer upgradeToEffectiveTime) throws ServiceExceptionWithStatusCode {
@@ -93,8 +133,8 @@ public class WeblateSnomedUpgradeService {
 			newVersion = latestVersion;
 		}
 		if (newVersionDate.equals(previousVersion)) {
-			throw new ServiceExceptionWithStatusCode(("No new version available. " +
-				"Previous version is %s, latest version is %s").formatted(previousVersion, newVersionDate), HttpStatus.CONFLICT);
+			logger.info("No new SNOMED version available. Previous version is {}, latest version is {}.", previousVersion, newVersionDate);
+			return null;
 		}
 		return new TranslationToolUpdatePlan(previousVersion, newVersionDate, newVersion, codeSystem);
 	}
