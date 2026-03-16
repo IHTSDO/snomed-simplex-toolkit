@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import jakarta.annotation.PostConstruct;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -601,23 +602,10 @@ public class TranslationService {
 	private Map<Long, List<Description>> readTranslationsFromWeblateCSV(InputStream inputStream, String languageCode, String languageRefsetId) throws ServiceException {
 
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-			Map<Long, List<Description>> conceptDescriptions = new Long2ObjectOpenHashMap<>();
-			String header = reader.readLine();
-			if (header == null) {
-				header = "";
-			}
-			header = FileUtils.removeUTF8BOM(header);
-			header = header.replace("\"", "");
-			WeblateFormat weblateFormat;
-			if (header.equals("source,target,context,developer_comments")) {
-				weblateFormat = WeblateFormat.STANDARD;
-			} else if (header.equals("context,target")) {
-				weblateFormat = WeblateFormat.MINIMUM;
-			} else {
-				throw new ServiceException(format("Unrecognised CSV header '%s'", header));
-			}
-
+			WeblateFormat weblateFormat = getWeblateFormat(reader);
 			logger.info("Confirmed Weblate CSV format");
+
+			Map<Long, List<Description>> conceptDescriptions = new Long2ObjectOpenHashMap<>();
 			String line;
 			int lineNumber = 1;
 			Set<Long> conceptsCovered = new LongOpenHashSet();
@@ -667,6 +655,24 @@ public class TranslationService {
 		} catch (IOException e) {
 			throw new ServiceException("Failed to read translation CSV.", e);
 		}
+	}
+
+	private static @NonNull WeblateFormat getWeblateFormat(BufferedReader reader) throws IOException, ServiceExceptionWithStatusCode {
+		String header = reader.readLine();
+		if (header == null) {
+			header = "";
+		}
+		header = FileUtils.removeUTF8BOM(header);
+		header = header.replace("\"", "");
+		WeblateFormat weblateFormat;
+		if (header.equals("source,target,context,developer_comments")) {
+			weblateFormat = WeblateFormat.STANDARD;
+		} else if (header.equals("context,target")) {
+			weblateFormat = WeblateFormat.MINIMUM;
+		} else {
+			throw new ServiceExceptionWithStatusCode(format("Unrecognised CSV header '%s'", header), HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
+		}
+		return weblateFormat;
 	}
 
 	protected Description.CaseSignificance guessCaseSignificance(String term, boolean titleCaseUsed, List<Description> otherDescriptions) {
