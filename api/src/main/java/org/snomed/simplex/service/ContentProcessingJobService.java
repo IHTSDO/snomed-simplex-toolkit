@@ -102,6 +102,7 @@ public class ContentProcessingJobService {
 		} else if (status == JobStatus.TECHNICAL_CONTENT_ISSUE) {
 			supportRegister.handleTechnicalContentIssue(asyncJob, e.getMessage());
 		}
+		// other types of error are not added to the support register
 	}
 
 	public AsyncJob getAsyncJob(String codeSystem, String jobId) {
