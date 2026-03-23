@@ -287,6 +287,14 @@ public class TranslationService {
 					conceptsToUpdate.add(concept);
 				}
 				if (conceptsToUpdate.size() >= batchSize) {
+					// Create task
+					if (taskCreationCallable != null) {
+						// Set branch to upload to
+						codeSystem.setSimplexWorkingBranch(taskCreationCallable.createTaskBranch());
+						// Remove callable so we don't use it again
+						taskCreationCallable = null;
+					}
+
 					updateConcepts(codeSystem, snowstormClient, conceptsToUpdate);
 					conceptsToUpdate = new ArrayList<>();
 				}
