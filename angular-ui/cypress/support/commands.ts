@@ -1,43 +1,22 @@
-// ***********************************************
-// This example namespace declaration will help
-// with Intellisense and code completion in your
-// IDE or Text Editor.
-// ***********************************************
-// declare namespace Cypress {
-//   interface Chainable<Subject = any> {
-//     customCommand(param: any): typeof customCommand;
-//   }
-// }
-//
-// function customCommand(param: any): void {
-//   console.warn(param);
-// }
-//
-// NOTE: You can use it like so:
-// Cypress.Commands.add('customCommand', customCommand);
-//
-// ***********************************************
-// This example commands.js shows you how to
-// create various custom commands and overwrite
-// existing commands.
-//
-// For more comprehensive examples of custom
-// commands please read more here:
-// https://on.cypress.io/custom-commands
-// ***********************************************
-//
-//
-// -- This is a parent command --
-// Cypress.Commands.add("login", (email, password) => { ... })
-//
-//
-// -- This is a child command --
-// Cypress.Commands.add("drag", { prevSubject: 'element'}, (subject, options) => { ... })
-//
-//
-// -- This is a dual command --
-// Cypress.Commands.add("dismiss", { prevSubject: 'optional'}, (subject, options) => { ... })
-//
-//
-// -- This will overwrite an existing command --
-// Cypress.Commands.overwrite("visit", (originalFn, url, options) => { ... })
+declare global {
+  namespace Cypress {
+    interface Chainable {
+      login(): void
+    }
+  }
+}
+
+Cypress.Commands.add('login', () => {
+  cy.clearAllCookies()
+  cy.visit('/')
+  cy.get('body').then($body => {
+    if ($body.text().includes('Legal Agreement')) {
+      cy.get('.actions > button:first').click()
+    }
+  })
+  cy.url({ timeout: 10_000 }).should('contain', 'ims')
+  cy.get('#username').type(Cypress.env('username'))
+  cy.get('#password').type(Cypress.env('password'))
+  cy.get('form').submit()
+  cy.url({ timeout: 10_000 }).should('contain', 'simplex')
+})
