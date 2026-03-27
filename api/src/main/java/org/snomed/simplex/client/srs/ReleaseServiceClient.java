@@ -173,6 +173,7 @@ public class ReleaseServiceClient {
 		updateRequest.setReadmeHeader(readmeHeader);
 		updateRequest.setReadmeEndDate(getThisYear());
 		updateRequest.setLicenseStatement(licenceStatement);
+		updateRequest.setAdditionalReleaseInformationFields("{\"placeholder\": null}");// This JSON is the minimum requirement
 		updateRequest.setAssertionGroupNames(RELEASE_ASSERTION_GROUP_NAMES);
 		updateRequest.setEnableDrools(true);
 		updateRequest.setDroolsRulesGroupNames(DROOLS_RULES_GROUP_NAMES);

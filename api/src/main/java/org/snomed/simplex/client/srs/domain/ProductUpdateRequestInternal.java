@@ -9,6 +9,7 @@ public class ProductUpdateRequestInternal {
 	private String readmeHeader;
 	private String readmeEndDate;
 	private String licenseStatement;
+	private String additionalReleaseInformationFields;
 
 	// buildConfiguration.extensionConfig
 	private String namespaceId;
@@ -48,6 +49,14 @@ public class ProductUpdateRequestInternal {
 
 	public void setLicenseStatement(String licenseStatement) {
 		this.licenseStatement = licenseStatement;
+	}
+
+	public String getAdditionalReleaseInformationFields() {
+		return additionalReleaseInformationFields;
+	}
+
+	public void setAdditionalReleaseInformationFields(String additionalReleaseInformationFields) {
+		this.additionalReleaseInformationFields = additionalReleaseInformationFields;
 	}
 
 	public String getAssertionGroupNames() {
