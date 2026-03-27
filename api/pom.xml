@@ -19,7 +19,7 @@
 		<langchain4j.version>1.4.0</langchain4j.version>
 
 		<!-- BOM Overrides -->
-		<spring.version>6.2.11</spring.version>
+		<spring.version>6.2.17</spring.version>
 		<spring-boot.version>3.5.7</spring-boot.version>
 		<spring-data-elasticsearch.version>5.5.4</spring-data-elasticsearch.version>
 		<elasticsearch.version>8.19.8</elasticsearch.version>
