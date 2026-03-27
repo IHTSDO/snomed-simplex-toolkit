@@ -2,6 +2,9 @@ package org.snomed.simplex.weblate;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.AuthenticationClient;
@@ -108,12 +111,11 @@ public class WeblateClientFactory {
 	}
 
 	private RestTemplate getRestTemplate(String authenticationToken) {
-		HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
-		int connectTimeout = (int) Duration.ofSeconds(60).toMillis();
-		int readTimeout = (int) Duration.ofMinutes(5).toMillis();
-		factory.setConnectTimeout(connectTimeout);
-		factory.setReadTimeout(readTimeout);
-		logger.info("Creating RestTemplate with connectTimeout: {}ms, readTimeout: {}ms", connectTimeout, readTimeout);
+		PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+		connectionManager.setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(60, TimeUnit.SECONDS).build());
+		HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(
+				HttpClients.custom().setConnectionManager(connectionManager).build());
+		factory.setReadTimeout(Duration.ofMinutes(5));
 
 		RestTemplate restTemplate = new RestTemplateBuilder()
 				.rootUri(url)
