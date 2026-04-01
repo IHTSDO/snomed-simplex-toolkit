@@ -1,4 +1,16 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: simplex_postgres
+    environment:
+      POSTGRES_DB: simplex_snolate
+      POSTGRES_USER: simplex
+      POSTGRES_PASSWORD: simplex
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - postgres_snolate:/var/lib/postgresql/data
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
     container_name: simplex_elasticsearch
@@ -72,3 +84,4 @@ networks:
 
 volumes:
   elastic:
+  postgres_snolate:
