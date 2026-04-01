@@ -18,6 +18,7 @@ import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.external.WeblateLanguageInitialisationJobService;
 import org.snomed.simplex.service.external.WeblateLanguageInitialisationRequest;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.translation.service.TranslationService;
 import org.snomed.simplex.weblate.TranslationLLMService;
@@ -223,6 +224,28 @@ public class TranslationController {
 			sampleRow.blankLabels();
 		}
 		return sampleRow;
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/snolate/sync-from-snowstorm")
+	@Operation(summary = "Synchronise language refset terms from Snowstorm into Snolate.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob synchroniseTranslationFromSnowstormToSnolate(@PathVariable String codeSystem, @PathVariable String refsetId)
+			throws ServiceException {
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+		String languageCode = theCodeSystem.getTranslationLanguages().get(refsetId);
+		if (languageCode == null) {
+			throw new ServiceExceptionWithStatusCode("Language code not found for refset %s".formatted(refsetId), HttpStatus.CONFLICT);
+		}
+
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
+		ContentJob contentJob = new ContentJob(theCodeSystem, "Snolate sync from Snowstorm", refsetId);
+		return jobService.queueContentJob(contentJob, refsetId, activity, job -> {
+			translationService.synchroniseWholeTranslationFromSnowstormToSnolate(theCodeSystem, snowstormClient, languageCode, refsetId);
+			return new ChangeSummary();
+		});
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/pull-content")

@@ -30,6 +30,8 @@ import org.snomed.simplex.service.job.APTaskCreationCallable;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
+import org.snomed.simplex.snolate.service.SnolateTranslationSource;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.weblate.WeblateClientFactory;
@@ -39,6 +41,7 @@ import org.snomed.simplex.weblate.pojo.WeblateFormat;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -84,18 +87,21 @@ public class TranslationService {
 	private final AuthoringServicesClient authoringServicesClient;
 	private final TranslationMergeService translationMergeService;
 	private final WeblateClientFactory weblateClientFactory;
+	private final TranslationUnitRepository translationUnitRepository;
 
 	@Value("${simplex.mode:standard}")
 	private String simplexMode;
 
 	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory, AuthoringServicesClient authoringServicesClient,
-			TranslationMergeService translationMergeService, WeblateClientFactory weblateClientFactory) {
+			TranslationMergeService translationMergeService, WeblateClientFactory weblateClientFactory,
+			TranslationUnitRepository translationUnitRepository) {
 
 		this.refsetService = refsetService;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.authoringServicesClient = authoringServicesClient;
 		this.translationMergeService = translationMergeService;
 		this.weblateClientFactory = weblateClientFactory;
+		this.translationUnitRepository = translationUnitRepository;
 	}
 
 	@PostConstruct
@@ -746,6 +752,15 @@ public class TranslationService {
 		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
 		WebateTranslationSource webateTranslationSource = new WebateTranslationSource(weblateClientFactory.getClient(), languageCode, refsetId);
 		translationMergeService.applyMerge(snowstormTranslationSource, webateTranslationSource, languageCode, refsetId);
+	}
+
+	@Transactional
+	public void synchroniseWholeTranslationFromSnowstormToSnolate(CodeSystem codeSystem, SnowstormClient snowstormClient, String languageCode, String refsetId)
+			throws ServiceExceptionWithStatusCode {
+
+		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
+		SnolateTranslationSource snolateTranslationSource = new SnolateTranslationSource(translationUnitRepository, languageCode, refsetId);
+		translationMergeService.applyMerge(snowstormTranslationSource, snolateTranslationSource, languageCode, refsetId);
 	}
 
 	public void synchroniseTranslationSetFromTranslationToolToSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient, WeblateTranslationSet translationSet)

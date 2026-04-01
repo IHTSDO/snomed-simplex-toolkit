@@ -1,5 +1,5 @@
 package org.snomed.simplex.translation.service;
 
 public enum TranslationSourceType {
-	TERMINOLOGY_SERVER, TRANSLATION_TOOL
+	TERMINOLOGY_SERVER, TRANSLATION_TOOL, SNOLATE
 }

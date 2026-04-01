@@ -14,6 +14,8 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.service.StreamUtils;
 import org.snomed.simplex.util.CollectionUtils;
+import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
+import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -28,6 +30,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.OutputStream;
 import java.net.URI;
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -50,12 +53,16 @@ public class SnowstormClient {
 	public static final String BRANCH_X_ENDPOINT = "/branches/%s";
 	public static final String ROOT_CODESYSTEM = "SNOMEDCT";
 
+	/** Read timeout for POST /exports and GET …/exports/{id}/archive (large ZIP stream). Other Snowstorm calls use {@link #restTemplate} defaults. */
+	private static final Duration RF2_EXPORT_READ_TIMEOUT = Duration.ofMinutes(10);
+
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<ConceptMini>> responseTypeConceptMiniPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<Long>> responseTypeSCTIDPage = new ParameterizedTypeReference<>(){};
 
 	private final RestTemplate restTemplate;
+	private final RestTemplate restTemplateRf2Export;
 	private final ObjectMapper objectMapper;
 	private final Map<String, String> workingBranches;
 
@@ -68,11 +75,16 @@ public class SnowstormClient {
 		if (Strings.isBlank(snowstormUrl)) {
 			throw new IllegalStateException("Snowstorm URL is not yet configured");
 		}
-		restTemplate = new RestTemplateBuilder()
+		RestTemplateBuilder builder = new RestTemplateBuilder()
 				.rootUri(snowstormUrl)
 				.defaultHeader("Cookie", authenticationToken)
 				// Set the request content type to JSON
-				.messageConverters(new MappingJackson2HttpMessageConverter())
+				.messageConverters(new MappingJackson2HttpMessageConverter());
+		restTemplate = builder.build();
+		ClientHttpRequestFactorySettings exportHttpSettings = ClientHttpRequestFactorySettings.defaults()
+				.withReadTimeout(RF2_EXPORT_READ_TIMEOUT);
+		restTemplateRf2Export = builder
+				.requestFactory(() -> ClientHttpRequestFactoryBuilder.detect().build(exportHttpSettings))
 				.build();
 	}
 
@@ -516,7 +528,7 @@ public class SnowstormClient {
 		if (exportConfiguration.isLanguageOnly()) {
 			requestBody.put("languageOnly", true);
 		}
-		URI location = restTemplate.execute("/exports", HttpMethod.POST,
+		URI location = restTemplateRf2Export.execute("/exports", HttpMethod.POST,
 				httpRequest -> {
 					httpRequest.getHeaders().add("Content-Type", "application/json");
 					objectMapper.writeValue(httpRequest.getBody(), requestBody);
@@ -527,7 +539,7 @@ public class SnowstormClient {
 		}
 		String archiveLocation = location + "/archive";
 		logger.info("Downloading export from {}", archiveLocation);
-		restTemplate.execute(archiveLocation, HttpMethod.GET,
+		restTemplateRf2Export.execute(archiveLocation, HttpMethod.GET,
 				httpRequest -> httpRequest.getHeaders().add("Accept", "application/zip"), httpResponse -> {
 			StreamUtils.copyViaTempFile(httpResponse.getBody(), outputStream, false);
 			return null;
