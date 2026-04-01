@@ -34,8 +34,12 @@ class TranslationSourceRepositoryTest {
 
 	@Test
 	void saveFindAllByOrderAndElementCollection() {
-		repository.save(new TranslationSource("c1", "Second term", 2, Set.of("alpha")));
-		repository.save(new TranslationSource("c0", "First term", 1, Set.of("alpha", "beta")));
+		TranslationSource s1 = new TranslationSource("c1", "Second term", 2);
+		s1.setSets(Set.of("alpha"));
+		repository.save(s1);
+		TranslationSource s0 = new TranslationSource("c0", "First term", 1);
+		s0.setSets(Set.of("alpha", "beta"));
+		repository.save(s0);
 
 		assertThat(repository.findAllByOrderByOrderAsc())
 				.extracting(TranslationSource::getCode)

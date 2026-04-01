@@ -28,7 +28,19 @@
 		<tomcat-embed.version>10.1.52</tomcat-embed.version>
 		<activemq.version>6.2.1</activemq.version>
 		<snomed-boot.version>5.5.0</snomed-boot.version>
+		<!-- Hibernate 6.6 HQL lexer requires ANTLR 4.13+; snomed-parent-bom pins 4.5.3 (ATN v3). -->
+		<antlr4.version>4.13.1</antlr4.version>
 	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.antlr</groupId>
+				<artifactId>antlr4-runtime</artifactId>
+				<version>${antlr4.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<dependencies>
 		<!-- Spring -->
@@ -55,6 +67,7 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>dev.langchain4j</groupId>

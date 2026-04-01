@@ -13,6 +13,8 @@ public enum ActivityType {
 	WEBLATE_LANGUAGE_INITIALISATION("Initialise language in Translation Tool"),
 	WEBLATE_SNOMED_INITIALISATION("Initialise SNOMED CT in Translation Tool"),
 	WEBLATE_SNOMED_UPGRADE("Upgrade SNOMED CT in Translation Tool"),
+	SNOLATE_SNOMED_INITIALISATION("Initialise SNOMED CT in Translation Tool"),
+	SNOLATE_SNOMED_UPGRADE("Upgrade SNOMED CT in Translation Tool"),
 	TRANSLATION_SET_CREATE("Create translation set"),
 	AI_BATCH_TRANSLATION("AI batch translation");
 
