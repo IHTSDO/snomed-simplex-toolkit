@@ -276,7 +276,7 @@ export class SimplexService {
     return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public linkTranslationToSnolate(edition: string, refsetId: string): Observable<any> {
+  public linkTranslationToTranslationStudio(edition: string, refsetId: string): Observable<any> {
     return this.http.post(`api/${edition}/translations/${refsetId}/snolate-setup`, {}).pipe(
       tap(() => this.clearTranslationsCache(edition)),
       catchError(this.handleError.bind(this)));
@@ -374,7 +374,7 @@ export class SimplexService {
     return this.http.get(`api/language-codes`).pipe(catchError(this.handleError.bind(this)));
   }
 
-  // Snolate translation set utilities
+  // Translation Studio API (snolate-* paths)
 
   public getLabelSets(edition: string): Observable<any> {
     const mockLabelSets = [
@@ -411,11 +411,11 @@ export class SimplexService {
     return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set`, translationSetData).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public pullFromSnolate(edition: string, refsetId: string, label: string, apTaskRequest?: any): Observable<any> {
+  public pullFromTranslationStudio(edition: string, refsetId: string, label: string, apTaskRequest?: any): Observable<any> {
     return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set/${label}/pull-content`, apTaskRequest || {}).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public refreshSnolateSet(edition: string, refsetId: string, label: string): Observable<any> {
+  public refreshTranslationStudioSet(edition: string, refsetId: string, label: string): Observable<any> {
     return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set/${label}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 

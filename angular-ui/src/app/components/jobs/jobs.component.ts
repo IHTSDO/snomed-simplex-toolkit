@@ -41,8 +41,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   loadingActivities = false;
   showMapInfo = false;
   hasInProgressJob = false;
-  hasSnolateActivity = false;
-  hasSnolateActivityFailed = false;
+  hasTranslationStudioActivity = false;
+  hasTranslationStudioActivityFailed = false;
   saving = false;
   private isPollingActivities = false;
 
@@ -107,8 +107,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   ngOnChanges() {
-    this.hasSnolateActivity = false;
-    this.hasSnolateActivityFailed = false;
+    this.hasTranslationStudioActivity = false;
+    this.hasTranslationStudioActivityFailed = false;
     this.loadJobs(true);
     this.loadActivities(true);
     this.selectedFileType = null;
@@ -216,21 +216,21 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         console.log('Activities loaded:', data); // Debug: see what activities are returned
         this.activities = data.items || data; // Handle both response format and direct array
         this.loadingActivities = false;
-        this.checkSnolateActivities();
+        this.checkTranslationStudioActivities();
         this.manageActivitiesPolling();
         this.changeDetectorRef.detectChanges();
       });
   }
 
-  private checkSnolateActivities(): void {
-    this.hasSnolateActivity = this.activities.some(
+  private checkTranslationStudioActivities(): void {
+    this.hasTranslationStudioActivity = this.activities.some(
       (activity: any) =>
         activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
         activity.componentType === 'TRANSLATION' &&
         activity.componentId === this.artifact?.conceptId &&
         !activity.endDate
     );
-    this.hasSnolateActivityFailed = this.activities.some(
+    this.hasTranslationStudioActivityFailed = this.activities.some(
       (activity: any) =>
         activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
         activity.componentType === 'TRANSLATION' &&
@@ -239,7 +239,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     );
   }
 
-  getSnolateActivityErrorMessage(): string {
+  getTranslationStudioActivityErrorMessage(): string {
     const failedActivity = this.activities.find(
       (activity: any) =>
         activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
@@ -250,7 +250,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     if (failedActivity?.message) {
       return failedActivity.message;
     }
-    return 'Snolate language setup failed';
+    return 'Translation Studio language setup failed';
   }
 
   private manageActivitiesPolling(): void {
@@ -458,7 +458,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   filterFileTypes() {
     if (this.artifact && this.artifact.type) {
-      if (this.artifact.type === 'translation' && this.isSnolateLinked()) {
+      if (this.artifact.type === 'translation' && this.isTranslationStudioLinked()) {
         this.filteredFileTypes = [];
         this.selectedFileType = null;
       } else {
@@ -496,28 +496,28 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   shouldDisableEditing(): boolean {
-    return this.hasSnolateActivity || this.hasActiveRefsetChangeJob();
+    return this.hasTranslationStudioActivity || this.hasActiveRefsetChangeJob();
   }
 
-  linkToSnolate(): void {
-    this.modalService.open('snolate-confirmation-modal');
+  linkToTranslationStudio(): void {
+    this.modalService.open('translation-studio-link-modal');
   }
 
-  closeSnolateConfirmation(): void {
-    this.modalService.close('snolate-confirmation-modal');
+  closeTranslationStudioLinkConfirmation(): void {
+    this.modalService.close('translation-studio-link-modal');
   }
 
-  confirmLinkToSnolate(): void {
-    this.modalService.close('snolate-confirmation-modal');
+  confirmLinkToTranslationStudio(): void {
+    this.modalService.close('translation-studio-link-modal');
 
     if (this.artifact && this.artifact.type === 'translation' && this.edition) {
       this.saving = true;
 
       this.simplexService
-        .linkTranslationToSnolate(this.edition, this.artifact.conceptId)
+        .linkTranslationToTranslationStudio(this.edition, this.artifact.conceptId)
         .subscribe({
           next: (response) => {
-            this.snackBar.open('Snolate setup job created', 'Dismiss', {
+            this.snackBar.open('Translation Studio setup job created', 'Dismiss', {
               duration: 5000,
             });
             this.loadJobs(false);
@@ -526,7 +526,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
             this.saving = false;
           },
           error: () => {
-            this.snackBar.open('Failed to start Snolate setup', 'Dismiss', {
+            this.snackBar.open('Failed to start Translation Studio setup', 'Dismiss', {
               duration: 5000,
             });
             this.saving = false;
@@ -535,19 +535,19 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     }
   }
 
-  isSnolateLinked(): boolean {
+  isTranslationStudioLinked(): boolean {
     return this.artifact && this.artifact.type === 'translation' && this.artifact.isSnolate;
   }
 
-  shouldDisableSnolateLinking(): boolean {
-    return this.hasSnolateActivity || this.saving;
+  shouldDisableTranslationStudioLinking(): boolean {
+    return this.hasTranslationStudioActivity || this.saving;
   }
 
-  navigateToTranslationDashboard(): void {
+  navigateToTranslationStudio(): void {
     if (this.edition) {
-      this.router.navigate(['/translation-dashboard', this.edition]);
+      this.router.navigate(['/translation-studio', this.edition]);
     } else {
-      this.router.navigate(['/translation-dashboard']);
+      this.router.navigate(['/translation-studio']);
     }
   }
 

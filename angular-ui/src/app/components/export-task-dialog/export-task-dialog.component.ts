@@ -88,7 +88,7 @@ export class ExportTaskDialogComponent implements OnInit {
                 };
             }
 
-            this.simplexService.pullFromSnolate(
+            this.simplexService.pullFromTranslationStudio(
                 this.data.edition,
                 this.data.refsetId,
                 this.data.label,

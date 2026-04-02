@@ -3,20 +3,20 @@
     <br>
     <!-- Integrated options for translation artifacts -->
     <div *ngIf="artifact?.type === 'translation' && !shouldDisableEditing() && !loadingActivities">
-        <h5 *ngIf="!isSnolateLinked()">
-            <a href="javascript:void(0)" (click)="navigateToTranslationDashboard()">Open the Translation Dashboard</a>
-            for Snolate authoring, upload content below, or
-            <a href="javascript:void(0)" (click)="linkToSnolate()" [class.disabled]="shouldDisableSnolateLinking()">link this language to Snolate</a>
+        <h5 *ngIf="!isTranslationStudioLinked()">
+            <a href="javascript:void(0)" (click)="navigateToTranslationStudio()">Open Translation Studio</a>
+            for authoring, upload content below, or
+            <a href="javascript:void(0)" (click)="linkToTranslationStudio()" [class.disabled]="shouldDisableTranslationStudioLinking()">link this language to Translation Studio</a>
             (sync from Snowstorm and mark as linked).
-            <mat-icon *ngIf="hasSnolateActivityFailed"
-                     [matTooltip]="getSnolateActivityErrorMessage()"
+            <mat-icon *ngIf="hasTranslationStudioActivityFailed"
+                     [matTooltip]="getTranslationStudioActivityErrorMessage()"
                      class="error-icon">error</mat-icon>
         </h5>
-        <h5 *ngIf="isSnolateLinked()">
-            <a href="javascript:void(0)" (click)="navigateToTranslationDashboard()">Open the Translation Dashboard</a>
-            — this language is linked to Snolate (Translation Tool).
+        <h5 *ngIf="isTranslationStudioLinked()">
+            <a href="javascript:void(0)" (click)="navigateToTranslationStudio()">Open Translation Studio</a>
+            — this language is linked to Translation Studio.
         </h5>
-        <div class="row" *ngIf="!isSnolateLinked()">
+        <div class="row" *ngIf="!isTranslationStudioLinked()">
             <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
               <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
                 {{ type.viewValue }}
@@ -42,10 +42,10 @@
         <p>Editing is temporarily disabled while a refset change job is in progress. Please wait for the job to complete.</p>
     </div>
 
-    <div *ngIf="hasSnolateActivity" class="job-in-progress-message">
+    <div *ngIf="hasTranslationStudioActivity" class="job-in-progress-message">
         <p>
             <mat-icon class="processing-icon">schedule</mat-icon>
-            Snolate setup is in progress for this language (sync from Snowstorm and link). Editing is temporarily disabled until it completes.
+            Translation Studio setup is in progress for this language (sync from Snowstorm and link). Editing is temporarily disabled until it completes.
         </p>
     </div>
     
@@ -105,12 +105,12 @@
 <div *ngIf="selectedFileType == 'refsetToolTranslation' && !shouldDisableEditing()">
     <div class="step-row">
         <span class="step-number">1</span>
-        Edit translations in the Refset & Translation Tool
-        <a mat-flat-button color="primary" href="https://refset.ihtsdotools.org/" target="_blank">Open Refset & Translation Tool</a>
+        Edit translations in the Refset & Translation Studio
+        <a mat-flat-button color="primary" href="https://refset.ihtsdotools.org/" target="_blank">Open Refset & Translation Studio</a>
     </div>
     <div class="step-row">
         <span class="step-number">2</span>
-        Export the translation from Refset & Translation Tool as a zip file
+        Export the translation from Refset & Translation Studio as a zip file
     </div>
     <div class="step-row">
         <span class="step-number">3</span>
@@ -226,12 +226,12 @@
 <div *ngIf="selectedFileType == 'refsetToolSubset' && !shouldDisableEditing()">
     <div class="step-row">
         <span class="step-number">1</span>
-        Edit the refset in the Refset & Translation Tool
-        <a mat-flat-button color="primary" href="https://refset.ihtsdotools.org/" target="_blank">Open Refset & Translation Tool</a>
+        Edit the refset in the Refset & Translation Studio
+        <a mat-flat-button color="primary" href="https://refset.ihtsdotools.org/" target="_blank">Open Refset & Translation Studio</a>
     </div>
     <div class="step-row">
         <span class="step-number">2</span>
-        Export the refset from Refset & Translation Tool as a zip file
+        Export the refset from Refset & Translation Studio as a zip file
     </div>
     <div class="step-row">
         <span class="step-number">3</span>
@@ -331,15 +331,15 @@
 <p *ngIf="!loading && jobs.length == 0 && refsetId != 'external'" class="no-imports">There are no recent uploads for this component</p>
 <p *ngIf="!loading && jobs.length == 0 && refsetId == 'external'" class="no-imports">There are no recent tasks for this edition</p>
 
-<app-modal id="snolate-confirmation-modal" size="medium">
-    <div header><h4 class="m-0">Link language to Snolate</h4></div>
+<app-modal id="translation-studio-link-modal" size="medium">
+    <div header><h4 class="m-0">Link language to Translation Studio</h4></div>
     <div body>
-        <p>This will copy the current language reference set content from Snowstorm into Snolate and mark the language as linked for this edition. You can continue authoring in the Translation Dashboard afterwards.</p>
+        <p>This will copy the current language reference set content from Snowstorm into Translation Studio and mark the language as linked for this edition. You can continue authoring in Translation Studio afterwards.</p>
         <p>Continue?</p>
     </div>
     <div footer>
-        <button mat-button type="button" (click)="closeSnolateConfirmation()">Cancel</button>
-        <button mat-flat-button color="primary" type="button" (click)="confirmLinkToSnolate()" [disabled]="saving">Confirm</button>
+        <button mat-button type="button" (click)="closeTranslationStudioLinkConfirmation()">Cancel</button>
+        <button mat-flat-button color="primary" type="button" (click)="confirmLinkToTranslationStudio()" [disabled]="saving">Confirm</button>
     </div>
 </app-modal>
 

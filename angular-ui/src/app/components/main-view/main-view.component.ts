@@ -51,8 +51,8 @@ export class MainViewComponent implements OnInit {
                 this.selectedMenuItem = 'info';
             } else if (url.includes('releases')) {
                 this.selectedMenuItem = 'releases';
-            } else if (url.includes('translation-dashboard')) {
-                this.selectedMenuItem = 'translation-dashboard';
+            } else if (url.includes('translation-studio') || url.includes('translation-dashboard')) {
+                this.selectedMenuItem = 'translation-studio';
             }
             this.changeDetectorRef.detectChanges();
         }

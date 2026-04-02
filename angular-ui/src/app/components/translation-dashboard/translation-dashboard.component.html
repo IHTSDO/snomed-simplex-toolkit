@@ -8,7 +8,7 @@
     <div class="component-row">
         <div class="component-col-left">
             @if (!authoringPlatformMode) {
-                <h1>Translation Dashboard</h1>
+                <h1>Translation Studio</h1>
             }
             <h4>Translation Sets</h4>
             <mat-list id="components-list">
@@ -156,15 +156,15 @@
                             Run AI Translation
                         </button>
                         @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
-                            <button mat-menu-item (click)="pullFromSnolate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                            <button mat-menu-item (click)="pullFromTranslationStudio()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                                 <mat-icon class="large-icon">cloud_download</mat-icon>
-                                Pull Snolate translations into Snowstorm
+                                Pull Translation Studio translations into Snowstorm
                             </button>
                         }
                         <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
                                 *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
                             <mat-icon class="large-icon">refresh</mat-icon>
-                            Refresh concept selection (Snolate)
+                            Refresh concept selection (Translation Studio)
                             <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
                         </button>
                         <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
@@ -247,7 +247,7 @@
                         <mat-option *ngFor="let translation of translations"
                                    [value]="translation.conceptId || translation.id"
                                    [disabled]="translation.isSnolate !== true">
-                            {{ translation.pt?.term }}{{ translation.isSnolate !== true ? ' (not yet linked to Translation Dashboard)' : '' }}
+                            {{ translation.pt?.term }}{{ translation.isSnolate !== true ? ' (not yet linked to Translation Studio)' : '' }}
                         </mat-option>
                     </mat-select>
                     <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>
