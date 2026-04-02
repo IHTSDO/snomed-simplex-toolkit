@@ -404,7 +404,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                 const newLabelSets = allTranslationSets
                     .filter((translationSet: any) => translationSet.status !== 'DELETING')
                     .map((translationSet: any) => {
-                        const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
+                        const matchingTranslation = this.translations.find((translation: any) =>
+                            (translation.conceptId || translation.id) === translationSet.refset);
                         return {
                             ...translationSet,
                             translationId: translationSet.refset,
@@ -512,7 +513,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                 const updatedLabelSets = allTranslationSets
                     .filter((translationSet: any) => translationSet.status !== 'DELETING')
                     .map((translationSet: any) => {
-                        const matchingTranslation = this.translations.find((translation: any) => translation.id === translationSet.refset);
+                        const matchingTranslation = this.translations.find((translation: any) =>
+                            (translation.conceptId || translation.id) === translationSet.refset);
                         return {
                             ...translationSet,
                             translationId: translationSet.refset,
