@@ -23,14 +23,13 @@ public class SnolateManagementController {
 
 	@PostMapping("snomed-initialise")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public TranslationToolUpdatePlan snolateSnomedInitialise() throws ServiceExceptionWithStatusCode {
+	public TranslationToolUpdatePlan snomedInitialise() throws ServiceExceptionWithStatusCode {
 		return snolateSnomedUpgradeService.runUpdate(true, "Initialise SNOMED CT in Snolate", null);
 	}
 
 	@PostMapping("snomed-upgrade")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public TranslationToolUpdatePlan snolateSnomedUpgrade(@RequestParam(required = false) Integer upgradeToEffectiveTime) throws ServiceExceptionWithStatusCode {
+	public TranslationToolUpdatePlan snomedUpgrade(@RequestParam(required = false) Integer upgradeToEffectiveTime) throws ServiceExceptionWithStatusCode {
 		return snolateSnomedUpgradeService.runUpdate(false, "Upgrade SNOMED CT in Snolate", upgradeToEffectiveTime);
 	}
-
 }

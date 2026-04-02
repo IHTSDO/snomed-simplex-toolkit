@@ -34,7 +34,6 @@ public class ConfigurationController {
 		addProperty("snomed-release-service.username", properties);
 		addProperty("ims-security.api-url", properties);
 		addProperty("rvf.url", properties);
-		addProperty("weblate.url", properties);
 		addProperty("jms.queue.prefix", properties);
 		return properties;
 	}

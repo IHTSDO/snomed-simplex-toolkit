@@ -6,7 +6,9 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
-import org.snomed.simplex.weblate.domain.TranslationSubsetType;
+import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
+import org.snomed.simplex.translation.TranslationLLMService;
+import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.jms.core.JmsTemplate;
 
 import java.util.ArrayList;
@@ -30,7 +32,8 @@ class SnolateSetCreationServiceTest {
 		SnowstormClientFactory snowstormClientFactory = mock();
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
+				translationSourceRepository, mock(TranslationUnitRepository.class), mock(TranslationLLMService.class),
+				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 
 		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 2) {
 			@Override
@@ -88,7 +91,8 @@ class SnolateSetCreationServiceTest {
 		SnowstormClientFactory snowstormClientFactory = mock();
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
+				translationSourceRepository, mock(TranslationUnitRepository.class), mock(TranslationLLMService.class),
+				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 
 		String composite = "ZS_200_z";
 

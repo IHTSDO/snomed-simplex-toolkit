@@ -19,10 +19,9 @@ Once the content is in the terminology server it can be versioned and an standar
   - Download of current map members as Spreadsheet (blank initially)
   - Maintain map members by uploading a Spreadsheet export from [Snap2SNOMED](https://snap.snomedtools.org/)
     - Only map entries with a status of "ACCEPTED" will be put into the extension
-### Weblate Translations
+### Snolate translations (Translation Dashboard)
   - Creation of a concept to represent a translation / language refset (with parent `900000000000506000 |Language type reference set (foundation metadata concept)|`)
-  - Upload translation from [Weblate](https://translate.snomedtools.org/)
-  - Maintain translation by uploading updated translation export
+  - Author and manage translation sets in the in-app Translation Dashboard (Snolate), or upload a translation CSV / Refset Tool package
   - First translated term will be made the Preferred Term, any other terms will be acceptable synonyms
 
 ## Prerequisites

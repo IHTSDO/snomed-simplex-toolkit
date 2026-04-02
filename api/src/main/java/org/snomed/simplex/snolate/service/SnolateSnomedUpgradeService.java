@@ -29,7 +29,7 @@ import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
 import org.snomed.simplex.util.FileUtils;
-import org.snomed.simplex.weblate.rf2.RF2LoadingComponentFactoryWithPT;
+import org.snomed.simplex.snolate.rf2.RF2LoadingComponentFactoryWithPT;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;

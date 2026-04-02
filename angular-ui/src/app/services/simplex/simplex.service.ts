@@ -118,10 +118,10 @@ export class SimplexService {
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public uploadWeblateTranslation(edition: string, refsetId: string, file: File): Observable<any> {
+  public uploadTranslationCsv(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `api/${edition}/translations/${refsetId}/weblate`;
+    const apiUrl = `api/${edition}/translations/${refsetId}/translation-csv`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
@@ -201,11 +201,18 @@ export class SimplexService {
     }
   }
 
-  public getActivities(edition: string, offset?: number, limit?: number): Observable<any> {
+  public getActivities(edition: string, offset?: number, limit?: number, componentId?: string): Observable<any> {
     if (!offset) offset = 0;
     if (!limit) limit = 20;
-    const url = `api/${edition}/activities?offset=${offset}&limit=${limit}`;
+    let url = `api/${edition}/activities?offset=${offset}&limit=${limit}`;
+    if (componentId) {
+      url += `&componentId=${encodeURIComponent(componentId)}`;
+    }
     return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public linkTranslationToSnolate(edition: string, refsetId: string): Observable<any> {
+    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-setup`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getRoles(): Observable<any> {
@@ -294,37 +301,7 @@ export class SimplexService {
     return this.http.get(`api/language-codes`).pipe(catchError(this.handleError.bind(this)));
   }
 
-  // Translation Tool utils
-
-  public getSharedSets(): Observable<any> {
-    return this.http.get(`api/weblate/shared-components`).pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public createSharedSet(set: any): Observable<any> {
-    const ecl = set.ecl;
-    delete set.ecl;
-    return this.http.post(`api/weblate/shared-components?ecl=${ecl}`, set).pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public updateSharedSet(set: any): Observable<any> {
-    return this.http.put(`api/weblate/shared-components/${set.slug}`, set).pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public deleteSharedSet(set: any): Observable<any> {
-    return this.http.delete(`api/weblate/shared-components/${set.slug}`).pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public getSharedSetRecords(slug: string, offset: number, limit: number): Observable<any> {
-    return this.http.get(`api/weblate/shared-components/${slug}/records`).pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public refreshSharedSet(slug: string): Observable<any> {
-    return this.http.post(`api/weblate/shared-components/${slug}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public linkTranslationToWeblate(edition: string, refsetId: string): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-setup`, {}).pipe(catchError(this.handleError.bind(this)));
-  }
+  // Snolate translation set utilities
 
   public getLabelSets(edition: string): Observable<any> {
     const mockLabelSets = [
@@ -342,57 +319,42 @@ export class SimplexService {
   }
 
   getLabelSetMembers(edition: string, selectedTranslation: string, labelSetId: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/${selectedTranslation}/weblate-set/${labelSetId}/sample-rows`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations/${selectedTranslation}/snolate-set/${labelSetId}/sample-rows`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSets(edition: string, refsetId: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/${refsetId}/weblate-set`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations/${refsetId}/snolate-set`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getAllTranslationSets(edition: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/weblate-set`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations/snolate-set`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public deleteTranslationSet(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.delete(`api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.delete(`api/${edition}/translations/${refsetId}/snolate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public createTranslationSet(edition: string, refsetId: string, translationSetData: any): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set`, translationSetData).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set`, translationSetData).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public pullFromWeblate(edition: string, refsetId: string, label: string, apTaskRequest?: any): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/pull-content`, apTaskRequest || {}).pipe(catchError(this.handleError.bind(this)));
+  public pullFromSnolate(edition: string, refsetId: string, label: string, apTaskRequest?: any): Observable<any> {
+    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set/${label}/pull-content`, apTaskRequest || {}).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public refreshWeblateSet(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
+  public refreshSnolateSet(edition: string, refsetId: string, label: string): Observable<any> {
+    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set/${label}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSetDetails(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/${refsetId}/weblate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public getWeblateUsersForRefset(edition: string, refsetId: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/${refsetId}/weblate/users`).pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public assignWorkToUsers(edition: string, refsetId: string, label: string, assignments: any[]): Observable<any> {
-    const request = {
-      assignments: assignments.map(assignment => ({
-        username: assignment.user.username,
-        percentage: assignment.workPercentage
-      }))
-    };
-    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/assign-work`, request)
-      .pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translations/${refsetId}/snolate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public runAiBatchTranslation(edition: string, refsetId: string, label: string, batchSize: number): Observable<any> {
     const request = {
       size: batchSize
     };
-    return this.http.post(`api/${edition}/translations/${refsetId}/weblate-set/${label}/run-ai-batch`, request)
+    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set/${label}/run-ai-batch`, request)
       .pipe(catchError(this.handleError.bind(this)));
   }
 

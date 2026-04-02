@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-@JsonPropertyOrder({"name", "shortName", "branchPath", "workingBranchPath", "translationLanguages"})
+@JsonPropertyOrder({"name", "shortName", "branchPath", "workingBranchPath", "translationLanguages", "translationSnolateLanguages"})
 public class CodeSystem {
 
 	public static final CodeSystem SHARED = new CodeSystem("Shared", "Shared", "");
@@ -46,7 +46,7 @@ public class CodeSystem {
 	private CodeSystemVersion latestVersion;
 	private List<ConceptMini> modules;
 	private Map<String, String> translationLanguages;
-	private Map<String, String> translationWeblateLanguages;
+	private Map<String, String> translationSnolateLanguages;
 
 	private Branch branchObject;
 
@@ -260,12 +260,12 @@ public class CodeSystem {
 		this.translationLanguages = translationLanguages;
 	}
 
-	public Map<String, String> getTranslationWeblateLanguages() {
-		return translationWeblateLanguages;
+	public Map<String, String> getTranslationSnolateLanguages() {
+		return translationSnolateLanguages;
 	}
 
-	public void setTranslationWeblateLanguages(Map<String, String> translationWeblateLanguages) {
-		this.translationWeblateLanguages = translationWeblateLanguages;
+	public void setTranslationSnolateLanguages(Map<String, String> translationSnolateLanguages) {
+		this.translationSnolateLanguages = translationSnolateLanguages;
 	}
 
 	@JsonIgnore

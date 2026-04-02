@@ -3,7 +3,6 @@ package org.snomed.simplex;
 import org.snomed.simplex.config.ApplicationConfig;
 import org.snomed.simplex.service.test.TestActivityRepository;
 import org.snomed.simplex.service.test.TestSnolateSetRepository;
-import org.snomed.simplex.service.test.TestWeblateSetRepository;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration;
@@ -27,11 +26,6 @@ public class TestConfig extends ApplicationConfig {
 	@Bean
 	public TestActivityRepository activityRepository() {
 		return new TestActivityRepository();
-	}
-
-	@Bean
-	public TestWeblateSetRepository weblateSetRepository() {
-		return new TestWeblateSetRepository();
 	}
 
 	@Bean

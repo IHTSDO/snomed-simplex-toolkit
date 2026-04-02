@@ -30,14 +30,14 @@ import org.snomed.simplex.service.job.APTaskCreationCallable;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
 import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
 import org.snomed.simplex.snolate.service.SnolateTranslationSource;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
-import org.snomed.simplex.weblate.WeblateClientFactory;
-import org.snomed.simplex.weblate.WeblateExplanationCreator;
-import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
-import org.snomed.simplex.weblate.pojo.WeblateFormat;
+import org.snomed.simplex.translation.importer.TranslationCsvFormat;
+import org.snomed.simplex.translation.util.ConceptExplanationMarkdown;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -86,22 +86,22 @@ public class TranslationService {
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final AuthoringServicesClient authoringServicesClient;
 	private final TranslationMergeService translationMergeService;
-	private final WeblateClientFactory weblateClientFactory;
 	private final TranslationUnitRepository translationUnitRepository;
+	private final TranslationSourceRepository translationSourceRepository;
 
 	@Value("${simplex.mode:standard}")
 	private String simplexMode;
 
 	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory, AuthoringServicesClient authoringServicesClient,
-			TranslationMergeService translationMergeService, WeblateClientFactory weblateClientFactory,
-			TranslationUnitRepository translationUnitRepository) {
+			TranslationMergeService translationMergeService,
+			TranslationUnitRepository translationUnitRepository, TranslationSourceRepository translationSourceRepository) {
 
 		this.refsetService = refsetService;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.authoringServicesClient = authoringServicesClient;
 		this.translationMergeService = translationMergeService;
-		this.weblateClientFactory = weblateClientFactory;
 		this.translationUnitRepository = translationUnitRepository;
+		this.translationSourceRepository = translationSourceRepository;
 	}
 
 	@PostConstruct
@@ -185,23 +185,25 @@ public class TranslationService {
 			}
 
 			translationRefset.addExtraField("lang", languageCode);
-			translationRefset.addExtraField("isWeblate", codeSystem.getTranslationWeblateLanguages().get(langRefsetId) != null);
+			Map<String, String> snolateLanguages = codeSystem.getTranslationSnolateLanguages();
+			translationRefset.addExtraField("isSnolate",
+					snolateLanguages != null && snolateLanguages.get(langRefsetId) != null);
 		}
 		return translationRefsets;
 	}
 
-	public ChangeSummary uploadTranslationAsWeblateCSV(ContentJob asyncJob) throws ServiceException {
+	public ChangeSummary uploadTranslationCsv(ContentJob asyncJob) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		return uploadTranslationAsWeblateCSV(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(), snowstormClient,
+		return uploadTranslationCsv(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(), snowstormClient,
 			asyncJob, asyncJob.getTaskCreationCallable());
 	}
 
-	public ChangeSummary uploadTranslationAsWeblateCSV(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
+	public ChangeSummary uploadTranslationCsv(String languageRefsetId, CodeSystem codeSystem, InputStream inputStream,
 			SnowstormClient snowstormClient, ProgressMonitor progressMonitor, APTaskCreationCallable taskCreationCallable) throws ServiceException {
 
 		String languageCode = getLanguageCodeOrThrow(languageRefsetId, codeSystem);
 		try (CSVOutputChangeMonitor changeMonitor = getCsvOutputChangeMonitor()) {
-			return doUploadTranslation(() -> readTranslationsFromWeblateCSV(inputStream, languageCode, languageRefsetId),
+			return doUploadTranslation(() -> readTranslationsFromTranslationCsv(inputStream, languageCode, languageRefsetId),
 					languageRefsetId, codeSystem, snowstormClient, progressMonitor, changeMonitor, taskCreationCallable);
 		}
 	}
@@ -599,6 +601,7 @@ public class TranslationService {
 		refsetService.deleteRefsetMembersAndConcept(refsetId, codeSystem);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		snowstormClient.removeTranslationLanguage(refsetId, codeSystem);
+		snowstormClient.removeSnolateTranslationLanguage(refsetId, codeSystem);
 	}
 
 	private CSVOutputChangeMonitor getCsvOutputChangeMonitor() throws ServiceException {
@@ -613,11 +616,11 @@ public class TranslationService {
 		return changeMonitor;
 	}
 
-	private Map<Long, List<Description>> readTranslationsFromWeblateCSV(InputStream inputStream, String languageCode, String languageRefsetId) throws ServiceException {
+	private Map<Long, List<Description>> readTranslationsFromTranslationCsv(InputStream inputStream, String languageCode, String languageRefsetId) throws ServiceException {
 
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-			WeblateFormat weblateFormat = getWeblateFormat(reader);
-			logger.info("Confirmed Weblate CSV format");
+			TranslationCsvFormat csvFormat = getTranslationCsvFormat(reader);
+			logger.info("Confirmed translation CSV format");
 
 			Map<Long, List<Description>> conceptDescriptions = new Long2ObjectOpenHashMap<>();
 			String line;
@@ -627,11 +630,11 @@ public class TranslationService {
 				lineNumber++;
 				String conceptString = null;
 				String translatedTerm = null;
-				if (weblateFormat == WeblateFormat.STANDARD) {
+				if (csvFormat == TranslationCsvFormat.STANDARD) {
 					String[] columns = line.split("\",\"");
 					if (columns.length == 4) {
 						if (columns[2].isBlank() && columns[3].equals("\"")) {
-							// Strange case - weblate exports synonyms as "concept id", "term"
+							// Strange case - some CSV exports use "concept id", "term" for synonyms
 							translatedTerm = columns[1];
 							conceptString = columns[0];
 						} else {
@@ -671,22 +674,22 @@ public class TranslationService {
 		}
 	}
 
-	private static @NonNull WeblateFormat getWeblateFormat(BufferedReader reader) throws IOException, ServiceExceptionWithStatusCode {
+	private static @NonNull TranslationCsvFormat getTranslationCsvFormat(BufferedReader reader) throws IOException, ServiceExceptionWithStatusCode {
 		String header = reader.readLine();
 		if (header == null) {
 			header = "";
 		}
 		header = FileUtils.removeUTF8BOM(header);
 		header = header.replace("\"", "");
-		WeblateFormat weblateFormat;
+		TranslationCsvFormat csvFormat;
 		if (header.equals("source,target,context,developer_comments")) {
-			weblateFormat = WeblateFormat.STANDARD;
+			csvFormat = TranslationCsvFormat.STANDARD;
 		} else if (header.equals("context,target")) {
-			weblateFormat = WeblateFormat.MINIMUM;
+			csvFormat = TranslationCsvFormat.MINIMUM;
 		} else {
 			throw new ServiceExceptionWithStatusCode(format("Unrecognised CSV header '%s'", header), HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
 		}
-		return weblateFormat;
+		return csvFormat;
 	}
 
 	protected Description.CaseSignificance guessCaseSignificance(String term, boolean titleCaseUsed, List<Description> otherDescriptions) {
@@ -736,22 +739,14 @@ public class TranslationService {
 		return term.split(" ", 2)[0];
 	}
 
-	public String getWeblateMarkdown(Long conceptId, SnowstormClient snowstormClient) {
+	public String getConceptExplanationMarkdown(Long conceptId, SnowstormClient snowstormClient) {
 		CodeSystem internationalCodeSystem = new CodeSystem("SNOMEDCT", "SNOMEDCT", "MAIN");
 		List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(List.of(conceptId), internationalCodeSystem);
 		if (concepts.isEmpty()) {
 			return "Concept not found";
 		}
 		Concept concept = concepts.get(0);
-		return WeblateExplanationCreator.getMarkdown(concept);
-	}
-
-	public void synchroniseWholeTranslationFromSnowstormToTranslationTool(CodeSystem codeSystem, SnowstormClient snowstormClient, String languageCode, String refsetId)
-			throws ServiceExceptionWithStatusCode {
-
-		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
-		WebateTranslationSource webateTranslationSource = new WebateTranslationSource(weblateClientFactory.getClient(), languageCode, refsetId);
-		translationMergeService.applyMerge(snowstormTranslationSource, webateTranslationSource, languageCode, refsetId);
+		return ConceptExplanationMarkdown.getMarkdown(concept);
 	}
 
 	@Transactional
@@ -763,13 +758,15 @@ public class TranslationService {
 		translationMergeService.applyMerge(snowstormTranslationSource, snolateTranslationSource, languageCode, refsetId);
 	}
 
-	public void synchroniseTranslationSetFromTranslationToolToSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient, WeblateTranslationSet translationSet)
+	@Transactional
+	public void synchroniseSnolateSubsetToSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient, SnolateTranslationSet translationSet)
 			throws ServiceExceptionWithStatusCode {
 
 		String languageCode = translationSet.getLanguageCode();
 		String refsetId = translationSet.getRefset();
-		WebateTranslationSource webateTranslationSource = new WebateTranslationSource(weblateClientFactory.getClient(), translationSet);
+		SnolateSubsetTranslationSource snolateSubsetTranslationSource = new SnolateSubsetTranslationSource(
+				translationUnitRepository, translationSourceRepository, languageCode, refsetId, translationSet.getCompositeSetCode());
 		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
-		translationMergeService.applyMerge(webateTranslationSource, snowstormTranslationSource, languageCode, refsetId);
+		translationMergeService.applyMerge(snolateSubsetTranslationSource, snowstormTranslationSource, languageCode, refsetId);
 	}
 }

@@ -174,7 +174,7 @@ public class SnowstormClient {
 		codeSystem.setBuildStatus(CodeSystemBuildStatus.fromBranchMetadata(branch.getMetadataValue(Branch.BUILD_STATUS_METADATA_KEY)));
 		codeSystem.setEditionStatus(getEditionStatus(branch.getMetadataValue(Branch.EDITION_STATUS_METADATA_KEY)));
 		codeSystem.setTranslationLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_METADATA_KEY));
-		codeSystem.setTranslationWeblateLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_WEBLATE_METADATA_KEY));
+		codeSystem.setTranslationSnolateLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_SNOLATE_METADATA_KEY));
 	}
 
 	public List<CodeSystemVersion> getVersions(CodeSystem codeSystem) {
@@ -898,10 +898,10 @@ public class SnowstormClient {
 		codeSystem.getTranslationLanguages().put(refsetId, languageCode);
 	}
 
-	public void addWeblateTranslationLanguage(String refsetId, String languageCode, CodeSystem codeSystem) {
+	public void addSnolateTranslationLanguage(String refsetId, String languageCode, CodeSystem codeSystem) {
 		upsertBranchMetadata(codeSystem.getBranchPath(),
-				Map.of((Branch.SIMPLEX_TRANSLATION_WEBLATE_METADATA_KEY + "%s").formatted(refsetId), languageCode));
-		codeSystem.getTranslationWeblateLanguages().put(refsetId, languageCode);
+				Map.of((Branch.SIMPLEX_TRANSLATION_SNOLATE_METADATA_KEY + "%s").formatted(refsetId), languageCode));
+		codeSystem.getTranslationSnolateLanguages().put(refsetId, languageCode);
 	}
 
 	private Map<String, String> getTranslationLanguages(Branch branch, String metadataKey) {
@@ -921,6 +921,17 @@ public class SnowstormClient {
 		metadata.remove((Branch.SIMPLEX_TRANSLATION_METADATA_KEY + "%s").formatted(refsetId));
 		saveAllBranchMetadata(branchPath, metadata);
 		codeSystem.getTranslationLanguages().remove(refsetId);
+	}
+
+	public void removeSnolateTranslationLanguage(String refsetId, CodeSystem codeSystem) throws ServiceException {
+		String branchPath = codeSystem.getBranchPath();
+		Branch branch = getBranchOrThrow(branchPath);
+		Map<String, Object> metadata = branch.getMetadata();
+		metadata.remove((Branch.SIMPLEX_TRANSLATION_SNOLATE_METADATA_KEY + "%s").formatted(refsetId));
+		saveAllBranchMetadata(branchPath, metadata);
+		if (codeSystem.getTranslationSnolateLanguages() != null) {
+			codeSystem.getTranslationSnolateLanguages().remove(refsetId);
+		}
 	}
 
 	public Branch createBranch(String parent, String name) {

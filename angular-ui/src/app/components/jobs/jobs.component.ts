@@ -39,11 +39,12 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   skeleton: any[] = Array(2).fill({});
   loading = false;
   loadingActivities = false;
-  saving = false;
   showMapInfo = false;
   hasInProgressJob = false;
-  hasWeblateActivity = false;
-  hasWeblateActivityFailed = false;
+  hasSnolateActivity = false;
+  hasSnolateActivityFailed = false;
+  saving = false;
+  private isPollingActivities = false;
 
   selectedFile: File = null;
   selectedFileType: string = null;
@@ -69,8 +70,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       artifactTypes: ['translation'],
     },
     {
-      value: 'weblateTranslation',
-      viewValue: 'Translation Tool Translation',
+      value: 'translationCsv',
+      viewValue: 'Translation CSV',
       artifactTypes: ['translation'],
     },
     {
@@ -88,7 +89,6 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   private activitiesSubscription: Subscription;
   private intervalId?: any;
   private activitiesIntervalId?: any;
-  private isPollingActivities = false;
 
   displayedColumns: string[] = ['date', 'display', 'status', 'total', 'icon'];
 
@@ -96,8 +96,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     private simplexService: SimplexService,
     private changeDetectorRef: ChangeDetectorRef,
     private snackBar: MatSnackBar,
-    private modalService: ModalService,
-    private router: Router
+    private router: Router,
+    private modalService: ModalService
   ) {}
 
   ngOnInit() {
@@ -107,10 +107,8 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   }
 
   ngOnChanges() {
-    // Reset activity flags immediately when component changes
-    this.hasWeblateActivity = false;
-    this.hasWeblateActivityFailed = false;
-    
+    this.hasSnolateActivity = false;
+    this.hasSnolateActivityFailed = false;
     this.loadJobs(true);
     this.loadActivities(true);
     this.selectedFileType = null;
@@ -201,9 +199,12 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       this.activities = [];
       this.loadingActivities = true;
     }
-    
+
+    const componentId =
+      this.artifact?.type === 'translation' ? this.artifact?.conceptId : undefined;
+
     this.activitiesSubscription = this.simplexService
-      .getActivities(this.edition)
+      .getActivities(this.edition, 0, 100, componentId)
       .pipe(
         catchError((error) => {
           console.error('An error occurred loading activities:', error);
@@ -215,84 +216,66 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         console.log('Activities loaded:', data); // Debug: see what activities are returned
         this.activities = data.items || data; // Handle both response format and direct array
         this.loadingActivities = false;
-        this.changeDetectorRef.detectChanges();
-
-        // Check for Translation Tool-related activities
-        this.checkWeblateActivities();
-
-        // Manage activities polling
+        this.checkSnolateActivities();
         this.manageActivitiesPolling();
+        this.changeDetectorRef.detectChanges();
       });
   }
 
-  private checkWeblateActivities() {
-    // Check if there are any activities related to Translation Tool language initialization for this artifact
-    this.hasWeblateActivity = this.activities.some((activity: any) => {
-      // Check if activity is related to Translation Tool language initialization and this specific artifact
-      // Activity is still running if it has no endDate
-      return activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
-             activity.componentType === 'TRANSLATION' &&
-             activity.componentId === this.artifact?.conceptId &&
-             !activity.endDate;
-    });
-
-    // Check for failed Translation Tool activities
-    this.hasWeblateActivityFailed = this.activities.some((activity: any) => {
-      return activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
-             activity.componentType === 'TRANSLATION' &&
-             activity.componentId === this.artifact?.conceptId &&
-             activity.error === true;
-    });
-
-
+  private checkSnolateActivities(): void {
+    this.hasSnolateActivity = this.activities.some(
+      (activity: any) =>
+        activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
+        activity.componentType === 'TRANSLATION' &&
+        activity.componentId === this.artifact?.conceptId &&
+        !activity.endDate
+    );
+    this.hasSnolateActivityFailed = this.activities.some(
+      (activity: any) =>
+        activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
+        activity.componentType === 'TRANSLATION' &&
+        activity.componentId === this.artifact?.conceptId &&
+        activity.error === true
+    );
   }
 
-
-
-  getWeblateActivityErrorMessage(): string {
-    const failedActivity = this.activities.find((activity: any) => 
-      activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
-      activity.componentType === 'TRANSLATION' &&
-      activity.componentId === this.artifact?.conceptId &&
-      activity.error === true
+  getSnolateActivityErrorMessage(): string {
+    const failedActivity = this.activities.find(
+      (activity: any) =>
+        activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
+        activity.componentType === 'TRANSLATION' &&
+        activity.componentId === this.artifact?.conceptId &&
+        activity.error === true
     );
-    
-    if (failedActivity) {
-      return 'Translation Tool language initialization failed';
+    if (failedActivity?.message) {
+      return failedActivity.message;
     }
-    return 'Translation Tool linking failed';
+    return 'Snolate language setup failed';
   }
 
-  private manageActivitiesPolling() {
-    const hasProcessingActivities = this.activities.some((activity: any) => 
-      activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
-      activity.componentType === 'TRANSLATION' &&
-      activity.componentId === this.artifact?.conceptId &&
-      !activity.endDate
+  private manageActivitiesPolling(): void {
+    const hasProcessingActivities = this.activities.some(
+      (activity: any) =>
+        activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
+        activity.componentType === 'TRANSLATION' &&
+        activity.componentId === this.artifact?.conceptId &&
+        !activity.endDate
     );
-    
-    const hasFailedActivities = this.activities.some((activity: any) => 
-      activity.activityType === 'WEBLATE_LANGUAGE_INITIALISATION' && 
-      activity.componentType === 'TRANSLATION' &&
-      activity.componentId === this.artifact?.conceptId &&
-      activity.error === true
-    );
-    
-    if ((hasProcessingActivities || hasFailedActivities) && !this.isPollingActivities) {
+    if (hasProcessingActivities && !this.isPollingActivities) {
       this.startActivitiesPolling();
-    } else if (!hasProcessingActivities && !hasFailedActivities && this.isPollingActivities) {
+    } else if (!hasProcessingActivities && this.isPollingActivities) {
       this.stopActivitiesPolling();
     }
   }
 
-  private startActivitiesPolling() {
+  private startActivitiesPolling(): void {
     this.isPollingActivities = true;
     this.activitiesIntervalId = setInterval(() => {
       this.loadActivities(false);
-    }, 10000); // Poll every 10 seconds for activities
+    }, 10000);
   }
 
-  private stopActivitiesPolling() {
+  private stopActivitiesPolling(): void {
     this.isPollingActivities = false;
     if (this.activitiesIntervalId) {
       clearInterval(this.activitiesIntervalId);
@@ -373,10 +356,10 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       try {
         if (
           componentType === 'translation' &&
-          fileType === 'weblateTranslation'
+          fileType === 'translationCsv'
         ) {
           const response = await lastValueFrom(
-            this.simplexService.uploadWeblateTranslation(
+            this.simplexService.uploadTranslationCsv(
               this.edition,
               refsetId,
               this.selectedFile
@@ -475,14 +458,10 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   filterFileTypes() {
     if (this.artifact && this.artifact.type) {
-      // If translation is linked to Translation Tool, only show weblateTranslation option
-      if (this.artifact.type === 'translation' && this.isWeblateLinked()) {
-        this.filteredFileTypes = this.fileTypes.filter((type) =>
-          type.value === 'weblateTranslation'
-        );
-        this.selectedFileType = 'weblateTranslation';
+      if (this.artifact.type === 'translation' && this.isSnolateLinked()) {
+        this.filteredFileTypes = [];
+        this.selectedFileType = null;
       } else {
-        // Normal filtering for all other cases
         this.filteredFileTypes = this.fileTypes.filter((type) =>
           type.artifactTypes.includes(this.artifact.type)
         );
@@ -504,51 +483,6 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     this.selectedFile = null;
   }
 
-  linkToWeblate() {
-    // Show confirmation dialog instead of directly linking
-    this.modalService.open('weblate-confirmation-modal');
-  }
-
-  closeWeblateConfirmation() {
-    this.modalService.close('weblate-confirmation-modal');
-  }
-
-  confirmLinkToWeblate() {
-    this.modalService.close('weblate-confirmation-modal');
-    
-    if (this.artifact && this.artifact.type === 'translation' && this.edition) {
-      // Prevent multiple requests
-      this.saving = true;
-      
-      this.simplexService.linkTranslationToWeblate(this.edition, this.artifact.conceptId).subscribe(
-        (response) => {
-          console.log('Translation Tool linking response:', response); // Debug: see the job response
-          this.snackBar.open('Translation Tool linking job created successfully', 'Dismiss', {
-            duration: 5000,
-          });
-          // Load the new job to show it in the list
-          this.loadJobs(false);
-          // Load activities to show processing status
-          this.loadActivities(false);
-          // Emit job completion for parent component
-          this.jobCompleted.emit(response);
-          this.saving = false;
-        },
-        (error) => {
-          console.error('Failed to link to Translation Tool:', error);
-          this.snackBar.open('Failed to link to Translation Tool', 'Dismiss', {
-            duration: 5000,
-          });
-          this.saving = false;
-        }
-      );
-    }
-  }
-
-  isWeblateLinked(): boolean {
-    return this.artifact && this.artifact.type === 'translation' && this.artifact.isWeblate;
-  }
-
   hasActiveRefsetChangeJob(): boolean {
     return this.jobs.some(job => job.jobType === 'REFSET_CHANGE' && job.status === 'IN_PROGRESS');
   }
@@ -561,14 +495,52 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     return true;
   }
 
-  shouldDisableWeblateLinking(): boolean {
-    // Disable Translation Tool linking if there's a specific activity for this artifact
-    return this.hasWeblateActivity || this.saving;
+  shouldDisableEditing(): boolean {
+    return this.hasSnolateActivity || this.hasActiveRefsetChangeJob();
   }
 
-  shouldDisableEditing(): boolean {
-    // Disable all editing options if there's a Translation Tool language initialization activity for this specific language
-    return this.hasWeblateActivity || this.hasActiveRefsetChangeJob();
+  linkToSnolate(): void {
+    this.modalService.open('snolate-confirmation-modal');
+  }
+
+  closeSnolateConfirmation(): void {
+    this.modalService.close('snolate-confirmation-modal');
+  }
+
+  confirmLinkToSnolate(): void {
+    this.modalService.close('snolate-confirmation-modal');
+
+    if (this.artifact && this.artifact.type === 'translation' && this.edition) {
+      this.saving = true;
+
+      this.simplexService
+        .linkTranslationToSnolate(this.edition, this.artifact.conceptId)
+        .subscribe({
+          next: (response) => {
+            this.snackBar.open('Snolate setup job created', 'Dismiss', {
+              duration: 5000,
+            });
+            this.loadJobs(false);
+            this.loadActivities(false);
+            this.jobCompleted.emit(response);
+            this.saving = false;
+          },
+          error: () => {
+            this.snackBar.open('Failed to start Snolate setup', 'Dismiss', {
+              duration: 5000,
+            });
+            this.saving = false;
+          },
+        });
+    }
+  }
+
+  isSnolateLinked(): boolean {
+    return this.artifact && this.artifact.type === 'translation' && this.artifact.isSnolate;
+  }
+
+  shouldDisableSnolateLinking(): boolean {
+    return this.hasSnolateActivity || this.saving;
   }
 
   navigateToTranslationDashboard(): void {

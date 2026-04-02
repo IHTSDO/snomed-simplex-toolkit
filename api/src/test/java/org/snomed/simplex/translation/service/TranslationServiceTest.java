@@ -10,7 +10,9 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concept;
+import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.Description;
+import org.snomed.simplex.client.domain.DescriptionMini;
 import org.snomed.simplex.client.domain.DummyProgressMonitor;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.ChangeSummary;
@@ -26,6 +28,8 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.snomed.simplex.client.domain.Concepts.US_LANG_REFSET;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 
@@ -90,7 +94,7 @@ class TranslationServiceTest {
 	void testBlankHeader() throws ServiceException {
 		SnowstormClient client = snowstormClientFactory.getClient();
 		try {
-			service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"),
+			service.uploadTranslationCsv(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-blank.txt"),
 				client, new DummyProgressMonitor(), null);
 			fail();
 		} catch (ServiceException e) {
@@ -106,7 +110,7 @@ class TranslationServiceTest {
 						new Concept("").setConceptId("674814021000119106")));
 		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
 
-		service.uploadTranslationAsWeblateCSV(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"),
+		service.uploadTranslationCsv(testLangRefset, testCodeSystem, getClass().getResourceAsStream("/test-translation-1.txt"),
 			snowstormClientFactory.getClient(), new DummyProgressMonitor(), null);
 
 		List<Concept> updatedConcepts = conceptsSentToUpdate.getValue();
@@ -210,6 +214,22 @@ class TranslationServiceTest {
 		assertEquals("28 Gauge|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a++)));
 		assertEquals("čeleď skladokazovití|CASE_INSENSITIVE", toString(allDescriptions.get(a++)));
 		assertEquals("čeleď Acaridae|ENTIRE_TERM_CASE_SENSITIVE", toString(allDescriptions.get(a)));
+	}
+
+	@Test
+	void listTranslations_setsIsSnolateFromBranchMap() throws ServiceException {
+		ConceptMini refset = new ConceptMini(testLangRefset, new DescriptionMini("Test lang refset", "en"));
+		Mockito.when(mockSnowstormClient.getRefsets(anyString(), eq(testCodeSystem))).thenReturn(List.of(refset));
+
+		testCodeSystem.setTranslationSnolateLanguages(Map.of(testLangRefset, "vi"));
+		var linked = service.listTranslations(testCodeSystem, mockSnowstormClient);
+		assertEquals(1, linked.size());
+		assertEquals(Boolean.TRUE, linked.get(0).getExtraFields().get("isSnolate"));
+
+		testCodeSystem.setTranslationSnolateLanguages(Map.of());
+		var unlinked = service.listTranslations(testCodeSystem, mockSnowstormClient);
+		assertEquals(1, unlinked.size());
+		assertEquals(Boolean.FALSE, unlinked.get(0).getExtraFields().get("isSnolate"));
 	}
 
 	private String toString(Description description) {

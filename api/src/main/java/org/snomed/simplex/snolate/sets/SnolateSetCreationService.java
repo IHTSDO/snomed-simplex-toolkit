@@ -11,13 +11,16 @@ import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
 import org.snomed.simplex.util.TimerUtil;
-import org.snomed.simplex.weblate.domain.TranslationSetStatus;
+import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.springframework.http.HttpStatus;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.snomed.simplex.weblate.WeblateSetService.*;
+import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_CREATE;
+import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_DELETE;
+import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_REFRESH;
+import static org.snomed.simplex.snolate.sets.SnolateSetService.PERCENTAGE_PROCESSED_START;
 
 public class SnolateSetCreationService extends AbstractSnolateSetProcessingService {
 
@@ -80,6 +83,22 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		snolateSetRepository.save(translationSet);
 
 		queueJob(translationSet, JOB_TYPE_REFRESH);
+	}
+
+	public void queueDelete(SnolateTranslationSet translationSet) throws ServiceException {
+		queueJob(translationSet, JOB_TYPE_DELETE);
+	}
+
+	public void doDeleteSet(SnolateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+		String compositeSetCode = translationSet.getCompositeSetCode();
+		List<TranslationSource> members = translationSourceRepository.findAllHavingSetMembership(compositeSetCode);
+		if (!members.isEmpty()) {
+			for (TranslationSource row : members) {
+				row.getSets().remove(compositeSetCode);
+			}
+			translationSourceRepository.saveAll(members);
+		}
+		snolateSetRepository.delete(translationSet);
 	}
 
 	public void doRefreshSet(SnolateTranslationSet translationSet, SnowstormClientFactory snowstormClientFactory) throws ServiceExceptionWithStatusCode {
