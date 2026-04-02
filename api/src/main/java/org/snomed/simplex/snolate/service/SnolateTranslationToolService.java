@@ -22,9 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class SnolateTranslationToolService {
@@ -48,12 +51,53 @@ public class SnolateTranslationToolService {
 	}
 
 	public void applyCounts(SnolateTranslationSet translationSet) {
-		String lang = translationSet.getLanguageCodeWithRefsetId();
-		String setCode = translationSet.getCompositeSetCode();
-		int translated = (int) translationUnitRepository.countTranslatedInSubset(lang, setCode);
-		translationSet.setTranslated(translated);
-		int outstanding = (int) translationUnitRepository.countOutstandingReviewInSubset(lang, setCode);
-		translationSet.setChangedSinceCreatedOrLastPulled(outstanding);
+		applyCounts(List.of(translationSet));
+	}
+
+	/**
+	 * Fills {@link SnolateTranslationSet#setTranslated} and {@link SnolateTranslationSet#setChangedSinceCreatedOrLastPulled}.
+	 * Counts are loaded in one round-trip per distinct {@link SnolateTranslationSet#getLanguageCodeWithRefsetId()} value.
+	 */
+	public void applyCounts(List<SnolateTranslationSet> sets) {
+		if (sets == null || sets.isEmpty()) {
+			return;
+		}
+		Map<String, List<SnolateTranslationSet>> byLang = sets.stream()
+				.collect(Collectors.groupingBy(SnolateTranslationSet::getLanguageCodeWithRefsetId));
+		for (Map.Entry<String, List<SnolateTranslationSet>> entry : byLang.entrySet()) {
+			String lang = entry.getKey();
+			List<SnolateTranslationSet> group = entry.getValue();
+			List<String> setCodes = group.stream()
+					.map(SnolateTranslationSet::getCompositeSetCode)
+					.distinct()
+					.toList();
+			if (setCodes.isEmpty()) {
+				continue;
+			}
+			Map<String, Long> translated = aggregateCounts(translationUnitRepository.countTranslatedInSubsetBatch(lang, setCodes));
+			Map<String, Long> outstanding = aggregateCounts(
+					translationUnitRepository.countOutstandingReviewInSubsetBatch(lang, setCodes));
+			for (SnolateTranslationSet set : group) {
+				String code = set.getCompositeSetCode();
+				set.setTranslated(translated.getOrDefault(code, 0L).intValue());
+				set.setChangedSinceCreatedOrLastPulled(outstanding.getOrDefault(code, 0L).intValue());
+			}
+		}
+	}
+
+	private static Map<String, Long> aggregateCounts(List<Object[]> rows) {
+		if (rows == null || rows.isEmpty()) {
+			return Map.of();
+		}
+		Map<String, Long> map = new HashMap<>();
+		for (Object[] row : rows) {
+			String setCode = Objects.toString(row[0], null);
+			if (setCode == null) {
+				continue;
+			}
+			map.put(setCode, ((Number) row[1]).longValue());
+		}
+		return map;
 	}
 
 	@Transactional(readOnly = true)

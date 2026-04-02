@@ -26,22 +26,38 @@
                 </div>
                 <!-- Actual List Items -->
                 <ng-container *ngIf="!showSkeleton">
-                    <mat-list-item class="hoverable-item" matRipple *ngFor="let set of labelSets"
+                    <mat-list-item class="hoverable-item translation-set-row" matRipple *ngFor="let set of labelSets; trackBy: trackByLabelSetKey"
                     (click)="selectSet(set)"
                     [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
-                        {{ set.name }}
-                        <span class="pill pill-blue">{{ set.translationName }}</span>
-                        <mat-icon *ngIf="set.status === 'PROCESSING'"
-                                 matTooltip="Status: {{ set.status }}&#10;{{ set.percentageProcessed }}% complete"
-                                 matTooltipClass="multiline-tooltip"
-                                 class="processing-icon">schedule</mat-icon>
-                        <mat-icon *ngIf="set.status === 'FAILED'"
-                                matTooltip="Status: {{ set.status }}"
-                                class="processing-icon">error</mat-icon>
-                        <span *ngIf="set.size" class="artifact-info">{{ set.size }} concepts</span>
-                        <mat-progress-bar *ngIf="set.status === 'PROCESSING' && set.percentageProcessed !== undefined"
-                                         [value]="set.percentageProcessed"
-                                         class="processing-progress-bar"></mat-progress-bar>
+                        <div class="translation-set-row-content">
+                            <div class="translation-set-row-top">
+                                <span class="set-name">{{ set.name }}</span>
+                                <span class="pill pill-blue">{{ set.translationName }}</span>
+                                <mat-icon *ngIf="set.status === 'PROCESSING'"
+                                         matTooltip="Status: {{ set.status }}&#10;{{ set.percentageProcessed }}% complete"
+                                         matTooltipClass="multiline-tooltip"
+                                         class="processing-icon">schedule</mat-icon>
+                                <mat-icon *ngIf="set.status === 'FAILED'"
+                                        matTooltip="Status: {{ set.status }}"
+                                        class="processing-icon">error</mat-icon>
+                                <span *ngIf="set.size" class="artifact-info">{{ set.size }} concepts</span>
+                            </div>
+                            <div class="translation-set-row-bars">
+                                <mat-progress-bar *ngIf="set.status === 'PROCESSING' && set.percentageProcessed !== undefined"
+                                                 mode="determinate"
+                                                 [value]="set.percentageProcessed"
+                                                 class="set-creation-progress-bar"></mat-progress-bar>
+                                <div *ngIf="set.size > 0" class="translation-coverage-block">
+                                    <mat-progress-bar mode="determinate"
+                                                     [value]="translationProgressPercent(set)"
+                                                     class="set-translation-progress-bar"></mat-progress-bar>
+                                    <span class="translation-coverage-label">
+                                        {{ set.translated ?? 0 }} / {{ set.size }} concepts translated
+                                        ({{ translationProgressPercent(set) | number:'1.0-0' }}%)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </mat-list-item>
                     <div class="button-container">
                         <button mat-flat-button color="primary" (click)="setMode('create')">
