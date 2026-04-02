@@ -1,6 +1,6 @@
 package org.snomed.simplex.rest.pojos;
 
-import org.snomed.simplex.weblate.domain.TranslationSubsetType;
+import org.snomed.simplex.translation.tool.TranslationSubsetType;
 
 public class CreateSnolateTranslationSet {
 

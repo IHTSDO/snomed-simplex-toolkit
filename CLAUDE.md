@@ -1,6 +1,6 @@
 # SNOMED Simplex Toolkit
 
-A web application for authoring and managing SNOMED CT terminology extensions. It integrates with Snowstorm (terminology server), Weblate (translation management), and SNOMED release infrastructure.
+A web application for authoring and managing SNOMED CT terminology extensions. It integrates with Snowstorm (terminology server), Snolate (JPA-backed translation store and dashboard), and SNOMED release infrastructure.
 
 ## Architecture
 
@@ -10,11 +10,11 @@ Two-module Maven project:
 - `angular-ui/` — Angular 18 frontend
 
 **Key backend packages:**
-- `client/` — External service clients (Snowstorm, Weblate, RVF, SRS)
+- `client/` — External service clients (Snowstorm, RVF, SRS, diagram generator)
 - `rest/` — REST controllers
 - `service/` — Core business logic
 - `translation/` — Translation workflow services and source abstractions
-- `weblate/` — Weblate integration
+- `snolate/` — Snolate domain, repositories, translation sets, and tool services
 
 ## Build & Run
 
@@ -57,7 +57,8 @@ cd angular-ui && npx cypress open
 Important properties:
 - `snowstorm.url` — terminology server (default: `http://localhost:8080/`)
 - `elasticsearch.urls` — Elasticsearch endpoint
-- `weblate.url` — translation platform
+- `diagram.storage.*` — object/file storage for generated concept diagrams
+- `translation-copy.storage.*` — translation snapshot storage for sync
 - `openai.api-key` — for AI-assisted translation
 - `server.port` — default `8081`
 

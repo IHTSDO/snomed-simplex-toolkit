@@ -7,7 +7,6 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { TerminologyService } from 'src/app/services/simplex/terminology.service';
 import { ActivatedRoute } from '@angular/router';
-import { AssignWorkDialogComponent } from '../assign-work-dialog/assign-work-dialog.component';
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
@@ -203,45 +202,6 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         this.loadingTranslations = false;
         this.loadingLabelSetMembers = false;
         this.loadingLabelSetDetails = false;
-    }
-
-    openWeblateUrl(url: string) {
-        if (url) {
-            window.open(url, '_blank');
-        }
-    }
-
-    openAssignWorkDialog(): void {
-        if (!this.selectedLabelSet) {
-            this.snackBar.open('Please select a translation set first.', 'Close', {
-                duration: 3000
-            });
-            return;
-        }
-
-        const dialogRef = this.dialog.open(AssignWorkDialogComponent, {
-            width: '500px',
-            data: {
-                edition: this.selectedEdition.shortName,
-                refsetId: this.selectedLabelSet.refset,
-                labelSetName: this.selectedLabelSet.name,
-                label: this.selectedLabelSet.label
-            }
-        });
-
-        dialogRef.afterClosed().subscribe(result => {
-            if (result && result.action === 'assign') {
-                console.log('Work assignments:', result.assignments);
-                // Here you would implement the actual work assignment logic
-                const totalUsers = result.assignments.length;
-                const assignmentDetails = result.assignments
-                    .map((assignment: any) => `${assignment.user.full_name} (${assignment.workPercentage}%)`)
-                    .join(', ');
-                this.snackBar.open(`Work will be assigned to ${totalUsers} user(s): ${assignmentDetails}`, 'Close', {
-                    duration: 5000
-                });
-            }
-        });
     }
 
     export() {
@@ -1035,7 +995,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         );
     }
 
-    pullFromWeblate() {
+    pullFromSnolate() {
         if (!this.selectedLabelSet) {
             this.snackBar.open('No translation set selected', 'Dismiss', {
                 duration: 5000
@@ -1053,9 +1013,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             return;
         }
 
-        // Show confirmation dialog
-        if (confirm(`Are you sure you want to pull content from Translation Tool for "${this.selectedLabelSet.name}"?`)) {
-            this.simplexService.pullFromWeblate(
+        if (confirm(`Pull translations from Snolate into Snowstorm for "${this.selectedLabelSet.name}"?`)) {
+            this.simplexService.pullFromSnolate(
                 this.selectedEdition.shortName,
                 translationId,
                 label
@@ -1064,12 +1023,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                     this.snackBar.open('Task is scheduled', 'Dismiss', {
                         duration: 5000
                     });
-                    // Reload the translation set to show updated data
                     this.getLabelSetMembers(this.selectedLabelSet);
                 },
                 (error) => {
                     console.error(error);
-                    this.snackBar.open('Failed to pull content from Translation Tool', 'Dismiss', {
+                    this.snackBar.open('Failed to pull content from Snolate', 'Dismiss', {
                         duration: 5000
                     });
                 }
@@ -1099,7 +1057,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         this.snackBar.open('Refresh started. The translation set status will update shortly.', 'Dismiss', {
             duration: 5000
         });
-        this.simplexService.refreshWeblateSet(
+        this.simplexService.refreshSnolateSet(
             this.selectedEdition.shortName,
             translationId,
             label

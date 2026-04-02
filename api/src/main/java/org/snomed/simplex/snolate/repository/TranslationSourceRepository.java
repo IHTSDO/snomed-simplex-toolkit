@@ -1,12 +1,15 @@
 package org.snomed.simplex.snolate.repository;
 
 import org.snomed.simplex.snolate.domain.TranslationSource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface TranslationSourceRepository extends JpaRepository<TranslationSource, String> {
 
@@ -19,4 +22,10 @@ public interface TranslationSourceRepository extends JpaRepository<TranslationSo
 
 	@Query("SELECT t FROM TranslationSource t WHERE :setCode MEMBER OF t.sets")
 	List<TranslationSource> findAllHavingSetMembership(@Param("setCode") String setCode);
+
+	@Query("SELECT t FROM TranslationSource t WHERE :setCode MEMBER OF t.sets")
+	Page<TranslationSource> findPageHavingSetMembership(@Param("setCode") String setCode, Pageable pageable);
+
+	@Query("SELECT t FROM TranslationSource t WHERE t.code = :code AND :setCode MEMBER OF t.sets")
+	Optional<TranslationSource> findByCodeHavingSetMembership(@Param("code") String code, @Param("setCode") String setCode);
 }

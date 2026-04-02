@@ -1,13 +1,16 @@
 package org.snomed.simplex.snolate.sets;
 
-import org.snomed.simplex.weblate.domain.TranslationSetStatus;
-import org.snomed.simplex.weblate.domain.TranslationSubsetType;
+import org.snomed.simplex.translation.tool.TranslationSetStatus;
+import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 @Document(indexName = "#{@indexNameProvider.indexName('snolate-set')}")
@@ -40,6 +43,12 @@ public final class SnolateTranslationSet {
 	@Field(type = FieldType.Keyword)
 	private final String selectionCodesystem;
 
+	@Field(type = FieldType.Object)
+	private LinkedHashMap<String, String> aiGoldenSet;
+
+	@Field(type = FieldType.Keyword)
+	private String aiLanguageAdvice;
+
 	@Field(type = FieldType.Integer)
 	private int size;
 
@@ -53,6 +62,15 @@ public final class SnolateTranslationSet {
 
 	@Field(type = FieldType.Long)
 	private Date lastPulled;
+
+	@Transient
+	private int translated;
+
+	@Transient
+	private int changedSinceCreatedOrLastPulled;
+
+	@Transient
+	private boolean aiSetupComplete;
 
 	public SnolateTranslationSet(String codesystem, String refset, String name, String label,
 			String ecl, TranslationSubsetType subsetType, String selectionCodesystem) {
@@ -68,7 +86,7 @@ public final class SnolateTranslationSet {
 		this.created = new Date();
 	}
 
-	/** Same pattern as {@link org.snomed.simplex.weblate.domain.WeblateTranslationSet#getCompositeLabel()}: value stored in {@code TranslationSource.sets}. */
+	/** Composite key stored in {@code TranslationSource.sets} (edition/refset/label). */
 	public String getCompositeSetCode() {
 		return "%s_%s_%s".formatted(getCodesystem().replace("SNOMEDCT-", ""), getRefset(), getLabel());
 	}
@@ -180,6 +198,46 @@ public final class SnolateTranslationSet {
 
 	public void setLastPulled(Date lastPulled) {
 		this.lastPulled = lastPulled;
+	}
+
+	public void setAiGoldenSet(Map<String, String> aiGoldenSet) {
+		this.aiGoldenSet = aiGoldenSet != null ? new LinkedHashMap<>(aiGoldenSet) : null;
+	}
+
+	public Map<String, String> getAiGoldenSet() {
+		return aiGoldenSet;
+	}
+
+	public String getAiLanguageAdvice() {
+		return aiLanguageAdvice;
+	}
+
+	public void setAiLanguageAdvice(String aiLanguageAdvice) {
+		this.aiLanguageAdvice = aiLanguageAdvice;
+	}
+
+	public void setTranslated(int translated) {
+		this.translated = translated;
+	}
+
+	public int getTranslated() {
+		return translated;
+	}
+
+	public int getChangedSinceCreatedOrLastPulled() {
+		return changedSinceCreatedOrLastPulled;
+	}
+
+	public void setChangedSinceCreatedOrLastPulled(int changedSinceCreatedOrLastPulled) {
+		this.changedSinceCreatedOrLastPulled = changedSinceCreatedOrLastPulled;
+	}
+
+	public void setAiSetupComplete(boolean aiSetupComplete) {
+		this.aiSetupComplete = aiSetupComplete;
+	}
+
+	public boolean isAiSetupComplete() {
+		return aiSetupComplete;
 	}
 
 	@Override

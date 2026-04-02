@@ -3,16 +3,16 @@ package org.snomed.simplex.snolate.sets;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.ihtsdo.sso.integration.SecurityUtil;
 import org.snomed.simplex.exceptions.ServiceException;
-import org.snomed.simplex.weblate.domain.TranslationSetStatus;
+import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.snomed.simplex.weblate.WeblateSetService.JOB_MESSAGE_ID;
-import static org.snomed.simplex.weblate.WeblateSetService.JOB_MESSAGE_USERNAME;
-import static org.snomed.simplex.weblate.WeblateSetService.JOB_TYPE;
-import static org.snomed.simplex.weblate.WeblateSetService.REQUEST_OBJECT;
+import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_MESSAGE_ID;
+import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_MESSAGE_USERNAME;
+import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE;
+import static org.snomed.simplex.snolate.sets.SnolateSetService.REQUEST_OBJECT;
 
 public abstract class AbstractSnolateSetProcessingService {
 

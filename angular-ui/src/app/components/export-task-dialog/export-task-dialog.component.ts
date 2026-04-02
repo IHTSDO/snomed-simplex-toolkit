@@ -4,20 +4,12 @@ import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import { ToastrService } from "ngx-toastr";
-
-export interface WeblateUser {
-    id: number;
-    username: string;
-    full_name: string;
-    email: string;
-}
 
 export interface ExportTaskDialogData {
     edition: string;
@@ -35,7 +27,6 @@ export interface ExportTaskDialogData {
         MatButtonModule,
         MatFormFieldModule,
         MatInputModule,
-        MatSelectModule,
         MatProgressSpinnerModule,
         MatIconModule,
         ReactiveFormsModule
@@ -45,10 +36,8 @@ export interface ExportTaskDialogData {
 })
 export class ExportTaskDialogComponent implements OnInit {
     loading = false;
-    loadingUsers = false;
     checkingForTask = true;
     exportForm: FormGroup;
-    users: WeblateUser[] = [];
 
     currentApTask: any;
     multipleTasksDetected: boolean = false;
@@ -63,13 +52,10 @@ export class ExportTaskDialogComponent implements OnInit {
     ) {
         this.exportForm = this.fb.group({
             taskName: [`Translation of ${data.labelSetName}`, Validators.required],
-            assignee: ['', Validators.required]
         });
     }
 
     ngOnInit(): void {
-        this.loadUsers();
-
         this.simplexService.getCurrentAPTask(this.data.edition, this.data.refsetId, this.data.label).subscribe({
             next: data => {
                 this.checkingForTask = false;
@@ -86,28 +72,6 @@ export class ExportTaskDialogComponent implements OnInit {
         })
     }
 
-    loadUsers(): void {
-        this.loadingUsers = true;
-        this.simplexService.getWeblateUsersForRefset(this.data.edition, this.data.refsetId).subscribe({
-            next: (users: WeblateUser[]) => {
-                this.users = users.sort((a, b) => a.full_name.localeCompare(b.full_name));
-                this.loadingUsers = false;
-
-                // If there's only one user, select it by default (optional, but convenient)
-                if (this.users.length === 1) {
-                    this.exportForm.patchValue({ assignee: this.users[0].username });
-                }
-            },
-            error: (error) => {
-                console.error('Error loading users:', error);
-                this.snackBar.open('Error loading users. Please try again.', 'Close', {
-                    duration: 3000
-                });
-                this.loadingUsers = false;
-            }
-        });
-    }
-
     onCancel(): void {
         this.dialogRef.close();
     }
@@ -121,11 +85,10 @@ export class ExportTaskDialogComponent implements OnInit {
             if (!this.currentApTask) {
                 taskData = {
                     taskTitle: this.exportForm.value.taskName,
-                    assigneeUsername: this.exportForm.value.assignee
                 };
             }
 
-            this.simplexService.pullFromWeblate(
+            this.simplexService.pullFromSnolate(
                 this.data.edition,
                 this.data.refsetId,
                 this.data.label,

@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
 @EntityScan(basePackages = "org.snomed.simplex.snolate.domain")
-@EnableElasticsearchRepositories(basePackages = {"org.snomed.simplex.service", "org.snomed.simplex.weblate", "org.snomed.simplex.snolate.sets"})
+@EnableElasticsearchRepositories(basePackages = {"org.snomed.simplex.service", "org.snomed.simplex.snolate.sets"})
 @EnableJpaRepositories(basePackages = "org.snomed.simplex.snolate.repository")
 public class Application extends ApplicationConfig implements CommandLineRunner {
 

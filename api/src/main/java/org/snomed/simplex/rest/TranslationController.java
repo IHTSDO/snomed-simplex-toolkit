@@ -15,29 +15,23 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.*;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
-import org.snomed.simplex.service.external.WeblateLanguageInitialisationJobService;
-import org.snomed.simplex.service.external.WeblateLanguageInitialisationRequest;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.snolate.service.SnolateTranslationToolService;
+import org.snomed.simplex.snolate.sets.SnolateSetService;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.service.TranslationService;
-import org.snomed.simplex.weblate.TranslationLLMService;
-import org.snomed.simplex.weblate.WeblateService;
-import org.snomed.simplex.weblate.WeblateSetService;
-import org.snomed.simplex.weblate.domain.WeblatePage;
-import org.snomed.simplex.weblate.domain.WeblateTranslationSet;
-import org.snomed.simplex.weblate.domain.WeblateUnit;
-import org.snomed.simplex.weblate.domain.WeblateUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @Tag(name = "Translation", description = "-")
@@ -48,19 +42,20 @@ public class TranslationController {
 	private final TranslationService translationService;
 	private final ContentProcessingJobService jobService;
 	private final ActivityService activityService;
-	private final WeblateService weblateService;
-	private final WeblateSetService weblateSetService;
+	private final SnolateSetService snolateSetService;
+	private final SnolateTranslationToolService snolateTranslationToolService;
 	private final TranslationLLMService translationLLMService;
 
-	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService, ContentProcessingJobService jobService,
-			ActivityService activityService, WeblateService weblateService, WeblateSetService weblateSetService, TranslationLLMService translationLLMService) {
+	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService,
+			ContentProcessingJobService jobService, ActivityService activityService, SnolateSetService snolateSetService,
+			SnolateTranslationToolService snolateTranslationToolService, TranslationLLMService translationLLMService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
 		this.jobService = jobService;
 		this.activityService = activityService;
-		this.weblateService = weblateService;
-		this.weblateSetService = weblateSetService;
+		this.snolateSetService = snolateSetService;
+		this.snolateTranslationToolService = snolateTranslationToolService;
 		this.translationLLMService = translationLLMService;
 	}
 
@@ -101,129 +96,91 @@ public class TranslationController {
 		});
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-setup")
-	@Operation(summary = "Setup a language refset in Translation Tool.")
+	@GetMapping("{codeSystem}/translations/snolate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob initialiseInWeblate(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
+	public List<SnolateTranslationSet> listAllSnolateSets(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		snowstormClient.getCodeSystemOrThrow(codeSystem);
+		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystem(codeSystem);
+		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
+		return sets;
+	}
+
+	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public List<SnolateTranslationSet> listSnolateSets(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
+		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
+		return sets;
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set")
+	@Operation(summary = "Create a new Snolate translation set for a language refset.",
+			description = "The 'label' parameter must be a lowercase URL-friendly string using characters [a-z0-9_-]. The 'name' parameter is the human-readable display name for the translation set.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public SnolateTranslationSet createSnolateSet(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@RequestBody CreateSnolateTranslationSet createRequest) throws ServiceException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		weblateService.getCreateWeblateUser();
-		WeblateLanguageInitialisationRequest request = new WeblateLanguageInitialisationRequest(refsetId);
-		WeblateLanguageInitialisationJobService weblateLanguageInitialisationJobService = weblateService.getWeblateLanguageInitialisationJobService();
-		return activityService.startExternalServiceActivity(theCodeSystem, ComponentType.TRANSLATION, refsetId, ActivityType.WEBLATE_LANGUAGE_INITIALISATION,
-			weblateLanguageInitialisationJobService, request);
-	}
-
-	@GetMapping("{codeSystem}/translations/{refsetId}/weblate/users")
-	@Operation(summary = "Get Weblate users for a specific refset translation team.")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public List<WeblateUser> getWeblateUsersForRefset(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		String languageCode = theCodeSystem.getTranslationLanguages().get(refsetId);
-		if (languageCode == null) {
-			throw new ServiceExceptionWithStatusCode("Language code not found for refset %s".formatted(refsetId), HttpStatus.CONFLICT);
-		}
-		weblateService.getCreateWeblateUser();
-		return weblateService.getUsersForLanguage(languageCode, refsetId);
-	}
-
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/assign-work")
-	@Operation(summary = "Assign work to users for a specific translation set.")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public void assignWorkToUsers(@PathVariable String codeSystem, @PathVariable String refsetId,
-			@PathVariable String label, @RequestBody AssignWorkRequest request) throws ServiceException {
-
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		weblateService.getCreateWeblateUser();
-		weblateSetService.assignWorkToUsers(codeSystem, refsetId, label, request);
-	}
-
-	@GetMapping("{codeSystem}/translations/weblate-set")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public List<WeblateTranslationSet> listAllWeblateSets(@PathVariable String codeSystem) throws ServiceExceptionWithStatusCode {
-		List<WeblateTranslationSet> translationSets = weblateSetService.findByCodeSystem(codeSystem);
-		Set<String> languageCodeRefsetIds = translationSets.stream().map(WeblateTranslationSet::getLanguageCodeWithRefsetId).collect(Collectors.toSet());
-		weblateService.runUserAccessCheck(languageCodeRefsetIds);
-		return translationSets;
-	}
-
-	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public List<WeblateTranslationSet> listWeblateSets(@PathVariable String codeSystem, @PathVariable String refsetId) {
-		return weblateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
-	}
-
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set")
-	@Operation(summary = "Create a new translation set for a language refset.",
-			description = "Creates a new translation set in Translation Tool. The 'label' parameter must be a lowercase URL-friendly string using characters [a-z0-9_-]. The 'name' parameter is the human-readable display name for the translation set.")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public WeblateTranslationSet createWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId,
-			@RequestBody CreateWeblateTranslationSet createRequest) throws ServiceException {
 
 		String label = createRequest.getLabel();
-
-		// Validate that label is all lowercase and URL compatible
 		if (label == null || label.trim().isEmpty()) {
 			throw new ServiceExceptionWithStatusCode("Label parameter cannot be null or empty.", HttpStatus.BAD_REQUEST);
 		}
-
 		if (!label.equals(label.toLowerCase())) {
 			throw new ServiceExceptionWithStatusCode("Label parameter must be all lowercase.", HttpStatus.BAD_REQUEST);
 		}
-
-		// Check for URL compatibility - only allow lowercase letters, numbers, hyphens, and underscores
 		if (!label.matches("^[a-z0-9_-]+$")) {
 			throw new ServiceExceptionWithStatusCode("Label parameter must contain only lowercase letters, numbers, hyphens, and underscores.", HttpStatus.BAD_REQUEST);
 		}
 
-		WeblateTranslationSet set = new WeblateTranslationSet(codeSystem, refsetId, createRequest.getName(), label,
-			createRequest.getEcl(), createRequest.getSubsetType(), createRequest.getSelectionCodesystem());
-
-		return weblateSetService.createSet(set);
+		SnolateTranslationSet set = new SnolateTranslationSet(codeSystem, refsetId, createRequest.getName(), label,
+				createRequest.getEcl(), createRequest.getSubsetType(), createRequest.getSelectionCodesystem());
+		return snolateSetService.createSet(set);
 	}
 
-	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")
+	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public WeblateTranslationSet getWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
-		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		int translated = weblateSetService.getStateCount(translationSet, "translated");
-		translationSet.setTranslated(translated);
-
-		// Get count of translations changed since the set was created or last pulled
-		int changedSince = weblateSetService.getChangedSinceCount(translationSet);
-		translationSet.setChangedSinceCreatedOrLastPulled(changedSince);
-
+	public SnolateTranslationSet getSnolateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label)
+			throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		snolateTranslationToolService.applyCounts(translationSet);
+		snolateTranslationToolService.applyDashboardMetadata(translationSet);
 		return translationSet;
 	}
 
-	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/sample-rows")
+	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/sample-rows")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public WeblatePage<WeblateUnit> getSampleWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-		@RequestParam(required = false, defaultValue = "10") int pageSize) throws ServiceExceptionWithStatusCode {
+	public TranslationUnitPage<TranslationUnitRow> getSampleSnolateContent(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@PathVariable String label, @RequestParam(required = false, defaultValue = "10") int pageSize) throws ServiceExceptionWithStatusCode {
 
-		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		WeblatePage<WeblateUnit> sampleRows = weblateSetService.getSampleRows(translationSet, pageSize);
-		sampleRows.results().forEach(WeblateUnit::blankLabels);
-		return sampleRows.withoutPagination();
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		TranslationUnitPage<TranslationUnitRow> page = snolateTranslationToolService.getSampleRows(translationSet, pageSize);
+		page.results().forEach(TranslationUnitRow::blankLabels);
+		return page;
 	}
 
-	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/sample-row/{conceptId}")
+	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/sample-row/{conceptId}")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public WeblateUnit getSampleWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-		@PathVariable String conceptId, @RequestParam(required = false, defaultValue = "10") int pageSize) throws ServiceExceptionWithStatusCode {
+	public TranslationUnitRow getSampleSnolateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+			@PathVariable String conceptId) throws ServiceException {
 
-		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		WeblateUnit sampleRow = weblateSetService.getSampleRow(translationSet, conceptId);
-		if (sampleRow != null) {
-			sampleRow.blankLabels();
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		snowstormClient.getCodeSystemOrThrow(codeSystem);
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		TranslationUnitRow row = snolateTranslationToolService.getSampleRow(translationSet, conceptId, snowstormClient);
+		if (row != null) {
+			row.blankLabels();
 		}
-		return sampleRow;
+		return row;
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/snolate/sync-from-snowstorm")
@@ -248,99 +205,123 @@ public class TranslationController {
 		});
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/pull-content")
+	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-setup")
+	@Operation(summary = "Link a language refset to Snolate: sync from Snowstorm then record branch metadata.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob pullWeblateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+	public AsyncJob setupSnolateTranslation(@PathVariable String codeSystem, @PathVariable String refsetId)
+			throws ServiceException {
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+		String languageCode = theCodeSystem.getTranslationLanguages().get(refsetId);
+		if (languageCode == null) {
+			throw new ServiceExceptionWithStatusCode("Language code not found for refset %s".formatted(refsetId), HttpStatus.CONFLICT);
+		}
+
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.SNOLATE_LANGUAGE_INITIALISATION);
+		ContentJob contentJob = new ContentJob(theCodeSystem, "Snolate translation setup", refsetId);
+		return jobService.queueContentJob(contentJob, refsetId, activity, job -> {
+			translationService.synchroniseWholeTranslationFromSnowstormToSnolate(theCodeSystem, snowstormClient, languageCode, refsetId);
+			snowstormClient.addSnolateTranslationLanguage(refsetId, languageCode, theCodeSystem);
+			return new ChangeSummary();
+		});
+	}
+
+	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/pull-content")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob pullSnolateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
 			@RequestBody(required = false) APTaskRequest apTaskRequest) throws ServiceExceptionWithStatusCode {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
-		final ContentJob weblatePull = new ContentJob(theCodeSystem, "Translation Tool pull", refsetId);
+		final ContentJob pullJob = new ContentJob(theCodeSystem, "Snolate subset pull", refsetId);
 		if (apTaskRequest == null) {
 			apTaskRequest = new APTaskRequest();
 		}
 		String assigneeUsername = apTaskRequest.getAssigneeUsername();
 		String taskTitle = apTaskRequest.getTaskTitle();
-		weblatePull.setTaskCreationCallable(() -> translationService.getCreateTranslationTask(theCodeSystem, assigneeUsername, taskTitle));
+		pullJob.setTaskCreationCallable(() -> translationService.getCreateTranslationTask(theCodeSystem, assigneeUsername, taskTitle));
 
-		return jobService.queueContentJob(weblatePull, refsetId, activity,
-			job -> weblateSetService.pullTranslationSubset(weblatePull, label));
+		return jobService.queueContentJob(pullJob, refsetId, activity, job -> {
+			SnolateTranslationSet set = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+			translationService.synchroniseSnolateSubsetToSnowstorm(theCodeSystem, snowstormClient, set);
+			set.setLastPulled(new Date());
+			snolateSetService.updateSet(set);
+			return new ChangeSummary();
+		});
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/ai-language-advice")
+	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/ai-language-advice")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void saveAiLanguageAdvice(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-		@RequestBody AiLanguageAdviceRequest request) throws ServiceExceptionWithStatusCode {
+			@RequestBody AiLanguageAdviceRequest request) throws ServiceExceptionWithStatusCode {
 
-		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		translationSet.setAiLanguageAdvice(request.languageAdvice());
-		weblateSetService.updateSet(translationSet);
+		snolateSetService.updateSet(translationSet);
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/ai-setup")
+	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/ai-setup")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void translationSetAiSetup(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-		@RequestBody AiSetupRequest request) throws ServiceExceptionWithStatusCode {
+			@RequestBody AiSetupRequest request) throws ServiceExceptionWithStatusCode {
 
-		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		translationSet.setAiLanguageAdvice(request.languageAdvice());
 		translationSet.setAiGoldenSet(request.aiGoldenSet());
-		weblateSetService.updateSet(translationSet);
+		snolateSetService.updateSet(translationSet);
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/ai-suggestion")
+	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/ai-suggestion")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public Map<String, List<String>> aiGoldenSetSuggestion(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-		@RequestBody List<String> englishTerm) throws ServiceExceptionWithStatusCode {
+			@RequestBody List<String> englishTerm) throws ServiceExceptionWithStatusCode {
 
-		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		return translationLLMService.suggestTranslations(translationSet, englishTerm, true, true);
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/run-ai-batch")
+	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/run-ai-batch")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void runAiBatchTranslate(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-		@RequestBody BatchTranslateRequest request) throws ServiceException {
+			@RequestBody BatchTranslateRequest request) throws ServiceException {
 
-		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		weblateSetService.runAiBatchTranslate(translationSet, request);
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		snolateSetService.runAiBatchTranslate(translationSet, request);
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}/refresh")
-	@Operation(summary = "Refresh a translation set by re-running its ECL selection.",
-			description = "Re-runs the ECL selection against Snowstorm to update which units in Translation Tool have the translation set label. " +
-				"The existing label assignments are cleared before the new selection is applied.")
+	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/refresh")
+	@Operation(summary = "Refresh a translation set by re-running its ECL selection.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public WeblateTranslationSet refreshWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId,
+	public SnolateTranslationSet refreshSnolateSet(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@PathVariable String label) throws ServiceException {
 
-		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		return weblateSetService.refreshSet(translationSet);
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		return snolateSetService.refreshSet(translationSet);
 	}
 
-	@DeleteMapping("{codeSystem}/translations/{refsetId}/weblate-set/{label}")
-	@Operation(summary = "Asynchronously delete a translation set.",
-			description = "Deletes a Translation Tool translation set as an asynchronous operation. The status of the set will be set to DELETING immediately. " +
-				"The set will be deleted from the system over the next few minutes. Sets with a status of DELETING should be hidden from the user.")
+	@DeleteMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}")
+	@Operation(summary = "Asynchronously delete a Snolate translation set.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public void deleteWeblateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceExceptionWithStatusCode {
-		WeblateTranslationSet translationSet = weblateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		weblateSetService.deleteSet(translationSet);
+	public void deleteSnolateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceException {
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		snolateSetService.deleteSet(translationSet);
 	}
 
-	@PutMapping(path = "{codeSystem}/translations/{refsetId}/weblate", consumes = "multipart/form-data")
+	@PutMapping(path = "{codeSystem}/translations/{refsetId}/translation-csv", consumes = "multipart/form-data")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob uploadTranslationFromWeblate(@PathVariable String codeSystem, @PathVariable String refsetId,
+	public AsyncJob uploadTranslationFromCsv(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam MultipartFile file) throws ServiceException, IOException {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation upload", refsetId)
-			.addUpload(file.getInputStream(), file.getOriginalFilename());
-		return jobService.queueContentJob(contentJob, refsetId, activity, translationService::uploadTranslationAsWeblateCSV);
+				.addUpload(file.getInputStream(), file.getOriginalFilename());
+		return jobService.queueContentJob(contentJob, refsetId, activity, translationService::uploadTranslationCsv);
 	}
 
 	@PutMapping(path = "{codeSystem}/translations/{refsetId}/refset-tool", consumes = "multipart/form-data")
@@ -353,9 +334,9 @@ public class TranslationController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
 		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation upload", refsetId)
-			.addUpload(file.getInputStream(), file.getOriginalFilename());
+				.addUpload(file.getInputStream(), file.getOriginalFilename());
 		return jobService.queueContentJob(contentJob, refsetId, activity,
-			job -> translationService.uploadTranslationAsRefsetToolArchive(job, ignoreCaseInImport));
+				job -> translationService.uploadTranslationAsRefsetToolArchive(job, ignoreCaseInImport));
 	}
 
 	@GetMapping(path = "language-codes")
@@ -364,8 +345,8 @@ public class TranslationController {
 	}
 
 	@GetMapping(path = "translation-markdown", produces = "text/plain")
-	public String getWeblateMarkdown(@RequestParam Long conceptId) throws ServiceException {
+	public String getTranslationMarkdown(@RequestParam Long conceptId) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		return translationService.getWeblateMarkdown(conceptId, snowstormClient);
+		return translationService.getConceptExplanationMarkdown(conceptId, snowstormClient);
 	}
 }

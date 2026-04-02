@@ -123,23 +123,11 @@
                 </div>
                 <br><br>
                 <div>
-                    <button mat-flat-button color="primary" *ngIf="selectedLabelSet.status === 'READY'"
-                            (click)="openWeblateUrl(selectedLabelSet.weblateLabelUrl)">
-                        <mat-icon class="large-icon">translate</mat-icon>
-                        Open in Translation Tool
-                    </button>
-
-                    <button mat-stroked-button [matMenuTriggerFor]="actionsMenu" [disabled]="selectedLabelSet.status === 'PROCESSING'"
-                        style="margin-left: 10px;">
+                    <button mat-stroked-button [matMenuTriggerFor]="actionsMenu" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                         <mat-icon class="large-icon">more_vert</mat-icon>
                         Manage
                     </button>
                     <mat-menu #actionsMenu="matMenu">
-                        <!-- When FAILED, only Delete is shown -->
-                        <!-- <button mat-menu-item (click)="openAssignWorkDialog()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                            <mat-icon class="large-icon">people</mat-icon>
-                            Assign Work
-                        </button> -->
                         <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
                                 *ngIf="selectedLabelSet.status !== 'FAILED'">
                             <mat-icon class="large-icon">flash_on</mat-icon>
@@ -152,15 +140,15 @@
                             Run AI Translation
                         </button>
                         @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
-                            <button mat-menu-item (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                            <button mat-menu-item (click)="pullFromSnolate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                                 <mat-icon class="large-icon">cloud_download</mat-icon>
-                                Pull new translations from Translation Tool
+                                Pull Snolate translations into Snowstorm
                             </button>
                         }
                         <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
                                 *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
                             <mat-icon class="large-icon">refresh</mat-icon>
-                            Refresh Concept Selection in Translation Tool
+                            Refresh concept selection (Snolate)
                             <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
                         </button>
                         <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
@@ -241,9 +229,8 @@
                     <mat-label>Translation</mat-label>
                     <mat-select formControlName="translation">
                         <mat-option *ngFor="let translation of translations"
-                                   [value]="translation.id"
-                                   [disabled]="!translation.isWeblate">
-                            {{translation.pt.term}}{{!translation.isWeblate ? ' (Not linked to Translation Tool)' : ''}}
+                                   [value]="translation.id">
+                            {{translation.pt.term}}
                         </mat-option>
                     </mat-select>
                     <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>

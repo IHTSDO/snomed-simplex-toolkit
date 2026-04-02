@@ -3,7 +3,7 @@ package org.snomed.simplex.translation.service;
 import org.junit.jupiter.api.Test;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.translation.domain.TranslationState;
-import org.snomed.simplex.weblate.domain.Term;
+import org.snomed.simplex.translation.rf2.Rf2Term;
 
 import java.util.HashMap;
 import java.util.List;
@@ -17,10 +17,10 @@ class SnowstormTranslationSourceTest {
 	@Test
 	void getTranslationState() {
 		SnowstormTranslationSource source = new SnowstormTranslationSource(null, null, "fr", "123100000100");
-		HashMap<Long, Term> terms = new HashMap<>();
-		terms.put(101L, new Term("Ccc").addAcceptability(123100000100L, parseLong(Concepts.ACCEPTABLE)));
-		terms.put(102L, new Term("Bbb").addAcceptability(123100000100L, parseLong(Concepts.PREFERRED)));
-		terms.put(103L, new Term("Aaa").addAcceptability(123100000100L, parseLong(Concepts.ACCEPTABLE)));
+		HashMap<Long, Rf2Term> terms = new HashMap<>();
+		terms.put(101L, new Rf2Term("Ccc").addAcceptability(123100000100L, parseLong(Concepts.ACCEPTABLE)));
+		terms.put(102L, new Rf2Term("Bbb").addAcceptability(123100000100L, parseLong(Concepts.PREFERRED)));
+		terms.put(103L, new Rf2Term("Aaa").addAcceptability(123100000100L, parseLong(Concepts.ACCEPTABLE)));
 
 		TranslationState translationState = source.getTranslationState(Map.of(123L, terms));
 

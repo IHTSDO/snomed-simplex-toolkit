@@ -10,8 +10,8 @@ import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.translation.domain.TranslationState;
-import org.snomed.simplex.weblate.domain.Term;
-import org.snomed.simplex.weblate.rf2.LightweightTermComponentFactory;
+import org.snomed.simplex.snolate.rf2.LightweightTermComponentFactory;
+import org.snomed.simplex.translation.rf2.Rf2Term;
 import org.springframework.http.HttpStatus;
 
 import java.io.File;
@@ -63,19 +63,19 @@ public class SnowstormTranslationSource implements TranslationSource {
 		}
 	}
 
-	TranslationState getTranslationState(Map<Long, Map<Long, Term>> exportedConceptTerms) {
+	TranslationState getTranslationState(Map<Long, Map<Long, Rf2Term>> exportedConceptTerms) {
 		TranslationState translationState = new TranslationState();
 		Map<Long, List<String>> stateConceptTerms = translationState.getConceptTerms();
 
-		Comparator<Term> comparingPreferredThenAlphabetical = Comparator.comparing((Function<Term, Boolean>) term ->
+		Comparator<Rf2Term> comparingPreferredThenAlphabetical = Comparator.comparing((Function<Rf2Term, Boolean>) term ->
 			term.getAcceptabilityMap().get(languageRefsetId).equals(Long.parseLong(Concepts.PREFERRED)), Comparator.reverseOrder())
-			.thenComparing(Term::getTermString);
+			.thenComparing(Rf2Term::getTermString);
 
-		for (Map.Entry<Long, Map<Long, Term>> entry : exportedConceptTerms.entrySet()) {
+		for (Map.Entry<Long, Map<Long, Rf2Term>> entry : exportedConceptTerms.entrySet()) {
 			List<String> conceptTerms = entry.getValue().values().stream()
 				.filter(term -> term.getAcceptabilityMap().containsKey(languageRefsetId))
 				.sorted(comparingPreferredThenAlphabetical)
-				.map(Term::getTermString)
+				.map(Rf2Term::getTermString)
 				.toList();
 			stateConceptTerms.put(entry.getKey(), conceptTerms);
 		}
