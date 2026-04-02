@@ -1,12 +1,26 @@
 package org.snomed.simplex.snolate.domain;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
+import jakarta.persistence.Table;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "translation_unit")
+@Table(name = "translation_unit", indexes = {
+		@Index(name = "idx_translation_unit_language_code", columnList = "language_code")
+})
 @IdClass(TranslationUnitId.class)
 public class TranslationUnit {
 
@@ -25,7 +39,8 @@ public class TranslationUnit {
 	@ElementCollection(fetch = FetchType.LAZY)
 	@CollectionTable(name = "translation_unit_term", joinColumns = {
 			@JoinColumn(name = "translation_unit_code", referencedColumnName = "code"),
-			@JoinColumn(name = "language_code", referencedColumnName = "language_code") })
+			@JoinColumn(name = "language_code", referencedColumnName = "language_code") },
+			indexes = @Index(name = "idx_translation_unit_term_unit_lang", columnList = "translation_unit_code,language_code"))
 	@OrderColumn(name = "term_index")
 	@Column(name = "term", nullable = false, length = 4000)
 	private List<String> terms = new ArrayList<>();

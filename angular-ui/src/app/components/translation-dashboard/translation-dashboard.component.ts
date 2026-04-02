@@ -413,9 +413,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                         };
                     });
 
-                // Preserve detailed information (translated, changedSinceCreatedOrLastPulled) from existing labelSets
-                // if they were previously loaded via the detailed API
-                this.labelSets = this.preserveDetailedInformation(newLabelSets);
+                this.labelSets = newLabelSets;
 
                 this.loadingSets = false;
                 this.translationSetsLoaded = true; // Mark that translation sets have been loaded
@@ -450,44 +448,20 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         }
     }
 
-    /**
-     * Preserves detailed information (translated, changedSinceCreatedOrLastPulled) from existing data
-     * when merging new translation set data from the list API
-     */
-    private preserveDetailedInformation(newLabelSets: any[]): any[] {
-        return newLabelSets.map((newSet: any) => {
-            // First check if this set matches the currently selected set with detailed information
-            if (this.selectedLabelSet &&
-                this.selectedLabelSet.id === newSet.id &&
-                this.selectedLabelSet.translationId === newSet.translationId &&
-                this.selectedLabelSet.label === newSet.label &&
-                (this.selectedLabelSet.translated > 0 || this.selectedLabelSet.changedSinceCreatedOrLastPulled > 0)) {
-                // Preserve the detailed values from the selected set
-                return {
-                    ...newSet,
-                    translated: this.selectedLabelSet.translated,
-                    changedSinceCreatedOrLastPulled: this.selectedLabelSet.changedSinceCreatedOrLastPulled
-                };
-            }
+    translationProgressPercent(set: any): number {
+        const size = set?.size ?? 0;
+        if (size <= 0) {
+            return 0;
+        }
+        const translated = set?.translated ?? 0;
+        return Math.min(100, Math.max(0, (translated / size) * 100));
+    }
 
-            // Then check existing labelSets for any other sets with detailed information
-            const existingSet = this.labelSets.find((existing: any) =>
-                existing.id === newSet.id &&
-                existing.translationId === newSet.translationId &&
-                existing.label === newSet.label
-            );
-
-            if (existingSet && (existingSet.translated > 0 || existingSet.changedSinceCreatedOrLastPulled > 0)) {
-                // Preserve the detailed values if they were previously loaded
-                return {
-                    ...newSet,
-                    translated: existingSet.translated,
-                    changedSinceCreatedOrLastPulled: existingSet.changedSinceCreatedOrLastPulled
-                };
-            }
-
-            return newSet;
-        });
+    trackByLabelSetKey(_index: number, set: any): string {
+        if (set?.id != null) {
+            return set.id;
+        }
+        return `${set?.translationId ?? ''}-${set?.label ?? ''}`;
     }
 
     private startPolling() {
@@ -522,9 +496,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                         };
                     });
 
-                // Preserve detailed information (translated, changedSinceCreatedOrLastPulled) from existing labelSets
-                // if they were previously loaded via the detailed API
-                const preservedLabelSets = this.preserveDetailedInformation(updatedLabelSets);
+                const preservedLabelSets = updatedLabelSets;
 
                 // Check if any sets have finished processing (changed from PROCESSING to READY)
                 const previouslyProcessingSets = this.labelSets.filter((set: any) => set.status === 'PROCESSING');

@@ -1,6 +1,14 @@
 package org.snomed.simplex.snolate.domain;
 
-import jakarta.persistence.*;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Table;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -20,7 +28,8 @@ public class TranslationSource {
 	private int order;
 
 	@ElementCollection(fetch = FetchType.LAZY)
-	@CollectionTable(name = "translation_source_set", joinColumns = @JoinColumn(name = "translation_source_code"))
+	@CollectionTable(name = "translation_source_set", joinColumns = @JoinColumn(name = "translation_source_code"),
+			indexes = @Index(name = "idx_translation_source_set_set_code", columnList = "set_code"))
 	@Column(name = "set_code", nullable = false, length = 512)
 	private Set<String> sets = new LinkedHashSet<>();
 

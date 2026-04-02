@@ -21,9 +21,53 @@ public interface TranslationUnitRepository extends JpaRepository<TranslationUnit
 
 	Optional<TranslationUnit> findByCodeAndLanguageCode(String code, String languageCode);
 
-	@Query("SELECT COUNT(tu) FROM TranslationUnit tu WHERE tu.languageCode = :lang AND tu.code IN (SELECT ts.code FROM TranslationSource ts WHERE :setCode MEMBER OF ts.sets) AND SIZE(tu.terms) > 0")
+	/**
+	 * Native SQL: explicit join on {@code translation_source_set} and EXISTS on terms avoids
+	 * Hibernate {@code MEMBER OF} / {@code SIZE(terms)} plans that do not scale to 100k+ members.
+	 */
+	@Query(value = """
+			SELECT COUNT(DISTINCT tu.code)
+			FROM translation_unit tu
+			JOIN translation_source_set tss ON tss.translation_source_code = tu.code AND tss.set_code = :setCode
+			WHERE tu.language_code = :lang
+			AND EXISTS (
+				SELECT 1 FROM translation_unit_term tut
+				WHERE tut.translation_unit_code = tu.code AND tut.language_code = tu.language_code)
+			""", nativeQuery = true)
 	long countTranslatedInSubset(@Param("lang") String languageCode, @Param("setCode") String compositeSetCode);
 
-	@Query("SELECT COUNT(tu) FROM TranslationUnit tu WHERE tu.languageCode = :lang AND tu.code IN (SELECT ts.code FROM TranslationSource ts WHERE :setCode MEMBER OF ts.sets) AND tu.status IN ('NEEDS_EDIT', 'FOR_REVIEW')")
+	@Query(value = """
+			SELECT COUNT(DISTINCT tu.code)
+			FROM translation_unit tu
+			JOIN translation_source_set tss ON tss.translation_source_code = tu.code AND tss.set_code = :setCode
+			WHERE tu.language_code = :lang
+			AND tu.status IN ('NEEDS_EDIT', 'FOR_REVIEW')
+			""", nativeQuery = true)
 	long countOutstandingReviewInSubset(@Param("lang") String languageCode, @Param("setCode") String compositeSetCode);
+
+	@Query(value = """
+			SELECT tss.set_code, COUNT(DISTINCT tu.code)
+			FROM translation_unit tu
+			JOIN translation_source_set tss ON tss.translation_source_code = tu.code
+			WHERE tu.language_code = :lang
+			AND tss.set_code IN (:setCodes)
+			AND EXISTS (
+				SELECT 1 FROM translation_unit_term tut
+				WHERE tut.translation_unit_code = tu.code AND tut.language_code = tu.language_code)
+			GROUP BY tss.set_code
+			""", nativeQuery = true)
+	List<Object[]> countTranslatedInSubsetBatch(@Param("lang") String languageCode,
+			@Param("setCodes") Collection<String> compositeSetCodes);
+
+	@Query(value = """
+			SELECT tss.set_code, COUNT(DISTINCT tu.code)
+			FROM translation_unit tu
+			JOIN translation_source_set tss ON tss.translation_source_code = tu.code
+			WHERE tu.language_code = :lang
+			AND tss.set_code IN (:setCodes)
+			AND tu.status IN ('NEEDS_EDIT', 'FOR_REVIEW')
+			GROUP BY tss.set_code
+			""", nativeQuery = true)
+	List<Object[]> countOutstandingReviewInSubsetBatch(@Param("lang") String languageCode,
+			@Param("setCodes") Collection<String> compositeSetCodes);
 }

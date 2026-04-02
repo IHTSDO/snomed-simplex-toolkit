@@ -103,6 +103,7 @@ public class TranslationController {
 		snowstormClient.getCodeSystemOrThrow(codeSystem);
 		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystem(codeSystem);
 		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
+		snolateTranslationToolService.applyCounts(sets);
 		return sets;
 	}
 
@@ -114,6 +115,7 @@ public class TranslationController {
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
 		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
+		snolateTranslationToolService.applyCounts(sets);
 		return sets;
 	}
 
