@@ -969,7 +969,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         );
     }
 
-    pullFromSnolate() {
+    pullFromTranslationStudio() {
         if (!this.selectedLabelSet) {
             this.snackBar.open('No translation set selected', 'Dismiss', {
                 duration: 5000
@@ -987,8 +987,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if (confirm(`Pull translations from Snolate into Snowstorm for "${this.selectedLabelSet.name}"?`)) {
-            this.simplexService.pullFromSnolate(
+        if (confirm(`Pull translations from Translation Studio into Snowstorm for "${this.selectedLabelSet.name}"?`)) {
+            this.simplexService.pullFromTranslationStudio(
                 this.selectedEdition.shortName,
                 translationId,
                 label
@@ -1001,7 +1001,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                 },
                 (error) => {
                     console.error(error);
-                    this.snackBar.open('Failed to pull content from Snolate', 'Dismiss', {
+                    this.snackBar.open('Failed to pull content from Translation Studio', 'Dismiss', {
                         duration: 5000
                     });
                 }
@@ -1031,7 +1031,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         this.snackBar.open('Refresh started. The translation set status will update shortly.', 'Dismiss', {
             duration: 5000
         });
-        this.simplexService.refreshSnolateSet(
+        this.simplexService.refreshTranslationStudioSet(
             this.selectedEdition.shortName,
             translationId,
             label

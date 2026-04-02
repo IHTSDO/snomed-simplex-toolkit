@@ -58,7 +58,7 @@ export class AppComponent implements OnInit {
     async ngOnInit() {
         this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => {
             if (data) {
-                this.titleService.setTitle('Translation Dashboard');
+                this.titleService.setTitle('Translation Studio');
             } else {
                 this.titleService.setTitle('Simplex');
             }
