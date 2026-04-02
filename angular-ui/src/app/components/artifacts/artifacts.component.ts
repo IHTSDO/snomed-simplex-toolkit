@@ -62,12 +62,17 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
     const editionSubscription = this.uiService.getSelectedEdition().subscribe(edition => {
       let url = this.router.url;
       if (edition && url.includes('artifact')) {
-        this.editionDetails = edition;
-        this.edition = edition.shortName;
-        this.updatingEdition = true;
-        this.loadArtifacts(edition.shortName);
-        this.selectedArtifact = null;
-        this.newArtifactMode = false;
+        const shortName = edition.shortName;
+        if (this.edition !== shortName) {
+          this.editionDetails = edition;
+          this.edition = shortName;
+          this.updatingEdition = true;
+          this.loadArtifacts(shortName);
+          this.selectedArtifact = null;
+          this.newArtifactMode = false;
+        } else {
+          this.editionDetails = edition;
+        }
       }
     });
     this.subscriptions.add(editionSubscription);
@@ -153,14 +158,14 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadConceptsArtifact(conceptId: string) {
-    // this.editionDetails = null;
-    lastValueFrom(this.simplexService.getEdition(this.edition)).then(
+  loadConceptsArtifact(editionShortName: string) {
+    lastValueFrom(this.simplexService.getEdition(editionShortName)).then(
       (edition) => {
         this.editionDetails = edition;
+        this.uiService.setSelectedEdition(edition);
         this.showConceptsArtifact = edition?.showCustomConcepts;
         if (this.showConceptsArtifact) {
-          lastValueFrom(this.simplexService.getConcepts(this.edition,0,1)).then(
+          lastValueFrom(this.simplexService.getConcepts(editionShortName,0,1)).then(
             (concepts) => {
               this.conceptsArtifact.count = concepts.total;
               this.updateSelectedArtifact(this.conceptsArtifact)

@@ -2,13 +2,17 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, of, throwError } from 'rxjs';
-import { catchError, delay } from 'rxjs/operators';
+import { catchError, delay, shareReplay, tap } from 'rxjs/operators';
 import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SimplexService {
+
+  private editionsList$: Observable<any> | null = null;
+  private editionDetailCache = new Map<string, Observable<any>>();
+  private translationsListCache = new Map<string, Observable<any>>();
 
   constructor(private http: HttpClient, private snackBar: MatSnackBar, private uiConfigurationService: UiConfigurationService) { }
 
@@ -56,11 +60,43 @@ export class SimplexService {
   }
 
   public getEditions(): Observable<any> {
-    return this.http.get('api/codesystems').pipe(catchError(this.handleError.bind(this)));
+    if (!this.editionsList$) {
+      this.editionsList$ = this.http.get('api/codesystems').pipe(
+        catchError((err) => {
+          this.editionsList$ = null;
+          return this.handleError(err);
+        }),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    }
+    return this.editionsList$;
   }
 
   public getEdition(edition: string): Observable<any> {
-    return this.http.get(`api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
+    let cached = this.editionDetailCache.get(edition);
+    if (!cached) {
+      cached = this.http.get(`api/codesystems/${edition}`).pipe(
+        catchError((err) => {
+          this.editionDetailCache.delete(edition);
+          return this.handleError(err);
+        }),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+      this.editionDetailCache.set(edition, cached);
+    }
+    return cached;
+  }
+
+  private clearEditionsListCache(): void {
+    this.editionsList$ = null;
+  }
+
+  private clearEditionDetailCache(editionShortName: string): void {
+    this.editionDetailCache.delete(editionShortName);
+  }
+
+  private clearTranslationsCache(editionShortName: string): void {
+    this.translationsListCache.delete(editionShortName);
   }
 
   public getCodeSystemForBranch(branch: string): Observable<any> {
@@ -80,11 +116,24 @@ export class SimplexService {
   }
 
   public getTranslations(edition: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations`).pipe(catchError(this.handleError.bind(this)));
+    let cached = this.translationsListCache.get(edition);
+    if (!cached) {
+      cached = this.http.get(`api/${edition}/translations`).pipe(
+        catchError((err) => {
+          this.translationsListCache.delete(edition);
+          return this.handleError(err);
+        }),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+      this.translationsListCache.set(edition, cached);
+    }
+    return cached;
   }
 
   public createEdition(edition: any): Observable<any> {
-    return this.http.post('api/codesystems', edition).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post('api/codesystems', edition).pipe(
+      tap(() => this.clearEditionsListCache()),
+      catchError(this.handleError.bind(this)));
   }
 
   public createSimpleRefset(edition: string, simpleRefset: any): Observable<any> {
@@ -96,33 +145,49 @@ export class SimplexService {
   }
 
   public createTranslations(edition: string, translation: any): Observable<any> {
-    return this.http.post(`api/${edition}/translations`, translation).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/translations`, translation).pipe(
+      tap(() => this.clearTranslationsCache(edition)),
+      catchError(this.handleError.bind(this)));
   }
 
   public showCustomConcepts(edition: string): Observable<any> {
-    return this.http.post(`api/${edition}/concepts/show`, {}).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/concepts/show`, {}).pipe(
+      tap(() => this.clearEditionDetailCache(edition)),
+      catchError(this.handleError.bind(this)));
   }
 
   public hideCustomConcepts(edition: string): Observable<any> {
-    return this.http.post(`api/${edition}/concepts/hide`, {}).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/concepts/hide`, {}).pipe(
+      tap(() => this.clearEditionDetailCache(edition)),
+      catchError(this.handleError.bind(this)));
   }
 
   public deleteEdition(edition: string): Observable<any> {
-    return this.http.delete(`api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.delete(`api/codesystems/${edition}`).pipe(
+      tap(() => {
+        this.clearEditionsListCache();
+        this.clearEditionDetailCache(edition);
+        this.clearTranslationsCache(edition);
+      }),
+      catchError(this.handleError.bind(this)));
   }
 
   public uploadRefsetToolTranslation(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
     const apiUrl = `api/${edition}/translations/${refsetId}/refset-tool`;
-    return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
+    return this.http.put(apiUrl, formData).pipe(
+      tap(() => this.clearTranslationsCache(edition)),
+      catchError(this.handleError.bind(this)));
   }
 
   public uploadTranslationCsv(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
     const apiUrl = `api/${edition}/translations/${refsetId}/translation-csv`;
-    return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
+    return this.http.put(apiUrl, formData).pipe(
+      tap(() => this.clearTranslationsCache(edition)),
+      catchError(this.handleError.bind(this)));
   }
 
   public uploadSpreadsheetRefset(edition: string, refsetId: string, file: File): Observable<any> {
@@ -212,7 +277,9 @@ export class SimplexService {
   }
 
   public linkTranslationToSnolate(edition: string, refsetId: string): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-setup`, {}).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-setup`, {}).pipe(
+      tap(() => this.clearTranslationsCache(edition)),
+      catchError(this.handleError.bind(this)));
   }
 
   public getRoles(): Observable<any> {
@@ -276,7 +343,13 @@ export class SimplexService {
       "newDependantVersion": newDependantVersion,
       "contentAutomations": true
     }
-    return this.http.post(`api/codesystems/${edition}/upgrade`, data).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/upgrade`, data).pipe(
+      tap(() => {
+        this.clearEditionsListCache();
+        this.clearEditionDetailCache(edition);
+        this.clearTranslationsCache(edition);
+      }),
+      catchError(this.handleError.bind(this)));
   }
 
   public getReleaseCandidatePackage(edition: string): Observable<Blob> {
