@@ -679,6 +679,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 return 'For review';
             case 'APPROVED':
                 return 'Approved';
+            case 'NOT_STARTED':
+                return 'Not started';
             default:
                 return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
         }

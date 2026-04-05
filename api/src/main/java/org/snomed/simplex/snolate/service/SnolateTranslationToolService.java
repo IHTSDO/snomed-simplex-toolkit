@@ -8,39 +8,39 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationUnitPage;
 import org.snomed.simplex.rest.pojos.TranslationUnitRow;
 import org.snomed.simplex.snolate.domain.TranslationSource;
-import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
-import org.snomed.simplex.snolate.domain.TranslationUnitId;
-import org.snomed.simplex.snolate.repository.TranslationSetMemberSummary;
-import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
-import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.translation.util.ConceptExplanationMarkdown;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
 public class SnolateTranslationToolService {
 
-	private final TranslationUnitRepository translationUnitRepository;
-	private final TranslationSourceRepository translationSourceRepository;
+	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationSourceRepository translationSourceRepository;
+	private final SnolateTranslationSearchService translationSearchService;
 
-	public SnolateTranslationToolService(TranslationUnitRepository translationUnitRepository,
-			TranslationSourceRepository translationSourceRepository) {
+	public SnolateTranslationToolService(SnolateTranslationUnitRepository translationUnitRepository,
+			SnolateTranslationSourceRepository translationSourceRepository, SnolateTranslationSearchService translationSearchService) {
 		this.translationUnitRepository = translationUnitRepository;
 		this.translationSourceRepository = translationSourceRepository;
+		this.translationSearchService = translationSearchService;
 	}
 
 	public void applyDashboardMetadata(SnolateTranslationSet set) {
@@ -76,9 +76,8 @@ public class SnolateTranslationToolService {
 			if (setCodes.isEmpty()) {
 				continue;
 			}
-			Map<String, Long> translated = aggregateCounts(translationUnitRepository.countTranslatedInSubsetBatch(lang, setCodes));
-			Map<String, Long> outstanding = aggregateCounts(
-					translationUnitRepository.countOutstandingReviewInSubsetBatch(lang, setCodes));
+			Map<String, Long> translated = aggregateCounts(translationSearchService.countTranslatedInSubsetBatch(lang, setCodes));
+			Map<String, Long> outstanding = aggregateCounts(translationSearchService.countOutstandingReviewInSubsetBatch(lang, setCodes));
 			for (SnolateTranslationSet set : group) {
 				String code = set.getCompositeSetCode();
 				set.setTranslated(translated.getOrDefault(code, 0L).intValue());
@@ -87,59 +86,59 @@ public class SnolateTranslationToolService {
 		}
 	}
 
-	private static Map<String, Long> aggregateCounts(List<Object[]> rows) {
+	private static Map<String, Long> aggregateCounts(Map<String, Long> rows) {
 		if (rows == null || rows.isEmpty()) {
 			return Map.of();
 		}
 		Map<String, Long> map = new HashMap<>();
-		for (Object[] row : rows) {
-			String setCode = Objects.toString(row[0], null);
+		for (Map.Entry<String, Long> row : rows.entrySet()) {
+			String setCode = row.getKey();
 			if (setCode == null) {
 				continue;
 			}
-			map.put(setCode, ((Number) row[1]).longValue());
+			map.put(setCode, row.getValue());
 		}
 		return map;
 	}
 
 	/**
 	 * Paginated translation-set rows: English term from {@link TranslationSource}, dialect terms and {@link TranslationUnit#getStatus()} from persistence.
-	 * Ordering is by status (NEEDS_EDIT, FOR_REVIEW, APPROVED, then no unit), then concept id.
+	 * Ordering is by status (NEEDS_EDIT, FOR_REVIEW, APPROVED, then not started), then source display order, then concept id.
 	 */
-	@Transactional(readOnly = true)
 	public TranslationUnitPage<TranslationUnitRow> getRows(SnolateTranslationSet translationSet, int page, int pageSize) {
 		String setCode = translationSet.getCompositeSetCode();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
-		Page<TranslationSetMemberSummary> pageResult = translationSourceRepository.findRowsForSet(setCode, lang,
-				PageRequest.of(page, pageSize));
-		List<String> codes = pageResult.getContent().stream().map(TranslationSetMemberSummary::getCode).toList();
-		Map<String, TranslationUnit> unitByCode = Map.of();
+		Sort sort = Sort.by("statusSort", "order", "code");
+		Page<TranslationUnit> pageResult = translationSearchService.pageUnitsInSet(setCode, lang, PageRequest.of(page, pageSize, sort));
+		List<String> codes = pageResult.getContent().stream().map(TranslationUnit::getCode).toList();
+		Map<String, TranslationSource> sourceByCode = Map.of();
 		if (!codes.isEmpty()) {
-			unitByCode = translationUnitRepository.findAllByLanguageCodeAndCodeInWithTermsFetched(lang, codes).stream()
-					.collect(Collectors.toMap(TranslationUnit::getCode, Function.identity()));
+			sourceByCode = StreamSupport.stream(translationSourceRepository.findAllById(codes).spliterator(), false)
+					.collect(Collectors.toMap(TranslationSource::getCode, Function.identity()));
 		}
 		List<TranslationUnitRow> rows = new ArrayList<>();
-		for (TranslationSetMemberSummary summary : pageResult.getContent()) {
-			TranslationUnit tu = unitByCode.get(summary.getCode());
-			List<String> target = copyTerms(Optional.ofNullable(tu));
-			String statusName = tu != null ? tu.getStatus().name() : null;
-			rows.add(new TranslationUnitRow(List.of(summary.getTerm()), target, summary.getCode(), null, statusName));
+		for (TranslationUnit u : pageResult.getContent()) {
+			TranslationSource src = sourceByCode.get(u.getCode());
+			String english = src != null ? src.getTerm() : "";
+			List<String> target = copyTerms(Optional.of(u));
+			String statusName = u.getStatus() != null ? u.getStatus().name() : null;
+			rows.add(new TranslationUnitRow(List.of(english), target, u.getCode(), null, statusName));
 		}
 		return new TranslationUnitPage<>((int) pageResult.getTotalElements(), null, null, rows).withoutPagination();
 	}
 
-	@Transactional(readOnly = true)
 	public TranslationUnitRow getSampleRow(SnolateTranslationSet translationSet, String conceptId, SnowstormClient snowstormClient)
 			throws ServiceExceptionWithStatusCode {
 		String setCode = translationSet.getCompositeSetCode();
-		Optional<TranslationSource> sourceRow = translationSourceRepository.findByCodeHavingSetMembership(conceptId, setCode);
-		if (sourceRow.isEmpty()) {
+		String lang = translationSet.getLanguageCodeWithRefsetId();
+		Optional<TranslationUnit> tuOpt = translationUnitRepository.findByCodeAndCompositeLanguageCode(conceptId, lang);
+		if (tuOpt.isEmpty() || !tuOpt.get().getMemberOf().contains(setCode)) {
 			return null;
 		}
-		TranslationSource src = sourceRow.get();
-		String lang = translationSet.getLanguageCodeWithRefsetId();
-		Optional<TranslationUnit> tu = translationUnitRepository.findById(new TranslationUnitId(conceptId, lang));
-		List<String> target = copyTerms(tu);
+		TranslationUnit tu = tuOpt.get();
+		TranslationSource src = translationSourceRepository.findById(conceptId)
+				.orElseThrow(() -> new ServiceExceptionWithStatusCode("Translation source not found for concept", HttpStatus.NOT_FOUND));
+		List<String> target = copyTerms(Optional.of(tu));
 		long conceptIdLong;
 		try {
 			conceptIdLong = Long.parseLong(conceptId);
@@ -154,13 +153,12 @@ public class SnolateTranslationToolService {
 		} catch (Exception e) {
 			explanation = null;
 		}
-		String statusName = tu.map(TranslationUnit::getStatus).map(TranslationStatus::name).orElse(null);
+		String statusName = tu.getStatus() != null ? tu.getStatus().name() : null;
 		TranslationUnitRow row = new TranslationUnitRow(List.of(src.getTerm()), target, conceptId, explanation, statusName);
 		row.blankLabels();
 		return row;
 	}
 
-	/** Materialize TranslationUnit.terms so JSON serialization does not touch lazy Hibernate collections. */
 	private static List<String> copyTerms(Optional<TranslationUnit> tu) {
 		return tu.map(u -> new ArrayList<>(u.getTerms())).orElseGet(ArrayList::new);
 	}

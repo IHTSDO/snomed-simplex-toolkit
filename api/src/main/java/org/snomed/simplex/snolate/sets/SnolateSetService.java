@@ -10,8 +10,6 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
 import org.snomed.simplex.service.SupportRegister;
-import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
-import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,9 +50,10 @@ public class SnolateSetService {
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public SnolateSetService(SnolateSetRepository snolateSetRepository, SnowstormClientFactory snowstormClientFactory,
-			TranslationSourceRepository translationSourceRepository, TranslationUnitRepository translationUnitRepository,
-			TranslationLLMService translationLLMService, SupportRegister supportRegister, JmsTemplate jmsTemplate,
-			@Value("${jms.queue.prefix}") String jmsQueuePrefix, @Value("${snolate.label.batch-size}") int labelBatchSize, ObjectMapper objectMapper) {
+			SnolateTranslationSourceRepository translationSourceRepository, SnolateTranslationUnitRepository translationUnitRepository,
+			SnolateTranslationSearchService translationSearchService, TranslationLLMService translationLLMService, SupportRegister supportRegister,
+			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix,
+			@Value("${snolate.label.batch-size}") int labelBatchSize, ObjectMapper objectMapper) {
 
 		this.snolateSetRepository = snolateSetRepository;
 		this.snowstormClientFactory = snowstormClientFactory;
@@ -64,7 +63,8 @@ public class SnolateSetService {
 
 		String queueName = jmsQueuePrefix + ".snolate-translation-set.processing";
 		SnolateProcessingContext processingContext = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, translationUnitRepository, translationLLMService, userIdToContextMap, jmsTemplate, queueName, objectMapper);
+				translationSourceRepository, translationUnitRepository, translationSearchService, translationLLMService, userIdToContextMap, jmsTemplate,
+				queueName, objectMapper);
 		creationService = new SnolateSetCreationService(processingContext, labelBatchSize);
 		batchTranslationService = new SnolateBatchTranslationService(processingContext);
 	}

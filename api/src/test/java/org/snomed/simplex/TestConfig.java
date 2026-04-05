@@ -3,18 +3,19 @@ package org.snomed.simplex;
 import org.snomed.simplex.config.ApplicationConfig;
 import org.snomed.simplex.service.test.TestActivityRepository;
 import org.snomed.simplex.service.test.TestSnolateSetRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+import static org.mockito.Mockito.mock;
 
 @TestConfiguration
-@EntityScan(basePackages = "org.snomed.simplex.snolate.domain")
-@EnableJpaRepositories(basePackages = "org.snomed.simplex.snolate.repository")
 @SpringBootApplication(
 		exclude = {
 				ElasticsearchDataAutoConfiguration.class,
@@ -31,6 +32,21 @@ public class TestConfig extends ApplicationConfig {
 	@Bean
 	public TestSnolateSetRepository snolateSetRepository() {
 		return new TestSnolateSetRepository();
+	}
+
+	@Bean
+	public SnolateTranslationUnitRepository snolateTranslationUnitRepository() {
+		return mock(SnolateTranslationUnitRepository.class);
+	}
+
+	@Bean
+	public SnolateTranslationSourceRepository snolateTranslationSourceRepository() {
+		return mock(SnolateTranslationSourceRepository.class);
+	}
+
+	@Bean
+	public SnolateTranslationSearchService snolateTranslationSearchService() {
+		return mock(SnolateTranslationSearchService.class);
 	}
 
 }
