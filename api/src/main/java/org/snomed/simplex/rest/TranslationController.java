@@ -159,15 +159,21 @@ public class TranslationController {
 		return translationSet;
 	}
 
-	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/sample-rows")
+	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/rows")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public TranslationUnitPage<TranslationUnitRow> getSampleSnolateContent(@PathVariable String codeSystem, @PathVariable String refsetId,
-			@PathVariable String label, @RequestParam(required = false, defaultValue = "10") int pageSize) throws ServiceExceptionWithStatusCode {
+	public TranslationUnitPage<TranslationUnitRow> getSnolateSetRows(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@PathVariable String label, @RequestParam(required = false, defaultValue = "0") int page,
+			@RequestParam(required = false, defaultValue = "25") int size) throws ServiceException {
 
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		TranslationUnitPage<TranslationUnitRow> page = snolateTranslationToolService.getSampleRows(translationSet, pageSize);
-		page.results().forEach(TranslationUnitRow::blankLabels);
-		return page;
+		int safePage = Math.max(0, page);
+		int safeSize = Math.min(2000, Math.max(1, size));
+		TranslationUnitPage<TranslationUnitRow> result = snolateTranslationToolService.getRows(translationSet, safePage, safeSize);
+		result.results().forEach(TranslationUnitRow::blankLabels);
+		return result;
 	}
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/sample-row/{conceptId}")

@@ -185,7 +185,10 @@ export class SnomedNavbarComponent implements OnInit {
         this.selectedEdition = item;
         this.uiConfigurationService.setSelectedEdition(item);
         this.saveEditionToCookie(item.shortName);
-        let url = this.router.url;
+        const editionInPath = this.route.firstChild?.snapshot.paramMap.get('edition');
+        if (editionInPath === item.shortName) {
+            return;
+        }
         this.updateEditionInUrl(item.shortName);
     }
 

@@ -28,4 +28,30 @@ public interface TranslationSourceRepository extends JpaRepository<TranslationSo
 
 	@Query("SELECT t FROM TranslationSource t WHERE t.code = :code AND :setCode MEMBER OF t.sets")
 	Optional<TranslationSource> findByCodeHavingSetMembership(@Param("code") String code, @Param("setCode") String setCode);
+
+	/**
+	 * Members of a Snolate set, ordered by {@link org.snomed.simplex.snolate.domain.TranslationUnit} status:
+	 * NEEDS_EDIT, FOR_REVIEW, APPROVED, then rows with no unit (not started).
+	 */
+	@Query(value = """
+			SELECT s.code AS code, s.term AS term
+			FROM translation_source s
+			INNER JOIN translation_source_set tss ON tss.translation_source_code = s.code AND tss.set_code = :setCode
+			LEFT JOIN translation_unit u ON u.code = s.code AND u.language_code = :lang
+			ORDER BY
+				CASE u.status
+					WHEN 'NEEDS_EDIT' THEN 0
+					WHEN 'FOR_REVIEW' THEN 1
+					WHEN 'APPROVED' THEN 2
+					ELSE 3
+				END,
+				s.code
+			""",
+			countQuery = """
+					SELECT count(*)
+					FROM translation_source s
+					INNER JOIN translation_source_set tss ON tss.translation_source_code = s.code AND tss.set_code = :setCode
+					""",
+			nativeQuery = true)
+	Page<TranslationSetMemberSummary> findRowsForSet(@Param("setCode") String setCode, @Param("lang") String lang, Pageable pageable);
 }

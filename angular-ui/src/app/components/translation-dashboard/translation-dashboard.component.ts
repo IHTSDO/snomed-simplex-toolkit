@@ -1,12 +1,15 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatSort } from '@angular/material/sort';
+import { PageEvent } from '@angular/material/paginator';
 import { lastValueFrom, Subscription } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { TerminologyService } from 'src/app/services/simplex/terminology.service';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
@@ -16,7 +19,7 @@ import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dia
     templateUrl: './translation-dashboard.component.html',
     styleUrl: './translation-dashboard.component.scss'
 })
-export class TranslationDashboardComponent implements OnInit, OnDestroy {
+export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterViewInit {
     authoringPlatformMode = false;
     selectedEdition: any;
     private subscriptions: Subscription = new Subscription();
@@ -30,6 +33,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     selectedTranslation: any;
     selectedLabelSet: any;
     selectedLabelSetMembers: any[] = [];
+    labelSetMembersTotalCount = 0;
+    labelSetMembersPageIndex = 0;
+    labelSetMembersPageSize = 25;
     mode = 'view';
     saving = false;
     deleting = false;
@@ -41,6 +47,15 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     private isSubscribedToEdition = false; // Flag to prevent duplicate edition subscriptions
     private translationSetsLoaded = false; // Flag to track if translation sets have been loaded
 
+	translationSetsColumns = ['name', 'languageDialect', 'concepts', 'lastUpdated', 'progress', 'actions'];
+	translationSetsDataSource = new MatTableDataSource<any>([]);
+	translationSetRouteSelectionActive = false;
+
+	@ViewChild(MatSort) set matSort(sort: MatSort | undefined) {
+		if (sort) {
+			this.translationSetsDataSource.sort = sort;
+		}
+	}
 
 
     // ECL input method properties
@@ -74,6 +89,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         // 3. Component is not initialized yet
         // 4. No data has been loaded yet and translation sets haven't been loaded
         return this.loading || this.loadingSets || !this.isInitialized || (this.labelSets.length === 0 && !this.translationSetsLoaded);
+    }
+
+    /** Loading gate for translation-set detail shell (do not reuse list skeleton — it can stay true while detail should render). */
+    get showTranslationSetDetailShellLoading(): boolean {
+        return !this.isInitialized
+            || this.loading
+            || !this.translationSetsLoaded
+            || this.loadingSets;
     }
 
     // Computed property to determine which codesystem will be used
@@ -115,8 +138,28 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         private changeDetectorRef: ChangeDetectorRef,
         private terminologyService: TerminologyService,
         private route: ActivatedRoute,
+        private router: Router,
         private dialog: MatDialog) {
     }
+
+	ngAfterViewInit(): void {
+		this.translationSetsDataSource.sortingDataAccessor = (item, property) => {
+			switch (property) {
+				case 'lastUpdated':
+					return this.translationSetLastUpdatedMillis(item);
+				case 'name':
+					return (item.name || '').toLowerCase();
+				case 'languageDialect':
+					return this.displayTranslationLanguageDialect(item.translationName).toLowerCase();
+				case 'concepts':
+					return item.size ?? 0;
+				case 'progress':
+					return this.translationProgressPercent(item);
+				default:
+					return '';
+			}
+		};
+	}
 
 
     ngOnInit(): void {
@@ -145,9 +188,13 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         // Subscribe to route parameter changes to handle edition changes
         const routeSubscription = this.route.params.subscribe(params => {
             const editionParam = params['edition'];
-            if (editionParam && this.selectedEdition?.shortName !== editionParam) {
+            // Only react when we already know the current edition (avoids deep-link refresh:
+            // first emission often arrives before getSelectedEdition() has run, so selectedEdition is still null
+            // and would incorrectly match !== editionParam and strip .../refset/label from the URL).
+            if (editionParam && this.selectedEdition && this.selectedEdition.shortName !== editionParam) {
                 // Edition changed, reset component and reload
                 this.resetComponent();
+                this.goToTranslationStudioList({ replaceUrl: true });
 
                 // Re-initialize with new edition
                 if (!this.isSubscribedToEdition) {
@@ -169,6 +216,31 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             }
         });
         this.subscriptions.add(routeSubscription);
+
+		const paramSub = this.route.paramMap.subscribe((params: ParamMap) => {
+			this.applyRouteParams(params);
+			this.changeDetectorRef.detectChanges();
+		});
+		this.subscriptions.add(paramSub);
+
+		const legacyQuerySub = this.route.queryParamMap.subscribe(() => {
+			const r = (this.route.snapshot.queryParamMap.get('refset') ?? '').trim();
+			const l = (this.route.snapshot.queryParamMap.get('label') ?? '').trim();
+			if (!r || !l) {
+				return;
+			}
+			const edition = this.route.snapshot.paramMap.get('edition');
+			if (!edition) {
+				return;
+			}
+			const pathRef = this.route.snapshot.paramMap.get('refset');
+			const pathLab = this.route.snapshot.paramMap.get('label');
+			if (pathRef === r && pathLab === l) {
+				return;
+			}
+			void this.router.navigate(['/translation-studio', edition, r, l], { replaceUrl: true });
+		});
+		this.subscriptions.add(legacyQuerySub);
 
         // Set up automatic label computation from name field
         this.form.get('name')?.valueChanges.subscribe(name => {
@@ -194,7 +266,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         this.translations = [];
         this.labelSets = [];
         this.selectedLabelSet = null;
-        this.selectedLabelSetMembers = [];
+        this.clearTranslatedTermsTable();
         this.stopPolling();
         // Set loading states to show skeleton during reset
         this.loading = true;
@@ -202,10 +274,91 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         this.loadingTranslations = false;
         this.loadingLabelSetMembers = false;
         this.loadingLabelSetDetails = false;
+		this.translationSetRouteSelectionActive = false;
+		this.refreshTranslationSetsTable();
     }
 
-    export() {
-        if (!this.selectedLabelSet) {
+	private refreshTranslationSetsTable(): void {
+		this.translationSetsDataSource.data = this.labelSets;
+	}
+
+	private goToTranslationStudioList(options?: { replaceUrl?: boolean }): void {
+		const edition = this.route.snapshot.paramMap.get('edition') ?? this.selectedEdition?.shortName;
+		const commands = edition ? ['/translation-studio', edition] : ['/translation-studio'];
+		void this.router.navigate(commands, { replaceUrl: options?.replaceUrl ?? false });
+	}
+
+	private navigateTranslationStudioDetail(refset: string, label: string): void {
+		const edition = this.route.snapshot.paramMap.get('edition') ?? this.selectedEdition?.shortName;
+		if (!edition) {
+			void this.router.navigate(['/translation-studio']);
+			return;
+		}
+		void this.router.navigate(['/translation-studio', edition, refset, label]);
+	}
+
+	/**
+	 * Drive detail vs list from route path: .../translation-studio/:edition/:refset/:label
+	 */
+	private applyRouteParams(params: ParamMap): void {
+		const refset = (params.get('refset') ?? '').trim();
+		const label = (params.get('label') ?? '').trim();
+		this.translationSetRouteSelectionActive = !!(refset && label);
+		if (!refset || !label) {
+			this.selectedLabelSet = null;
+			this.clearTranslatedTermsTable();
+			return;
+		}
+		if (!this.translationSetsLoaded) {
+			return;
+		}
+		const match = this.labelSets.find((s: any) =>
+			String(s.refset ?? s.translationId) === String(refset) && String(s.label ?? '').trim() === label
+		);
+		if (!match) {
+			this.snackBar.open('Translation set not found for this edition.', 'Close', {
+				duration: 4000
+			});
+			this.goToTranslationStudioList();
+			return;
+		}
+		this.applyLabelSetSelection(match);
+	}
+
+	private reconcileTranslationSetFromRoute(): void {
+		this.applyRouteParams(this.route.snapshot.paramMap);
+	}
+
+	private applyLabelSetSelection(labelSet: any): void {
+		this.selectedLabelSet = labelSet;
+		if (labelSet.status === 'READY') {
+			this.loadLabelSetDetails(labelSet);
+		} else {
+			this.clearTranslatedTermsTable();
+			this.loadingLabelSetMembers = false;
+		}
+	}
+
+	onTranslationSetRowClick(set: any): void {
+		const label = set?.label;
+		if (label == null || label === '') {
+			this.snackBar.open('Cannot open this translation set (missing label).', 'Close', {
+				duration: 4000
+			});
+			return;
+		}
+		this.translationSetRouteSelectionActive = true;
+		this.applyLabelSetSelection(set);
+		this.navigateTranslationStudioDetail(String(set.refset ?? set.translationId), label);
+	}
+
+	goToTranslationSetsList(): void {
+		this.goToTranslationStudioList();
+	}
+
+    export(labelSet?: any) {
+		const target = labelSet ?? this.selectedLabelSet;
+        if (!target) {
             this.snackBar.open('Please select a translation set first.', 'Close', {
                 duration: 3000
             });
@@ -216,9 +369,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             width: '500px',
             data: {
                 edition: this.selectedEdition.shortName,
-                refsetId: this.selectedLabelSet.translationId,
-                labelSetName: this.selectedLabelSet.name,
-                label: this.selectedLabelSet.label
+                refsetId: target.translationId,
+                labelSetName: target.name,
+                label: target.label
             }
         });
 
@@ -226,13 +379,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             if (result && result.action === 'export_started') {
                 console.log('Export to Authoring Platform started:', result);
                 // Refresh members to show any changed translations (though they won't change yet as the task is starting)
-                this.getLabelSetMembers(this.selectedLabelSet);
+                this.getLabelSetMembers(target, false);
             }
         });
     }
 
-    setupAiTranslation(): void {
-        if (!this.selectedLabelSet) {
+    setupAiTranslation(labelSet?: any): void {
+		const target = labelSet ?? this.selectedLabelSet;
+        if (!target) {
             this.snackBar.open('Please select a translation set first.', 'Close', {
                 duration: 3000
             });
@@ -243,10 +397,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             width: '600px',
             data: {
                 edition: this.selectedEdition.shortName,
-                refsetId: this.selectedLabelSet.refset,
-                labelSetName: this.selectedLabelSet.name,
-                label: this.selectedLabelSet.label,
-                selectedLabelSet: this.selectedLabelSet
+                refsetId: target.refset,
+                labelSetName: target.name,
+                label: target.label,
+                selectedLabelSet: target
             }
         });
 
@@ -269,8 +423,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         });
     }
 
-    runAiBatchTranslation(): void {
-        if (!this.selectedLabelSet) {
+    runAiBatchTranslation(labelSet?: any): void {
+		const target = labelSet ?? this.selectedLabelSet;
+        if (!target) {
             this.snackBar.open('Please select a translation set first.', 'Close', {
                 duration: 3000
             });
@@ -281,10 +436,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             width: '500px',
             data: {
                 edition: this.selectedEdition.shortName,
-                refsetId: this.selectedLabelSet.refset,
-                labelSetName: this.selectedLabelSet.name,
-                label: this.selectedLabelSet.label,
-                selectedLabelSet: this.selectedLabelSet
+                refsetId: target.refset,
+                labelSetName: target.name,
+                label: target.label,
+                selectedLabelSet: target
             }
         });
 
@@ -414,6 +569,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                     });
 
                 this.labelSets = newLabelSets;
+                this.refreshTranslationSetsTable();
 
                 this.loadingSets = false;
                 this.translationSetsLoaded = true; // Mark that translation sets have been loaded
@@ -424,6 +580,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
 
                 // Check if any translation sets are processing and manage polling
                 this.managePolling();
+                this.reconcileTranslationSetFromRoute();
             },
             (error) => {
                 console.error(error);
@@ -434,6 +591,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                 this.loading = false;
                 this.translationSetsLoaded = true; // Mark as loaded even on error
                 this.labelSets = [];
+                this.refreshTranslationSetsTable();
+                this.reconcileTranslationSetFromRoute();
             }
         );
     }
@@ -457,11 +616,72 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         return Math.min(100, Math.max(0, (translated / size) * 100));
     }
 
-    trackByLabelSetKey(_index: number, set: any): string {
-        if (set?.id != null) {
-            return set.id;
+    translationSetLastUpdatedMillis(set: any): number {
+        if (set?.lastPulled) {
+            const t = new Date(set.lastPulled).getTime();
+            if (!Number.isNaN(t)) {
+                return t;
+            }
         }
-        return `${set?.translationId ?? ''}-${set?.label ?? ''}`;
+        if (set?.created) {
+            const t = new Date(set.created).getTime();
+            if (!Number.isNaN(t)) {
+                return t;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Plain-text label for Language/Dialect column; strips trailing SNOMED-style set name suffixes.
+     */
+    displayTranslationLanguageDialect(raw: string | null | undefined): string {
+        if (raw == null) {
+            return '';
+        }
+        let s = raw.trim();
+        if (!s) {
+            return '';
+        }
+        const lower = s.toLowerCase();
+        for (const suffix of ['language reference set', 'language refset']) {
+            if (lower.endsWith(suffix)) {
+                s = s.slice(0, s.length - suffix.length).trim();
+                break;
+            }
+        }
+        return s;
+    }
+
+    readonly translatedTermsMemberColumns = ['concept', 'english', 'dialect', 'status'] as const;
+
+    get translatedTermsDialectColumnHeader(): string {
+        const label = this.displayTranslationLanguageDialect(this.selectedLabelSet?.translationName);
+        return label.trim() ? label : 'Translation';
+    }
+
+    formatMemberTermList(terms: string[] | null | undefined): string {
+        if (!terms?.length) {
+            return '';
+        }
+        return terms.join(', ');
+    }
+
+    /** Snolate {@code TranslationStatus} name from API, or empty when no unit row exists. */
+    formatTranslationRowStatus(status: string | null | undefined): string {
+        if (status == null || status === '') {
+            return 'Not started';
+        }
+        switch (status) {
+            case 'NEEDS_EDIT':
+                return 'Needs edit';
+            case 'FOR_REVIEW':
+                return 'For review';
+            case 'APPROVED':
+                return 'Approved';
+            default:
+                return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        }
     }
 
     private startPolling() {
@@ -529,6 +749,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
 
                                 if (labelSetIndex !== -1) {
                                     this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...details };
+                                    this.refreshTranslationSetsTable();
                                 }
 
                                 // If this is the currently selected set, update it as well
@@ -548,6 +769,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
 
                 // Update the list without showing loading state
                 this.labelSets = preservedLabelSets;
+                this.refreshTranslationSetsTable();
 
                 // Silently update selectedLabelSet if it exists
                 if (this.selectedLabelSet) {
@@ -576,39 +798,58 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     }
 
 
-    getLabelSetMembers(labelSet: any) {
-        this.loadingLabelSetMembers = true;
-        this.simplexService.getLabelSetMembers(this.selectedEdition.shortName, labelSet.refset, labelSet.label).subscribe(
-            (labelSetMembers) => {
-                this.selectedLabelSetMembers = labelSetMembers.results;
-                this.loadingLabelSetMembers = false;
-                this.changeDetectorRef.detectChanges();
-            },
-            (error) => {
-                console.error(error);
-                this.snackBar.open('Failed to fetch label set members', 'Dismiss', {
-                    duration: 5000
-                });
-                this.loadingLabelSetMembers = false;
-            }
-        );
+    getLabelSetMembers(labelSet: any, resetPage = true) {
+        if (resetPage) {
+            this.labelSetMembersPageIndex = 0;
+        }
+        this.fetchLabelSetMembers(labelSet);
     }
 
-    selectSet(labelSet: any) {
-        this.selectedLabelSet = labelSet;
-
-        // Only load translation-set members if status is READY
-        if (labelSet.status === 'READY') {
-            this.loadLabelSetDetails(labelSet);
-        } else {
-            // Clear members if status is not READY
-            this.selectedLabelSetMembers = [];
+    onTranslatedTermsPage(event: PageEvent): void {
+        this.labelSetMembersPageIndex = event.pageIndex;
+        this.labelSetMembersPageSize = event.pageSize;
+        if (this.selectedLabelSet) {
+            this.fetchLabelSetMembers(this.selectedLabelSet);
         }
+    }
+
+    private fetchLabelSetMembers(labelSet: any) {
+        this.loadingLabelSetMembers = true;
+        this.simplexService
+            .getTranslationSetRows(
+                this.selectedEdition.shortName,
+                labelSet.refset,
+                labelSet.label,
+                this.labelSetMembersPageIndex,
+                this.labelSetMembersPageSize
+            )
+            .subscribe({
+                next: (labelSetMembers) => {
+                    this.selectedLabelSetMembers = labelSetMembers.results ?? [];
+                    this.labelSetMembersTotalCount = labelSetMembers.count ?? 0;
+                    this.loadingLabelSetMembers = false;
+                    this.changeDetectorRef.detectChanges();
+                },
+                error: (error) => {
+                    console.error(error);
+                    this.snackBar.open('Failed to fetch label set members', 'Dismiss', {
+                        duration: 5000
+                    });
+                    this.loadingLabelSetMembers = false;
+                }
+            });
+    }
+
+    private clearTranslatedTermsTable(): void {
+        this.selectedLabelSetMembers = [];
+        this.labelSetMembersTotalCount = 0;
+        this.labelSetMembersPageIndex = 0;
     }
 
     setMode(mode: string) {
         this.mode = mode;
         if (mode === 'create') {
+            this.goToTranslationStudioList();
             // Reset the form when entering create mode
             this.form.reset();
             // Reset ECL input method properties
@@ -660,7 +901,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         if (this.selectedTranslation) {
             // Clear current selection
             this.selectedLabelSet = null;
-            this.selectedLabelSetMembers = [];
+            this.clearTranslatedTermsTable();
 
             // Load translation sets for the selected translation
             this.getTranslationSets();
@@ -734,22 +975,16 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         }
     }
 
-    deleteTranslationSet() {
-        console.log('Delete button clicked');
-        console.log('selectedLabelSet:', this.selectedLabelSet);
-
-        if (!this.selectedLabelSet) {
-            console.log('Missing required data for deletion');
+    deleteTranslationSet(forSet?: any) {
+        const target = forSet ?? this.selectedLabelSet;
+        if (!target) {
             return;
         }
 
-        const label = this.selectedLabelSet.label;
-        const translationId = this.selectedLabelSet.translationId;
-        console.log('Label from selectedLabelSet:', label);
-        console.log('Translation ID from selectedLabelSet:', translationId);
+        const label = target.label;
+        const translationId = target.translationId;
 
         if (!label) {
-            console.log('No label found in selectedLabelSet');
             this.snackBar.open('No label found for this translation set', 'Dismiss', {
                 duration: 5000
             });
@@ -757,7 +992,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         }
 
         // Show confirmation dialog
-        if (confirm(`Are you sure you want to delete the translation set "${this.selectedLabelSet.name}"?`)) {
+        if (confirm(`Are you sure you want to delete the translation set "${target.name}"?`)) {
             this.deleting = true;
             this.simplexService.deleteTranslationSet(
                 this.selectedEdition.shortName,
@@ -770,7 +1005,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                     });
                     // Clear selection and reload translation sets
                     this.selectedLabelSet = null;
-                    this.selectedLabelSetMembers = [];
+                    this.clearTranslatedTermsTable();
+                    this.goToTranslationStudioList();
                     this.getTranslationSets();
                     this.deleting = false;
                 },
@@ -948,6 +1184,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
 
                     if (labelSetIndex !== -1) {
                         this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...details };
+                        this.refreshTranslationSetsTable();
                     }
 
                     this.loadingLabelSetDetails = false;
@@ -969,16 +1206,17 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         );
     }
 
-    pullFromTranslationStudio() {
-        if (!this.selectedLabelSet) {
+    pullFromTranslationStudio(forSet?: any) {
+        const target = forSet ?? this.selectedLabelSet;
+        if (!target) {
             this.snackBar.open('No translation set selected', 'Dismiss', {
                 duration: 5000
             });
             return;
         }
 
-        const label = this.selectedLabelSet.label;
-        const translationId = this.selectedLabelSet.translationId;
+        const label = target.label;
+        const translationId = target.translationId;
 
         if (!label) {
             this.snackBar.open('No label found for this translation set', 'Dismiss', {
@@ -987,7 +1225,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             return;
         }
 
-        if (confirm(`Pull translations from Translation Studio into Snowstorm for "${this.selectedLabelSet.name}"?`)) {
+        if (confirm(`Pull translations from Translation Studio into Snowstorm for "${target.name}"?`)) {
             this.simplexService.pullFromTranslationStudio(
                 this.selectedEdition.shortName,
                 translationId,
@@ -997,7 +1235,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                     this.snackBar.open('Task is scheduled', 'Dismiss', {
                         duration: 5000
                     });
-                    this.getLabelSetMembers(this.selectedLabelSet);
+                    this.getLabelSetMembers(target, false);
                 },
                 (error) => {
                     console.error(error);
@@ -1009,16 +1247,17 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         }
     }
 
-    refreshTranslationSet() {
-        if (!this.selectedLabelSet) {
+    refreshTranslationSet(forSet?: any) {
+        const target = forSet ?? this.selectedLabelSet;
+        if (!target) {
             this.snackBar.open('No translation set selected', 'Dismiss', {
                 duration: 5000
             });
             return;
         }
 
-        const label = this.selectedLabelSet.label;
-        const translationId = this.selectedLabelSet.translationId;
+        const label = target.label;
+        const translationId = target.translationId;
 
         if (!label) {
             this.snackBar.open('No label found for this translation set', 'Dismiss', {
@@ -1037,7 +1276,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             label
         ).subscribe({
             next: (updatedSet) => {
-                this.selectedLabelSet = { ...this.selectedLabelSet, ...updatedSet };
+                if (this.selectedLabelSet &&
+                    this.selectedLabelSet.translationId === target.translationId &&
+                    this.selectedLabelSet.label === target.label) {
+                    this.selectedLabelSet = { ...this.selectedLabelSet, ...updatedSet };
+                }
                 this.refreshingSet = false;
                 this.getTranslationSets();
             },

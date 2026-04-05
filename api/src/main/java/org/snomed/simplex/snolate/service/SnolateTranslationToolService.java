@@ -8,15 +8,16 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationUnitPage;
 import org.snomed.simplex.rest.pojos.TranslationUnitRow;
 import org.snomed.simplex.snolate.domain.TranslationSource;
+import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.domain.TranslationUnitId;
+import org.snomed.simplex.snolate.repository.TranslationSetMemberSummary;
 import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
 import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.translation.util.ConceptExplanationMarkdown;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -100,19 +102,30 @@ public class SnolateTranslationToolService {
 		return map;
 	}
 
+	/**
+	 * Paginated translation-set rows: English term from {@link TranslationSource}, dialect terms and {@link TranslationUnit#getStatus()} from persistence.
+	 * Ordering is by status (NEEDS_EDIT, FOR_REVIEW, APPROVED, then no unit), then concept id.
+	 */
 	@Transactional(readOnly = true)
-	public TranslationUnitPage<TranslationUnitRow> getSampleRows(SnolateTranslationSet translationSet, int pageSize) {
+	public TranslationUnitPage<TranslationUnitRow> getRows(SnolateTranslationSet translationSet, int page, int pageSize) {
 		String setCode = translationSet.getCompositeSetCode();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
-		Page<TranslationSource> page = translationSourceRepository.findPageHavingSetMembership(setCode,
-				PageRequest.of(0, pageSize, Sort.by("code")));
-		List<TranslationUnitRow> rows = new ArrayList<>();
-		for (TranslationSource src : page.getContent()) {
-			Optional<TranslationUnit> tu = translationUnitRepository.findById(new TranslationUnitId(src.getCode(), lang));
-			List<String> target = copyTerms(tu);
-			rows.add(new TranslationUnitRow(List.of(src.getTerm()), target, src.getCode(), null));
+		Page<TranslationSetMemberSummary> pageResult = translationSourceRepository.findRowsForSet(setCode, lang,
+				PageRequest.of(page, pageSize));
+		List<String> codes = pageResult.getContent().stream().map(TranslationSetMemberSummary::getCode).toList();
+		Map<String, TranslationUnit> unitByCode = Map.of();
+		if (!codes.isEmpty()) {
+			unitByCode = translationUnitRepository.findAllByLanguageCodeAndCodeInWithTermsFetched(lang, codes).stream()
+					.collect(Collectors.toMap(TranslationUnit::getCode, Function.identity()));
 		}
-		return new TranslationUnitPage<>((int) page.getTotalElements(), null, null, rows).withoutPagination();
+		List<TranslationUnitRow> rows = new ArrayList<>();
+		for (TranslationSetMemberSummary summary : pageResult.getContent()) {
+			TranslationUnit tu = unitByCode.get(summary.getCode());
+			List<String> target = copyTerms(Optional.ofNullable(tu));
+			String statusName = tu != null ? tu.getStatus().name() : null;
+			rows.add(new TranslationUnitRow(List.of(summary.getTerm()), target, summary.getCode(), null, statusName));
+		}
+		return new TranslationUnitPage<>((int) pageResult.getTotalElements(), null, null, rows).withoutPagination();
 	}
 
 	@Transactional(readOnly = true)
@@ -141,7 +154,8 @@ public class SnolateTranslationToolService {
 		} catch (Exception e) {
 			explanation = null;
 		}
-		TranslationUnitRow row = new TranslationUnitRow(List.of(src.getTerm()), target, conceptId, explanation);
+		String statusName = tu.map(TranslationUnit::getStatus).map(TranslationStatus::name).orElse(null);
+		TranslationUnitRow row = new TranslationUnitRow(List.of(src.getTerm()), target, conceptId, explanation, statusName);
 		row.blankLabels();
 		return row;
 	}

@@ -4,228 +4,13 @@
         <mat-spinner [diameter]="20"></mat-spinner>
     </div>
 </div>
-<div class="main-container" *ngIf="selectedEdition">
-    <div class="component-row">
-        <div class="component-col-left">
-            @if (!authoringPlatformMode) {
-                <h1>Translation Studio</h1>
-            }
-            <h4>Translation Sets</h4>
-            <mat-list id="components-list">
-                <div *ngIf="showSkeleton">
-                    <!-- Repeat this block for as many skeleton items as you want -->
-                    <div class="skeleton-loader">
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <!-- <div class="skeleton-button"></div> -->
-                    </div>
-                </div>
-                <!-- Actual List Items -->
-                <ng-container *ngIf="!showSkeleton">
-                    <mat-list-item class="hoverable-item translation-set-row" matRipple *ngFor="let set of labelSets; trackBy: trackByLabelSetKey"
-                    (click)="selectSet(set)"
-                    [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
-                        <div class="translation-set-row-content">
-                            <div class="translation-set-row-top">
-                                <span class="set-name">{{ set.name }}</span>
-                                <span class="pill pill-blue">{{ set.translationName }}</span>
-                                <mat-icon *ngIf="set.status === 'PROCESSING'"
-                                         matTooltip="Status: {{ set.status }}&#10;{{ set.percentageProcessed }}% complete"
-                                         matTooltipClass="multiline-tooltip"
-                                         class="processing-icon">schedule</mat-icon>
-                                <mat-icon *ngIf="set.status === 'FAILED'"
-                                        matTooltip="Status: {{ set.status }}"
-                                        class="processing-icon">error</mat-icon>
-                                <span *ngIf="set.size" class="artifact-info">{{ set.size }} concepts</span>
-                            </div>
-                            <div class="translation-set-row-bars">
-                                <mat-progress-bar *ngIf="set.status === 'PROCESSING' && set.percentageProcessed !== undefined"
-                                                 mode="determinate"
-                                                 [value]="set.percentageProcessed"
-                                                 class="set-creation-progress-bar"></mat-progress-bar>
-                                <div *ngIf="set.size > 0" class="translation-coverage-block">
-                                    <mat-progress-bar mode="determinate"
-                                                     [value]="translationProgressPercent(set)"
-                                                     class="set-translation-progress-bar"></mat-progress-bar>
-                                    <span class="translation-coverage-label">
-                                        {{ set.translated ?? 0 }} / {{ set.size }} concepts translated
-                                        ({{ translationProgressPercent(set) | number:'1.0-0' }}%)
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </mat-list-item>
-                    <div class="button-container">
-                        <button mat-flat-button color="primary" (click)="setMode('create')">
-                            Create new set
-                        </button>
-                    </div>
-                </ng-container>
-            </mat-list>
-        </div>
-        <div class="component-col-right" *ngIf="mode == 'view'">
-            <div *ngIf="!selectedLabelSet"  class="waiting-panel">
-                <img src="assets/artifact.png">
-            </div>
-            <div *ngIf="selectedLabelSet" class="details-panel">
-                <div class="title-container">
-                    <div class="title-left-column">
-                        <h2>{{ selectedLabelSet.name }}</h2>
-                    </div>
-                </div>
+<div class="main-container translation-studio-root" *ngIf="selectedEdition">
+    @if (!authoringPlatformMode) {
+        <h1>Translation Studio</h1>
+    }
 
-                <br><br>
-                <div>
-                    <div class="component-row" *ngIf="selectedLabelSet.status !== 'READY'">
-                        <div class="component-col align-right">
-                            <span class="details-field-name">Status</span>
-                        </div>
-                        <div class="component-col">
-                            <span class="details-field-value">{{ selectedLabelSet.status }}</span>
-                        </div>
-                    </div>
-                    <div class="component-row">
-                        <div class="component-col align-right">
-                            <span class="details-field-name">Selection Criteria</span>
-                        </div>
-                        <div class="component-col">
-                            <span class="details-field-value">{{ selectedLabelSet.humanReadableSelectionLabel }}</span>
-                        </div>
-                    </div>
-                    <div class="component-row" *ngIf="selectedLabelSet.size">
-                        <div class="component-col align-right">
-                            <span class="details-field-name">Selected Concepts</span>
-                        </div>
-                        <div class="component-col">
-                            <span class="details-field-value">{{ selectedLabelSet.size }}</span>
-                        </div>
-                    </div>
-                    <div class="component-row" *ngIf="selectedLabelSet.size">
-                        <div class="component-col align-right">
-                            <span class="details-field-name">Translated so far</span>
-                        </div>
-                        <div class="component-col">
-                            <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
-                            <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
-                                {{ selectedLabelSet.translated }} ({{ (selectedLabelSet.translated / selectedLabelSet.size * 100) | number:'1.0-1' }}%)
-                            </span>
-                        </div>
-                    </div>
-                    <div class="component-row" *ngIf="selectedLabelSet.size && selectedLabelSet.created">
-                        <div class="component-col align-right">
-                            <span class="details-field-name">Changes Since {{ selectedLabelSet.lastPulled ? 'Last Pull' : 'Created' }}</span>
-                        </div>
-                        <div class="component-col">
-                            <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
-                            <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
-                                {{ selectedLabelSet.changedSinceCreatedOrLastPulled || 0 }}
-                                <span *ngIf="selectedLabelSet.lastPulled"
-                                      matTooltip="Last pulled: {{ selectedLabelSet.lastPulled | date:'medium' }}"
-                                      class="last-pulled-hint">
-                                    ({{ selectedLabelSet.lastPulled | timeAgo }})
-                                </span>
-                                <span *ngIf="!selectedLabelSet.lastPulled && selectedLabelSet.created"
-                                      matTooltip="Created: {{ selectedLabelSet.created | date:'medium' }}"
-                                      class="created-hint">
-                                    ({{ selectedLabelSet.created | timeAgo }})
-                                </span>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <br><br>
-                <div>
-                    <button mat-stroked-button [matMenuTriggerFor]="actionsMenu" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                        <mat-icon class="large-icon">more_vert</mat-icon>
-                        Manage
-                    </button>
-                    <mat-menu #actionsMenu="matMenu">
-                        <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
-                                *ngIf="selectedLabelSet.status !== 'FAILED'">
-                            <mat-icon class="large-icon">flash_on</mat-icon>
-                            Setup AI Translation
-                        </button>
-                        <button mat-menu-item (click)="runAiBatchTranslation()"
-                                [disabled]="selectedLabelSet.status === 'PROCESSING'"
-                                *ngIf="selectedLabelSet.status !== 'FAILED' && selectedLabelSet.aiSetupComplete">
-                            <mat-icon class="large-icon">flash_on</mat-icon>
-                            Run AI Translation
-                        </button>
-                        @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
-                            <button mat-menu-item (click)="pullFromTranslationStudio()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                                <mat-icon class="large-icon">cloud_download</mat-icon>
-                                Pull Translation Studio translations into Snowstorm
-                            </button>
-                        }
-                        <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
-                                *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
-                            <mat-icon class="large-icon">refresh</mat-icon>
-                            Refresh concept selection (Translation Studio)
-                            <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
-                        </button>
-                        <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
-                            <mat-icon class="large-icon">cancel</mat-icon>
-                            <span>Delete Set</span>
-                            <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
-                        </button>
-                        @if(authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
-                            <button mat-menu-item (click)="export()">
-                                <mat-icon class="large-icon">file_download</mat-icon>
-                                <span>Export to Authoring Platform</span>
-                            </button>
-                        }
-                    </mat-menu>
-                </div>
-                <br><br>
-                <h3>Translation Set Members</h3>
-                <div *ngIf="selectedLabelSet.status !== 'READY'" class="status-message">
-                    <p>Translation set members are only available when the set status is READY.</p>
-                    <p>Current status: <strong>{{ selectedLabelSet.status }}</strong></p>
-                </div>
-                <mat-list id="members-list" class="sk-width" *ngIf="selectedLabelSet.status === 'READY'">
-                    <div *ngIf="loadingLabelSetMembers">
-                        <!-- Repeat this block for as many skeleton items as you want -->
-                        <div class="skeleton-loader">
-                            <div class="skeleton-text"></div>
-                            <div class="skeleton-text"></div>
-                            <div class="skeleton-text"></div>
-                            <div class="skeleton-text"></div>
-                            <div class="skeleton-text"></div>
-                            <div class="skeleton-text"></div>
-                            <!-- <div class="skeleton-button"></div> -->
-                        </div>
-                    </div>
-                    <!-- Actual Table Items -->
-                    <ng-container *ngIf="!loadingLabelSetMembers">
-                        <table mat-table [dataSource]="selectedLabelSetMembers" class="translation-table">
-                            <!-- Concept Column -->
-                            <ng-container matColumnDef="concept">
-                                <th mat-header-cell *matHeaderCellDef>Concept</th>
-                                <td mat-cell *matCellDef="let unit">
-                                    <i>{{ unit.context }} |{{ unit.source }}|</i>
-                                </td>
-                            </ng-container>
-
-                            <!-- Translation Column -->
-                            <ng-container matColumnDef="translation">
-                                <th mat-header-cell *matHeaderCellDef>Translation</th>
-                                <td mat-cell *matCellDef="let unit">
-                                    {{ unit.target }}
-                                </td>
-                            </ng-container>
-
-                            <tr mat-header-row *matHeaderRowDef="['concept', 'translation']"></tr>
-                            <tr mat-row *matRowDef="let row; columns: ['concept', 'translation'];"></tr>
-                        </table>
-                    </ng-container>
-                </mat-list>
-            </div>
-        </div>
-        <div class="component-col-right" *ngIf="mode == 'create'">
+    @if (mode === 'create') {
+        <div class="translation-studio-panel">
             <h4>New Translation Set</h4>
             <br><br>
             <form [formGroup]="form" (keydown.enter)="$event.preventDefault(); submit()">
@@ -343,10 +128,350 @@
             </div>
 
             <div>
-                <button mat-flat-button (click)="mode = 'view'" *ngIf="!saving">Cancel</button>
+                <button mat-flat-button (click)="setMode('view')" *ngIf="!saving">Cancel</button>
                 <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="form.invalid">Create</button>
                 <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating set...</p>
             </div>
         </div>
-    </div>
+    } @else if (translationSetRouteSelectionActive) {
+        <div class="translation-studio-panel translation-set-detail">
+            @if (showTranslationSetDetailShellLoading) {
+                <div class="skeleton-loader">
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text"></div>
+                </div>
+            } @else if (!selectedLabelSet) {
+                <div class="detail-loading-inline">
+                    <mat-spinner [diameter]="40"></mat-spinner>
+                    <p>Loading translation set…</p>
+                </div>
+            } @else {
+                <div class="detail-back-row">
+                    <button mat-button type="button" (click)="goToTranslationSetsList()" class="back-to-list">
+                        <mat-icon>arrow_back</mat-icon>
+                        Translation sets
+                    </button>
+                </div>
+                <div class="details-panel details-panel-fullwidth">
+                    <div class="title-container title-container-detail">
+                        <div class="title-left-column">
+                            <h2>{{ selectedLabelSet.name }}</h2>
+                        </div>
+                    </div>
+
+                    <div class="detail-fields">
+                        <div class="component-row" *ngIf="selectedLabelSet.status !== 'READY'">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">Status</span>
+                            </div>
+                            <div class="component-col">
+                                <span class="details-field-value">{{ selectedLabelSet.status }}</span>
+                            </div>
+                        </div>
+                        <div class="component-row">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">Selection Criteria</span>
+                            </div>
+                            <div class="component-col">
+                                <span class="details-field-value">{{ selectedLabelSet.humanReadableSelectionLabel }}</span>
+                            </div>
+                        </div>
+                        <div class="component-row" *ngIf="selectedLabelSet.size">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">Selected Concepts</span>
+                            </div>
+                            <div class="component-col">
+                                <span class="details-field-value">{{ selectedLabelSet.size }}</span>
+                            </div>
+                        </div>
+                        <div class="component-row" *ngIf="selectedLabelSet.size">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">Translated so far</span>
+                            </div>
+                            <div class="component-col">
+                                <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
+                                <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
+                                    {{ selectedLabelSet.translated }} ({{ (selectedLabelSet.translated / selectedLabelSet.size * 100) | number:'1.0-1' }}%)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="component-row" *ngIf="selectedLabelSet.size && selectedLabelSet.created">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">Changes Since {{ selectedLabelSet.lastPulled ? 'Last Pull' : 'Created' }}</span>
+                            </div>
+                            <div class="component-col">
+                                <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
+                                <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
+                                    {{ selectedLabelSet.changedSinceCreatedOrLastPulled || 0 }}
+                                    <span *ngIf="selectedLabelSet.lastPulled"
+                                          matTooltip="Last pulled: {{ selectedLabelSet.lastPulled | date:'medium' }}"
+                                          class="last-pulled-hint">
+                                        ({{ selectedLabelSet.lastPulled | timeAgo }})
+                                    </span>
+                                    <span *ngIf="!selectedLabelSet.lastPulled && selectedLabelSet.created"
+                                          matTooltip="Created: {{ selectedLabelSet.created | date:'medium' }}"
+                                          class="created-hint">
+                                        ({{ selectedLabelSet.created | timeAgo }})
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-manage">
+                        <button mat-stroked-button [matMenuTriggerFor]="detailActionsMenu" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                            <mat-icon class="large-icon">more_vert</mat-icon>
+                            Manage
+                        </button>
+                        <mat-menu #detailActionsMenu="matMenu">
+                            <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                                    *ngIf="selectedLabelSet.status !== 'FAILED'">
+                                <mat-icon class="large-icon">flash_on</mat-icon>
+                                Setup AI Translation
+                            </button>
+                            <button mat-menu-item (click)="runAiBatchTranslation()"
+                                    [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                                    *ngIf="selectedLabelSet.status !== 'FAILED' && selectedLabelSet.aiSetupComplete">
+                                <mat-icon class="large-icon">flash_on</mat-icon>
+                                Run AI Translation
+                            </button>
+                            @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
+                                <button mat-menu-item (click)="pullFromTranslationStudio()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                                    <mat-icon class="large-icon">cloud_download</mat-icon>
+                                    Pull Translation Studio translations into Snowstorm
+                                </button>
+                            }
+                            <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
+                                    *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
+                                <mat-icon class="large-icon">refresh</mat-icon>
+                                Refresh concept selection (Translation Studio)
+                                <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
+                            </button>
+                            <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
+                                <mat-icon class="large-icon">cancel</mat-icon>
+                                <span>Delete Set</span>
+                                <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+                            </button>
+                            @if(authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
+                                <button mat-menu-item (click)="export()">
+                                    <mat-icon class="large-icon">file_download</mat-icon>
+                                    <span>Export to Authoring Platform</span>
+                                </button>
+                            }
+                        </mat-menu>
+                    </div>
+
+                    <h3 class="members-heading">Translated terms</h3>
+                    <div *ngIf="selectedLabelSet.status !== 'READY'" class="status-message">
+                        <p>Translation set members are only available when the set status is READY.</p>
+                        <p>Current status: <strong>{{ selectedLabelSet.status }}</strong></p>
+                    </div>
+                    <div id="members-list" class="members-table-wrap" *ngIf="selectedLabelSet.status === 'READY'">
+                        <div class="members-table-scroll">
+                            <div *ngIf="loadingLabelSetMembers">
+                                <div class="skeleton-loader">
+                                    <div class="skeleton-text"></div>
+                                    <div class="skeleton-text"></div>
+                                    <div class="skeleton-text"></div>
+                                    <div class="skeleton-text"></div>
+                                </div>
+                            </div>
+                            <ng-container *ngIf="!loadingLabelSetMembers">
+                            <table mat-table [dataSource]="selectedLabelSetMembers" class="translation-table translation-table-members">
+                                <ng-container matColumnDef="concept">
+                                    <th mat-header-cell *matHeaderCellDef>Concept</th>
+                                    <td mat-cell *matCellDef="let unit">
+                                        {{ unit.context }}
+                                    </td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="english">
+                                    <th mat-header-cell *matHeaderCellDef>English</th>
+                                    <td mat-cell *matCellDef="let unit">
+                                        {{ formatMemberTermList(unit.source) }}
+                                    </td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="dialect">
+                                    <th mat-header-cell *matHeaderCellDef>{{ translatedTermsDialectColumnHeader }}</th>
+                                    <td mat-cell *matCellDef="let unit">
+                                        {{ formatMemberTermList(unit.target) }}
+                                    </td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="status">
+                                    <th mat-header-cell *matHeaderCellDef>Status</th>
+                                    <td mat-cell *matCellDef="let unit">
+                                        {{ formatTranslationRowStatus(unit.status) }}
+                                    </td>
+                                </ng-container>
+
+                                <tr mat-header-row *matHeaderRowDef="translatedTermsMemberColumns"></tr>
+                                <tr mat-row *matRowDef="let row; columns: translatedTermsMemberColumns;"></tr>
+                            </table>
+                            </ng-container>
+                        </div>
+                        <mat-paginator
+                            *ngIf="!loadingLabelSetMembers"
+                            class="members-paginator"
+                            [length]="labelSetMembersTotalCount"
+                            [pageIndex]="labelSetMembersPageIndex"
+                            [pageSize]="labelSetMembersPageSize"
+                            [pageSizeOptions]="[10, 25, 50, 100]"
+                            [showFirstLastButtons]="true"
+                            (page)="onTranslatedTermsPage($event)">
+                        </mat-paginator>
+                    </div>
+                </div>
+            }
+        </div>
+    } @else {
+        <div class="translation-sets-list-panel">
+            <div class="translation-sets-toolbar">
+                <h4>Translation Sets</h4>
+                <button mat-flat-button color="primary" (click)="setMode('create')" [disabled]="showSkeleton">
+                    Create new set
+                </button>
+            </div>
+
+            <div *ngIf="showSkeleton" class="skeleton-loader">
+                <div class="skeleton-text"></div>
+                <div class="skeleton-text"></div>
+                <div class="skeleton-text"></div>
+                <div class="skeleton-text"></div>
+                <div class="skeleton-text"></div>
+                <div class="skeleton-text"></div>
+            </div>
+
+            <div class="translation-sets-table-wrap" *ngIf="!showSkeleton">
+                <table mat-table [dataSource]="translationSetsDataSource" matSort class="translation-sets-table">
+                    <ng-container matColumnDef="name">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+                        <td mat-cell *matCellDef="let set">
+                            <div class="table-name-cell">
+                                <span class="set-name">{{ set.name }}</span>
+                                <mat-icon *ngIf="set.status === 'PROCESSING'"
+                                         matTooltip="Status: {{ set.status }}&#10;{{ set.percentageProcessed }}% complete"
+                                         matTooltipClass="multiline-tooltip"
+                                         class="processing-icon">schedule</mat-icon>
+                                <mat-icon *ngIf="set.status === 'FAILED'"
+                                        matTooltip="Status: {{ set.status }}"
+                                        class="processing-icon">error</mat-icon>
+                            </div>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="languageDialect">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Language/Dialect</th>
+                        <td mat-cell *matCellDef="let set" class="col-language-dialect">
+                            {{ displayTranslationLanguageDialect(set.translationName) || '—' }}
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="concepts">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Concepts</th>
+                        <td mat-cell *matCellDef="let set">
+                            <span *ngIf="set.size != null">{{ set.size }}</span>
+                            <span *ngIf="set.size == null" class="muted-cell">—</span>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="lastUpdated">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Last updated</th>
+                        <td mat-cell *matCellDef="let set">
+                            @if (set.lastPulled) {
+                                <span matTooltip="Last pulled: {{ set.lastPulled | date:'medium' }}">{{ set.lastPulled | timeAgo }}</span>
+                            } @else if (set.created) {
+                                <span matTooltip="Created: {{ set.created | date:'medium' }}">{{ set.created | timeAgo }}</span>
+                            } @else {
+                                <span class="muted-cell">—</span>
+                            }
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="progress">
+                        <th mat-header-cell *matHeaderCellDef mat-sort-header>Progress</th>
+                        <td mat-cell *matCellDef="let set">
+                            <div class="table-progress-cell">
+                                <mat-progress-bar *ngIf="set.status === 'PROCESSING' && set.percentageProcessed !== undefined"
+                                                 mode="determinate"
+                                                 [value]="set.percentageProcessed"
+                                                 class="set-creation-progress-bar"></mat-progress-bar>
+                                <div *ngIf="set.size > 0" class="translation-coverage-block">
+                                    <mat-progress-bar mode="determinate"
+                                                     [value]="translationProgressPercent(set)"
+                                                     class="set-translation-progress-bar"></mat-progress-bar>
+                                    <span class="translation-coverage-label">
+                                        {{ set.translated ?? 0 }} / {{ set.size }}
+                                        ({{ translationProgressPercent(set) | number:'1.0-0' }}%)
+                                    </span>
+                                </div>
+                                <span *ngIf="set.status === 'PROCESSING' && set.percentageProcessed === undefined" class="muted-cell">Processing…</span>
+                                <span *ngIf="!set.size && set.status !== 'PROCESSING'" class="muted-cell">—</span>
+                            </div>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="actions">
+                        <th mat-header-cell *matHeaderCellDef class="col-actions">Actions</th>
+                        <td mat-cell *matCellDef="let set" class="col-actions" (click)="$event.stopPropagation()">
+                            <button mat-icon-button type="button"
+                                    [matMenuTriggerFor]="rowActionsMenu"
+                                    [matMenuTriggerData]="{ set: set }"
+                                    matTooltip="Manage"
+                                    aria-label="Open manage menu">
+                                <mat-icon>more_vert</mat-icon>
+                            </button>
+                        </td>
+                    </ng-container>
+
+                    <tr mat-header-row *matHeaderRowDef="translationSetsColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: translationSetsColumns;"
+                        class="translation-set-table-row"
+                        (click)="onTranslationSetRowClick(row)"></tr>
+                </table>
+            </div>
+        </div>
+    }
 </div>
+
+<mat-menu #rowActionsMenu="matMenu">
+    <ng-template matMenuContent let-set="set">
+        <button mat-menu-item (click)="setupAiTranslation(set)" [disabled]="set.status === 'PROCESSING'"
+                *ngIf="set.status !== 'FAILED'">
+            <mat-icon class="large-icon">flash_on</mat-icon>
+            Setup AI Translation
+        </button>
+        <button mat-menu-item (click)="runAiBatchTranslation(set)"
+                [disabled]="set.status === 'PROCESSING'"
+                *ngIf="set.status !== 'FAILED' && set.aiSetupComplete">
+            <mat-icon class="large-icon">flash_on</mat-icon>
+            Run AI Translation
+        </button>
+        @if(!authoringPlatformMode && set.status !== 'FAILED') {
+            <button mat-menu-item (click)="pullFromTranslationStudio(set)" [disabled]="set.status === 'PROCESSING'">
+                <mat-icon class="large-icon">cloud_download</mat-icon>
+                Pull Translation Studio translations into Snowstorm
+            </button>
+        }
+        <button mat-menu-item (click)="refreshTranslationSet(set)" [disabled]="set.status === 'PROCESSING' || refreshingSet"
+                *ngIf="set.status === 'READY' || set.status === 'FAILED'">
+            <mat-icon class="large-icon">refresh</mat-icon>
+            Refresh concept selection (Translation Studio)
+            <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
+        </button>
+        <button mat-menu-item (click)="deleteTranslationSet(set)" [disabled]="set.status === 'PROCESSING' || deleting">
+            <mat-icon class="large-icon">cancel</mat-icon>
+            <span>Delete Set</span>
+            <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+        </button>
+        @if(authoringPlatformMode && set.status !== 'FAILED') {
+            <button mat-menu-item (click)="export(set)">
+                <mat-icon class="large-icon">file_download</mat-icon>
+                <span>Export to Authoring Platform</span>
+            </button>
+        }
+    </ng-template>
+</mat-menu>

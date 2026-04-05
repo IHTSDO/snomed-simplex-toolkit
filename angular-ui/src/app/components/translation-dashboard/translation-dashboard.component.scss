@@ -7,6 +7,161 @@
     padding: 1rem;
 }
 
+.translation-studio-root {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.translation-sets-toolbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 1rem;
+
+    h4 {
+        margin: 0;
+    }
+}
+
+.translation-sets-table-wrap {
+    width: 100%;
+    overflow: auto;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 4px;
+}
+
+.translation-sets-table {
+    width: 100%;
+
+    th.mat-mdc-header-cell,
+    td.mat-mdc-cell {
+        vertical-align: middle;
+    }
+
+    .col-actions {
+        width: 96px;
+        text-align: right;
+    }
+
+    .col-language-dialect {
+        white-space: nowrap;
+    }
+}
+
+.table-name-cell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+}
+
+.table-progress-cell {
+    min-width: 140px;
+    padding: 8px 0;
+}
+
+.translation-set-table-row {
+    cursor: pointer;
+
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+    }
+}
+
+.muted-cell {
+    color: rgba(0, 0, 0, 0.45);
+}
+
+.detail-loading-inline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 40vh;
+    gap: 16px;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.detail-back-row {
+    margin-bottom: 12px;
+}
+
+.back-to-list {
+    padding-left: 0;
+}
+
+.details-panel-fullwidth {
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+}
+
+.title-container-detail {
+    width: 100%;
+}
+
+.detail-fields {
+    width: 100%;
+    max-width: 920px;
+    align-self: flex-start;
+}
+
+.detail-manage {
+    align-self: flex-start;
+    margin: 16px 0 8px;
+}
+
+.members-heading {
+    align-self: flex-start;
+    margin-top: 24px;
+}
+
+.members-table-wrap {
+    width: 100%;
+    margin-bottom: 2rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+}
+
+.members-table-scroll {
+    max-height: min(70vh, 900px);
+    overflow: auto;
+}
+
+.translation-table-members {
+    min-width: 100%;
+    table-layout: fixed;
+
+    .mat-column-concept {
+        width: 22ch;
+        max-width: 22ch;
+        box-sizing: border-box;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Fixed width for longest Snolate status token: NEEDS_EDIT / FOR_REVIEW (10 chars) */
+    .mat-column-status {
+        width: 11.5rem;
+        min-width: 11.5rem;
+        max-width: 11.5rem;
+        box-sizing: border-box;
+        white-space: nowrap;
+    }
+}
+
+.members-paginator {
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
 .component-row {
     display: flex;
     flex-direction: row;
@@ -74,17 +229,8 @@
 }
 
 
-#components-list {
-    max-height: calc(100vh - 240px);
-    overflow-y: auto;
-    margin-bottom: 2rem;
-}
-
 #members-list {
-    max-height: 250px;
-    overflow-y: auto;
     margin-bottom: 2rem;
-    border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 #details {
@@ -121,37 +267,6 @@ mat-form-field {
     display: flex;
     align-items: center;
     margin-top: 10px;
-}
-
-.pill {
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 20px; // Gives it the "pill" shape
-    font-size: 0.9rem; // Adjust as needed
-    text-align: center;
-    margin-right: 5px; // Spacing if next to list items
-    vertical-align: middle;
-    font-weight: bold;
-
-    &-green {
-        background-color: #4CAF50; // Adjust to your preferred green
-        color: #FFFFFF; // Adjust text color if needed
-    }
-
-    &-yellow {
-        background-color: #FFEB3B; // Adjust to your preferred yellow
-        color: #333333; // Adjust text color if needed
-    }
-
-    &-blue {
-        background-color: #2196F3; // Adjust to your preferred blue
-        color: #FFFFFF; // Adjust text color if needed
-    }
-
-    &-purple {
-        background-color: #f321f3; // Adjust to your preferred blue
-        color: #FFFFFF; // Adjust text color if needed
-    }
 }
 
 h4 {
@@ -394,14 +509,14 @@ mat-list-item:not(:last-child) {
 .details-panel {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     align-content: center;
     flex-grow: 1;
 }
 
 .sk-width {
-    width: 70%;
+    width: 100%;
 }
 
 .large-text {
@@ -484,14 +599,13 @@ mat-list-item:not(:last-child) {
 
 .translation-table {
     width: 100%;
-    table-layout: fixed; /* Force equal column widths */
+    table-layout: fixed;
 
     th.mat-header-cell,
     td.mat-cell {
-        width: 50% !important; /* Force equal width with !important */
         text-align: left;
         padding: 12px 16px;
-        word-wrap: break-word; /* Allow text to wrap */
+        word-wrap: break-word;
         overflow-wrap: break-word;
     }
 
@@ -507,13 +621,6 @@ mat-list-item:not(:last-child) {
 
     tr.mat-row:hover {
         background-color: rgba(0, 0, 0, 0.04);
-    }
-
-    /* Override any Angular Material default column sizing */
-    .mat-column-concept,
-    .mat-column-translation {
-        width: 50% !important;
-        flex: 1 1 50% !important;
     }
 }
 

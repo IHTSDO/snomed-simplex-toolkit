@@ -430,7 +430,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		this.loadingExamples = true;
 		
 		// Call the API with pageSize parameter of 1000
-		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/snolate-set/${this.data.label}/sample-rows?pageSize=1000`;
+		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/snolate-set/${this.data.label}/rows?page=0&size=1000`;
 		
 		this.http.get(apiUrl).subscribe({
 			next: (response: any) => {
