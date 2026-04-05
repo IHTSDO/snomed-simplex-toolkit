@@ -30,10 +30,10 @@ import org.snomed.simplex.service.job.APTaskCreationCallable;
 import org.snomed.simplex.service.job.ChangeMonitor;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
-import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
-import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
 import org.snomed.simplex.snolate.service.SnolateTranslationSource;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.translation.importer.TranslationCsvFormat;
@@ -86,22 +86,22 @@ public class TranslationService {
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final AuthoringServicesClient authoringServicesClient;
 	private final TranslationMergeService translationMergeService;
-	private final TranslationUnitRepository translationUnitRepository;
-	private final TranslationSourceRepository translationSourceRepository;
+	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationSearchService translationSearchService;
 
 	@Value("${simplex.mode:standard}")
 	private String simplexMode;
 
 	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory, AuthoringServicesClient authoringServicesClient,
-			TranslationMergeService translationMergeService,
-			TranslationUnitRepository translationUnitRepository, TranslationSourceRepository translationSourceRepository) {
+			TranslationMergeService translationMergeService, SnolateTranslationUnitRepository translationUnitRepository,
+			SnolateTranslationSearchService translationSearchService) {
 
 		this.refsetService = refsetService;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.authoringServicesClient = authoringServicesClient;
 		this.translationMergeService = translationMergeService;
 		this.translationUnitRepository = translationUnitRepository;
-		this.translationSourceRepository = translationSourceRepository;
+		this.translationSearchService = translationSearchService;
 	}
 
 	@PostConstruct
@@ -765,7 +765,7 @@ public class TranslationService {
 		String languageCode = translationSet.getLanguageCode();
 		String refsetId = translationSet.getRefset();
 		SnolateSubsetTranslationSource snolateSubsetTranslationSource = new SnolateSubsetTranslationSource(
-				translationUnitRepository, translationSourceRepository, languageCode, refsetId, translationSet.getCompositeSetCode());
+				translationSearchService, languageCode, refsetId, translationSet.getCompositeSetCode());
 		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
 		translationMergeService.applyMerge(snolateSubsetTranslationSource, snowstormTranslationSource, languageCode, refsetId);
 	}

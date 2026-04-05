@@ -1,62 +1,98 @@
 package org.snomed.simplex.snolate.domain;
 
-import jakarta.persistence.CollectionTable;
-import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
-import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OrderColumn;
-import jakarta.persistence.Table;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.elasticsearch.annotations.Document;
+import org.springframework.data.elasticsearch.annotations.Field;
+import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
-@Entity
-@Table(name = "translation_unit", indexes = {
-		@Index(name = "idx_translation_unit_language_code", columnList = "language_code")
-})
-@IdClass(TranslationUnitId.class)
+@Document(indexName = "#{@indexNameProvider.indexName('snolate-translation-unit')}")
 public class TranslationUnit {
 
 	@Id
-	@Column(nullable = false, length = 18)
+	private String id;
+
+	@Field(type = FieldType.Keyword)
 	private String code;
 
-	/**
-	 * Composite language key
-	 * {@code "%s-%s".formatted(isoLanguageCode, refsetId)}.
-	 */
-	@Id
-	@Column(name = "language_code", nullable = false, length = 128)
+	@Field(type = FieldType.Keyword)
+	private String refsetId;
+
+	@Field(type = FieldType.Keyword)
 	private String languageCode;
 
-	@ElementCollection(fetch = FetchType.LAZY)
-	@CollectionTable(name = "translation_unit_term", joinColumns = {
-			@JoinColumn(name = "translation_unit_code", referencedColumnName = "code"),
-			@JoinColumn(name = "language_code", referencedColumnName = "language_code") },
-			indexes = @Index(name = "idx_translation_unit_term_unit_lang", columnList = "translation_unit_code,language_code"))
-	@OrderColumn(name = "term_index")
-	@Column(name = "term", nullable = false, length = 4000)
+	@Field(type = FieldType.Keyword)
+	private String compositeLanguageCode;
+
+	@Field(type = FieldType.Integer)
+	private int order;
+
+	@Field(type = FieldType.Integer)
+	private int statusSort;
+
+	@Field(type = FieldType.Keyword)
 	private List<String> terms = new ArrayList<>();
 
-	@Enumerated(EnumType.STRING)
-	@Column(nullable = false, length = 32)
+	@Field(type = FieldType.Boolean)
+	private boolean hasTerms;
+
+	@Field(type = FieldType.Keyword)
 	private TranslationStatus status;
 
-	protected TranslationUnit() {
+	@Field(type = FieldType.Keyword)
+	private List<String> memberOf = new ArrayList<>();
+
+	public TranslationUnit() {
 	}
 
-	public TranslationUnit(String code, String languageCode, List<String> terms, TranslationStatus status) {
+	public TranslationUnit(String code, String refsetId, String languageCode, String compositeLanguageCode, int order,
+			List<String> terms, TranslationStatus status, Set<String> memberOf) {
 		this.code = code;
+		this.refsetId = refsetId;
 		this.languageCode = languageCode;
-		this.terms = terms != null ? new ArrayList<>(terms) : new ArrayList<>();
-		this.status = status;
+		this.compositeLanguageCode = compositeLanguageCode;
+		this.order = order;
+		setTerms(terms);
+		setStatus(status);
+		this.memberOf = memberOf != null ? new ArrayList<>(memberOf) : new ArrayList<>();
+	}
+
+	/** Legacy-style convenience: builds a unit for merge/import paths; caller sets refset/language/memberOf/order if known */
+	public TranslationUnit(String code, String compositeLanguageCode, List<String> terms, TranslationStatus status) {
+		this.code = code;
+		this.compositeLanguageCode = compositeLanguageCode;
+		this.refsetId = "";
+		this.languageCode = "";
+		this.order = 0;
+		setTerms(terms);
+		setStatus(status);
+		this.memberOf = new ArrayList<>();
+	}
+
+	public static TranslationUnit shellMember(String code, String refsetId, String languageCode, String compositeLanguageCode,
+			int sourceOrder, String compositeSetCode) {
+		TranslationUnit u = new TranslationUnit();
+		u.setCode(code);
+		u.setRefsetId(refsetId);
+		u.setLanguageCode(languageCode);
+		u.setCompositeLanguageCode(compositeLanguageCode);
+		u.setOrder(sourceOrder);
+		u.setTerms(new ArrayList<>());
+		u.setStatus(TranslationStatus.NOT_STARTED);
+		u.setMemberOf(new LinkedHashSet<>(Set.of(compositeSetCode)));
+		return u;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
 	}
 
 	public String getCode() {
@@ -67,6 +103,14 @@ public class TranslationUnit {
 		this.code = code;
 	}
 
+	public String getRefsetId() {
+		return refsetId;
+	}
+
+	public void setRefsetId(String refsetId) {
+		this.refsetId = refsetId;
+	}
+
 	public String getLanguageCode() {
 		return languageCode;
 	}
@@ -75,12 +119,37 @@ public class TranslationUnit {
 		this.languageCode = languageCode;
 	}
 
+	public String getCompositeLanguageCode() {
+		return compositeLanguageCode;
+	}
+
+	public void setCompositeLanguageCode(String compositeLanguageCode) {
+		this.compositeLanguageCode = compositeLanguageCode;
+	}
+
+	public int getOrder() {
+		return order;
+	}
+
+	public void setOrder(int order) {
+		this.order = order;
+	}
+
+	public int getStatusSort() {
+		return statusSort;
+	}
+
+	public void setStatusSort(int statusSort) {
+		this.statusSort = statusSort;
+	}
+
 	public List<String> getTerms() {
 		return terms;
 	}
 
 	public void setTerms(List<String> terms) {
 		this.terms = terms != null ? new ArrayList<>(terms) : new ArrayList<>();
+		this.hasTerms = !this.terms.isEmpty();
 	}
 
 	public TranslationStatus getStatus() {
@@ -89,5 +158,30 @@ public class TranslationUnit {
 
 	public void setStatus(TranslationStatus status) {
 		this.status = status;
+		this.statusSort = TranslationStatuses.sortOrdinal(status);
+	}
+
+	public List<String> getMemberOf() {
+		return memberOf;
+	}
+
+	public void setMemberOf(Set<String> memberOf) {
+		this.memberOf = memberOf != null ? new ArrayList<>(memberOf) : new ArrayList<>();
+	}
+
+	public void setMemberOfList(List<String> memberOf) {
+		this.memberOf = memberOf != null ? new ArrayList<>(memberOf) : new ArrayList<>();
+	}
+
+	public boolean hasTermContent() {
+		return hasTerms;
+	}
+
+	public boolean isHasTerms() {
+		return hasTerms;
+	}
+
+	public void setHasTerms(boolean hasTerms) {
+		this.hasTerms = hasTerms;
 	}
 }

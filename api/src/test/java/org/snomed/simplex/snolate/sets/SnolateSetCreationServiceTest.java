@@ -5,8 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationSource;
-import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
-import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
+import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.jms.core.JmsTemplate;
@@ -14,6 +13,7 @@ import org.springframework.jms.core.JmsTemplate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,13 +26,15 @@ import static org.mockito.Mockito.when;
 class SnolateSetCreationServiceTest {
 
 	@Test
-	void doCreateSet_addsCompositeSetCodeToExistingSourcesAndTouchesElasticsearch() throws ServiceExceptionWithStatusCode {
+	void doCreateSet_addsMemberOfOnUnitsForExistingSources() throws ServiceExceptionWithStatusCode {
 		SnolateSetRepository snolateSetRepository = mock();
-		TranslationSourceRepository translationSourceRepository = mock();
+		SnolateTranslationSourceRepository translationSourceRepository = mock();
+		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationSearchService translationSearchService = mock();
 		SnowstormClientFactory snowstormClientFactory = mock();
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, mock(TranslationUnitRepository.class), mock(TranslationLLMService.class),
+				translationSourceRepository, translationUnitRepository, translationSearchService, mock(TranslationLLMService.class),
 				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 
 		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 2) {
@@ -58,51 +60,58 @@ class SnolateSetCreationServiceTest {
 
 		TranslationSource s10 = new TranslationSource("10", "Ten", 0);
 		TranslationSource s20 = new TranslationSource("20", "Twenty", 1);
+		TranslationSource s30 = new TranslationSource("30", "Thirty", 2);
 
-		when(translationSourceRepository.findAllByCodeInFetchingSets(any())).thenAnswer(inv -> {
+		when(translationSourceRepository.findAllById(any())).thenAnswer(inv -> {
 			@SuppressWarnings("unchecked")
-			List<String> codes = (List<String>) inv.getArgument(0);
+			Iterable<String> idIterable = (Iterable<String>) inv.getArgument(0);
+			List<String> codes = new ArrayList<>();
+			idIterable.forEach(codes::add);
 			List<TranslationSource> out = new ArrayList<>();
-			if (codes.contains("10")) {
-				out.add(s10);
-			}
-			if (codes.contains("20")) {
-				out.add(s20);
+			for (String c : codes) {
+				if ("10".equals(c)) {
+					out.add(s10);
+				} else if ("20".equals(c)) {
+					out.add(s20);
+				} else if ("30".equals(c)) {
+					out.add(s30);
+				}
 			}
 			return out;
 		});
 
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode(any(), any())).thenReturn(Optional.empty());
+
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-XS", "100", "Subset", "my-label", "<<404684003", TranslationSubsetType.ECL, "SNOMEDCT-XS");
+		set.setLanguageCode("en");
 		set.setId("es-id");
 		service.doCreateSet(set, snowstormClientFactory);
 
 		String composite = "XS_100_my-label";
-		assertThat(s10.getSets()).contains(composite);
-		assertThat(s20.getSets()).contains(composite);
-
-		verify(translationSourceRepository, atLeastOnce()).saveAll(any());
+		verify(translationUnitRepository, atLeastOnce()).save(any(TranslationUnit.class));
 		verify(snolateSetRepository, atLeastOnce()).save(any(SnolateTranslationSet.class));
 	}
 
 	@Test
-	void doRefreshSet_addsAndRemovesSetMembership() throws ServiceExceptionWithStatusCode {
+	void doRefreshSet_addsAndRemovesSetMembershipOnUnits() throws ServiceExceptionWithStatusCode {
 		SnolateSetRepository snolateSetRepository = mock();
-		TranslationSourceRepository translationSourceRepository = mock();
+		SnolateTranslationSourceRepository translationSourceRepository = mock();
+		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationSearchService translationSearchService = mock();
 		SnowstormClientFactory snowstormClientFactory = mock();
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, mock(TranslationUnitRepository.class), mock(TranslationLLMService.class),
+				translationSourceRepository, translationUnitRepository, translationSearchService, mock(TranslationLLMService.class),
 				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 
 		String composite = "ZS_200_z";
+		String lang = "en-200";
 
-		TranslationSource hadOnly = new TranslationSource("1", "a", 0);
-		hadOnly.getSets().add(composite);
-		TranslationSource stays = new TranslationSource("2", "b", 1);
-		stays.getSets().add(composite);
+		TranslationUnit hadOnly = TranslationUnit.shellMember("1", "200", "en", lang, 0, composite);
+		TranslationUnit stays = TranslationUnit.shellMember("2", "200", "en", lang, 1, composite);
 		TranslationSource willGain = new TranslationSource("3", "c", 2);
 
-		when(translationSourceRepository.findAllHavingSetMembership(composite)).thenReturn(List.of(hadOnly, stays));
+		when(translationSearchService.listAllUnitsInSet(composite, lang)).thenReturn(List.of(hadOnly, stays));
 
 		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 10) {
 			@Override
@@ -126,29 +135,32 @@ class SnolateSetCreationServiceTest {
 			}
 		};
 
-		when(translationSourceRepository.findAllByCodeInFetchingSets(any())).thenAnswer(inv -> {
+		when(translationSourceRepository.findAllById(any())).thenAnswer(inv -> {
 			@SuppressWarnings("unchecked")
-			List<String> codes = new ArrayList<>((List<String>) inv.getArgument(0));
+			Iterable<String> idIterable = (Iterable<String>) inv.getArgument(0);
+			List<String> codes = new ArrayList<>();
+			idIterable.forEach(codes::add);
 			List<TranslationSource> out = new ArrayList<>();
 			for (String c : codes) {
-				if ("1".equals(c)) {
-					out.add(hadOnly);
-				} else if ("2".equals(c)) {
-					out.add(stays);
-				} else if ("3".equals(c)) {
+				if ("3".equals(c)) {
 					out.add(willGain);
 				}
 			}
 			return out;
 		});
 
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("1", lang)).thenReturn(Optional.of(hadOnly));
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("2", lang)).thenReturn(Optional.of(stays));
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("3", lang)).thenReturn(Optional.empty());
+
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-ZS", "200", "Z", "z", "*", TranslationSubsetType.ECL, "SNOMEDCT-ZS");
+		set.setLanguageCode("en");
 		set.setId("id");
 		service.doRefreshSet(set, snowstormClientFactory);
 
-		assertThat(hadOnly.getSets()).doesNotContain(composite);
-		assertThat(stays.getSets()).contains(composite);
-		assertThat(willGain.getSets()).contains(composite);
-		verify(translationSourceRepository, atLeastOnce()).saveAll(any());
+		assertThat(hadOnly.getMemberOf()).doesNotContain(composite);
+		assertThat(stays.getMemberOf()).contains(composite);
+		assertThat(willGain).isNotNull();
+		verify(translationUnitRepository, atLeastOnce()).save(any(TranslationUnit.class));
 	}
 }

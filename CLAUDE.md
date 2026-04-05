@@ -1,6 +1,6 @@
 # SNOMED Simplex Toolkit
 
-A web application for authoring and managing SNOMED CT terminology extensions. It integrates with Snowstorm (terminology server), Snolate (JPA-backed translation store and dashboard), and SNOMED release infrastructure.
+A web application for authoring and managing SNOMED CT terminology extensions. It integrates with Snowstorm (terminology server), Snolate (Elasticsearch-backed translation store and dashboard), and SNOMED release infrastructure.
 
 ## Architecture
 

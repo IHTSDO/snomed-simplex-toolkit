@@ -63,6 +63,12 @@ public final class SnolateTranslationSet {
 	@Field(type = FieldType.Long)
 	private Date lastPulled;
 
+	/**
+	 * SNOMED International Edition effective time ({@code dependantVersionEffectiveTime}) captured when the set is created or refreshed.
+	 */
+	@Field(type = FieldType.Integer)
+	private Integer internationalEffectiveTime;
+
 	@Transient
 	private int translated;
 
@@ -86,7 +92,7 @@ public final class SnolateTranslationSet {
 		this.created = new Date();
 	}
 
-	/** Composite key stored in {@code TranslationSource.sets} (edition/refset/label). */
+	/** Composite set key (edition short name / refset / label); stored on {@link org.snomed.simplex.snolate.domain.TranslationUnit#memberOf}. */
 	public String getCompositeSetCode() {
 		return "%s_%s_%s".formatted(getCodesystem().replace("SNOMEDCT-", ""), getRefset(), getLabel());
 	}
@@ -198,6 +204,14 @@ public final class SnolateTranslationSet {
 
 	public void setLastPulled(Date lastPulled) {
 		this.lastPulled = lastPulled;
+	}
+
+	public Integer getInternationalEffectiveTime() {
+		return internationalEffectiveTime;
+	}
+
+	public void setInternationalEffectiveTime(Integer internationalEffectiveTime) {
+		this.internationalEffectiveTime = internationalEffectiveTime;
 	}
 
 	public void setAiGoldenSet(Map<String, String> aiGoldenSet) {

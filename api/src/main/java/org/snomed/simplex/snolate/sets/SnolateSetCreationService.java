@@ -9,13 +9,19 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.snolate.domain.TranslationSource;
-import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
+import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.springframework.http.HttpStatus;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_CREATE;
 import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_DELETE;
@@ -25,7 +31,9 @@ import static org.snomed.simplex.snolate.sets.SnolateSetService.PERCENTAGE_PROCE
 public class SnolateSetCreationService extends AbstractSnolateSetProcessingService {
 
 	private final SnolateSetRepository snolateSetRepository;
-	private final TranslationSourceRepository translationSourceRepository;
+	private final SnolateTranslationSourceRepository translationSourceRepository;
+	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationSearchService translationSearchService;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final int batchSize;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -34,6 +42,8 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		super(processingContext);
 		this.snolateSetRepository = processingContext.snolateSetRepository();
 		this.translationSourceRepository = processingContext.translationSourceRepository();
+		this.translationUnitRepository = processingContext.translationUnitRepository();
+		this.translationSearchService = processingContext.translationSearchService();
 		this.snowstormClientFactory = processingContext.snowstormClientFactory();
 		this.batchSize = batchSize;
 	}
@@ -60,6 +70,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 			throw new ServiceExceptionWithStatusCode("Language code not found for refset: " + refsetId, HttpStatus.NOT_FOUND);
 		}
 		translationSet.setLanguageCode(languageCode);
+		translationSet.setInternationalEffectiveTime(codeSystem.getDependantVersionEffectiveTime());
 
 		translationSet.setStatus(TranslationSetStatus.INITIALISING);
 		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
@@ -74,6 +85,9 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		if (translationSet.getStatus() == TranslationSetStatus.DELETING) {
 			throw new ServiceExceptionWithStatusCode("Cannot refresh a translation set that is being deleted.", HttpStatus.CONFLICT);
 		}
+
+		CodeSystem codeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(translationSet.getCodesystem());
+		translationSet.setInternationalEffectiveTime(codeSystem.getDependantVersionEffectiveTime());
 
 		translationSet.setStatus(TranslationSetStatus.INITIALISING);
 		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
@@ -91,12 +105,16 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 
 	public void doDeleteSet(SnolateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
 		String compositeSetCode = translationSet.getCompositeSetCode();
-		List<TranslationSource> members = translationSourceRepository.findAllHavingSetMembership(compositeSetCode);
+		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
+		List<TranslationUnit> members = translationSearchService.listAllUnitsInSet(compositeSetCode, compositeLang);
 		if (!members.isEmpty()) {
-			for (TranslationSource row : members) {
-				row.getSets().remove(compositeSetCode);
+			for (TranslationUnit u : members) {
+				LinkedHashSet<String> m = new LinkedHashSet<>(u.getMemberOf());
+				if (m.remove(compositeSetCode)) {
+					u.setMemberOf(m);
+					translationUnitRepository.save(u);
+				}
 			}
-			translationSourceRepository.saveAll(members);
 		}
 		snolateSetRepository.delete(translationSet);
 	}
@@ -108,10 +126,9 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		translationSet.setStatus(TranslationSetStatus.PROCESSING);
 		snolateSetRepository.save(translationSet);
 
-		Set<String> currentConceptIds = translationSourceRepository.findAllHavingSetMembership(compositeSetCode).stream()
-				.map(TranslationSource::getCode)
-				.collect(Collectors.toCollection(HashSet::new));
-		logger.info("Found {} translation sources with set {}", currentConceptIds.size(), compositeSetCode);
+		Set<String> currentConceptIds = translationSearchService.listAllUnitsInSet(compositeSetCode, translationSet.getLanguageCodeWithRefsetId())
+				.stream().map(TranslationUnit::getCode).collect(Collectors.toCollection(HashSet::new));
+		logger.info("Found {} translation units with set {}", currentConceptIds.size(), compositeSetCode);
 
 		Set<String> newConceptIds = collectConceptIdsFromEcl(translationSet, snowstormClientFactory);
 		logger.info("ECL returned {} concept IDs for Snolate set {}", newConceptIds.size(), compositeSetCode);
@@ -120,8 +137,8 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		List<String> toRemove = currentConceptIds.stream().filter(id -> !newConceptIds.contains(id)).toList();
 		logger.info("Refresh diff for {}: {} to add, {} to remove", compositeSetCode, toAdd.size(), toRemove.size());
 
-		applyRemoveBatches(compositeSetCode, toRemove, timerUtil);
-		int added = applyAddBatches(compositeSetCode, toAdd, timerUtil);
+		applyRemoveBatches(translationSet, toRemove, timerUtil);
+		int added = applyAddBatches(translationSet, toAdd, timerUtil);
 		int skippedAdds = toAdd.size() - added;
 		if (skippedAdds > 0) {
 			logger.info("Snolate refresh: {} concepts were not in translation_source and were skipped when adding set membership.", skippedAdds);
@@ -148,13 +165,13 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		while ((code = idSource.next()) != null) {
 			codes.add(code);
 			if (codes.size() == batchSize) {
-				skippedTotal += bulkAddSetMembership(compositeSetCode, codes, timerUtil);
+				skippedTotal += bulkAddSetMembership(translationSet, codes, timerUtil);
 				done += batchSize;
 				updateProcessingTotal(translationSet, done, idSource.getTotal());
 			}
 		}
 		if (!codes.isEmpty()) {
-			skippedTotal += bulkAddSetMembership(compositeSetCode, codes, timerUtil);
+			skippedTotal += bulkAddSetMembership(translationSet, codes, timerUtil);
 			updateProcessingTotal(translationSet, idSource.getTotal(), idSource.getTotal());
 		}
 		if (skippedTotal > 0) {
@@ -178,33 +195,33 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		return ids;
 	}
 
-	private void applyRemoveBatches(String compositeSetCode, List<String> toRemove, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
+	private void applyRemoveBatches(SnolateTranslationSet translationSet, List<String> toRemove, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
 		List<String> batch = new ArrayList<>();
 		for (String id : toRemove) {
 			batch.add(id);
 			if (batch.size() == batchSize) {
-				bulkRemoveSetMembership(compositeSetCode, batch, timerUtil);
+				bulkRemoveSetMembership(translationSet, batch, timerUtil);
 			}
 		}
 		if (!batch.isEmpty()) {
-			bulkRemoveSetMembership(compositeSetCode, batch, timerUtil);
+			bulkRemoveSetMembership(translationSet, batch, timerUtil);
 		}
 	}
 
-	private int applyAddBatches(String compositeSetCode, List<String> toAdd, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
+	private int applyAddBatches(SnolateTranslationSet translationSet, List<String> toAdd, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
 		int added = 0;
 		List<String> batch = new ArrayList<>();
 		for (String id : toAdd) {
 			batch.add(id);
 			if (batch.size() == batchSize) {
 				int n = batch.size();
-				int skipped = bulkAddSetMembership(compositeSetCode, batch, timerUtil);
+				int skipped = bulkAddSetMembership(translationSet, batch, timerUtil);
 				added += n - skipped;
 			}
 		}
 		if (!batch.isEmpty()) {
 			int n = batch.size();
-			int skipped = bulkAddSetMembership(compositeSetCode, batch, timerUtil);
+			int skipped = bulkAddSetMembership(translationSet, batch, timerUtil);
 			added += n - skipped;
 		}
 		return added;
@@ -256,29 +273,41 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 	/**
 	 * @return number of requested codes not found in {@link TranslationSource} (skipped)
 	 */
-	private int bulkAddSetMembership(String compositeSetCode, List<String> codes, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
-		List<TranslationSource> rows = translationSourceRepository.findAllByCodeInFetchingSets(codes);
+	private int bulkAddSetMembership(SnolateTranslationSet translationSet, List<String> codes, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
+		String compositeSetCode = translationSet.getCompositeSetCode();
+		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
+		List<TranslationSource> rows = StreamSupport.stream(translationSourceRepository.findAllById(codes).spliterator(), false).toList();
 		Set<String> found = rows.stream().map(TranslationSource::getCode).collect(Collectors.toSet());
 		int skipped = (int) codes.stream().filter(c -> !found.contains(c)).count();
-		for (TranslationSource row : rows) {
-			row.getSets().add(compositeSetCode);
-		}
-		if (!rows.isEmpty()) {
-			translationSourceRepository.saveAll(rows);
+		for (TranslationSource src : rows) {
+			Optional<TranslationUnit> opt = translationUnitRepository.findByCodeAndCompositeLanguageCode(src.getCode(), compositeLang);
+			TranslationUnit u = opt.orElseGet(() -> TranslationUnit.shellMember(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(),
+					compositeLang, src.getOrder(), compositeSetCode));
+			if (opt.isPresent()) {
+				LinkedHashSet<String> memberOf = new LinkedHashSet<>(u.getMemberOf());
+				memberOf.add(compositeSetCode);
+				u.setMemberOf(memberOf);
+				u.setOrder(src.getOrder());
+			}
+			translationUnitRepository.save(u);
 		}
 		codes.clear();
 		timerUtil.checkpoint("Added membership batch");
 		return skipped;
 	}
 
-	private void bulkRemoveSetMembership(String compositeSetCode, List<String> codes, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
+	private void bulkRemoveSetMembership(SnolateTranslationSet translationSet, List<String> codes, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
+		String compositeSetCode = translationSet.getCompositeSetCode();
+		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
 		logger.info("Removing Snolate set membership:{} from {} concept IDs", compositeSetCode, codes.size());
-		List<TranslationSource> rows = translationSourceRepository.findAllByCodeInFetchingSets(codes);
-		for (TranslationSource row : rows) {
-			row.getSets().remove(compositeSetCode);
-		}
-		if (!rows.isEmpty()) {
-			translationSourceRepository.saveAll(rows);
+		for (String code : codes) {
+			translationUnitRepository.findByCodeAndCompositeLanguageCode(code, compositeLang).ifPresent(u -> {
+				LinkedHashSet<String> m = new LinkedHashSet<>(u.getMemberOf());
+				if (m.remove(compositeSetCode)) {
+					u.setMemberOf(m);
+					translationUnitRepository.save(u);
+				}
+			});
 		}
 		logger.info("Removed Snolate set membership batch");
 		codes.clear();

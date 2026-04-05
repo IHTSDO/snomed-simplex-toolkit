@@ -7,15 +7,13 @@ import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
-import org.snomed.simplex.snolate.domain.TranslationUnitId;
-import org.snomed.simplex.snolate.repository.TranslationSourceRepository;
-import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,8 +25,9 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 
 	public static final int MAX_PAGE_SIZE = 50;
 	private final TranslationLLMService translationLLMService;
-	private final TranslationUnitRepository translationUnitRepository;
-	private final TranslationSourceRepository translationSourceRepository;
+	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationSourceRepository translationSourceRepository;
+	private final SnolateTranslationSearchService translationSearchService;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public SnolateBatchTranslationService(SnolateProcessingContext processingContext) {
@@ -36,6 +35,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		this.translationLLMService = processingContext.translationLLMService();
 		this.translationUnitRepository = processingContext.translationUnitRepository();
 		this.translationSourceRepository = processingContext.translationSourceRepository();
+		this.translationSearchService = processingContext.translationSearchService();
 	}
 
 	public void runAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) throws ServiceException {
@@ -52,7 +52,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 
 		while (unitsProcessed < requestedTotal) {
 			int batchCap = Math.min(MAX_PAGE_SIZE, requestedTotal - unitsProcessed);
-			List<TranslationSource> batchSources = collectEmptySources(setCode, lang, batchCap);
+			List<TranslationSource> batchSources = collectEmptySources(translationSet, setCode, lang, batchCap);
 			if (batchSources.isEmpty()) {
 				logger.info("No more empty Snolate units in set {}", setCode);
 				break;
@@ -68,14 +68,16 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 					continue;
 				}
 				String suggestion = sug.get(0);
-				Optional<TranslationUnit> opt = translationUnitRepository.findById(new TranslationUnitId(src.getCode(), lang));
+				Optional<TranslationUnit> opt = translationUnitRepository.findByCodeAndCompositeLanguageCode(src.getCode(), lang);
 				if (opt.isPresent()) {
 					TranslationUnit u = opt.get();
 					u.setTerms(new ArrayList<>(List.of(suggestion)));
 					u.setStatus(TranslationStatus.FOR_REVIEW);
 					translationUnitRepository.save(u);
 				} else {
-					translationUnitRepository.save(new TranslationUnit(src.getCode(), lang, new ArrayList<>(List.of(suggestion)), TranslationStatus.FOR_REVIEW));
+					TranslationUnit u = new TranslationUnit(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(), lang, src.getOrder(),
+							new ArrayList<>(List.of(suggestion)), TranslationStatus.FOR_REVIEW, new LinkedHashSet<>(List.of(setCode)));
+					translationUnitRepository.save(u);
 				}
 			}
 			unitsProcessed += batchSources.size();
@@ -83,23 +85,27 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		setProgressToComplete(translationSet);
 	}
 
-	private List<TranslationSource> collectEmptySources(String setCode, String lang, int batchCap) {
+	private List<TranslationSource> collectEmptySources(SnolateTranslationSet translationSet, String setCode, String lang, int batchCap) {
 		List<TranslationSource> batchSources = new ArrayList<>();
-		Page<TranslationSource> page = translationSourceRepository.findPageHavingSetMembership(setCode, PageRequest.of(0, 500, Sort.by("code")));
+		int pageNumber = 0;
+		final int pageSize = 500;
 		while (batchSources.size() < batchCap) {
-			for (TranslationSource src : page.getContent()) {
+			Page<TranslationUnit> page = translationSearchService.pageUnitsInSet(setCode, lang,
+					PageRequest.of(pageNumber++, pageSize, Sort.by("code")));
+			if (page.isEmpty()) {
+				break;
+			}
+			for (TranslationUnit u : page.getContent()) {
 				if (batchSources.size() >= batchCap) {
 					break;
 				}
-				Optional<TranslationUnit> tu = translationUnitRepository.findById(new TranslationUnitId(src.getCode(), lang));
-				if (tu.isEmpty() || tu.get().getTerms().isEmpty()) {
-					batchSources.add(src);
+				if (!u.hasTermContent()) {
+					translationSourceRepository.findById(u.getCode()).ifPresent(batchSources::add);
 				}
 			}
-			if (batchSources.size() >= batchCap || !page.hasNext()) {
+			if (!page.hasNext()) {
 				break;
 			}
-			page = translationSourceRepository.findPageHavingSetMembership(setCode, page.nextPageable());
 		}
 		return batchSources;
 	}

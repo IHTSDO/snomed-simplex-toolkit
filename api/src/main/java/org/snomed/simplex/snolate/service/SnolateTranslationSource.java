@@ -3,8 +3,7 @@ package org.snomed.simplex.snolate.service;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
-import org.snomed.simplex.snolate.domain.TranslationUnitId;
-import org.snomed.simplex.snolate.repository.TranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.TranslationSource;
 import org.snomed.simplex.translation.service.TranslationSourceType;
@@ -15,21 +14,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Snolate persistence backing for {@link TranslationSource}. Maps JPA {@link TranslationUnit} rows to
+ * Snolate persistence backing for {@link TranslationSource}. Maps {@link TranslationUnit} documents to
  * {@link TranslationState} for {@link org.snomed.simplex.translation.service.TranslationMergeService}.
- * <p>
- * {@link #writeTranslation} receives <strong>additions-only</strong> batches (same contract as Weblate).
- * New terms are merged without duplicates: if the unit has no terms yet, the first new term is stored
- * first; otherwise each new term is appended. This mirrors {@code TranslationMergeService.applyIntent}
- * when the target already holds terms (preferred slot taken). Snowstorm-driven removals are not applied here.
  */
 public class SnolateTranslationSource implements TranslationSource {
 
-	private final TranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final String isoLanguageCode;
+	private final String refsetId;
 	private final String compositeLanguageCode;
 
-	public SnolateTranslationSource(TranslationUnitRepository translationUnitRepository, String languageCode, String refsetId) {
+	public SnolateTranslationSource(SnolateTranslationUnitRepository translationUnitRepository, String languageCode, String refsetId) {
 		this.translationUnitRepository = translationUnitRepository;
+		this.isoLanguageCode = languageCode;
+		this.refsetId = refsetId;
 		this.compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
 	}
 
@@ -37,7 +35,7 @@ public class SnolateTranslationSource implements TranslationSource {
 	public TranslationState readTranslation() throws ServiceExceptionWithStatusCode {
 		TranslationState state = new TranslationState();
 		Map<Long, List<String>> conceptTerms = state.getConceptTerms();
-		for (TranslationUnit unit : translationUnitRepository.findAllByLanguageCode(compositeLanguageCode)) {
+		for (TranslationUnit unit : translationUnitRepository.findAllByCompositeLanguageCode(compositeLanguageCode)) {
 			try {
 				conceptTerms.put(Long.parseLong(unit.getCode()), new ArrayList<>(unit.getTerms()));
 			} catch (NumberFormatException e) {
@@ -54,15 +52,21 @@ public class SnolateTranslationSource implements TranslationSource {
 		for (Map.Entry<Long, List<String>> entry : translationState.getConceptTerms().entrySet()) {
 			String code = entry.getKey().toString();
 			List<String> additions = entry.getValue();
-			TranslationUnitId id = new TranslationUnitId(code, compositeLanguageCode);
-			translationUnitRepository.findById(id)
+			translationUnitRepository.findByCodeAndCompositeLanguageCode(code, compositeLanguageCode)
 					.map(unit -> {
 						unit.setTerms(mergeAdditions(unit.getTerms(), additions));
 						return translationUnitRepository.save(unit);
 					})
-					.orElseGet(() -> translationUnitRepository.save(
-							new TranslationUnit(code, compositeLanguageCode, new ArrayList<>(additions), TranslationStatus.APPROVED)));
+					.orElseGet(() -> translationUnitRepository.save(newFullUnit(code, additions)));
 		}
+	}
+
+	private TranslationUnit newFullUnit(String code, List<String> additions) {
+		TranslationUnit u = new TranslationUnit(code, compositeLanguageCode, new ArrayList<>(additions), TranslationStatus.APPROVED);
+		u.setRefsetId(refsetId);
+		u.setLanguageCode(isoLanguageCode);
+		u.setOrder(0);
+		return u;
 	}
 
 	/**
