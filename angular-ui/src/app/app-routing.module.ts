@@ -22,6 +22,7 @@ const routes: Routes = [
   { path: 'translation-dashboard/:edition', redirectTo: 'translation-studio/:edition', pathMatch: 'full' },
   { path: 'translation-dashboard', redirectTo: 'translation-studio', pathMatch: 'full' },
   { path: 'translation-studio', component: TranslationDashboardComponent },
+  { path: 'translation-studio/:edition/:refset/:label', component: TranslationDashboardComponent },
   { path: 'translation-studio/:edition', component: TranslationDashboardComponent },
   { path: '', redirectTo: '/home', pathMatch: 'full' }
 ];

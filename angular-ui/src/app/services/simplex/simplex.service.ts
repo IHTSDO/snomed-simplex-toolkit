@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, of, throwError } from 'rxjs';
@@ -391,8 +391,11 @@ export class SimplexService {
     return this.http.get(`api/${edition}/label-sets/${labelSetId}`).pipe(catchError(this.handleError.bind(this)));
   }
 
-  getLabelSetMembers(edition: string, selectedTranslation: string, labelSetId: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/${selectedTranslation}/snolate-set/${labelSetId}/sample-rows`).pipe(catchError(this.handleError.bind(this)));
+  getTranslationSetRows(edition: string, refsetId: string, label: string, page: number, size: number): Observable<any> {
+    const params = new HttpParams().set('page', String(page)).set('size', String(size));
+    return this.http
+      .get(`api/${edition}/translations/${refsetId}/snolate-set/${label}/rows`, { params })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSets(edition: string, refsetId: string): Observable<any> {

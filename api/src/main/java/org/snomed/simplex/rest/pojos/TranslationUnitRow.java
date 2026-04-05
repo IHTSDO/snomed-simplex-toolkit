@@ -12,15 +12,22 @@ public class TranslationUnitRow {
 	private List<String> target;
 	private String context;
 	private String explanation;
+	/** {@link org.snomed.simplex.snolate.domain.TranslationStatus} name, or null if no unit exists yet. */
+	private String status;
 
 	public TranslationUnitRow() {
 	}
 
 	public TranslationUnitRow(List<String> source, List<String> target, String context, String explanation) {
+		this(source, target, context, explanation, null);
+	}
+
+	public TranslationUnitRow(List<String> source, List<String> target, String context, String explanation, String status) {
 		this.source = source;
 		this.target = target;
 		this.context = context;
 		this.explanation = explanation;
+		this.status = status;
 	}
 
 	public List<String> getValue() {
@@ -69,6 +76,14 @@ public class TranslationUnitRow {
 
 	public void setExplanation(String explanation) {
 		this.explanation = explanation;
+	}
+
+	public String getStatus() {
+		return status;
+	}
+
+	public void setStatus(String status) {
+		this.status = status;
 	}
 
 	public void blankLabels() {

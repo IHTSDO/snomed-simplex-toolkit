@@ -19,6 +19,10 @@ public interface TranslationUnitRepository extends JpaRepository<TranslationUnit
 
 	List<TranslationUnit> findAllByLanguageCodeAndCodeIn(String languageCode, Collection<String> codes);
 
+	@Query("SELECT DISTINCT u FROM TranslationUnit u LEFT JOIN FETCH u.terms WHERE u.languageCode = :lang AND u.code IN :codes")
+	List<TranslationUnit> findAllByLanguageCodeAndCodeInWithTermsFetched(@Param("lang") String languageCode,
+			@Param("codes") Collection<String> codes);
+
 	Optional<TranslationUnit> findByCodeAndLanguageCode(String code, String languageCode);
 
 	/**

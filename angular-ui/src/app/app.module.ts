@@ -36,6 +36,7 @@ import {MatTabsModule} from '@angular/material/tabs';
 import {MatIconModule} from '@angular/material/icon';
 import { SelectEditionComponent } from './components/select-edition/select-edition.component';
 import {MatTableModule} from '@angular/material/table';
+import {MatSortModule} from '@angular/material/sort';
 import {MatListModule} from '@angular/material/list';
 import { MatRippleModule } from '@angular/material/core';
 import { SubsetsComponent } from './components/subsets/subsets.component';
@@ -139,6 +140,7 @@ import {ConfigService} from "./services/config/config.service";
         MatTabsModule,
         MatIconModule,
         MatTableModule,
+        MatSortModule,
         MatListModule,
         MatRippleModule,
         MatButtonModule,
