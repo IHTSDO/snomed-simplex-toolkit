@@ -14,7 +14,8 @@ public enum ActivityType {
 	SNOLATE_SNOMED_UPGRADE("Upgrade SNOMED CT in Snolate"),
 	SNOLATE_LANGUAGE_INITIALISATION("Initialise language in Snolate"),
 	TRANSLATION_SET_CREATE("Create translation set"),
-	AI_BATCH_TRANSLATION("AI batch translation");
+	AI_BATCH_TRANSLATION("AI batch translation"),
+	WEBLATE_LANGUAGE_INITIALISATION("WEBLATE_LANGUAGE_INITIALISATION (Outdated state)");
 
 	private final String display;
 

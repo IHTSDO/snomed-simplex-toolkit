@@ -50,6 +50,10 @@ public class SnolateSnomedUpgradeService {
 
 	public static final String TRANSLATION_TOOL_DEPENDENCY = "translation-tool-dependency-date";
 	public static final String MAIN_BRANCH = "MAIN";
+
+	private static final int TRANSLATION_SOURCE_SAVE_BATCH_SIZE = 5_000;
+	private static final int TRANSLATION_SOURCE_SAVE_PROGRESS_INTERVAL = 10_000;
+
 	public final Logger logger = LoggerFactory.getLogger(SnolateSnomedUpgradeService.class);
 
 	private final SnolateTranslationSourceRepository translationSourceRepository;
@@ -185,7 +189,15 @@ public class SnolateSnomedUpgradeService {
 			}
 			order++;
 		}
-		translationSourceRepository.saveAll(toSave);
+		int total = toSave.size();
+		NumberFormat nf = NumberFormat.getInstance();
+		for (int i = 0; i < total; i += TRANSLATION_SOURCE_SAVE_BATCH_SIZE) {
+			int end = Math.min(i + TRANSLATION_SOURCE_SAVE_BATCH_SIZE, total);
+			translationSourceRepository.saveAll(toSave.subList(i, end));
+			if (end % TRANSLATION_SOURCE_SAVE_PROGRESS_INTERVAL == 0 || end == total && (logger.isInfoEnabled())) {
+				logger.info("Persisted {} of {} translation sources.", nf.format(end), nf.format(total));
+			}
+		}
 	}
 
 	private void gatherNewRows(File releaseFile, List<Long> workingList, Map<Long, String> newRows) throws ServiceExceptionWithStatusCode {

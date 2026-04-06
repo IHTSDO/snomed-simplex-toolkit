@@ -6,9 +6,9 @@
 .component-row {
 display: flex;
 flex-direction: row;
-justify-content: space-between;
 align-items: flex-start;
 max-height: calc(100vh - 190px);
+gap: 20px;
 }
 
 .component-col {
@@ -17,12 +17,18 @@ margin: 4px 10px;
 }
 
 .component-col-left {
-  flex: 2;
-  margin: 0 10px;
+  flex: 0 0 calc(50% - 10px);
+  max-width: calc(50% - 10px);
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
 }
 .component-col-right {
-  flex: 3;
-  margin: 0 10px;
+  flex: 0 0 calc(50% - 10px);
+  max-width: calc(50% - 10px);
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 0;
   padding-bottom: 20px;
 }
 
@@ -34,6 +40,29 @@ background-color: rgba(147, 197, 231, 0.993);
 max-height: calc(100vh - 240px);
 overflow-y: auto;
 margin-bottom: 2rem;
+
+  mat-list-item.hoverable-item {
+    height: auto;
+    min-height: 48px;
+    align-items: flex-start;
+
+    ::ng-deep .mat-mdc-list-item-content,
+    ::ng-deep .mdc-list-item__content {
+      width: 100%;
+      align-items: flex-start;
+      white-space: normal;
+      flex-wrap: wrap;
+      row-gap: 6px;
+      column-gap: 8px;
+    }
+
+    ::ng-deep .mdc-list-item__primary-text {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-word;
+    }
+  }
 }
 
 #details {
@@ -133,6 +162,14 @@ mat-list-item:not(:last-child) {
 .title-left-column {
   align-self: flex-start; /* Aligns to the start of the flex container */
   flex: 0 0 auto; /* This ensures the column does not grow or shrink */
+  min-width: 0;
+  max-width: 100%;
+
+  h4 {
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.35;
+  }
 }
 
 /* Right column */

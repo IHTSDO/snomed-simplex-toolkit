@@ -18,6 +18,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -80,7 +81,7 @@ class SnolateSetCreationServiceTest {
 			return out;
 		});
 
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode(any(), any())).thenReturn(Optional.empty());
+		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(any(), any())).thenReturn(List.of());
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-XS", "100", "Subset", "my-label", "<<404684003", TranslationSubsetType.ECL, "SNOMEDCT-XS");
 		set.setLanguageCode("en");
@@ -88,7 +89,7 @@ class SnolateSetCreationServiceTest {
 		service.doCreateSet(set, snowstormClientFactory);
 
 		String composite = "XS_100_my-label";
-		verify(translationUnitRepository, atLeastOnce()).save(any(TranslationUnit.class));
+		verify(translationUnitRepository, atLeastOnce()).saveAll(any());
 		verify(snolateSetRepository, atLeastOnce()).save(any(SnolateTranslationSet.class));
 	}
 
@@ -151,7 +152,7 @@ class SnolateSetCreationServiceTest {
 
 		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("1", lang)).thenReturn(Optional.of(hadOnly));
 		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("2", lang)).thenReturn(Optional.of(stays));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("3", lang)).thenReturn(Optional.empty());
+		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(eq(lang), any())).thenReturn(List.of());
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-ZS", "200", "Z", "z", "*", TranslationSubsetType.ECL, "SNOMEDCT-ZS");
 		set.setLanguageCode("en");
@@ -161,6 +162,6 @@ class SnolateSetCreationServiceTest {
 		assertThat(hadOnly.getMemberOf()).doesNotContain(composite);
 		assertThat(stays.getMemberOf()).contains(composite);
 		assertThat(willGain).isNotNull();
-		verify(translationUnitRepository, atLeastOnce()).save(any(TranslationUnit.class));
+		verify(translationUnitRepository, atLeastOnce()).saveAll(any());
 	}
 }

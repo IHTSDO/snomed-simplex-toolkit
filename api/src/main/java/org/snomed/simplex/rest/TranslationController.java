@@ -165,9 +165,6 @@ public class TranslationController {
 			@PathVariable String label, @RequestParam(required = false, defaultValue = "0") int page,
 			@RequestParam(required = false, defaultValue = "25") int size) throws ServiceException {
 
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		int safePage = Math.max(0, page);
 		int safeSize = Math.min(2000, Math.max(1, size));
@@ -228,7 +225,7 @@ public class TranslationController {
 		}
 
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.SNOLATE_LANGUAGE_INITIALISATION);
-		ContentJob contentJob = new ContentJob(theCodeSystem, "Snolate translation setup", refsetId);
+		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation Studio translation setup", refsetId);
 		return jobService.queueContentJob(contentJob, refsetId, activity, job -> {
 			translationService.synchroniseWholeTranslationFromSnowstormToSnolate(theCodeSystem, snowstormClient, languageCode, refsetId);
 			snowstormClient.addSnolateTranslationLanguage(refsetId, languageCode, theCodeSystem);

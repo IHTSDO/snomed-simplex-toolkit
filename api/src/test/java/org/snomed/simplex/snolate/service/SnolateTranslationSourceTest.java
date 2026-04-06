@@ -12,13 +12,15 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.TranslationSourceType;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -63,9 +65,15 @@ class SnolateTranslationSourceTest {
 	@Test
 	void writeTranslation_createsAndMergesAdditions() throws Exception {
 		TranslationUnit existing = new TranslationUnit("200", REFSET, LANG, COMPOSITE, 0, List.of("existing"), TranslationStatus.NEEDS_EDIT, Set.of());
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("200", COMPOSITE)).thenReturn(Optional.of(existing));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("201", COMPOSITE)).thenReturn(Optional.empty());
-		when(translationUnitRepository.save(any(TranslationUnit.class))).thenAnswer(inv -> inv.getArgument(0));
+		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(eq(COMPOSITE), any()))
+				.thenAnswer(invocation -> {
+					Collection<String> codes = invocation.getArgument(1);
+					List<TranslationUnit> found = new ArrayList<>();
+					if (codes.contains("200")) {
+						found.add(existing);
+					}
+					return found;
+				});
 
 		TranslationState additions = new TranslationState();
 		additions.getConceptTerms().put(200L, List.of("extra"));
@@ -73,11 +81,15 @@ class SnolateTranslationSourceTest {
 		source.writeTranslation(additions);
 
 		assertThat(existing.getTerms()).containsExactly("existing", "extra");
-		ArgumentCaptor<TranslationUnit> captor = ArgumentCaptor.forClass(TranslationUnit.class);
-		verify(translationUnitRepository, times(2)).save(captor.capture());
-		TranslationUnit created = captor.getAllValues().stream().filter(u -> "201".equals(u.getCode())).findFirst().orElseThrow();
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<Iterable<TranslationUnit>> captor = ArgumentCaptor.forClass(Iterable.class);
+		verify(translationUnitRepository, times(1)).saveAll(captor.capture());
+		List<TranslationUnit> saved = new ArrayList<>();
+		captor.getValue().forEach(saved::add);
+		TranslationUnit created = saved.stream().filter(u -> "201".equals(u.getCode())).findFirst().orElseThrow();
 		assertThat(created.getTerms()).containsExactly("only");
 		assertThat(created.getStatus()).isEqualTo(TranslationStatus.APPROVED);
+		assertThat(saved).hasSize(2);
 	}
 
 	@Test

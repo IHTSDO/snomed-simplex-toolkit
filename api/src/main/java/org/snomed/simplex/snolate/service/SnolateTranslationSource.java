@@ -1,5 +1,7 @@
 package org.snomed.simplex.snolate.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
@@ -12,12 +14,20 @@ import org.springframework.http.HttpStatus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Snolate persistence backing for {@link TranslationSource}. Maps {@link TranslationUnit} documents to
  * {@link TranslationState} for {@link org.snomed.simplex.translation.service.TranslationMergeService}.
  */
 public class SnolateTranslationSource implements TranslationSource {
+
+	private static final Logger logger = LoggerFactory.getLogger(SnolateTranslationSource.class);
+
+	private static final int WRITE_LOAD_BATCH_SIZE = 500;
+	private static final int WRITE_SAVE_BATCH_SIZE = 5_000;
 
 	private final SnolateTranslationUnitRepository translationUnitRepository;
 	private final String isoLanguageCode;
@@ -49,16 +59,55 @@ public class SnolateTranslationSource implements TranslationSource {
 
 	@Override
 	public void writeTranslation(TranslationState translationState) throws ServiceExceptionWithStatusCode {
-		for (Map.Entry<Long, List<String>> entry : translationState.getConceptTerms().entrySet()) {
-			String code = entry.getKey().toString();
-			List<String> additions = entry.getValue();
-			translationUnitRepository.findByCodeAndCompositeLanguageCode(code, compositeLanguageCode)
-					.map(unit -> {
-						unit.setTerms(mergeAdditions(unit.getTerms(), additions));
-						return translationUnitRepository.save(unit);
-					})
-					.orElseGet(() -> translationUnitRepository.save(newFullUnit(code, additions)));
+		List<Map.Entry<Long, List<String>>> entries = new ArrayList<>(translationState.getConceptTerms().entrySet());
+		List<TranslationUnit> saveBuffer = new ArrayList<>();
+		AtomicInteger savedTotal = new AtomicInteger();
+
+		for (int i = 0; i < entries.size(); i += WRITE_LOAD_BATCH_SIZE) {
+			int end = Math.min(i + WRITE_LOAD_BATCH_SIZE, entries.size());
+			List<Map.Entry<Long, List<String>>> chunk = entries.subList(i, end);
+			List<String> codes = chunk.stream().map(e -> e.getKey().toString()).toList();
+			List<TranslationUnit> existingBatch = translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(
+					compositeLanguageCode, codes);
+			Map<String, TranslationUnit> byCode = existingBatch.stream()
+					.collect(Collectors.toMap(TranslationUnit::getCode, Function.identity(), (a, b) -> a));
+
+			for (Map.Entry<Long, List<String>> entry : chunk) {
+				String code = entry.getKey().toString();
+				List<String> additions = entry.getValue();
+				TranslationUnit unit = byCode.get(code);
+				if (unit != null) {
+					unit.setTerms(mergeAdditions(unit.getTerms(), additions));
+					saveBuffer.add(unit);
+				} else {
+					saveBuffer.add(newFullUnit(code, additions));
+				}
+				flushSaveBufferIfNeeded(saveBuffer, savedTotal);
+			}
 		}
+		flushSaveBufferRemainder(saveBuffer, savedTotal);
+	}
+
+	private void flushSaveBufferIfNeeded(List<TranslationUnit> saveBuffer, AtomicInteger savedTotal) {
+		while (saveBuffer.size() >= WRITE_SAVE_BATCH_SIZE) {
+			translationUnitRepository.saveAll(saveBuffer.subList(0, WRITE_SAVE_BATCH_SIZE));
+			saveBuffer.subList(0, WRITE_SAVE_BATCH_SIZE).clear();
+			logSaveBatch(WRITE_SAVE_BATCH_SIZE, savedTotal);
+		}
+	}
+
+	private void flushSaveBufferRemainder(List<TranslationUnit> saveBuffer, AtomicInteger savedTotal) {
+		if (!saveBuffer.isEmpty()) {
+			int n = saveBuffer.size();
+			translationUnitRepository.saveAll(saveBuffer);
+			logSaveBatch(n, savedTotal);
+		}
+	}
+
+	private void logSaveBatch(int batchSize, AtomicInteger savedTotal) {
+		int total = savedTotal.addAndGet(batchSize);
+		logger.info("Saved batch of {} translation units {} ({} so far).",
+				batchSize, compositeLanguageCode, total);
 	}
 
 	private TranslationUnit newFullUnit(String code, List<String> additions) {

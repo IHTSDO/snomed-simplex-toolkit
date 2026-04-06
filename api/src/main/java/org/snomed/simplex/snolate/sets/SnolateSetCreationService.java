@@ -18,8 +18,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -29,6 +31,9 @@ import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_REFRESH
 import static org.snomed.simplex.snolate.sets.SnolateSetService.PERCENTAGE_PROCESSED_START;
 
 public class SnolateSetCreationService extends AbstractSnolateSetProcessingService {
+
+	/** Chunk size for Elasticsearch batch reads/writes in {@link #bulkAddSetMembership}. */
+	private static final int ELASTIC_IO_CHUNK_SIZE = 1_000;
 
 	private final SnolateSetRepository snolateSetRepository;
 	private final SnolateTranslationSourceRepository translationSourceRepository;
@@ -276,21 +281,45 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 	private int bulkAddSetMembership(SnolateTranslationSet translationSet, List<String> codes, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
 		String compositeSetCode = translationSet.getCompositeSetCode();
 		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
-		List<TranslationSource> rows = StreamSupport.stream(translationSourceRepository.findAllById(codes).spliterator(), false).toList();
+
+		List<TranslationSource> rows = new ArrayList<>();
+		for (int i = 0; i < codes.size(); i += ELASTIC_IO_CHUNK_SIZE) {
+			int end = Math.min(i + ELASTIC_IO_CHUNK_SIZE, codes.size());
+			rows.addAll(StreamSupport.stream(translationSourceRepository.findAllById(codes.subList(i, end)).spliterator(), false).toList());
+		}
 		Set<String> found = rows.stream().map(TranslationSource::getCode).collect(Collectors.toSet());
 		int skipped = (int) codes.stream().filter(c -> !found.contains(c)).count();
-		for (TranslationSource src : rows) {
-			Optional<TranslationUnit> opt = translationUnitRepository.findByCodeAndCompositeLanguageCode(src.getCode(), compositeLang);
-			TranslationUnit u = opt.orElseGet(() -> TranslationUnit.shellMember(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(),
-					compositeLang, src.getOrder(), compositeSetCode));
-			if (opt.isPresent()) {
-				LinkedHashSet<String> memberOf = new LinkedHashSet<>(u.getMemberOf());
-				memberOf.add(compositeSetCode);
-				u.setMemberOf(memberOf);
-				u.setOrder(src.getOrder());
+
+		for (int i = 0; i < rows.size(); i += ELASTIC_IO_CHUNK_SIZE) {
+			int end = Math.min(i + ELASTIC_IO_CHUNK_SIZE, rows.size());
+			List<TranslationSource> srcChunk = rows.subList(i, end);
+			List<String> chunkCodes = srcChunk.stream().map(TranslationSource::getCode).toList();
+			List<TranslationUnit> existingBatch = translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(compositeLang, chunkCodes);
+			Map<String, TranslationUnit> byCode = existingBatch.stream()
+					.collect(Collectors.toMap(TranslationUnit::getCode, Function.identity(), (a, b) -> a));
+
+			List<TranslationUnit> toSave = new ArrayList<>(srcChunk.size());
+			for (TranslationSource src : srcChunk) {
+				TranslationUnit existing = byCode.get(src.getCode());
+				TranslationUnit u;
+				if (existing != null) {
+					u = existing;
+					LinkedHashSet<String> memberOf = new LinkedHashSet<>(u.getMemberOf());
+					memberOf.add(compositeSetCode);
+					u.setMemberOf(memberOf);
+					u.setOrder(src.getOrder());
+				} else {
+					u = TranslationUnit.shellMember(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(),
+							compositeLang, src.getOrder(), compositeSetCode);
+				}
+				toSave.add(u);
 			}
-			translationUnitRepository.save(u);
+			for (int s = 0; s < toSave.size(); s += ELASTIC_IO_CHUNK_SIZE) {
+				int sEnd = Math.min(s + ELASTIC_IO_CHUNK_SIZE, toSave.size());
+				translationUnitRepository.saveAll(toSave.subList(s, sEnd));
+			}
 		}
+
 		codes.clear();
 		timerUtil.checkpoint("Added membership batch");
 		return skipped;
