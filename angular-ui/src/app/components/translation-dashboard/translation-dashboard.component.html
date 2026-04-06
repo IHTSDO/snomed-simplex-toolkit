@@ -183,17 +183,17 @@
                                 <span class="details-field-name">Selected Concepts</span>
                             </div>
                             <div class="component-col">
-                                <span class="details-field-value">{{ selectedLabelSet.size }}</span>
+                                <span class="details-field-value">{{ selectedLabelSet.size | number:'1.0-0' }}</span>
                             </div>
                         </div>
-                        <div class="component-row" *ngIf="selectedLabelSet.size">
+                        <div class="component-row" *ngIf="selectedLabelSet.size && selectedLabelSet.status !== 'PROCESSING'">
                             <div class="component-col align-right">
                                 <span class="details-field-name">Translated so far</span>
                             </div>
                             <div class="component-col">
                                 <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
                                 <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
-                                    {{ selectedLabelSet.translated }} ({{ (selectedLabelSet.translated / selectedLabelSet.size * 100) | number:'1.0-1' }}%)
+                                    {{ selectedLabelSet.translated | number:'1.0-0' }} ({{ (selectedLabelSet.translated / selectedLabelSet.size * 100) | number:'1.0-1' }}%)
                                 </span>
                             </div>
                         </div>
@@ -373,7 +373,7 @@
                     <ng-container matColumnDef="concepts">
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>Concepts</th>
                         <td mat-cell *matCellDef="let set">
-                            <span *ngIf="set.size != null">{{ set.size }}</span>
+                            <span *ngIf="set.size != null">{{ set.size | number:'1.0-0' }}</span>
                             <span *ngIf="set.size == null" class="muted-cell">—</span>
                         </td>
                     </ng-container>
@@ -395,20 +395,23 @@
                         <th mat-header-cell *matHeaderCellDef mat-sort-header>Progress</th>
                         <td mat-cell *matCellDef="let set">
                             <div class="table-progress-cell">
-                                <mat-progress-bar *ngIf="set.status === 'PROCESSING' && set.percentageProcessed !== undefined"
-                                                 mode="determinate"
-                                                 [value]="set.percentageProcessed"
-                                                 class="set-creation-progress-bar"></mat-progress-bar>
-                                <div *ngIf="set.size > 0" class="translation-coverage-block">
+                                <div *ngIf="set.status === 'PROCESSING' && set.percentageProcessed !== undefined"
+                                     class="set-creation-progress-block">
+                                    <mat-progress-bar mode="determinate"
+                                                     [value]="set.percentageProcessed"
+                                                     class="set-creation-progress-bar"></mat-progress-bar>
+                                    <span class="set-creation-progress-label">Processing</span>
+                                </div>
+                                <div *ngIf="set.size > 0 && set.status !== 'PROCESSING'" class="translation-coverage-block">
                                     <mat-progress-bar mode="determinate"
                                                      [value]="translationProgressPercent(set)"
                                                      class="set-translation-progress-bar"></mat-progress-bar>
                                     <span class="translation-coverage-label">
-                                        {{ set.translated ?? 0 }} / {{ set.size }}
+                                        {{ (set.translated ?? 0) | number:'1.0-0' }} / {{ set.size | number:'1.0-0' }}
                                         ({{ translationProgressPercent(set) | number:'1.0-0' }}%)
                                     </span>
                                 </div>
-                                <span *ngIf="set.status === 'PROCESSING' && set.percentageProcessed === undefined" class="muted-cell">Processing…</span>
+                                <span *ngIf="set.status === 'PROCESSING' && set.percentageProcessed === undefined" class="muted-cell">Processing</span>
                                 <span *ngIf="!set.size && set.status !== 'PROCESSING'" class="muted-cell">—</span>
                             </div>
                         </td>
