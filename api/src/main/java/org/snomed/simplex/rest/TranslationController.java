@@ -99,8 +99,6 @@ public class TranslationController {
 	@GetMapping("{codeSystem}/translations/snolate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<SnolateTranslationSet> listAllSnolateSets(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		snowstormClient.getCodeSystemOrThrow(codeSystem);
 		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystem(codeSystem);
 		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
 		snolateTranslationToolService.applyCounts(sets);
@@ -110,9 +108,6 @@ public class TranslationController {
 	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<SnolateTranslationSet> listSnolateSets(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
 		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
 		snolateTranslationToolService.applyCounts(sets);
@@ -148,11 +143,7 @@ public class TranslationController {
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public SnolateTranslationSet getSnolateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label)
-			throws ServiceException {
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+	public SnolateTranslationSet getSnolateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceException {
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		snolateTranslationToolService.applyCounts(translationSet);
 		snolateTranslationToolService.applyDashboardMetadata(translationSet);

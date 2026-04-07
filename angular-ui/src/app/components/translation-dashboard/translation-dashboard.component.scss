@@ -37,6 +37,11 @@
 .translation-sets-table {
     width: 100%;
 
+    .translation-sets-empty-message {
+        padding: 1.25rem 1rem;
+        color: rgba(0, 0, 0, 0.55);
+    }
+
     th.mat-mdc-header-cell,
     td.mat-mdc-cell {
         vertical-align: middle;
@@ -88,7 +93,8 @@
 }
 
 .detail-back-row {
-    margin-bottom: 12px;
+    margin-top: -20px;
+    margin-bottom: 0;
 }
 
 .back-to-list {
@@ -103,6 +109,10 @@
 
 .title-container-detail {
     width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 8px;
 }
 
 .detail-fields {

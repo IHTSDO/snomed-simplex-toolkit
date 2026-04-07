@@ -147,14 +147,14 @@
             } @else {
                 <div class="details-panel details-panel-fullwidth">
                     <div class="title-container title-container-detail">
-                        <div class="title-left-column">
-                            <h2>{{ selectedLabelSet.name }}</h2>
-                        </div>
                         <div class="detail-back-row">
                             <button mat-button type="button" (click)="goToTranslationSetsList()" class="back-to-list">
                                 <mat-icon>arrow_back</mat-icon>
                                 Translation sets
                             </button>
+                        </div>
+                        <div class="title-left-column">
+                            <h2>{{ selectedLabelSet.name }}</h2>
                         </div>
                     </div>
 
@@ -431,6 +431,11 @@
                     <tr mat-row *matRowDef="let row; columns: translationSetsColumns;"
                         class="translation-set-table-row"
                         (click)="onTranslationSetRowClick(row)"></tr>
+                    <tr class="mat-row translation-sets-empty-row" *matNoDataRow>
+                        <td class="mat-mdc-cell translation-sets-empty-message" [attr.colspan]="translationSetsColumns.length">
+                            Create a Translation Set to get started.
+                        </td>
+                    </tr>
                 </table>
             </div>
         </div>
