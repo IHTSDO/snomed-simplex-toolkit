@@ -48,6 +48,9 @@ export class SnomedNavbarComponent implements OnInit {
     apps: LauncherApp[] = [];
     authoringPlatformMode: boolean;
 
+    /** Text beside the logo: reflects current route (e.g. Translation Studio). */
+    navSuiteTitle = 'Simplex';
+
     constructor(
         private authenticationService: AuthenticationService,
         private location: Location,
@@ -59,7 +62,10 @@ export class SnomedNavbarComponent implements OnInit {
         private simplexService: SimplexService,
         private drawerService: DrawerService,
         private cookieService: CookieService) {
-        this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => this.authoringPlatformMode = data);
+        this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => {
+            this.authoringPlatformMode = data;
+            this.updateNavSuiteTitle();
+        });
         this.userSubscription = this.authenticationService.getUser().subscribe(data => {
             this.user = data;
             const allApps = this.configService.getLauncherApps();
@@ -68,10 +74,12 @@ export class SnomedNavbarComponent implements OnInit {
     }
 
     ngOnInit() {
+        this.updateNavSuiteTitle();
         // Listen to navigation events to capture route changes
         this.router.events.pipe(
             filter(event => event instanceof NavigationEnd)
         ).subscribe(() => {
+            this.updateNavSuiteTitle();
             const url = this.router.url;
             // Do nothing if the current route is /admin
             if (url === '/admin') {
@@ -90,6 +98,16 @@ export class SnomedNavbarComponent implements OnInit {
 
     isInHome(): boolean {
         return this.router.url === '/home';
+    }
+
+    private updateNavSuiteTitle(): void {
+        if (this.router.url.includes('/translation-studio')) {
+            this.navSuiteTitle = 'Simplex: Translation Studio';
+        } else if (this.authoringPlatformMode) {
+            this.navSuiteTitle = 'Translation Studio';
+        } else {
+            this.navSuiteTitle = 'Simplex';
+        }
     }
 
     initialize() {
