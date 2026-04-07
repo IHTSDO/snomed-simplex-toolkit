@@ -7,7 +7,6 @@ import { LegalAgreementService } from 'src/app/services/legal-agreement/legal-ag
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { CookieService } from 'ngx-cookie-service';
 import { DrawerService } from "../../services/drawer/drawer.service";
 import { ConfigService, LauncherApp } from "../../services/config/config.service";
@@ -26,7 +25,6 @@ export class SnomedNavbarComponent implements OnInit {
 
     user: User;
     userSubscription: Subscription;
-    roles: any[] = [];
 
     branches: any;
     branchesSubscription: Subscription;
@@ -53,7 +51,6 @@ export class SnomedNavbarComponent implements OnInit {
     constructor(
         private authenticationService: AuthenticationService,
         private location: Location,
-        private snackBar: MatSnackBar,
         private legalAgreementService: LegalAgreementService,
         private uiConfigurationService: UiConfigurationService,
         private configService: ConfigService,
@@ -71,7 +68,6 @@ export class SnomedNavbarComponent implements OnInit {
     }
 
     ngOnInit() {
-        this.getRoles();
         // Listen to navigation events to capture route changes
         this.router.events.pipe(
             filter(event => event instanceof NavigationEnd)
@@ -90,28 +86,6 @@ export class SnomedNavbarComponent implements OnInit {
                 this.loadEditions(null);
             }
         });
-    }
-
-    getRoles() {
-        lastValueFrom(this.simplexService.getRoles()).then(
-            (roles) => {
-                this.roles = roles;
-            },
-            (error) => {
-                console.error(error);
-                this.loading = false;
-                // Don't show error message if user is not authenticated (401 or 403)
-                // This happens when users visit the app before logging in
-                if (error.status !== 401 && error.status !== 403) {
-                    this.snackBar.open('Failed to load roles', 'Dismiss', {
-                        duration: 5000
-                    });
-                }
-            }
-        );
-    }
-    isAdmin(): boolean {
-        return this.roles.includes('ADMIN');
     }
 
     isInHome(): boolean {
@@ -246,10 +220,6 @@ export class SnomedNavbarComponent implements OnInit {
 
     goHome() {
         this.router.navigate(['/home']);
-    }
-
-    goAdmin() {
-        this.router.navigate(['/admin']);
     }
 
 }

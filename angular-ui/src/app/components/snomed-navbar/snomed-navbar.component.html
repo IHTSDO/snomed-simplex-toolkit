@@ -1,4 +1,4 @@
-<nav class="navbar sticky-top navbar-dark bg-dark pe-2" *ngIf="!isInHome()">
+<nav class="navbar sticky-top navbar-dark bg-dark pe-2 align-items-center" *ngIf="!isInHome()">
     <a class="logo">
         @if (authoringPlatformMode) {
             <a href="javascript:void(0)" (click)="goHome()"><img class="logo m-2 p-0" src="assets/small_logo.png"></a>
@@ -10,58 +10,53 @@
         }
     </a>
 
-    <ul class="dropdown-nav me-auto">
-        <li class="nav-item dropdown">
-            <a class="nav-link px-3 py-2 rounded dropdown-toggle text-end add" id="branchDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                {{ selectedEdition?.name }}
-            </a>
-            <div class="dropdown-menu" aria-labelledby="branchDropdown">
-                <ng-container *ngFor="let edition of editions | alphabetical:'branchPath'">
-                    <a class="dropdown-item ps-3 py-2" (click)="selectEdition(edition)">{{edition?.name}}</a>
-                </ng-container>
+    <div class="navbar-toolbar d-flex align-items-center ms-auto flex-nowrap gap-2">
+        @if(user) {
+            <ul class="dropdown-nav p-0 m-0">
+                <li class="nav-item dropdown">
+                    <a class="nav-link user rounded-circle bg-cerulean" id="userMenuDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        {{getInitials(user)}}
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end py-0" aria-labelledby="userMenuDropdown">
+                        <a class="dropdown-item ps-3 py-2" href="javascript:void(0)" (click)="logout()">Logout</a>
+                    </div>
+                </li>
+            </ul>
+
+            <div class="drawer-button" (click)="openDrawer()">
+                <span class="rounded px-2 text-center">
+                    <i class="fa-solid fa-grip"></i>
+                </span>
             </div>
-        </li>
-    </ul>
+        }
 
-
-    <div>
-        <button mat-icon-button class="nav-button p-0" matTooltip="Simplex configuration" *ngIf="isAdmin()"(click)="goAdmin()"><mat-icon>build</mat-icon></button>
-    </div>
-
-    @if(user) {
-        <ul class="dropdown-nav float-end p-0 me-3">
+        <ul class="dropdown-nav p-0 m-0">
             <li class="nav-item dropdown">
-                <a class="nav-link p-2 me-2 user rounded-circle bg-cerulean" id="infoDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    {{getInitials(user)}}
+                <a class="nav-link rounded dropdown-toggle text-end add" id="branchDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {{ selectedEdition?.name }}
                 </a>
-                <div class="dropdown-menu dropdown-menu-end py-0" aria-labelledby="infoDropdown">
-                    <a class="dropdown-item ps-3 py-2" href="javascript:void(0)" (click)="logout()">Logout</a>
+                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="branchDropdown">
+                    <ng-container *ngFor="let edition of editions | alphabetical:'branchPath'">
+                        <a class="dropdown-item ps-3 py-2" (click)="selectEdition(edition)">{{edition?.name}}</a>
+                    </ng-container>
                 </div>
             </li>
         </ul>
 
-        <div class="drawer-button float-end me-3 mb-3 p-0" (click)="openDrawer()">
-            <span class="rounded px-2 text-center">
-                <i class="fa-solid fa-grip"></i>
-            </span>
-        </div>
-    }
-
-
-    <ul class="dropdown-nav float-end p-0 me-2">
-        <li class="nav-item dropdown">
-            <a class="nav-link px-3 py-2 icons rounded text-end" id="infoDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                <i class="fa-solid fa-bars"></i>
-            </a>
-            <div class="dropdown-menu dropdown-menu-end py-0" aria-labelledby="infoDropdown">
-                <a class="dropdown-item ps-3 py-2" href="https://conf.spaces.snomed.org/wiki/spaces/SIMPLEXUG/" target="_blank">Simplex User Guide</a>
-                <a class="dropdown-item ps-3 py-2" href="https://ihtsdo.freshdesk.com/support/discussions/forums/4000002521" target="_blank">Simplex User Forum (Community Support)</a>
-                <a class="dropdown-item ps-3 py-2" href="https://www.snomed.org/contact-us" target="_blank">Contact Us</a>
-                <a class="dropdown-item ps-3 py-2" href="https://www.snomed.org/" target="_blank">&copy; SNOMED International</a>
-            </div>
-        </li>
-    </ul>
-
+        <ul class="dropdown-nav p-0 m-0">
+            <li class="nav-item dropdown">
+                <a class="nav-link icons rounded text-end" id="mainMenuDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fa-solid fa-bars"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end py-0" aria-labelledby="mainMenuDropdown">
+                    <a class="dropdown-item ps-3 py-2" href="https://conf.spaces.snomed.org/wiki/spaces/SIMPLEXUG/" target="_blank">Simplex User Guide</a>
+                    <a class="dropdown-item ps-3 py-2" href="https://ihtsdo.freshdesk.com/support/discussions/forums/4000002521" target="_blank">Simplex User Forum (Community Support)</a>
+                    <a class="dropdown-item ps-3 py-2" href="https://www.snomed.org/contact-us" target="_blank">Contact Us</a>
+                    <a class="dropdown-item ps-3 py-2" href="https://www.snomed.org/" target="_blank">&copy; SNOMED International</a>
+                </div>
+            </li>
+        </ul>
+    </div>
 
 </nav>
 <div class="black-bar" *ngIf="isInHome()"></div>

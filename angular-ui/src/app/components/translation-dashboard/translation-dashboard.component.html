@@ -5,9 +5,6 @@
     </div>
 </div>
 <div class="main-container translation-studio-root" *ngIf="selectedEdition">
-    @if (!authoringPlatformMode) {
-        <h1>Translation Studio</h1>
-    }
 
     @if (mode === 'create') {
         <div class="translation-studio-panel">
@@ -148,16 +145,16 @@
                     <p>Loading translation set…</p>
                 </div>
             } @else {
-                <div class="detail-back-row">
-                    <button mat-button type="button" (click)="goToTranslationSetsList()" class="back-to-list">
-                        <mat-icon>arrow_back</mat-icon>
-                        Translation sets
-                    </button>
-                </div>
                 <div class="details-panel details-panel-fullwidth">
                     <div class="title-container title-container-detail">
                         <div class="title-left-column">
                             <h2>{{ selectedLabelSet.name }}</h2>
+                        </div>
+                        <div class="detail-back-row">
+                            <button mat-button type="button" (click)="goToTranslationSetsList()" class="back-to-list">
+                                <mat-icon>arrow_back</mat-icon>
+                                Translation sets
+                            </button>
                         </div>
                     </div>
 
