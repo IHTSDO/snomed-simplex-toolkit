@@ -332,7 +332,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 	private applyLabelSetSelection(labelSet: any): void {
 		this.selectedLabelSet = labelSet;
 		if (labelSet.status === 'READY') {
-			this.loadLabelSetDetails(labelSet);
+			// List GET (.../translations/snolate-set) already returns full SnolateTranslationSet rows
+			// with the same applyCounts / dashboard metadata as the per-set GET — avoid redundant fetch.
+			this.finalizeLabelSetFromListAndLoadMembers(labelSet);
 		} else {
 			this.clearTranslatedTermsTable();
 			this.loadingLabelSetMembers = false;
@@ -733,41 +735,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                     )
                 );
 
-                // If any sets finished processing, fetch detailed information for all of them
-                if (finishedProcessingSets.length > 0) {
-                    finishedProcessingSets.forEach((finishedSet: any) => {
-                        this.simplexService.getTranslationSetDetails(
-                            this.selectedEdition.shortName,
-                            finishedSet.translationId,
-                            finishedSet.label
-                        ).subscribe(
-                            (details) => {
-                                // Update the corresponding item in labelSets array with detailed information
-                                const labelSetIndex = this.labelSets.findIndex((set: any) =>
-                                    set.id === finishedSet.id &&
-                                    set.translationId === finishedSet.translationId &&
-                                    set.label === finishedSet.label
-                                );
-
-                                if (labelSetIndex !== -1) {
-                                    this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...details };
-                                    this.refreshTranslationSetsTable();
-                                }
-
-                                // If this is the currently selected set, update it as well
-                                if (this.selectedLabelSet &&
-                                    this.selectedLabelSet.id === finishedSet.id &&
-                                    this.selectedLabelSet.translationId === finishedSet.translationId &&
-                                    this.selectedLabelSet.label === finishedSet.label) {
-                                    this.selectedLabelSet = { ...this.selectedLabelSet, ...details };
-                                }
-                            },
-                            (error) => {
-                                console.error('Error fetching detailed info for finished set:', error);
-                            }
-                        );
-                    });
-                }
+                // List poll payload already includes full set metadata; no per-set GET needed.
 
                 // Update the list without showing loading state
                 this.labelSets = preservedLabelSets;
@@ -1156,6 +1124,33 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 // Keep the hardcoded refsets as fallback
             }
         );
+    }
+
+    /**
+     * Use translation-set row already returned by list Snolate API, then load member rows only.
+     */
+    private finalizeLabelSetFromListAndLoadMembers(labelSet: any): void {
+        if (!labelSet || !this.selectedEdition) {
+            return;
+        }
+        ++this.currentLabelSetRequestId;
+        this.loadingLabelSetDetails = true;
+
+        this.selectedLabelSet = { ...labelSet };
+
+        const labelSetIndex = this.labelSets.findIndex((set: any) =>
+            set.id === labelSet.id &&
+            set.translationId === labelSet.translationId &&
+            set.label === labelSet.label
+        );
+        if (labelSetIndex !== -1) {
+            this.labelSets[labelSetIndex] = { ...this.labelSets[labelSetIndex], ...labelSet };
+            this.refreshTranslationSetsTable();
+        }
+
+        this.loadingLabelSetDetails = false;
+        this.getLabelSetMembers(this.selectedLabelSet);
+        this.changeDetectorRef.detectChanges();
     }
 
     loadLabelSetDetails(labelSet: any) {
