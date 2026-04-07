@@ -2,12 +2,10 @@
     <a class="logo">
         @if (authoringPlatformMode) {
             <a href="javascript:void(0)" (click)="goHome()"><img class="logo m-2 p-0" src="assets/small_logo.png"></a>
-            <span class="title text-ghost-grey">Translation Studio</span>
-        }
-        @else {
+        } @else {
             <a href="javascript:void(0)" (click)="goHome()"><img class="logo m-2 p-0" src="assets/simplex-logo.svg"></a>
-            <span class="title text-ghost-grey">Simplex</span>
         }
+        <span class="title text-ghost-grey">{{ navSuiteTitle }}</span>
     </a>
 
     <div class="navbar-toolbar d-flex align-items-center ms-auto flex-nowrap gap-2">
