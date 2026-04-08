@@ -13,6 +13,16 @@ import java.util.Set;
 @Document(indexName = "#{@indexNameProvider.indexName('snolate-translation-unit')}")
 public class TranslationUnit {
 
+	public static final class Fields {
+		private Fields() {}
+		public static final String CODE = "code";
+		public static final String ORDER = "order";
+		public static final String MEMBER_OF = "memberOf";
+		public static final String COMPOSITE_LANGUAGE_CODE = "compositeLanguageCode";
+		public static final String HAS_TERMS = "hasTerms";
+		public static final String STATUS = "status";
+	}
+
 	@Id
 	private String id;
 

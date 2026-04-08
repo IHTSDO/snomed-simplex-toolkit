@@ -7,6 +7,7 @@ import { SelectEditionComponent } from './components/select-edition/select-editi
 import { WelcomeComponent } from './components/welcome/welcome.component';
 import { AdminSettingsComponent } from './components/admin-settings/admin-settings.component';
 import { TranslationDashboardComponent } from './components/translation-dashboard/translation-dashboard.component';
+import { TranslationUnitEditComponent } from './components/translation-unit-edit/translation-unit-edit.component';
 
 const routes: Routes = [
   { path: 'home', component: WelcomeComponent },
@@ -22,6 +23,7 @@ const routes: Routes = [
   { path: 'translation-dashboard/:edition', redirectTo: 'translation-studio/:edition', pathMatch: 'full' },
   { path: 'translation-dashboard', redirectTo: 'translation-studio', pathMatch: 'full' },
   { path: 'translation-studio', component: TranslationDashboardComponent },
+  { path: 'translation-studio/:edition/:refset/:label/edit/:conceptId', component: TranslationUnitEditComponent },
   { path: 'translation-studio/:edition/:refset/:label', component: TranslationDashboardComponent },
   { path: 'translation-studio/:edition', component: TranslationDashboardComponent },
   { path: '', redirectTo: '/home', pathMatch: 'full' }

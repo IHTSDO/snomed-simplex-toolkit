@@ -13,6 +13,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
+import { translationStatusLabel } from 'src/app/utils/translation-status-label';
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -655,7 +656,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         return s;
     }
 
-    readonly translatedTermsMemberColumns = ['concept', 'english', 'dialect', 'status'] as const;
+    readonly translatedTermsMemberColumns = ['concept', 'english', 'dialect', 'status', 'actions'] as const;
 
     get translatedTermsDialectColumnHeader(): string {
         const label = this.displayTranslationLanguageDialect(this.selectedLabelSet?.translationName);
@@ -671,21 +672,42 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
     /** Snolate {@code TranslationStatus} name from API, or empty when no unit row exists. */
     formatTranslationRowStatus(status: string | null | undefined): string {
-        if (status == null || status === '') {
-            return 'Not started';
+        return translationStatusLabel(status);
+    }
+
+    openTranslationUnitEdit(unit: { context: string }): void {
+        if (!this.selectedEdition?.shortName || !this.selectedLabelSet || !unit?.context) {
+            return;
         }
-        switch (status) {
-            case 'NEEDS_EDIT':
-                return 'Needs edit';
-            case 'FOR_REVIEW':
-                return 'For review';
-            case 'APPROVED':
-                return 'Approved';
-            case 'NOT_STARTED':
-                return 'Not started';
-            default:
-                return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        const rowIndex = this.selectedLabelSetMembers.indexOf(unit);
+        if (rowIndex < 0) {
+            return;
         }
+        const i = this.labelSetMembersPageIndex * this.labelSetMembersPageSize + rowIndex;
+        const dialect = this.displayTranslationLanguageDialect(this.selectedLabelSet?.translationName);
+        const snowstormBranch =
+            (this.selectedEdition as any)?.simplexWorkingBranch || this.selectedEdition?.branchPath;
+        const branchParam =
+            snowstormBranch && String(snowstormBranch).trim() ? String(snowstormBranch).trim() : undefined;
+        void this.router.navigate(
+            [
+                '/translation-studio',
+                this.selectedEdition.shortName,
+                this.selectedLabelSet.refset,
+                this.selectedLabelSet.label,
+                'edit',
+                unit.context
+            ],
+            {
+                queryParams: {
+                    i,
+                    s: this.labelSetMembersPageSize,
+                    t: this.labelSetMembersTotalCount,
+                    ...(dialect ? { d: dialect } : {}),
+                    ...(branchParam ? { b: branchParam } : {})
+                }
+            }
+        );
     }
 
     private startPolling() {

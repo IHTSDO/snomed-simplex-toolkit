@@ -37,7 +37,6 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.translation.importer.TranslationCsvFormat;
-import org.snomed.simplex.translation.util.ConceptExplanationMarkdown;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -737,16 +736,6 @@ public class TranslationService {
 
 	private static String getFirstWord(String term) {
 		return term.split(" ", 2)[0];
-	}
-
-	public String getConceptExplanationMarkdown(Long conceptId, SnowstormClient snowstormClient) {
-		CodeSystem internationalCodeSystem = new CodeSystem("SNOMEDCT", "SNOMEDCT", "MAIN");
-		List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(List.of(conceptId), internationalCodeSystem);
-		if (concepts.isEmpty()) {
-			return "Concept not found";
-		}
-		Concept concept = concepts.get(0);
-		return ConceptExplanationMarkdown.getMarkdown(concept);
 	}
 
 	@Transactional

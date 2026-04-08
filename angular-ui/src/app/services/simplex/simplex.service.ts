@@ -398,6 +398,31 @@ export class SimplexService {
       .pipe(catchError(this.handleError.bind(this)));
   }
 
+  getTranslationSetSampleRow(
+    edition: string,
+    refsetId: string,
+    label: string,
+    conceptId: string
+  ): Observable<any> {
+    const id = encodeURIComponent(conceptId.trim());
+    return this.http
+      .get(`api/${edition}/translations/${refsetId}/snolate-set/${label}/sample-row/${id}`)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
+  updateTranslationUnit(
+    edition: string,
+    refsetId: string,
+    label: string,
+    conceptId: string,
+    body: { terms: string[]; status: string }
+  ): Observable<any> {
+    const id = encodeURIComponent(conceptId.trim());
+    return this.http
+      .put(`api/${edition}/translations/${refsetId}/snolate-set/${label}/unit/${id}`, body)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getTranslationSets(edition: string, refsetId: string): Observable<any> {
     return this.http.get(`api/${edition}/translations/${refsetId}/snolate-set`).pipe(catchError(this.handleError.bind(this)));
   }
