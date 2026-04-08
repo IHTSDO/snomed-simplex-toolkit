@@ -18,6 +18,7 @@ import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.service.SnolateTranslationToolService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
@@ -169,14 +170,31 @@ public class TranslationController {
 	public TranslationUnitRow getSampleSnolateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
 			@PathVariable String conceptId) throws ServiceException {
 
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		snowstormClient.getCodeSystemOrThrow(codeSystem);
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		TranslationUnitRow row = snolateTranslationToolService.getSampleRow(translationSet, conceptId, snowstormClient);
+		TranslationUnitRow row = snolateTranslationToolService.getSampleRow(translationSet, conceptId);
 		if (row != null) {
 			row.blankLabels();
 		}
 		return row;
+	}
+
+	@PutMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/unit/{conceptId}")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void updateSnolateTranslationUnit(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@PathVariable String label, @PathVariable String conceptId,
+			@RequestBody UpdateTranslationUnitRequest request) throws ServiceExceptionWithStatusCode {
+
+		if (request == null || request.status() == null || request.status().isBlank()) {
+			throw new ServiceExceptionWithStatusCode("Translation status is required.", HttpStatus.BAD_REQUEST);
+		}
+		TranslationStatus status;
+		try {
+			status = TranslationStatus.valueOf(request.status().trim());
+		} catch (IllegalArgumentException e) {
+			throw new ServiceExceptionWithStatusCode("Invalid translation status.", HttpStatus.BAD_REQUEST, e);
+		}
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		snolateTranslationToolService.updateTranslationUnit(translationSet, conceptId, request.terms(), status);
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/snolate/sync-from-snowstorm")
@@ -340,9 +358,4 @@ public class TranslationController {
 		return translationService.getLanguageCodes();
 	}
 
-	@GetMapping(path = "translation-markdown", produces = "text/plain")
-	public String getTranslationMarkdown(@RequestParam Long conceptId) throws ServiceException {
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		return translationService.getConceptExplanationMarkdown(conceptId, snowstormClient);
-	}
 }

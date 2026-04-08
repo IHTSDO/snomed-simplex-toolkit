@@ -111,16 +111,13 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 	public void doDeleteSet(SnolateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
 		String compositeSetCode = translationSet.getCompositeSetCode();
 		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
-		List<TranslationUnit> members = translationSearchService.listAllUnitsInSet(compositeSetCode, compositeLang);
-		if (!members.isEmpty()) {
-			for (TranslationUnit u : members) {
-				LinkedHashSet<String> m = new LinkedHashSet<>(u.getMemberOf());
-				if (m.remove(compositeSetCode)) {
-					u.setMemberOf(m);
-					translationUnitRepository.save(u);
-				}
+		translationSearchService.forEachUnitInSet(compositeSetCode, compositeLang, u -> {
+			LinkedHashSet<String> m = new LinkedHashSet<>(u.getMemberOf());
+			if (m.remove(compositeSetCode)) {
+				u.setMemberOf(m);
+				translationUnitRepository.save(u);
 			}
-		}
+		});
 		snolateSetRepository.delete(translationSet);
 	}
 
@@ -131,8 +128,9 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		translationSet.setStatus(TranslationSetStatus.PROCESSING);
 		snolateSetRepository.save(translationSet);
 
-		Set<String> currentConceptIds = translationSearchService.listAllUnitsInSet(compositeSetCode, translationSet.getLanguageCodeWithRefsetId())
-				.stream().map(TranslationUnit::getCode).collect(Collectors.toCollection(HashSet::new));
+		Set<String> currentConceptIds = new HashSet<>();
+		translationSearchService.forEachUnitInSet(compositeSetCode, translationSet.getLanguageCodeWithRefsetId(),
+				u -> currentConceptIds.add(u.getCode()));
 		logger.info("Found {} translation units with set {}", currentConceptIds.size(), compositeSetCode);
 
 		Set<String> newConceptIds = collectConceptIdsFromEcl(translationSet, snowstormClientFactory);

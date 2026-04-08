@@ -1,0 +1,197 @@
+<div class="edit-page">
+	<div class="toolbar">
+		<button mat-button type="button" class="back-button" (click)="goBack()">
+			<mat-icon>arrow_back</mat-icon>
+			Back to set
+		</button>
+		<span class="position" *ngIf="totalCount != null">
+			Concept {{ globalIndex + 1 }} of {{ totalCount }}
+		</span>
+	</div>
+
+	<div *ngIf="loading" class="loading-wrap">
+		<mat-spinner [diameter]="56"></mat-spinner>
+	</div>
+
+	<form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()" class="edit-form">
+		<h1 class="page-title">Edit translation</h1>
+		<p class="concept-line" *ngIf="conceptId">
+			<span class="concept-line__label">Concept</span>
+			<span class="concept-line__id">{{ conceptId }}</span>
+		</p>
+
+		<section
+			*ngIf="conceptContext || conceptDetailsLoading"
+			class="concept-context"
+			aria-label="Concept context"
+		>
+			<h2 class="concept-context__title">Concept context</h2>
+
+			<div *ngIf="conceptDetailsLoading" class="concept-context__loading">
+				<mat-spinner [diameter]="40"></mat-spinner>
+				<span class="concept-context__loading-label">Loading concept details…</span>
+			</div>
+
+			<ng-container *ngIf="!conceptDetailsLoading && conceptContext as ctx">
+			<p *ngIf="ctx.conceptUri" class="concept-context__browser-link">
+				<a [href]="ctx.conceptUri" target="_blank" rel="noopener noreferrer">Open in SNOMED browser</a>
+			</p>
+
+			<h3 class="context-table-heading">Descriptions</h3>
+			<table class="context-data-table">
+				<thead>
+					<tr>
+						<th scope="col">Type</th>
+						<th scope="col">Term</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr *ngFor="let d of ctx.descriptions">
+						<td>{{ descriptionRoleLabel(d.role) }}</td>
+						<td>{{ d.term }}</td>
+					</tr>
+					<tr *ngIf="!ctx.descriptions?.length" class="context-data-table__empty">
+						<td colspan="2">None</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<h3 class="context-table-heading">Parents</h3>
+			<table class="context-data-table">
+				<thead>
+					<tr>
+						<th scope="col">Term</th>
+						<th scope="col">Concept ID</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr *ngFor="let p of ctx.parents">
+						<td>
+							<a
+								*ngIf="p.conceptId"
+								[href]="snomedConceptUri(p.conceptId)"
+								target="_blank"
+								rel="noopener noreferrer"
+								>{{ p.term }}</a
+							>
+							<ng-container *ngIf="!p.conceptId">{{ p.term }}</ng-container>
+						</td>
+						<td>{{ p.conceptId }}</td>
+					</tr>
+					<tr *ngIf="!ctx.parents?.length" class="context-data-table__empty">
+						<td colspan="2">None</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<h3 class="context-table-heading">Attributes</h3>
+			<table class="context-data-table">
+				<thead>
+					<tr>
+						<th scope="col">Attribute</th>
+						<th scope="col">Value</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr *ngFor="let a of ctx.attributes">
+						<td>{{ a.typeLabel }}</td>
+						<td>
+							<ng-container *ngIf="a.valueKind === 'CONCEPT'">
+								<a
+									*ngIf="a.conceptId"
+									[href]="snomedConceptUri(a.conceptId)"
+									target="_blank"
+									rel="noopener noreferrer"
+									>{{ a.conceptTerm }}</a
+								>
+								<ng-container *ngIf="!a.conceptId">{{ a.conceptTerm }}</ng-container>
+							</ng-container>
+							<ng-container *ngIf="a.valueKind === 'CONCRETE'">{{ a.literalValue }}</ng-container>
+						</td>
+					</tr>
+					<tr *ngIf="!ctx.attributes?.length" class="context-data-table__empty">
+						<td colspan="2">None</td>
+					</tr>
+				</tbody>
+			</table>
+			</ng-container>
+		</section>
+
+		<div class="field">
+			<label class="field-label field-label--source" for="edit-source-term">English</label>
+			<input
+				id="edit-source-term"
+				class="text-input text-input--readonly"
+				type="text"
+				[value]="sourceTerm"
+				readonly
+				tabindex="-1"
+			/>
+		</div>
+
+		<div class="field">
+			<label class="field-label field-label--emphasis" for="edit-preferred-term">
+				{{ dialectDisplayName }}, Preferred Term
+			</label>
+			<input
+				id="edit-preferred-term"
+				class="text-input"
+				type="text"
+				formControlName="primaryTerm"
+				autocomplete="off"
+			/>
+		</div>
+
+		<div class="synonyms-block">
+			<div class="synonyms-header">
+				<span class="field-label field-label--emphasis">Synonyms</span>
+				<button mat-stroked-button type="button" class="add-synonym-btn" (click)="addSynonym()">
+					Add synonym
+				</button>
+			</div>
+			<div *ngFor="let ctrl of synonyms.controls; let si = index" class="synonym-row">
+				<label class="sr-only" [attr.for]="'syn-' + si">Synonym {{ si + 1 }}</label>
+				<input
+					class="text-input synonym-input"
+					type="text"
+					[id]="'syn-' + si"
+					[formControl]="$any(ctrl)"
+					autocomplete="off"
+					[attr.aria-label]="'Synonym ' + (si + 1)"
+				/>
+				<button mat-icon-button type="button" (click)="removeSynonym(si)" aria-label="Remove synonym">
+					<mat-icon>delete</mat-icon>
+				</button>
+			</div>
+		</div>
+
+		<div class="field field--review">
+			<div class="field-label field-label--emphasis">Status</div>
+			<mat-radio-group formControlName="status" class="review-radios" color="primary">
+				<mat-radio-button *ngFor="let st of statusRadioOrder" [value]="st" class="review-radio">
+					{{ translationStatusRadioLabel(st) }}
+				</mat-radio-button>
+			</mat-radio-group>
+		</div>
+
+		<div class="actions-row">
+			<button
+				mat-stroked-button
+				type="button"
+				(click)="saveAndPrev()"
+				[disabled]="!canGoPrev() || saving || loading">
+				<mat-icon>chevron_left</mat-icon>
+				Save and Previous
+			</button>
+			<button mat-flat-button color="primary" type="submit" [disabled]="saving || loading">Save</button>
+			<button
+				mat-stroked-button
+				type="button"
+				(click)="saveAndNext()"
+				[disabled]="!canGoNext() || saving || loading">
+				Save and Next
+				<mat-icon>chevron_right</mat-icon>
+			</button>
+		</div>
+	</form>
+</div>

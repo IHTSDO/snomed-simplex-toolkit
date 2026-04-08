@@ -12,11 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_BATCH_AI_TRANSLATE;
 import static org.snomed.simplex.snolate.sets.SnolateSetService.PERCENTAGE_PROCESSED_START;
@@ -52,7 +48,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 
 		while (unitsProcessed < requestedTotal) {
 			int batchCap = Math.min(MAX_PAGE_SIZE, requestedTotal - unitsProcessed);
-			List<TranslationSource> batchSources = collectEmptySources(translationSet, setCode, lang, batchCap);
+			List<TranslationSource> batchSources = collectEmptySources(setCode, lang, batchCap);
 			if (batchSources.isEmpty()) {
 				logger.info("No more empty Snolate units in set {}", setCode);
 				break;
@@ -85,7 +81,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		setProgressToComplete(translationSet);
 	}
 
-	private List<TranslationSource> collectEmptySources(SnolateTranslationSet translationSet, String setCode, String lang, int batchCap) {
+	private List<TranslationSource> collectEmptySources(String setCode, String lang, int batchCap) {
 		List<TranslationSource> batchSources = new ArrayList<>();
 		int pageNumber = 0;
 		final int pageSize = 500;
