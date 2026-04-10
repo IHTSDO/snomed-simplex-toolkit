@@ -47,6 +47,7 @@ public class ReleaseManifestService {
 		ReleaseManifestFolder rootFolder = new ReleaseManifestFolder(rootFolderName);
 		ReleaseManifest manifest = new ReleaseManifest(rootFolder);
 		rootFolder.getOrAddFile(format("Readme_en_%s.txt", effectiveTime)).clearSource();
+		rootFolder.getOrAddFile("release_package_information.json").clearSource();
 
 		ReleaseManifestFolder snapshotFolder = rootFolder.getOrAddFolder(SNAPSHOT);
 
