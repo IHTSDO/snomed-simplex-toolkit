@@ -11,10 +11,7 @@ import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.repository.TranslationStateRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -100,8 +97,8 @@ public class TranslationMergeService {
 		Map<Long, List<String>> newStateConceptTerms = newState.getConceptTerms();
 		Set<Long> allCodes = combineKeys(previousStateConceptTerms, newStateConceptTerms);
 		for (Long code : allCodes) {
-			List<String> previousTranslation = previousStateConceptTerms.get(code);
-			List<String> newTerms = newStateConceptTerms.get(code);
+			List<String> previousTranslation = previousStateConceptTerms.getOrDefault(code, Collections.emptyList());
+			List<String> newTerms = newStateConceptTerms.getOrDefault(code, Collections.emptyList());
 			intents.put(code, inferIntentForConcept(previousTranslation, newTerms));
 		}
 		return intent;

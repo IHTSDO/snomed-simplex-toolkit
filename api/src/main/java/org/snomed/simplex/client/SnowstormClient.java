@@ -99,6 +99,10 @@ public class SnowstormClient {
 					if (includeDetails) {
 						addCodeSystemBranchInfo(codeSystem);
 					}
+					if (codeSystem.getName() == null) {
+						logger.info("The name of CodeSystem {} must be set before it can be used.", codeSystem.getShortName());
+						continue;
+					}
 					items.add(codeSystem);
 				}
 			}
