@@ -13,6 +13,7 @@ import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.elasticsearch.UncategorizedElasticsearchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsTemplate;
@@ -39,6 +40,7 @@ public class SnolateSetService {
 	public static final String REQUEST_OBJECT = "requestObject";
 
 	private final SnolateSetRepository snolateSetRepository;
+	private final SnolateSetRefsetCache snolateSetRefsetCache;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final SupportRegister supportRegister;
 	private final SnolateSetCreationService creationService;
@@ -49,13 +51,15 @@ public class SnolateSetService {
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public SnolateSetService(SnolateSetRepository snolateSetRepository, SnowstormClientFactory snowstormClientFactory,
+	public SnolateSetService(SnolateSetRepository snolateSetRepository, SnolateSetRefsetCache snolateSetRefsetCache,
+			SnowstormClientFactory snowstormClientFactory,
 			SnolateTranslationSourceRepository translationSourceRepository, SnolateTranslationUnitRepository translationUnitRepository,
 			SnolateTranslationSearchService translationSearchService, TranslationLLMService translationLLMService, SupportRegister supportRegister,
 			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix,
 			@Value("${snolate.label.batch-size}") int labelBatchSize, ObjectMapper objectMapper) {
 
 		this.snolateSetRepository = snolateSetRepository;
+		this.snolateSetRefsetCache = snolateSetRefsetCache;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.supportRegister = supportRegister;
 		this.objectMapper = objectMapper;
@@ -74,7 +78,9 @@ public class SnolateSetService {
 	}
 
 	public List<SnolateTranslationSet> findByCodeSystemAndRefset(String codeSystem, String refsetId) {
-		return snolateSetRepository.findByCodesystemAndRefsetOrderByName(codeSystem, refsetId);
+		return snolateSetRefsetCache.listByCodeSystemAndRefset(codeSystem, refsetId).stream()
+				.map(SnolateTranslationSet::copyForRead)
+				.toList();
 	}
 
 	public SnolateTranslationSet findSubsetOrThrow(String codeSystem, String refsetId, String label) throws ServiceExceptionWithStatusCode {
@@ -88,22 +94,26 @@ public class SnolateSetService {
 
 	public SnolateTranslationSet createSet(SnolateTranslationSet translationSet) throws ServiceException {
 		creationService.createSet(translationSet);
+		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
 		return translationSet;
 	}
 
 	public SnolateTranslationSet refreshSet(SnolateTranslationSet translationSet) throws ServiceException {
 		creationService.refreshSet(translationSet);
+		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
 		return translationSet;
 	}
 
 	public void updateSet(SnolateTranslationSet translationSet) {
 		snolateSetRepository.save(translationSet);
+		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
 	}
 
 	public void deleteSet(SnolateTranslationSet translationSet) throws ServiceException {
 		translationSet.setStatus(TranslationSetStatus.DELETING);
 		snolateSetRepository.save(translationSet);
 		creationService.queueDelete(translationSet);
+		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
 	}
 
 	public void runAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) throws ServiceException {
@@ -155,12 +165,17 @@ public class SnolateSetService {
 			logger.error("Error - {} Snolate translation set: {}/{}/{}",
 					jobType, translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel(), e);
 
+			if (e instanceof UncategorizedElasticsearchException elasticsearchException) {
+				logger.info(elasticsearchException.getResponseBody());
+			}
+
 			if (!jobType.equals(JOB_TYPE_DELETE)) {
 				translationSet.setStatus(TranslationSetStatus.FAILED);
 				snolateSetRepository.save(translationSet);
 			}
 		} finally {
 			SecurityContextHolder.clearContext();
+			snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
 		}
 	}
 }

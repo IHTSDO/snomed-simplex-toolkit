@@ -92,6 +92,31 @@ public final class SnolateTranslationSet {
 		this.created = new Date();
 	}
 
+	/**
+	 * Deep enough copy for returning from caches: persisted fields are copied; transient fields stay at defaults
+	 * so callers can safely run {@code applyCounts} / {@code applyDashboardMetadata} per request.
+	 */
+	public SnolateTranslationSet copyForRead() {
+		SnolateTranslationSet c = new SnolateTranslationSet(codesystem, refset, name, label, ecl, subsetType, selectionCodesystem);
+		c.setId(id);
+		c.setCodesystem(codesystem);
+		c.setRefset(refset);
+		c.setLanguageCode(languageCode);
+		c.setAiGoldenSet(aiGoldenSet != null ? new LinkedHashMap<>(aiGoldenSet) : null);
+		c.setAiLanguageAdvice(aiLanguageAdvice);
+		c.setSize(size);
+		c.setPercentageProcessed(percentageProcessed);
+		c.setStatus(status);
+		if (created != null) {
+			c.setCreated(new Date(created.getTime()));
+		}
+		if (lastPulled != null) {
+			c.setLastPulled(new Date(lastPulled.getTime()));
+		}
+		c.setInternationalEffectiveTime(internationalEffectiveTime);
+		return c;
+	}
+
 	/** Composite set key (edition short name / refset / label); stored on {@link org.snomed.simplex.snolate.domain.TranslationUnit#memberOf}. */
 	public String getCompositeSetCode() {
 		return "%s_%s_%s".formatted(getCodesystem().replace("SNOMEDCT-", ""), getRefset(), getLabel());
