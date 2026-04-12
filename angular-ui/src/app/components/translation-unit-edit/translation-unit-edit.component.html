@@ -4,9 +4,29 @@
 			<mat-icon>arrow_back</mat-icon>
 			Back to set
 		</button>
-		<span class="position" *ngIf="totalCount != null">
-			Concept {{ globalIndex + 1 }} of {{ totalCount }}
-		</span>
+		<div class="toolbar-end" *ngIf="totalCount != null">
+			<span class="position">Concept {{ globalIndex + 1 }} of {{ totalCount }}</span>
+			<div class="toolbar-paging">
+				<button
+					mat-stroked-button
+					type="button"
+					class="toolbar-paging-btn"
+					(click)="goPrevWithoutSave()"
+					[disabled]="!canGoPrev() || loading || saving">
+					<mat-icon>chevron_left</mat-icon>
+					Previous
+				</button>
+				<button
+					mat-stroked-button
+					type="button"
+					class="toolbar-paging-btn"
+					(click)="goNextWithoutSave()"
+					[disabled]="!canGoNext() || loading || saving">
+					Next
+					<mat-icon>chevron_right</mat-icon>
+				</button>
+			</div>
+		</div>
 	</div>
 
 	<div *ngIf="loading" class="loading-wrap">
@@ -14,7 +34,7 @@
 	</div>
 
 	<form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()" class="edit-form">
-		<h1 class="page-title">Edit translation</h1>
+		<h1 class="page-title">Translation</h1>
 		<p class="concept-line" *ngIf="conceptId">
 			<span class="concept-line__label">Concept</span>
 			<span class="concept-line__id">{{ conceptId }}</span>

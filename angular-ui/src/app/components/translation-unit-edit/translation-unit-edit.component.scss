@@ -40,6 +40,33 @@ $readonly-bg: #f7f7f8;
 	margin-left: -0.8rem;
 }
 
+.toolbar-end {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 0.85rem;
+}
+
+.toolbar-paging {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.75rem;
+}
+
+.toolbar-paging-btn {
+	font-size: 1.35rem;
+	min-height: 4rem;
+	padding: 0 1.2rem;
+
+	mat-icon {
+		font-size: 2.2rem;
+		width: 2.2rem;
+		height: 2.2rem;
+	}
+}
+
 .position {
 	opacity: 0.85;
 	font-size: 1.3rem;

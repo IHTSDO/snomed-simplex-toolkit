@@ -1,19 +1,13 @@
-import { HttpClient } from '@angular/common/http';
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { FormArray, FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { ActivatedRoute, ActivatedRouteSnapshot, NavigationEnd, Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, Subscription, merge, of, firstValueFrom } from 'rxjs';
-import { catchError, debounceTime, delay, distinctUntilChanged, filter, finalize, map, switchMap, take, tap } from 'rxjs/operators';
-import { SimplexService } from 'src/app/services/simplex/simplex.service';
-import {
-	browserSnowstormConceptToContext,
-	TranslationConceptContextRow
-} from 'src/app/utils/snowstorm-browser-concept-context';
-import {
-	TRANSLATION_STATUS_RADIO_ORDER,
-	translationStatusRadioLabel
-} from 'src/app/utils/translation-status-label';
+import {HttpClient} from '@angular/common/http';
+import {ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
+import {FormArray, FormBuilder, FormControl, Validators} from '@angular/forms';
+import {ActivatedRoute, ActivatedRouteSnapshot, Router} from '@angular/router';
+import {MatSnackBar} from '@angular/material/snack-bar';
+import {firstValueFrom, merge, Observable, of, Subscription} from 'rxjs';
+import {catchError, debounceTime, distinctUntilChanged, filter, finalize, map, switchMap, take, tap} from 'rxjs/operators';
+import {SimplexService} from 'src/app/services/simplex/simplex.service';
+import {browserSnowstormConceptToContext, TranslationConceptContextRow} from 'src/app/utils/snowstorm-browser-concept-context';
+import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
 
 @Component({
 	selector: 'app-translation-unit-edit',
@@ -48,8 +42,8 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 
 	private sub: Subscription | null = null;
 	private formSyncSub: Subscription | null = null;
-	/** Skip one route-driven reload when Next/Previous already applied the row (avoids a second spinner + fetch). */
-	private suppressRouteReloadForKey: string | null = null;
+	/** True while Next/Previous is navigating + loading; suppresses duplicate paramMap-driven loads. */
+	private pagingNavigation = false;
 	/**
 	 * Snowstorm branch path from query {@code b} (e.g. MAIN or MAIN/SNOMEDCT-NO). When absent, resolved via edition API.
 	 */
@@ -61,7 +55,8 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		private router: Router,
 		private http: HttpClient,
 		private simplexService: SimplexService,
-		private snackBar: MatSnackBar
+		private snackBar: MatSnackBar,
+		private cdr: ChangeDetectorRef
 	) {}
 
 	get synonyms(): FormArray {
@@ -89,26 +84,19 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		).subscribe(() => this.syncStatusWithTranslationText());
 		this.syncStatusWithTranslationText();
 
-		// ActivatedRoute.paramMap / queryParamMap often do not emit when only :conceptId or
-		// query params change on the same route. NavigationEnd + snapshot reload is reliable
-		// for Next/Previous and deep links.
-		this.sub = merge(
-			of(null),
-			this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
-		)
+		// Reload when :conceptId changes (browser back, deep links). Next/Previous also awaits load below
+		// because paramMap does not always emit when the router reuses this component.
+		// Map + distinct before paging filter so distinctUntilChanged tracks the new conceptId even when
+		// the next emission is dropped while pagingNavigation is true (otherwise back/forward can break).
+		this.sub = this.route.paramMap
 			.pipe(
-				debounceTime(0),
-				delay(0),
-				filter(() => this.isTranslationUnitEditSnapshot()),
-				map(() => this.translationEditRouteStateKey()),
-				filter((key) => {
-					if (this.suppressRouteReloadForKey != null && key === this.suppressRouteReloadForKey) {
-						this.suppressRouteReloadForKey = null;
-						return false;
-					}
-					return true;
-				}),
+				map((pm) => pm.get('conceptId') ?? ''),
 				distinctUntilChanged(),
+				// Drop before debounce — otherwise debounce queues an emission that fires after paging ends
+				// and starts a second load (loading stuck true) while firstValueFrom already completed.
+				filter(() => !this.pagingNavigation),
+				debounceTime(0),
+				filter(() => this.isTranslationUnitEditSnapshot()),
 				switchMap(() => this.loadSampleRowForSnapshot$())
 			)
 			.subscribe({
@@ -148,11 +136,6 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			p.get('label') &&
 			p.get('conceptId')
 		);
-	}
-
-	/** Full router URL (path + query); ActivationRoute.snapshot can lag after NavigationEnd. */
-	private translationEditRouteStateKey(): string {
-		return this.router.url;
 	}
 
 	private applySnapshotToFields(): void {
@@ -223,6 +206,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 					}),
 					map(() => row)
 				);
+			}),
+			finalize(() => {
+				this.loading = false;
 			})
 		);
 	}
@@ -258,16 +244,6 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 					)
 			)
 		);
-	}
-
-	private async refreshConceptContextFromSnowstorm(): Promise<void> {
-		this.conceptDetailsLoading = true;
-		this.conceptContext = null;
-		try {
-			this.conceptContext = await firstValueFrom(this.loadSnowstormConceptContext$());
-		} finally {
-			this.conceptDetailsLoading = false;
-		}
 	}
 
 	ngOnDestroy(): void {
@@ -360,6 +336,19 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		return this.totalCount != null && this.globalIndex < this.totalCount - 1;
 	}
 
+	/** Move to adjacent concept without persisting the form (contrast: Save and Previous / Save and Next). */
+	goPrevWithoutSave(): void {
+		if (this.canGoPrev() && !this.loading && !this.saving) {
+			void this.navigateToGlobalIndex(this.globalIndex - 1);
+		}
+	}
+
+	goNextWithoutSave(): void {
+		if (this.canGoNext() && !this.loading && !this.saving) {
+			void this.navigateToGlobalIndex(this.globalIndex + 1);
+		}
+	}
+
 	async saveAndPrev(): Promise<void> {
 		await this.saveAndNavigate(-1);
 	}
@@ -395,36 +384,21 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		const s = this.pageSize;
 		const page = Math.floor(newIndex / s);
 		const idx = newIndex % s;
+		if (!this.edition || !this.refset || !this.label) {
+			return;
+		}
+		this.pagingNavigation = true;
 		this.loading = true;
 		try {
 			const pageResp = await firstValueFrom(
-				this.simplexService.getTranslationSetRows(
-					this.edition,
-					this.refset,
-					this.label,
-					page,
-					s
-				)
+				this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, page, s)
 			);
 			const results = pageResp.results ?? [];
-			const row = results[idx];
-			const nextConceptId = row?.context != null ? String(row.context) : '';
+			const listRow = results[idx];
+			const nextConceptId = listRow?.context != null ? String(listRow.context) : '';
 			if (!nextConceptId) {
+				this.loading = false;
 				this.snackBar.open('Could not load adjacent row.', 'Dismiss', { duration: 5000 });
-				return;
-			}
-			const sampleRow = await firstValueFrom(
-				this.simplexService.getTranslationSetSampleRow(
-					this.edition,
-					this.refset,
-					this.label,
-					nextConceptId
-				)
-			);
-			if (sampleRow == null) {
-				this.snackBar.open('Could not load translation row for the next concept.', 'Dismiss', {
-					duration: 5000
-				});
 				return;
 			}
 			const t = this.totalCount ?? pageResp.count ?? 0;
@@ -439,34 +413,27 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			if (this.snowstormBranchQuery) {
 				queryParams['b'] = this.snowstormBranchQuery;
 			}
-			const ok = await this.router.navigate(
-				[
-					'/translation-studio',
-					this.edition,
-					this.refset,
-					this.label,
-					'edit',
-					nextConceptId
-				],
+			const urlTree = this.router.createUrlTree(
+				['/translation-studio', this.edition, this.refset, this.label, 'edit', nextConceptId],
 				{ queryParams }
 			);
+			const ok = await this.router.navigateByUrl(urlTree);
 			if (!ok) {
+				this.loading = false;
 				this.snackBar.open('Navigation was blocked; try again.', 'Dismiss', { duration: 5000 });
 				return;
 			}
-			this.globalIndex = newIndex;
-			this.pageSize = s;
-			this.totalCount = t;
-			this.conceptId = nextConceptId;
-			this.applyRow(sampleRow);
-			this.suppressRouteReloadForKey = this.translationEditRouteStateKey();
-			void this.refreshConceptContextFromSnowstorm();
+			// Route reuse: paramMap may not emit; always load after navigation succeeds.
+			await firstValueFrom(this.loadSampleRowForSnapshot$().pipe(take(1)));
+			this.loading = false;
+			this.cdr.detectChanges();
 		} catch {
+			this.loading = false;
 			this.snackBar.open('Failed to page through translation set.', 'Dismiss', {
 				duration: 5000
 			});
 		} finally {
-			this.loading = false;
+			this.pagingNavigation = false;
 		}
 	}
 
