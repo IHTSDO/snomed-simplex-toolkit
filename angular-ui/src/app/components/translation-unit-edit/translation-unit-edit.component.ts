@@ -499,6 +499,19 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.synonyms.removeAt(index);
 	}
 
+	/** Swap this synonym’s text with the Preferred Term (primary) field. */
+	makeSynonymPreferredTerm(index: number): void {
+		const primaryCtrl = this.form.get('primaryTerm');
+		const synCtrl = this.synonyms.at(index);
+		if (!primaryCtrl || !synCtrl) {
+			return;
+		}
+		const pt = (primaryCtrl.value as string) ?? '';
+		const syn = (synCtrl.value as string) ?? '';
+		primaryCtrl.setValue(syn);
+		synCtrl.setValue(pt);
+	}
+
 	descriptionRoleLabel(role: string): string {
 		switch (role) {
 			case 'FSN':
