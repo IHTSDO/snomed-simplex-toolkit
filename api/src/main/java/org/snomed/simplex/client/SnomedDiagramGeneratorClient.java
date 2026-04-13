@@ -69,4 +69,36 @@ public class SnomedDiagramGeneratorClient {
 			throw new ServiceException("Failed to save local copy of diagram for concept %s".formatted(conceptId));
 		}
 	}
+
+	/**
+	 * Generate a diagram PNG in memory (no temp file).
+	 *
+	 * @param conceptId   The concept ID (for error messages)
+	 * @param conceptData The concept data from the SNOMED CT API
+	 * @return PNG bytes
+	 */
+	public byte[] generateDiagramBytes(String conceptId, Concept conceptData) throws ServiceException {
+		try {
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			HttpEntity<Concept> requestEntity = new HttpEntity<>(conceptData, headers);
+			ResponseEntity<Resource> response = restTemplate.exchange(
+					DIAGRAM_ENDPOINT,
+					HttpMethod.POST,
+					requestEntity,
+					Resource.class
+			);
+			Resource body = response.getBody();
+			if (response.getStatusCode().is2xxSuccessful() && body != null) {
+				try (var in = body.getInputStream()) {
+					return in.readAllBytes();
+				}
+			}
+			throw new ServiceException("Failed to generate diagram for concept %s".formatted(conceptId));
+		} catch (RestClientResponseException e) {
+			throw new ServiceException("Failed to fetch diagram for concept %s".formatted(conceptId), e);
+		} catch (IOException e) {
+			throw new ServiceException("Failed to read diagram for concept %s".formatted(conceptId), e);
+		}
+	}
 } 
