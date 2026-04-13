@@ -615,8 +615,8 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		
 		this.loadingNewExample = true;
 		
-		// Build the API URL to fetch the specific sample row
-		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/snolate-set/${this.data.label}/sample-row/${conceptId.trim()}`;
+		// Build the API URL to fetch the specific translation unit
+		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/snolate-set/${this.data.label}/unit/${conceptId.trim()}`;
 		
 		this.http.get(apiUrl).subscribe({
 			next: (response: any) => {

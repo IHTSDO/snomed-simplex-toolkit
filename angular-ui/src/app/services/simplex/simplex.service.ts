@@ -406,7 +406,7 @@ export class SimplexService {
   ): Observable<any> {
     const id = encodeURIComponent(conceptId.trim());
     return this.http
-      .get(`api/${edition}/translations/${refsetId}/snolate-set/${label}/sample-row/${id}`)
+      .get(`api/${edition}/translations/${refsetId}/snolate-set/${label}/unit/${id}`)
       .pipe(catchError(this.handleError.bind(this)));
   }
 
