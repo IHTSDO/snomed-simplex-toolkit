@@ -5,6 +5,22 @@ import {ActivatedRoute, ActivatedRouteSnapshot, Router} from '@angular/router';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {firstValueFrom, merge, Observable, of, Subscription} from 'rxjs';
 import {catchError, debounceTime, distinctUntilChanged, filter, finalize, map, switchMap, take, tap} from 'rxjs/operators';
+
+/** Parses Snowstorm browser batch responses (array, or paged {@code items}). */
+function snowstormBrowserBatchResponseItems(body: unknown): any[] {
+	if (body == null) {
+		return [];
+	}
+	if (Array.isArray(body)) {
+		return body;
+	}
+	const o = body as Record<string, unknown>;
+	const items = o['items'];
+	if (Array.isArray(items)) {
+		return items;
+	}
+	return [];
+}
 import {SimplexService} from 'src/app/services/simplex/simplex.service';
 import {browserSnowstormConceptToContext, TranslationConceptContextRow} from 'src/app/utils/snowstorm-browser-concept-context';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
@@ -48,6 +64,13 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	 * Snowstorm branch path from query {@code b} (e.g. MAIN or MAIN/SNOMEDCT-NO). When absent, resolved via edition API.
 	 */
 	private snowstormBranchQuery: string | null = null;
+
+	/**
+	 * Browser-format concept context for all concepts on the current translation page segment (see {@link globalIndex} / {@link pageSize}).
+	 * Refreshed when the segment or Snowstorm branch changes; avoids one HTTP GET per concept.
+	 */
+	private segmentSnowstormCacheKey: string | null = null;
+	private segmentConceptContextById = new Map<string, TranslationConceptContextRow>();
 
 	constructor(
 		private fb: FormBuilder,
@@ -167,6 +190,11 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 				? this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, 0, 1).pipe(
 						switchMap((page0) => {
 							this.totalCount = page0.count ?? 0;
+							const results = page0.results ?? [];
+							const first = results[0];
+							if (first != null && String(first.context) === String(this.conceptId)) {
+								return of(first);
+							}
 							return this.simplexService.getTranslationSetSampleRow(
 								this.edition,
 								this.refset,
@@ -188,32 +216,144 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 					this.loading = false;
 				}
 			}),
-			switchMap((row) => {
-				this.loading = false;
-				if (row == null) {
-					return of(null);
-				}
-				this.applyRow(row);
-				this.conceptDetailsLoading = true;
-				this.conceptContext = null;
-				return this.loadSnowstormConceptContext$().pipe(
-					tap((ctx) => {
-						this.conceptContext = ctx;
-					}),
-					catchError(() => of(null)),
-					finalize(() => {
-						this.conceptDetailsLoading = false;
-					}),
-					map(() => row)
-				);
-			}),
+			switchMap((row) => this.loadRowIntoEditor$(row)),
 			finalize(() => {
 				this.loading = false;
 			})
 		);
 	}
 
-	private loadSnowstormConceptContext$(): Observable<TranslationConceptContextRow | null> {
+	/** Applies API row data to the form and loads Snowstorm browser context (shared by snapshot load and next/prev paging). */
+	private loadRowIntoEditor$(
+		row: any | null,
+		snowstormPrefetch?: { page: number; pageSize: number; results: any[] }
+	): Observable<any | null> {
+		this.loading = false;
+		if (row == null) {
+			return of(null);
+		}
+		this.applyRow(row);
+		this.conceptDetailsLoading = true;
+		this.conceptContext = null;
+		return this.loadSnowstormConceptContext$(snowstormPrefetch).pipe(
+			tap((ctx) => {
+				this.conceptContext = ctx;
+			}),
+			catchError(() => of(null)),
+			finalize(() => {
+				this.conceptDetailsLoading = false;
+			}),
+			map(() => row)
+		);
+	}
+
+	private segmentCacheKeyForBranch(branch: string): string {
+		const page = Math.floor(this.globalIndex / this.pageSize);
+		return `${this.edition}|${this.refset}|${this.label}|${branch}|${page}|${this.pageSize}`;
+	}
+
+	private fillSegmentConceptCacheFromRaw(rawConcepts: any[]): void {
+		this.segmentConceptContextById.clear();
+		for (const raw of rawConcepts) {
+			const ctx = browserSnowstormConceptToContext(raw);
+			if (ctx) {
+				this.segmentConceptContextById.set(ctx.conceptId, ctx);
+			}
+		}
+	}
+
+	/**
+	 * Loads browser-format SNOMED concepts for the current translation page in one request
+	 * ({@code POST .../browser/{branch}/concepts/bulk-load} with {@code conceptIds}).
+	 */
+	private ensureSegmentSnowstormCache$(
+		branch: string,
+		prefetch?: { page: number; pageSize: number; results: any[] }
+	): Observable<void> {
+		const page = Math.floor(this.globalIndex / this.pageSize);
+		const segmentKey = this.segmentCacheKeyForBranch(branch);
+		if (
+			this.segmentSnowstormCacheKey === segmentKey &&
+			this.segmentConceptContextById.has(this.conceptId)
+		) {
+			return of(undefined);
+		}
+
+		let results$: Observable<any[]>;
+		if (
+			prefetch != null &&
+			prefetch.page === page &&
+			prefetch.pageSize === this.pageSize &&
+			Array.isArray(prefetch.results)
+		) {
+			results$ = of(prefetch.results);
+		} else {
+			results$ = this.simplexService
+				.getTranslationSetRows(this.edition, this.refset, this.label, page, this.pageSize)
+				.pipe(map((resp) => resp.results ?? []));
+		}
+
+		return results$.pipe(
+			switchMap((results) => {
+				const ids = [
+					...new Set(
+						results
+							.map((r) => (r?.context != null ? String(r.context) : ''))
+							.filter((id) => id.length > 0)
+					)
+				];
+				if (ids.length === 0) {
+					this.segmentConceptContextById.clear();
+					this.segmentSnowstormCacheKey = segmentKey;
+					return of(undefined);
+				}
+				const body = { conceptIds: ids };
+				const enc = encodeURIComponent(branch);
+				const urlBulk = `/snowstorm/snomed-ct/browser/${enc}/concepts/bulk-load`;
+				return this.http.post<unknown>(urlBulk, body).pipe(
+					tap((resp) => {
+						const items = Array.isArray(resp) ? resp : snowstormBrowserBatchResponseItems(resp);
+						this.fillSegmentConceptCacheFromRaw(items);
+						this.segmentSnowstormCacheKey = segmentKey;
+					}),
+					switchMap(() =>
+						this.segmentConceptContextById.has(this.conceptId)
+							? of(undefined)
+							: this.fetchSingleSnowstormConcept$(branch)
+					),
+					catchError(() => this.fetchSingleSnowstormConcept$(branch))
+				);
+			})
+		);
+	}
+
+	private fetchSingleSnowstormConcept$(branch: string): Observable<void> {
+		return this.http
+			.get<unknown>(
+				`/snowstorm/snomed-ct/browser/${encodeURIComponent(branch)}/concepts/${encodeURIComponent(this.conceptId)}`
+			)
+			.pipe(
+				tap((raw) => {
+					const ctx = browserSnowstormConceptToContext(raw);
+					if (ctx) {
+						this.segmentConceptContextById.set(ctx.conceptId, ctx);
+					}
+				}),
+				map(() => undefined),
+				catchError(() => {
+					this.snackBar.open(
+						'Could not load concept details from the terminology server.',
+						'Dismiss',
+						{ duration: 6000 }
+					);
+					return of(undefined);
+				})
+			);
+	}
+
+	private loadSnowstormConceptContext$(
+		prefetch?: { page: number; pageSize: number; results: any[] }
+	): Observable<TranslationConceptContextRow | null> {
 		const branch$ =
 			this.snowstormBranchQuery != null && this.snowstormBranchQuery.trim().length > 0
 				? of(this.snowstormBranchQuery.trim())
@@ -227,21 +367,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 					);
 		return branch$.pipe(
 			switchMap((branch) =>
-				this.http
-					.get<unknown>(
-						`/snowstorm/snomed-ct/browser/${encodeURIComponent(branch)}/concepts/${encodeURIComponent(this.conceptId)}`
-					)
-					.pipe(
-						map((raw) => browserSnowstormConceptToContext(raw)),
-						catchError(() => {
-							this.snackBar.open(
-								'Could not load concept details from the terminology server.',
-								'Dismiss',
-								{ duration: 6000 }
-							);
-							return of(null);
-						})
-					)
+				this.ensureSegmentSnowstormCache$(branch, prefetch).pipe(
+					map(() => this.segmentConceptContextById.get(this.conceptId) ?? null)
+				)
 			)
 		);
 	}
@@ -423,8 +551,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 				this.snackBar.open('Navigation was blocked; try again.', 'Dismiss', { duration: 5000 });
 				return;
 			}
-			// Route reuse: paramMap may not emit; always load after navigation succeeds.
-			await firstValueFrom(this.loadSampleRowForSnapshot$().pipe(take(1)));
+			// Route reuse: paramMap may not emit; apply row from the page we already fetched (same data as GET .../unit/...).
+			this.applySnapshotToFields();
+			await firstValueFrom(this.loadRowIntoEditor$(listRow, { page, pageSize: s, results }).pipe(take(1)));
 			this.loading = false;
 			this.cdr.detectChanges();
 		} catch {
