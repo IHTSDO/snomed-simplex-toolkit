@@ -3,7 +3,7 @@ import {ChangeDetectorRef, Component, OnDestroy, OnInit} from '@angular/core';
 import {FormArray, FormBuilder, FormControl, Validators} from '@angular/forms';
 import {ActivatedRoute, ActivatedRouteSnapshot, Router} from '@angular/router';
 import {MatSnackBar} from '@angular/material/snack-bar';
-import {firstValueFrom, merge, Observable, of, Subscription} from 'rxjs';
+import {firstValueFrom, forkJoin, merge, Observable, of, Subscription} from 'rxjs';
 import {catchError, debounceTime, distinctUntilChanged, filter, finalize, map, switchMap, take, tap} from 'rxjs/operators';
 
 /** Parses Snowstorm browser batch responses (array, or paged {@code items}). */
@@ -24,6 +24,60 @@ function snowstormBrowserBatchResponseItems(body: unknown): any[] {
 import {SimplexService} from 'src/app/services/simplex/simplex.service';
 import {browserSnowstormConceptToContext, TranslationConceptContextRow} from 'src/app/utils/snowstorm-browser-concept-context';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
+
+/** Snowstorm {@code POST .../concepts/partial-hierarchy} node (see PartialHierarchyNode). */
+export interface PartialHierarchyNode {
+	code: string;
+	parents: string[] | null;
+	term: string | null;
+}
+
+export interface PartialHierarchyRow {
+	code: string;
+	term: string;
+	depth: number;
+}
+
+/**
+ * Computes indent depth from parent links; list order matches Snowstorm (layer-sorted).
+ */
+function buildPartialHierarchyRows(nodes: PartialHierarchyNode[]): PartialHierarchyRow[] {
+	if (!nodes.length) {
+		return [];
+	}
+	const nodeMap = new Map(nodes.map((n) => [n.code, n]));
+	const depthMemo = new Map<string, number>();
+
+	function depthOf(code: string, visiting: Set<string>): number {
+		if (depthMemo.has(code)) {
+			return depthMemo.get(code)!;
+		}
+		if (visiting.has(code)) {
+			return 0;
+		}
+		const n = nodeMap.get(code);
+		if (!n) {
+			return 0;
+		}
+		const ps = n.parents ?? [];
+		let d = 0;
+		visiting.add(code);
+		for (const p of ps) {
+			if (nodeMap.has(p)) {
+				d = Math.max(d, depthOf(p, visiting) + 1);
+			}
+		}
+		visiting.delete(code);
+		depthMemo.set(code, d);
+		return d;
+	}
+
+	return nodes.map((n) => ({
+		code: n.code,
+		term: (n.term != null && String(n.term).trim().length > 0 ? String(n.term).trim() : null) ?? n.code,
+		depth: depthOf(n.code, new Set())
+	}));
+}
 
 @Component({
 	selector: 'app-translation-unit-edit',
@@ -74,10 +128,22 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	/** Raw Snowstorm browser-format JSON per concept id (same segment as {@link segmentConceptContextById}). */
 	private segmentRawConceptById = new Map<string, unknown>();
 
+	/** Concept ids on the current translation page slice (e.g. up to {@link pageSize}); used to filter hierarchy rows. */
+	private currentPageConceptIdSet = new Set<string>();
+
 	/** When true, Parents/Attributes are replaced by the concept diagram. */
 	showConceptDiagram = false;
 	conceptDiagramUrl: string | null = null;
 	conceptDiagramLoading = false;
+
+	/** Inferred IS-A partial hierarchy for the current translation page concept ids (Snowstorm partial-hierarchy API). */
+	partialHierarchyRows: PartialHierarchyRow[] = [];
+
+	/** First target term per concept id on the current page slice (from API; live-updated for the open row from the form). */
+	private sliceFirstTargetTermByConceptId = new Map<string, string>();
+
+	/** When true, hierarchy list shows slice translations (primary term) instead of Snowstorm terms. */
+	showHierarchyTranslationTerms = false;
 
 	constructor(
 		private fb: FormBuilder,
@@ -111,7 +177,10 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.formSyncSub = merge(
 			this.form.get('primaryTerm')!.valueChanges,
 			this.synonyms.valueChanges
-		).subscribe(() => this.syncStatusWithTranslationText());
+		).subscribe(() => {
+			this.syncStatusWithTranslationText();
+			this.syncSliceMapForCurrentConceptFromForm();
+		});
 		this.syncStatusWithTranslationText();
 
 		// Reload when :conceptId changes (browser back, deep links). Next/Previous also awaits load below
@@ -237,6 +306,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	): Observable<any | null> {
 		this.loading = false;
 		if (row == null) {
+			this.partialHierarchyRows = [];
+			this.currentPageConceptIdSet.clear();
+			this.sliceFirstTargetTermByConceptId.clear();
 			return of(null);
 		}
 		this.resetConceptDiagramUi();
@@ -258,6 +330,45 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	private segmentCacheKeyForBranch(branch: string): string {
 		const page = Math.floor(this.globalIndex / this.pageSize);
 		return `${this.edition}|${this.refset}|${this.label}|${branch}|${page}|${this.pageSize}`;
+	}
+
+	private fillSliceTranslationTermsFromResults(results: any[]): void {
+		this.sliceFirstTargetTermByConceptId.clear();
+		for (const r of results) {
+			const cid = r?.context != null ? String(r.context) : '';
+			if (!cid) {
+				continue;
+			}
+			const target: unknown[] = Array.isArray(r.target) ? r.target : [];
+			const first = (target[0] != null ? String(target[0]) : '').trim();
+			this.sliceFirstTargetTermByConceptId.set(cid, first);
+		}
+	}
+
+	/** Keeps the open row’s slice map entry aligned with the preferred term field (while editing). */
+	private syncSliceMapForCurrentConceptFromForm(): void {
+		if (!this.conceptId) {
+			return;
+		}
+		const primary = (this.form.get('primaryTerm')?.value as string)?.trim() ?? '';
+		this.sliceFirstTargetTermByConceptId.set(this.conceptId, primary);
+	}
+
+	/** Hierarchy label when {@link showHierarchyTranslationTerms} is on (translation or fallback SNOMED term). */
+	hierarchyTermDisplay(row: PartialHierarchyRow): string {
+		if (!this.showHierarchyTranslationTerms) {
+			return row.term;
+		}
+		const t = (this.sliceFirstTargetTermByConceptId.get(row.code) ?? '').trim();
+		return t.length > 0 ? t : row.term;
+	}
+
+	/** True when showing translations but this concept has no primary target yet. */
+	hierarchyTermIsMissingTranslation(row: PartialHierarchyRow): boolean {
+		if (!this.showHierarchyTranslationTerms) {
+			return false;
+		}
+		return (this.sliceFirstTargetTermByConceptId.get(row.code) ?? '').trim().length === 0;
 	}
 
 	private fillSegmentConceptCacheFromRaw(rawConcepts: any[]): void {
@@ -319,16 +430,44 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 					this.segmentConceptContextById.clear();
 					this.segmentRawConceptById.clear();
 					this.segmentSnowstormCacheKey = segmentKey;
+					this.partialHierarchyRows = [];
+					this.currentPageConceptIdSet.clear();
+					this.sliceFirstTargetTermByConceptId.clear();
 					return of(undefined);
 				}
+				this.currentPageConceptIdSet = new Set(ids);
 				const body = { conceptIds: ids };
 				const enc = encodeURIComponent(branch);
 				const urlBulk = `/snowstorm/snomed-ct/browser/${enc}/concepts/bulk-load`;
-				return this.http.post<unknown>(urlBulk, body).pipe(
-					tap((resp) => {
-						const items = Array.isArray(resp) ? resp : snowstormBrowserBatchResponseItems(resp);
+				const urlPartial = `/snowstorm/snomed-ct/browser/${enc}/concepts/partial-hierarchy`;
+				const partialBody = { codes: ids, includeTerms: true };
+				this.partialHierarchyRows = [];
+				return forkJoin({
+					bulk: this.http.post<unknown>(urlBulk, body),
+					partial: this.http.post<PartialHierarchyNode[]>(urlPartial, partialBody).pipe(
+						catchError((err) => {
+							console.warn('Partial SNOMED hierarchy unavailable (Snowstorm 10.7+):', err);
+							return of<PartialHierarchyNode[]>([]);
+						})
+					)
+				}).pipe(
+					tap(({ bulk, partial }) => {
+						const items = Array.isArray(bulk) ? bulk : snowstormBrowserBatchResponseItems(bulk);
 						this.fillSegmentConceptCacheFromRaw(items);
 						this.segmentSnowstormCacheKey = segmentKey;
+						this.fillSliceTranslationTermsFromResults(results);
+						this.syncSliceMapForCurrentConceptFromForm();
+						const sliceNodes = partial.filter((n) => this.currentPageConceptIdSet.has(n.code));
+						const rows = buildPartialHierarchyRows(sliceNodes);
+						const orderInPage = new Map<string, number>();
+						results.forEach((r, i) => {
+							const cid = r?.context != null ? String(r.context) : '';
+							if (cid.length > 0 && !orderInPage.has(cid)) {
+								orderInPage.set(cid, i);
+							}
+						});
+						rows.sort((a, b) => (orderInPage.get(a.code) ?? 0) - (orderInPage.get(b.code) ?? 0));
+						this.partialHierarchyRows = rows;
 					}),
 					switchMap(() =>
 						this.segmentConceptContextById.has(this.conceptId)
@@ -489,6 +628,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			status
 		});
 		this.syncStatusWithTranslationText();
+		this.syncSliceMapForCurrentConceptFromForm();
 	}
 
 	addSynonym(): void {
