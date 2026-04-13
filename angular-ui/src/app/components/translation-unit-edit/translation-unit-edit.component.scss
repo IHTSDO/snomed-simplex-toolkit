@@ -323,6 +323,17 @@ $readonly-bg: #f7f7f8;
 		min-width: 0;
 	}
 
+	.synonym-make-pt-btn {
+		flex-shrink: 0;
+		align-self: flex-start;
+		margin-top: 0.4rem;
+		font-size: 1.25rem;
+		min-height: 4rem;
+		padding: 0 1rem;
+		line-height: 1.2;
+		white-space: nowrap;
+	}
+
 	mat-icon-button {
 		margin-top: 0.4rem;
 		flex-shrink: 0;

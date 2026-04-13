@@ -205,6 +205,14 @@
 					autocomplete="off"
 					[attr.aria-label]="'Synonym ' + (si + 1)"
 				/>
+				<button
+					mat-stroked-button
+					type="button"
+					class="synonym-make-pt-btn"
+					(click)="makeSynonymPreferredTerm(si)"
+					aria-label="Make this synonym the preferred term">
+					Make PT
+				</button>
 				<button mat-icon-button type="button" (click)="removeSynonym(si)" aria-label="Remove synonym">
 					<mat-icon>delete</mat-icon>
 				</button>
