@@ -69,6 +69,7 @@ import { TimelineComponent } from './components/timeline/timeline.component';
 import { ValidationResultsComponent } from './components/validation-results/validation-results.component';
 import {MatCardModule} from '@angular/material/card';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import { ProductPackagingComponent } from './components/product-packaging/product-packaging.component';
 import { WelcomeComponent } from './components/welcome/welcome.component';
 import { UpgradeEditionComponent } from './components/upgrade-edition/upgrade-edition.component';
@@ -159,7 +160,8 @@ import {ConfigService} from "./services/config/config.service";
         MatTooltipModule,
         MatProgressBarModule,
         MatCardModule,
-        MatAutocompleteModule], providers: [
+        MatAutocompleteModule,
+        MatSlideToggleModule], providers: [
         AuthenticationService,
         AuthoringService,
         StatusPageService,

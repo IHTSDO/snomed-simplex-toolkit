@@ -71,6 +71,13 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	 */
 	private segmentSnowstormCacheKey: string | null = null;
 	private segmentConceptContextById = new Map<string, TranslationConceptContextRow>();
+	/** Raw Snowstorm browser-format JSON per concept id (same segment as {@link segmentConceptContextById}). */
+	private segmentRawConceptById = new Map<string, unknown>();
+
+	/** When true, Parents/Attributes are replaced by the concept diagram. */
+	showConceptDiagram = false;
+	conceptDiagramUrl: string | null = null;
+	conceptDiagramLoading = false;
 
 	constructor(
 		private fb: FormBuilder,
@@ -232,6 +239,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		if (row == null) {
 			return of(null);
 		}
+		this.resetConceptDiagramUi();
 		this.applyRow(row);
 		this.conceptDetailsLoading = true;
 		this.conceptContext = null;
@@ -254,10 +262,15 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 
 	private fillSegmentConceptCacheFromRaw(rawConcepts: any[]): void {
 		this.segmentConceptContextById.clear();
+		this.segmentRawConceptById.clear();
 		for (const raw of rawConcepts) {
 			const ctx = browserSnowstormConceptToContext(raw);
 			if (ctx) {
 				this.segmentConceptContextById.set(ctx.conceptId, ctx);
+			}
+			const cid = raw?.conceptId != null ? String(raw.conceptId) : '';
+			if (cid.length > 0) {
+				this.segmentRawConceptById.set(cid, raw);
 			}
 		}
 	}
@@ -304,6 +317,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 				];
 				if (ids.length === 0) {
 					this.segmentConceptContextById.clear();
+					this.segmentRawConceptById.clear();
 					this.segmentSnowstormCacheKey = segmentKey;
 					return of(undefined);
 				}
@@ -337,6 +351,10 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 					const ctx = browserSnowstormConceptToContext(raw);
 					if (ctx) {
 						this.segmentConceptContextById.set(ctx.conceptId, ctx);
+					}
+					const cid = (raw as { conceptId?: unknown })?.conceptId;
+					if (cid != null) {
+						this.segmentRawConceptById.set(String(cid), raw);
 					}
 				}),
 				map(() => undefined),
@@ -377,6 +395,57 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	ngOnDestroy(): void {
 		this.sub?.unsubscribe();
 		this.formSyncSub?.unsubscribe();
+		this.revokeConceptDiagramUrl();
+	}
+
+	private resetConceptDiagramUi(): void {
+		this.showConceptDiagram = false;
+		this.conceptDiagramLoading = false;
+		this.revokeConceptDiagramUrl();
+	}
+
+	private revokeConceptDiagramUrl(): void {
+		if (this.conceptDiagramUrl) {
+			URL.revokeObjectURL(this.conceptDiagramUrl);
+			this.conceptDiagramUrl = null;
+		}
+	}
+
+	onConceptDiagramToggle(checked: boolean): void {
+		if (!checked) {
+			this.showConceptDiagram = false;
+			this.revokeConceptDiagramUrl();
+			return;
+		}
+		const raw = this.segmentRawConceptById.get(this.conceptId);
+		if (raw == null) {
+			this.snackBar.open('Concept details are not available for the diagram.', 'Dismiss', {
+				duration: 6000
+			});
+			return;
+		}
+		this.showConceptDiagram = true;
+		this.conceptDiagramLoading = true;
+		this.http
+			.post(`api/codesystems/${encodeURIComponent(this.edition)}/diagrams/preview`, raw, {
+				responseType: 'blob'
+			})
+			.pipe(
+				finalize(() => {
+					this.conceptDiagramLoading = false;
+					this.cdr.markForCheck();
+				})
+			)
+			.subscribe({
+				next: (blob) => {
+					this.revokeConceptDiagramUrl();
+					this.conceptDiagramUrl = URL.createObjectURL(blob);
+				},
+				error: () => {
+					this.showConceptDiagram = false;
+					this.snackBar.open('Could not load concept diagram.', 'Dismiss', { duration: 6000 });
+				}
+			});
 	}
 
 	/**

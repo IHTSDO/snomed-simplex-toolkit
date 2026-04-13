@@ -58,6 +58,23 @@ public class DiagramService {
 		return "diagrams/%s.png".formatted(conceptId);
 	}
 
+	/**
+	 * Generates a concept diagram from browser-format concept JSON without persisting it.
+	 */
+	public byte[] previewDiagram(Concept concept) throws ServiceException {
+		if (concept == null || concept.getConceptId() == null || concept.getConceptId().isBlank()) {
+			throw new ServiceExceptionWithStatusCode("Concept id is required", HttpStatus.BAD_REQUEST);
+		}
+		String conceptId = concept.getConceptId();
+		try {
+			Long.parseLong(conceptId);
+		} catch (NumberFormatException e) {
+			logger.error("Invalid concept ID format: {}", conceptId);
+			throw new ServiceExceptionWithStatusCode("Invalid concept ID format", HttpStatus.BAD_REQUEST, e);
+		}
+		return diagramClient.generateDiagramBytes(conceptId, concept);
+	}
+
 	private File generateDiagramFile(String conceptId, SnowstormClient snowstormClient, CodeSystem codeSystem) throws ServiceException {
 		try {
 			long conceptIdLong = Long.parseLong(conceptId);

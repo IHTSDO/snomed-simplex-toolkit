@@ -45,7 +45,18 @@
 			class="concept-context"
 			aria-label="Concept context"
 		>
-			<h2 class="concept-context__title">Concept context</h2>
+			<div class="concept-context__header">
+				<h2 class="concept-context__title">Concept context</h2>
+				<mat-slide-toggle
+					*ngIf="!conceptDetailsLoading && conceptContext"
+					[checked]="showConceptDiagram"
+					[disabled]="conceptDiagramLoading"
+					color="primary"
+					(change)="onConceptDiagramToggle($event.checked)"
+				>
+					Diagram
+				</mat-slide-toggle>
+			</div>
 
 			<div *ngIf="conceptDetailsLoading" class="concept-context__loading">
 				<mat-spinner [diameter]="40"></mat-spinner>
@@ -76,64 +87,79 @@
 				</tbody>
 			</table>
 
-			<h3 class="context-table-heading">Parents</h3>
-			<table class="context-data-table">
-				<thead>
-					<tr>
-						<th scope="col">Term</th>
-						<th scope="col">Concept ID</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr *ngFor="let p of ctx.parents">
-						<td>
-							<a
-								*ngIf="p.conceptId"
-								[href]="snomedConceptUri(p.conceptId)"
-								target="_blank"
-								rel="noopener noreferrer"
-								>{{ p.term }}</a
-							>
-							<ng-container *ngIf="!p.conceptId">{{ p.term }}</ng-container>
-						</td>
-						<td>{{ p.conceptId }}</td>
-					</tr>
-					<tr *ngIf="!ctx.parents?.length" class="context-data-table__empty">
-						<td colspan="2">None</td>
-					</tr>
-				</tbody>
-			</table>
-
-			<h3 class="context-table-heading">Attributes</h3>
-			<table class="context-data-table">
-				<thead>
-					<tr>
-						<th scope="col">Attribute</th>
-						<th scope="col">Value</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr *ngFor="let a of ctx.attributes">
-						<td>{{ a.typeLabel }}</td>
-						<td>
-							<ng-container *ngIf="a.valueKind === 'CONCEPT'">
+			<ng-container *ngIf="!showConceptDiagram">
+				<h3 class="context-table-heading">Parents</h3>
+				<table class="context-data-table">
+					<thead>
+						<tr>
+							<th scope="col">Term</th>
+							<th scope="col">Concept ID</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr *ngFor="let p of ctx.parents">
+							<td>
 								<a
-									*ngIf="a.conceptId"
-									[href]="snomedConceptUri(a.conceptId)"
+									*ngIf="p.conceptId"
+									[href]="snomedConceptUri(p.conceptId)"
 									target="_blank"
 									rel="noopener noreferrer"
-									>{{ a.conceptTerm }}</a
+									>{{ p.term }}</a
 								>
-								<ng-container *ngIf="!a.conceptId">{{ a.conceptTerm }}</ng-container>
-							</ng-container>
-							<ng-container *ngIf="a.valueKind === 'CONCRETE'">{{ a.literalValue }}</ng-container>
-						</td>
-					</tr>
-					<tr *ngIf="!ctx.attributes?.length" class="context-data-table__empty">
-						<td colspan="2">None</td>
-					</tr>
-				</tbody>
-			</table>
+								<ng-container *ngIf="!p.conceptId">{{ p.term }}</ng-container>
+							</td>
+							<td>{{ p.conceptId }}</td>
+						</tr>
+						<tr *ngIf="!ctx.parents?.length" class="context-data-table__empty">
+							<td colspan="2">None</td>
+						</tr>
+					</tbody>
+				</table>
+
+				<h3 class="context-table-heading">Attributes</h3>
+				<table class="context-data-table">
+					<thead>
+						<tr>
+							<th scope="col">Attribute</th>
+							<th scope="col">Value</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr *ngFor="let a of ctx.attributes">
+							<td>{{ a.typeLabel }}</td>
+							<td>
+								<ng-container *ngIf="a.valueKind === 'CONCEPT'">
+									<a
+										*ngIf="a.conceptId"
+										[href]="snomedConceptUri(a.conceptId)"
+										target="_blank"
+										rel="noopener noreferrer"
+										>{{ a.conceptTerm }}</a
+									>
+									<ng-container *ngIf="!a.conceptId">{{ a.conceptTerm }}</ng-container>
+								</ng-container>
+								<ng-container *ngIf="a.valueKind === 'CONCRETE'">{{ a.literalValue }}</ng-container>
+							</td>
+						</tr>
+						<tr *ngIf="!ctx.attributes?.length" class="context-data-table__empty">
+							<td colspan="2">None</td>
+						</tr>
+					</tbody>
+				</table>
+			</ng-container>
+
+			<div *ngIf="showConceptDiagram" class="concept-diagram-wrap" aria-live="polite">
+				<div *ngIf="conceptDiagramLoading" class="concept-diagram__loading">
+					<mat-spinner [diameter]="40"></mat-spinner>
+					<span class="concept-diagram__loading-label">Generating diagram…</span>
+				</div>
+				<img
+					*ngIf="!conceptDiagramLoading && conceptDiagramUrl"
+					[src]="conceptDiagramUrl"
+					alt="Concept diagram"
+					class="concept-diagram__img"
+				/>
+			</div>
 			</ng-container>
 		</section>
 
