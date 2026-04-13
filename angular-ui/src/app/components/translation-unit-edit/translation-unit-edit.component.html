@@ -1,31 +1,36 @@
 <div class="edit-page">
 	<div class="toolbar">
-		<button mat-button type="button" class="back-button" (click)="goBack()">
-			<mat-icon>arrow_back</mat-icon>
-			Back to set
-		</button>
-		<div class="toolbar-end" *ngIf="totalCount != null">
-			<span class="position">Concept {{ globalIndex + 1 }} of {{ totalCount }}</span>
-			<div class="toolbar-paging">
-				<button
-					mat-stroked-button
-					type="button"
-					class="toolbar-paging-btn"
-					(click)="goPrevWithoutSave()"
-					[disabled]="!canGoPrev() || loading || saving">
-					<mat-icon>chevron_left</mat-icon>
-					Previous
-				</button>
-				<button
-					mat-stroked-button
-					type="button"
-					class="toolbar-paging-btn"
-					(click)="goNextWithoutSave()"
-					[disabled]="!canGoNext() || loading || saving">
-					Next
-					<mat-icon>chevron_right</mat-icon>
-				</button>
-			</div>
+		<div class="toolbar-start">
+			<button mat-button type="button" class="back-button" (click)="goBack()">
+				<mat-icon>arrow_back</mat-icon>
+				Back to set
+			</button>
+		</div>
+		<h1 class="toolbar-page-title">Translation</h1>
+		<div class="toolbar-end">
+			<ng-container *ngIf="totalCount != null">
+				<span class="position">Concept {{ globalIndex + 1 }} of {{ totalCount }}</span>
+				<div class="toolbar-paging">
+					<button
+						mat-stroked-button
+						type="button"
+						class="toolbar-paging-btn"
+						(click)="goPrevWithoutSave()"
+						[disabled]="!canGoPrev() || loading || saving">
+						<mat-icon>chevron_left</mat-icon>
+						Previous
+					</button>
+					<button
+						mat-stroked-button
+						type="button"
+						class="toolbar-paging-btn"
+						(click)="goNextWithoutSave()"
+						[disabled]="!canGoNext() || loading || saving">
+						Next
+						<mat-icon>chevron_right</mat-icon>
+					</button>
+				</div>
+			</ng-container>
 		</div>
 	</div>
 
@@ -33,20 +38,54 @@
 		<mat-spinner [diameter]="56"></mat-spinner>
 	</div>
 
-	<form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()" class="edit-form">
-		<h1 class="page-title">Translation</h1>
-		<p class="concept-line" *ngIf="conceptId">
-			<span class="concept-line__label">Concept</span>
-			<span class="concept-line__id">{{ conceptId }}</span>
-		</p>
+	<div *ngIf="!loading" class="edit-layout">
+		<aside class="edit-layout__side edit-layout__side--left" aria-label="SNOMED hierarchy">
+			<h2 class="edit-layout__side-title">SNOMED hierarchy</h2>
+			<div *ngIf="conceptDetailsLoading" class="partial-hierarchy__loading">
+				<mat-spinner [diameter]="28"></mat-spinner>
+			</div>
+			<ul *ngIf="!conceptDetailsLoading && partialHierarchyRows.length" class="partial-hierarchy__list" role="list">
+				<li
+					*ngFor="let row of partialHierarchyRows"
+					class="partial-hierarchy__row"
+					[class.partial-hierarchy__row--current]="row.code === conceptId"
+					[style.padding-left.rem]="0.6 + row.depth * 1.2"
+					role="listitem"
+				>
+					<span class="partial-hierarchy__glyph" aria-hidden="true">–</span>
+					<span class="partial-hierarchy__dot" aria-hidden="true"></span>
+					<span
+						class="partial-hierarchy__term"
+						[class.partial-hierarchy__term--untranslated]="hierarchyTermIsMissingTranslation(row)"
+					>{{ hierarchyTermDisplay(row) }}</span>
+				</li>
+			</ul>
+			<div *ngIf="!conceptDetailsLoading && partialHierarchyRows.length" class="partial-hierarchy__toggle">
+				<mat-slide-toggle
+					[checked]="showHierarchyTranslationTerms"
+					(change)="showHierarchyTranslationTerms = $event.checked"
+					color="primary"
+				>
+					Translation
+				</mat-slide-toggle>
+			</div>
+			<p *ngIf="!conceptDetailsLoading && !partialHierarchyRows.length" class="partial-hierarchy__empty">
+				No hierarchy data.
+			</p>
+		</aside>
 
+		<div class="edit-layout__main">
+		<form [formGroup]="form" (ngSubmit)="save()" class="edit-form">
 		<section
 			*ngIf="conceptContext || conceptDetailsLoading"
 			class="concept-context"
-			aria-label="Concept context"
+			[attr.aria-label]="conceptId ? 'Concept ' + conceptId : 'Concept context'"
 		>
 			<div class="concept-context__header">
-				<h2 class="concept-context__title">Concept context</h2>
+				<h2 class="concept-context__title">
+					<ng-container *ngIf="conceptId">Concept {{ conceptId }}</ng-container>
+					<ng-container *ngIf="!conceptId">Concept context</ng-container>
+				</h2>
 				<mat-slide-toggle
 					*ngIf="!conceptDetailsLoading && conceptContext"
 					[checked]="showConceptDiagram"
@@ -248,4 +287,10 @@
 			</button>
 		</div>
 	</form>
+		</div>
+
+		<aside class="edit-layout__side edit-layout__side--right" aria-label="Concept diagram">
+			<h2 class="edit-layout__side-title">Concept diagram</h2>
+		</aside>
+	</div>
 </div>
