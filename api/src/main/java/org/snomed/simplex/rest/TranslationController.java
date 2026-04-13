@@ -165,7 +165,7 @@ public class TranslationController {
 		return result;
 	}
 
-	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/sample-row/{conceptId}")
+	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/unit/{conceptId}")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public TranslationUnitRow getSampleSnolateContent(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
 			@PathVariable String conceptId) throws ServiceException {
