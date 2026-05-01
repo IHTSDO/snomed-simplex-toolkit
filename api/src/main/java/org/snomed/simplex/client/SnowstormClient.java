@@ -156,13 +156,26 @@ public class SnowstormClient {
 		codeSystem.setShowCustomConcepts("true".equals(branch.getMetadataValue(Branch.SHOW_CUSTOM_CONCEPTS)));
 		codeSystem.setDependencyPackage(branch.getMetadataValue(Branch.DEPENDENCY_PACKAGE_METADATA_KEY));
 		codeSystem.setPreviousPackage(branch.getMetadataValue(Branch.PREVIOUS_PACKAGE_METADATA_KEY));
-		codeSystem.setPreviousDependencyPackage(branch.getMetadataValue(Branch.PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY));
 		codeSystem.setLatestValidationReport(branch.getMetadataValue(Branch.LATEST_VALIDATION_REPORT_METADATA_KEY));
 		codeSystem.setLatestReleaseCandidateBuild(branch.getMetadataValue(Branch.LATEST_BUILD_METADATA_KEY));
 		codeSystem.setBuildStatus(CodeSystemBuildStatus.fromBranchMetadata(branch.getMetadataValue(Branch.BUILD_STATUS_METADATA_KEY)));
 		codeSystem.setEditionStatus(getEditionStatus(branch.getMetadataValue(Branch.EDITION_STATUS_METADATA_KEY)));
 		codeSystem.setTranslationLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_METADATA_KEY));
 		codeSystem.setTranslationWeblateLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_WEBLATE_METADATA_KEY));
+		clearOldMetadata(branch);
+	}
+
+	private void clearOldMetadata(Branch branch) {
+		Map<String, Object> metadata = branch.getMetadata();
+		boolean change = false;
+		if (metadata.get(Branch.OLD_KEY_PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY) != null) {
+			metadata.remove(Branch.OLD_KEY_PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY);
+			change = true;
+		}
+		if (change) {
+			logger.info("Clearing old code system metadata for {}", branch.getPath());
+			saveAllBranchMetadata(branch.getPath(), metadata);
+		}
 	}
 
 	public List<CodeSystemVersion> getVersions(CodeSystem codeSystem) {

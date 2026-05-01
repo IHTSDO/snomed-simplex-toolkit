@@ -9,7 +9,6 @@ public class Branch {
 	public static final String CLASSIFIED_METADATA_KEY = "internal.classified";
 	public static final String DEPENDENCY_PACKAGE_METADATA_KEY = "dependencyPackage";
 	public static final String PREVIOUS_PACKAGE_METADATA_KEY = "previousPackage";
-	public static final String PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY = "previousDependencyPackage";
 	public static final String LATEST_VALIDATION_REPORT_METADATA_KEY = "latestValidationReport";
 	public static final String LATEST_BUILD_METADATA_KEY = "latestBuild";
 	public static final String BUILD_STATUS_METADATA_KEY = "buildStatus";
@@ -22,6 +21,8 @@ public class Branch {
 
 	public static final String ORGANISATION_NAME = "package.orgName";
 	public static final String ORGANISATION_CONTACT_DETAILS = "package.orgContactDetails";
+
+	public static final String OLD_KEY_PREVIOUS_DEPENDENCY_PACKAGE_METADATA_KEY = "previousDependencyPackage";
 
 	private String path;
 	private Long headTimestamp;

@@ -50,8 +50,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -162,8 +160,12 @@ public class ReleaseServiceClient {
 			updateRequest.setExtensionDependencyRelease(dependencyPackage);
 		} else {
 			updateRequest.setPreviousPublishedPackage(codeSystem.getPreviousPackage());
-			String previousDependencyPackage = codeSystem.getPreviousDependencyPackage();
-			updateRequest.setPreviousEditionDependencyEffectiveDate(extractFilenameEffectiveDate(previousDependencyPackage));
+			Integer previousDependantVersionEffectiveTime = codeSystem.getLatestVersion().dependantVersionEffectiveTime();
+			if (previousDependantVersionEffectiveTime == null) {
+				throw new ServiceExceptionWithStatusCode("Previous %s release has missing metadata: dependantVersionEffectiveTime.".formatted(codeSystem.getShortName()),
+					HttpStatus.CONFLICT);
+			}
+			updateRequest.setPreviousEditionDependencyEffectiveDate(previousDependantVersionEffectiveTime.toString());
 			updateRequest.setExtensionDependencyRelease(dependencyPackage);
 		}
 
@@ -186,23 +188,6 @@ public class ReleaseServiceClient {
 				String.format("/centers/%s/products/%s/configuration", releaseCenter, getProductName(codeSystem.getShortName())),
 				updateRequest);
 		return getProduct(codeSystem);
-	}
-
-	private static String extractFilenameEffectiveDate(String dependencyPackage) throws ServiceExceptionWithStatusCode {
-		Pattern datePattern;
-		if (dependencyPackage.contains("RF2_DISTRIBUTION")) {
-			// AU package, e.g. NCTS_SCT_RF2_DISTRIBUTION_32506021000036107-20240731-ALL.zip
-			datePattern = Pattern.compile(".*-(\\d{8})[^_]*\\.zip");
-		} else {
-			// Example SnomedCT_InternationalRF2_PRODUCTION_20240101T120000Z.zip
-			datePattern = Pattern.compile(".*_(\\d{8})[^_]*\\.zip");
-		}
-		Matcher dateMatcher = datePattern.matcher(dependencyPackage);
-		if (!dateMatcher.matches()) {
-			throw new ServiceExceptionWithStatusCode("Failed to extract effective time from the filename of the dependency package.", HttpStatus.CONFLICT);
-		}
-		String group = dateMatcher.group(1);
-		return group.substring(0, 4) + "-" + group.substring(4, 6) + "-" + group.substring(6, 8);
 	}
 
 	public SRSProduct getProduct(CodeSystem codeSystem) throws ServiceException {
