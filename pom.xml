@@ -32,6 +32,9 @@
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
 				<inherited>false</inherited>
+				<configuration>
+					<nvdApiKey>${nvdApiKey}</nvdApiKey>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>
