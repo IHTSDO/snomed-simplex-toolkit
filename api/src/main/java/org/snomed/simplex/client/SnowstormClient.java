@@ -197,6 +197,22 @@ public class SnowstormClient {
 		return EditionStatus.valueOf(editionStatus);
 	}
 
+	public void rollbackCommitsGreaterThan(String branchPath, Long commitToKeep) throws ServiceExceptionWithStatusCode {
+		logger.info("Rolling back commits on {} until {}", branchPath, commitToKeep);
+		Long headTimestamp = getBranchOrThrow(branchPath).getHeadTimestamp();
+		while (headTimestamp > commitToKeep) {
+			rollbackCommit(branchPath, headTimestamp);
+			headTimestamp = getBranchOrThrow(branchPath).getHeadTimestamp();
+		}
+		logger.info("Rollback on {} complete. Head now at {}.", branchPath, headTimestamp);
+	}
+
+	private void rollbackCommit(String branchPath, Long headTimestamp) {
+		String url = "/admin/%s/actions/rollback-commit?commitHeadTime=%s".formatted(branchPath, headTimestamp);
+		logger.info("Rolling back commit {} on {}", headTimestamp, branchPath);
+		restTemplate.exchange(url, HttpMethod.POST, null, Void.class);
+	}
+
 	public Branch getBranchOrThrow(String branchPath) throws ServiceExceptionWithStatusCode {
 		try {
 			ResponseEntity<Branch> branchResponse = restTemplate.getForEntity(format(BRANCH_X_ENDPOINT, branchPath), Branch.class);

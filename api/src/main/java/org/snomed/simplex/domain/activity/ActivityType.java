@@ -2,7 +2,7 @@ package org.snomed.simplex.domain.activity;
 
 public enum ActivityType {
 
-	CREATE("Create"), UPDATE("Update"), DELETE("Delete"),
+	CREATE("Create"), UPDATE("Update"), DELETE("Delete"), ROLLBACK("Rollback"),
 	START_RELEASE_PREP("Start release prep"),
 	START_AUTHORING("Start authoring"),
 	APPROVE_CONTENT("Approve content"),

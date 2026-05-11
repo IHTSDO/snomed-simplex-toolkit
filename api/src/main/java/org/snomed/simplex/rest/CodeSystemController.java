@@ -238,6 +238,17 @@ public class CodeSystemController {
 		});
 	}
 
+	@PostMapping("{codeSystem}/admin/rollback")
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public void rollbackCodeSystem(@PathVariable String codeSystem, @RequestParam Long commitToKeep) throws ServiceException {
+		activityService.runActivity(codeSystem, CODE_SYSTEM, ROLLBACK, () -> {
+			SnowstormClient snowstormClient = getSnowstormClient();
+			CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+			snowstormClient.rollbackCommitsGreaterThan(theCodeSystem.getBranchPath(), commitToKeep);
+		return null;
+		});
+	}
+
 	@PostMapping("{codeSystem}/working-branch")
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public void setBranchOverride(@PathVariable String codeSystem, @RequestBody SetBranchRequest request) throws ServiceException {
