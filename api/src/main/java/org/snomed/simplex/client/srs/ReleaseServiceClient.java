@@ -165,7 +165,7 @@ public class ReleaseServiceClient {
 				throw new ServiceExceptionWithStatusCode("Previous %s release has missing metadata: dependantVersionEffectiveTime.".formatted(codeSystem.getShortName()),
 					HttpStatus.CONFLICT);
 			}
-			updateRequest.setPreviousEditionDependencyEffectiveDate(previousDependantVersionEffectiveTime.toString());
+			updateRequest.setPreviousEditionDependencyEffectiveDate(toDateHyphenFormat(previousDependantVersionEffectiveTime.toString()));
 			updateRequest.setExtensionDependencyRelease(dependencyPackage);
 		}
 
@@ -188,6 +188,10 @@ public class ReleaseServiceClient {
 				String.format("/centers/%s/products/%s/configuration", releaseCenter, getProductName(codeSystem.getShortName())),
 				updateRequest);
 		return getProduct(codeSystem);
+	}
+
+	private String toDateHyphenFormat(String dateStamp) {
+		return dateStamp.substring(0, 4) + "-" + dateStamp.substring(4, 6) + "-" + dateStamp.substring(6, 8);
 	}
 
 	public SRSProduct getProduct(CodeSystem codeSystem) throws ServiceException {
