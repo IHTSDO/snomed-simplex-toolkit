@@ -62,9 +62,9 @@ public class ActivityController {
 	@Operation(summary = "Admin function to force stop an Activity.")
 	@PostMapping(path = "/{startDate}/end")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public void forceEndActivity(@PathVariable String codeSystem, @PathVariable Long startDate) throws ServiceExceptionWithStatusCode {
+	public void forceEndActivity(@PathVariable String codeSystem, @PathVariable Long startDate, @RequestParam(defaultValue = "true") boolean error) throws ServiceExceptionWithStatusCode {
 		Activity activity = activityService.findActivityOrThrow(codeSystem, startDate);
-		activity.setError(true);
+		activity.setError(error);
 		activity.setMessage("Admin ended this activity.");
 		activityService.endAsynchronousActivity(activity);
 	}
