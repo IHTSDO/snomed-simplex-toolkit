@@ -191,6 +191,9 @@
 				<artifactId>dependency-check-maven</artifactId>
 				<inherited>false</inherited>
 				<configuration>
+					<suppressionFiles>
+						<suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+					</suppressionFiles>
 					<!-- Disable .NET assembly analysis since this is a Java project -->
 					<assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
 					<!-- Fail build if CVSS score is 7.0 or higher (High/Critical severity) -->
