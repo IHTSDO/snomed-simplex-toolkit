@@ -1,0 +1,271 @@
+[INFO] Scanning for projects...
+[WARNING] Could not transfer metadata org.snomed:snomed-parent-bom:3.14.1-SNAPSHOT/maven-metadata.xml from/to maven-default-http-blocker (http://0.0.0.0/): Blocked mirror for repositories: [repository.spring.release (http://repo.spring.io/release, default, releases+snapshots)]
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Build Order:
+[INFO] 
+[INFO] SNOMED Simplex Toolkit                                             [pom]
+[INFO] SNOMED Simplex Toolkit: User Interface                             [jar]
+[INFO] SNOMED Simplex Toolkit: API                                        [jar]
+[INFO] 
+[INFO] ----------< org.snomed.simplex:snomed-simplex-toolkit-parent >----------
+[INFO] Building SNOMED Simplex Toolkit 2.12.0-SNAPSHOT                    [1/3]
+[INFO]   from pom.xml
+[INFO] --------------------------------[ pom ]---------------------------------
+[INFO] 
+[INFO] --- dependency:3.7.0:tree (default-cli) @ snomed-simplex-toolkit-parent ---
+[INFO] org.snomed.simplex:snomed-simplex-toolkit-parent:pom:2.12.0-SNAPSHOT
+[INFO] \- org.snomed:snomed-parent-owasp:jar:1.0.9:compile
+[INFO] 
+[INFO] ------------< org.snomed.simplex:snomed-simplex-toolkit-ui >------------
+[INFO] Building SNOMED Simplex Toolkit: User Interface 2.12.0-SNAPSHOT    [2/3]
+[INFO]   from angular-ui/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- dependency:3.7.0:tree (default-cli) @ snomed-simplex-toolkit-ui ---
+[INFO] org.snomed.simplex:snomed-simplex-toolkit-ui:jar:2.12.0-SNAPSHOT
+[INFO] \- org.snomed:snomed-parent-owasp:jar:1.0.9:compile
+[INFO] 
+[INFO] -------------< org.snomed.simplex:snomed-simplex-toolkit >--------------
+[INFO] Building SNOMED Simplex Toolkit: API 2.12.0-SNAPSHOT               [3/3]
+[INFO]   from api/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- dependency:3.7.0:tree (default-cli) @ snomed-simplex-toolkit ---
+[INFO] org.snomed.simplex:snomed-simplex-toolkit:jar:2.12.0-SNAPSHOT
+[INFO] +- org.springframework.boot:spring-boot-starter-web:jar:3.5.14:compile
+[INFO] |  +- org.springframework.boot:spring-boot-starter:jar:3.5.14:compile
+[INFO] |  |  +- org.springframework.boot:spring-boot:jar:3.5.14:compile
+[INFO] |  |  +- org.springframework.boot:spring-boot-autoconfigure:jar:3.5.14:compile
+[INFO] |  |  +- org.springframework.boot:spring-boot-starter-logging:jar:3.5.14:compile
+[INFO] |  |  |  +- ch.qos.logback:logback-classic:jar:1.5.32:compile
+[INFO] |  |  |  |  \- ch.qos.logback:logback-core:jar:1.5.32:compile
+[INFO] |  |  |  \- org.slf4j:jul-to-slf4j:jar:2.0.17:compile
+[INFO] |  |  \- org.yaml:snakeyaml:jar:2.2:compile
+[INFO] |  +- org.springframework.boot:spring-boot-starter-json:jar:3.5.14:compile
+[INFO] |  |  +- com.fasterxml.jackson.datatype:jackson-datatype-jdk8:jar:2.21.2:compile
+[INFO] |  |  +- com.fasterxml.jackson.datatype:jackson-datatype-jsr310:jar:2.17.1:compile
+[INFO] |  |  \- com.fasterxml.jackson.module:jackson-module-parameter-names:jar:2.21.2:compile
+[INFO] |  +- org.springframework.boot:spring-boot-starter-tomcat:jar:3.5.14:compile
+[INFO] |  |  +- org.apache.tomcat.embed:tomcat-embed-core:jar:10.1.54:compile
+[INFO] |  |  +- org.apache.tomcat.embed:tomcat-embed-el:jar:10.1.54:compile
+[INFO] |  |  \- org.apache.tomcat.embed:tomcat-embed-websocket:jar:10.1.54:compile
+[INFO] |  +- org.springframework:spring-web:jar:6.2.18:compile
+[INFO] |  \- org.springframework:spring-webmvc:jar:6.2.18:compile
+[INFO] |     \- org.springframework:spring-expression:jar:6.2.18:compile
+[INFO] +- org.springframework.data:spring-data-elasticsearch:jar:5.5.5:compile
+[INFO] |  +- org.springframework:spring-context:jar:6.2.18:compile
+[INFO] |  +- org.springframework:spring-tx:jar:6.2.18:compile
+[INFO] |  +- org.springframework.data:spring-data-commons:jar:3.5.11:compile
+[INFO] |  +- co.elastic.clients:elasticsearch-java:jar:8.19.8:compile
+[INFO] |  |  +- jakarta.json:jakarta.json-api:jar:2.1.3:compile
+[INFO] |  |  +- org.eclipse.parsson:parsson:jar:1.1.5:compile
+[INFO] |  |  \- io.opentelemetry:opentelemetry-api:jar:1.49.0:runtime
+[INFO] |  |     \- io.opentelemetry:opentelemetry-context:jar:1.49.0:runtime
+[INFO] |  +- org.elasticsearch.client:elasticsearch-rest-client:jar:8.19.8:compile
+[INFO] |  |  +- org.apache.httpcomponents:httpclient:jar:4.5.14:compile
+[INFO] |  |  +- org.apache.httpcomponents:httpcore:jar:4.4.16:compile
+[INFO] |  |  +- org.apache.httpcomponents:httpasyncclient:jar:4.1.5:compile
+[INFO] |  |  +- org.apache.httpcomponents:httpcore-nio:jar:4.4.16:compile
+[INFO] |  |  \- commons-codec:commons-codec:jar:1.9:compile
+[INFO] |  +- com.fasterxml.jackson.core:jackson-core:jar:2.17.1:compile
+[INFO] |  +- com.fasterxml.jackson.core:jackson-databind:jar:2.17.1:compile
+[INFO] |  \- org.slf4j:slf4j-api:jar:2.0.9:compile
+[INFO] +- org.springframework.boot:spring-boot-starter-security:jar:3.5.14:compile
+[INFO] |  +- org.springframework:spring-aop:jar:6.2.18:compile
+[INFO] |  +- org.springframework.security:spring-security-config:jar:6.5.10:compile
+[INFO] |  |  \- org.springframework.security:spring-security-core:jar:6.5.10:compile
+[INFO] |  |     \- org.springframework.security:spring-security-crypto:jar:6.5.10:compile
+[INFO] |  \- org.springframework.security:spring-security-web:jar:6.5.10:compile
+[INFO] +- dev.langchain4j:langchain4j-core:jar:1.4.0:compile
+[INFO] |  +- com.fasterxml.jackson.core:jackson-annotations:jar:2.17.1:compile
+[INFO] |  \- org.jspecify:jspecify:jar:1.0.0:compile
+[INFO] +- dev.langchain4j:langchain4j-open-ai:jar:1.4.0:compile
+[INFO] |  +- dev.langchain4j:langchain4j-http-client:jar:1.4.0:compile
+[INFO] |  +- dev.langchain4j:langchain4j-http-client-jdk:jar:1.4.0:runtime
+[INFO] |  \- com.knuddels:jtokkit:jar:1.1.0:compile
+[INFO] +- org.springframework:spring-jms:jar:6.2.18:compile
+[INFO] |  +- org.springframework:spring-beans:jar:6.2.18:compile
+[INFO] |  +- org.springframework:spring-core:jar:6.2.18:compile
+[INFO] |  |  \- org.springframework:spring-jcl:jar:6.2.18:compile
+[INFO] |  +- org.springframework:spring-messaging:jar:6.2.18:compile
+[INFO] |  \- io.micrometer:micrometer-observation:jar:1.15.11:compile
+[INFO] |     \- io.micrometer:micrometer-commons:jar:1.15.11:compile
+[INFO] +- org.apache.activemq:activemq-broker:jar:6.2.5:compile
+[INFO] |  +- org.apache.activemq:activemq-client:jar:6.2.5:compile
+[INFO] |  |  +- jakarta.jms:jakarta.jms-api:jar:3.1.0:compile
+[INFO] |  |  \- org.fusesource.hawtbuf:hawtbuf:jar:1.11:compile
+[INFO] |  \- jakarta.annotation:jakarta.annotation-api:jar:2.1.1:compile
+[INFO] +- org.springdoc:springdoc-openapi-starter-webmvc-ui:jar:2.6.0:compile
+[INFO] |  +- org.springdoc:springdoc-openapi-starter-webmvc-api:jar:2.6.0:compile
+[INFO] |  |  \- org.springdoc:springdoc-openapi-starter-common:jar:2.6.0:compile
+[INFO] |  |     \- io.swagger.core.v3:swagger-core-jakarta:jar:2.2.22:compile
+[INFO] |  |        +- io.swagger.core.v3:swagger-annotations-jakarta:jar:2.2.22:compile
+[INFO] |  |        +- io.swagger.core.v3:swagger-models-jakarta:jar:2.2.22:compile
+[INFO] |  |        +- jakarta.validation:jakarta.validation-api:jar:3.0.2:compile
+[INFO] |  |        \- com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.21.2:compile
+[INFO] |  \- org.webjars:swagger-ui:jar:5.17.14:compile
+[INFO] +- org.apache.logging.log4j:log4j-to-slf4j:jar:2.25.4:compile
+[INFO] |  \- org.apache.logging.log4j:log4j-api:jar:2.25.4:compile
+[INFO] +- org.ihtsdo.otf:ihtsdo-spring-sso:jar:5.8.0:compile
+[INFO] |  \- org.apache.jena:apache-jena-libs:pom:5.5.0:compile
+[INFO] |     +- org.apache.jena:jena-rdfpatch:jar:5.5.0:compile
+[INFO] |     |  \- org.apache.jena:jena-arq:jar:5.5.0:compile
+[INFO] |     |     +- org.apache.jena:jena-core:jar:5.5.0:compile
+[INFO] |     |     |  +- org.apache.jena:jena-base:jar:5.5.0:compile
+[INFO] |     |     |  |  +- org.apache.commons:commons-csv:jar:1.10.0:compile
+[INFO] |     |     |  |  +- com.github.ben-manes.caffeine:caffeine:jar:2.8.4:compile
+[INFO] |     |     |  |  \- com.github.andrewoma.dexx:collection:jar:0.7:compile
+[INFO] |     |     |  +- org.apache.jena:jena-iri3986:jar:5.5.0:compile
+[INFO] |     |     |  +- org.apache.jena:jena-iri:jar:5.5.0:compile
+[INFO] |     |     |  +- org.apache.jena:jena-langtag:jar:5.5.0:compile
+[INFO] |     |     |  \- org.roaringbitmap:RoaringBitmap:jar:1.3.0:compile
+[INFO] |     |     +- org.slf4j:jcl-over-slf4j:jar:2.0.17:compile
+[INFO] |     |     +- com.apicatalog:titanium-json-ld:jar:1.6.0:compile
+[INFO] |     |     |  +- com.apicatalog:titanium-jcs:jar:1.0.0:compile
+[INFO] |     |     |  +- com.apicatalog:titanium-rdf-api:jar:1.0.0:compile
+[INFO] |     |     |  \- com.apicatalog:titanium-rdf-n-quads:jar:1.0.0:compile
+[INFO] |     |     +- org.glassfish:jakarta.json:jar:2.0.1:compile
+[INFO] |     |     \- com.google.protobuf:protobuf-java:jar:4.28.3:compile
+[INFO] |     +- org.apache.jena:jena-ontapi:jar:5.5.0:compile
+[INFO] |     +- org.apache.jena:jena-shacl:jar:5.5.0:compile
+[INFO] |     +- org.apache.jena:jena-shex:jar:5.5.0:compile
+[INFO] |     +- org.apache.jena:jena-tdb1:jar:5.5.0:compile
+[INFO] |     +- org.apache.jena:jena-tdb2:jar:5.5.0:compile
+[INFO] |     |  \- org.apache.jena:jena-dboe-storage:jar:5.5.0:compile
+[INFO] |     |     \- org.apache.jena:jena-dboe-trans-data:jar:5.5.0:compile
+[INFO] |     |        +- org.apache.jena:jena-dboe-transaction:jar:5.5.0:compile
+[INFO] |     |        |  \- org.apache.jena:jena-dboe-base:jar:5.5.0:compile
+[INFO] |     |        \- org.apache.jena:jena-dboe-index:jar:5.5.0:compile
+[INFO] |     \- org.apache.jena:jena-rdfconnection:jar:5.5.0:compile
+[INFO] +- org.ihtsdo.otf.common:resource-manager:jar:7.11.0:compile
+[INFO] |  +- io.awspring.cloud:spring-cloud-aws-starter-s3:jar:3.0.2:compile
+[INFO] |  |  +- io.awspring.cloud:spring-cloud-aws-s3:jar:3.0.2:compile
+[INFO] |  |  |  \- software.amazon.awssdk:s3:jar:2.21.2:compile
+[INFO] |  |  |     +- software.amazon.awssdk:aws-xml-protocol:jar:2.21.2:compile
+[INFO] |  |  |     |  \- software.amazon.awssdk:aws-query-protocol:jar:2.21.2:compile
+[INFO] |  |  |     +- software.amazon.awssdk:protocol-core:jar:2.21.2:compile
+[INFO] |  |  |     +- software.amazon.awssdk:arns:jar:2.21.2:compile
+[INFO] |  |  |     +- software.amazon.awssdk:crt-core:jar:2.21.2:compile
+[INFO] |  |  |     +- software.amazon.awssdk:aws-core:jar:2.21.2:compile
+[INFO] |  |  |     \- software.amazon.awssdk:apache-client:jar:2.21.2:runtime
+[INFO] |  |  +- io.awspring.cloud:spring-cloud-aws-s3-cross-region-client:jar:3.0.2:compile
+[INFO] |  |  \- io.awspring.cloud:spring-cloud-aws-starter:jar:3.0.2:compile
+[INFO] |  |     +- io.awspring.cloud:spring-cloud-aws-autoconfigure:jar:3.0.2:compile
+[INFO] |  |     \- io.awspring.cloud:spring-cloud-aws-core:jar:3.0.2:compile
+[INFO] |  \- org.apache.commons:commons-lang3:jar:3.17.0:compile
+[INFO] +- org.apache.poi:poi-ooxml:jar:5.3.0:compile
+[INFO] |  +- org.apache.poi:poi:jar:5.3.0:compile
+[INFO] |  |  +- org.apache.commons:commons-math3:jar:3.6:compile
+[INFO] |  |  \- com.zaxxer:SparseBitSet:jar:1.3:compile
+[INFO] |  +- org.apache.poi:poi-ooxml-lite:jar:5.3.0:compile
+[INFO] |  +- org.apache.xmlbeans:xmlbeans:jar:5.2.1:compile
+[INFO] |  +- org.apache.commons:commons-compress:jar:1.26.2:compile
+[INFO] |  +- com.github.virtuald:curvesapi:jar:1.08:compile
+[INFO] |  \- org.apache.commons:commons-collections4:jar:4.4:compile
+[INFO] +- commons-io:commons-io:jar:2.16.1:compile
+[INFO] +- it.unimi.dsi:fastutil:jar:8.5.12:compile
+[INFO] +- com.google.guava:guava:jar:32.1.1-jre:compile
+[INFO] |  +- com.google.guava:failureaccess:jar:1.0.1:compile
+[INFO] |  +- com.google.guava:listenablefuture:jar:9999.0-empty-to-avoid-conflict-with-guava:compile
+[INFO] |  +- com.google.code.findbugs:jsr305:jar:3.0.2:compile
+[INFO] |  +- org.checkerframework:checker-qual:jar:3.33.0:compile
+[INFO] |  +- com.google.errorprone:error_prone_annotations:jar:2.18.0:compile
+[INFO] |  \- com.google.j2objc:j2objc-annotations:jar:2.8:compile
+[INFO] +- org.snomed.otf:snomed-boot:jar:5.6.0:compile
+[INFO] +- com.fasterxml.jackson.dataformat:jackson-dataformat-xml:jar:2.17.1:compile
+[INFO] |  +- org.codehaus.woodstox:stax2-api:jar:4.2.2:compile
+[INFO] |  \- com.fasterxml.woodstox:woodstox-core:jar:6.6.2:compile
+[INFO] +- org.springframework.cloud:spring-cloud-starter-consul-discovery:jar:5.0.1:compile
+[INFO] |  +- org.springframework.cloud:spring-cloud-starter-consul:jar:5.0.1:compile
+[INFO] |  |  +- org.springframework.cloud:spring-cloud-consul-core:jar:5.0.1:compile
+[INFO] |  |  |  +- org.springframework.boot:spring-boot-starter-validation:jar:3.5.14:compile
+[INFO] |  |  |  |  \- org.hibernate.validator:hibernate-validator:jar:8.0.3.Final:compile
+[INFO] |  |  |  |     +- org.jboss.logging:jboss-logging:jar:3.6.3.Final:compile
+[INFO] |  |  |  |     \- com.fasterxml:classmate:jar:1.7.3:compile
+[INFO] |  |  |  \- org.springframework.boot:spring-boot-restclient:jar:4.0.2:compile
+[INFO] |  |  |     +- org.springframework.boot:spring-boot-http-client:jar:4.0.2:compile
+[INFO] |  |  |     \- org.springframework.boot:spring-boot-http-converter:jar:4.0.2:runtime
+[INFO] |  |  +- com.ecwid.consul:consul-api:jar:1.4.5:compile
+[INFO] |  |  \- com.google.code.gson:gson:jar:2.10.1:compile
+[INFO] |  +- org.springframework.cloud:spring-cloud-consul-discovery:jar:5.0.1:compile
+[INFO] |  \- org.springframework.cloud:spring-cloud-starter-loadbalancer:jar:5.0.1:compile
+[INFO] |     +- org.springframework.cloud:spring-cloud-loadbalancer:jar:5.0.1:compile
+[INFO] |     |  +- io.projectreactor:reactor-core:jar:3.7.18:compile
+[INFO] |     |  \- io.projectreactor.addons:reactor-extra:jar:3.5.4:compile
+[INFO] |     +- org.springframework.boot:spring-boot-starter-cache:jar:3.5.14:compile
+[INFO] |     |  \- org.springframework:spring-context-support:jar:6.2.18:compile
+[INFO] |     \- com.stoyanr:evictor:jar:1.0.0:compile
+[INFO] +- org.springframework.cloud:spring-cloud-starter-consul-config:jar:5.0.1:compile
+[INFO] |  \- org.springframework.cloud:spring-cloud-consul-config:jar:5.0.1:compile
+[INFO] |     \- org.springframework.cloud:spring-cloud-commons:jar:5.0.1:compile
+[INFO] +- org.springframework.cloud:spring-cloud-starter-vault-config:jar:5.0.1:compile
+[INFO] |  +- org.apache.httpcomponents.client5:httpclient5:jar:5.5.2:compile
+[INFO] |  |  \- org.apache.httpcomponents.core5:httpcore5-h2:jar:5.3.6:compile
+[INFO] |  +- org.apache.httpcomponents.core5:httpcore5:jar:5.3.6:compile
+[INFO] |  +- org.springframework.cloud:spring-cloud-starter:jar:5.0.1:compile
+[INFO] |  |  \- org.springframework.cloud:spring-cloud-context:jar:5.0.1:compile
+[INFO] |  +- org.springframework.cloud:spring-cloud-vault-config:jar:5.0.1:compile
+[INFO] |  |  \- tools.jackson.core:jackson-databind:jar:3.0.4:compile
+[INFO] |  |     \- tools.jackson.core:jackson-core:jar:3.0.4:compile
+[INFO] |  \- org.springframework.vault:spring-vault-core:jar:4.0.0:compile
+[INFO] +- io.github.acm19:aws-request-signing-apache-interceptor:jar:2.3.1:compile
+[INFO] |  \- software.amazon.awssdk:auth:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:annotations:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:utils:jar:2.21.2:compile
+[INFO] |     |  \- org.reactivestreams:reactive-streams:jar:1.0.4:compile
+[INFO] |     +- software.amazon.awssdk:sdk-core:jar:2.21.2:compile
+[INFO] |     |  +- software.amazon.awssdk:metrics-spi:jar:2.21.2:compile
+[INFO] |     |  +- software.amazon.awssdk:endpoints-spi:jar:2.21.2:compile
+[INFO] |     |  +- software.amazon.awssdk:checksums-spi:jar:2.21.2:compile
+[INFO] |     |  \- software.amazon.awssdk:checksums:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:identity-spi:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:regions:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:profiles:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:http-client-spi:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:json-utils:jar:2.21.2:compile
+[INFO] |     |  \- software.amazon.awssdk:third-party-jackson-core:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:http-auth-aws:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:http-auth:jar:2.21.2:compile
+[INFO] |     +- software.amazon.awssdk:http-auth-spi:jar:2.21.2:compile
+[INFO] |     \- software.amazon.eventstream:eventstream:jar:1.0.1:compile
+[INFO] +- org.springframework.boot:spring-boot-starter-test:jar:3.5.14:test
+[INFO] |  +- org.springframework.boot:spring-boot-test:jar:3.5.14:test
+[INFO] |  +- org.springframework.boot:spring-boot-test-autoconfigure:jar:3.5.14:test
+[INFO] |  +- jakarta.xml.bind:jakarta.xml.bind-api:jar:4.0.2:compile
+[INFO] |  |  \- jakarta.activation:jakarta.activation-api:jar:2.1.4:compile
+[INFO] |  +- net.minidev:json-smart:jar:2.4.10:test
+[INFO] |  |  \- net.minidev:accessors-smart:jar:2.4.9:test
+[INFO] |  |     \- org.ow2.asm:asm:jar:9.3:test
+[INFO] |  +- org.assertj:assertj-core:jar:3.27.7:test
+[INFO] |  |  \- net.bytebuddy:byte-buddy:jar:1.17.8:test
+[INFO] |  +- org.awaitility:awaitility:jar:4.2.2:test
+[INFO] |  +- org.hamcrest:hamcrest:jar:3.0:test
+[INFO] |  +- org.junit.jupiter:junit-jupiter:jar:5.12.2:test
+[INFO] |  |  +- org.junit.jupiter:junit-jupiter-api:jar:5.12.2:test
+[INFO] |  |  |  +- org.opentest4j:opentest4j:jar:1.3.0:test
+[INFO] |  |  |  +- org.junit.platform:junit-platform-commons:jar:1.12.2:test
+[INFO] |  |  |  \- org.apiguardian:apiguardian-api:jar:1.1.2:test
+[INFO] |  |  +- org.junit.jupiter:junit-jupiter-params:jar:5.12.2:test
+[INFO] |  |  \- org.junit.jupiter:junit-jupiter-engine:jar:5.12.2:test
+[INFO] |  |     \- org.junit.platform:junit-platform-engine:jar:1.12.2:test
+[INFO] |  +- org.mockito:mockito-core:jar:5.8.0:test
+[INFO] |  |  +- net.bytebuddy:byte-buddy-agent:jar:1.17.8:test
+[INFO] |  |  \- org.objenesis:objenesis:jar:3.3:test
+[INFO] |  +- org.mockito:mockito-junit-jupiter:jar:5.17.0:test
+[INFO] |  +- org.skyscreamer:jsonassert:jar:1.5.3:test
+[INFO] |  |  \- com.vaadin.external.google:android-json:jar:0.0.20131108.vaadin1:test
+[INFO] |  +- org.springframework:spring-test:jar:6.2.18:test
+[INFO] |  \- org.xmlunit:xmlunit-core:jar:2.10.4:test
+[INFO] \- org.snomed:snomed-parent-owasp:jar:1.0.9:compile
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for SNOMED Simplex Toolkit 2.12.0-SNAPSHOT:
+[INFO] 
+[INFO] SNOMED Simplex Toolkit ............................. SUCCESS [  0.298 s]
+[INFO] SNOMED Simplex Toolkit: User Interface ............. SUCCESS [  0.016 s]
+[INFO] SNOMED Simplex Toolkit: API ........................ SUCCESS [  0.356 s]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.938 s
+[INFO] Finished at: 2026-05-20T13:46:52+01:00
+[INFO] ------------------------------------------------------------------------

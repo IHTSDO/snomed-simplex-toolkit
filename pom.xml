@@ -19,6 +19,7 @@
 
 	<properties>
 		<!-- BOM Overrides. Remove and reassert as needed when upgrading the BOM. -->
+		<tomcat-embed.version>10.1.55</tomcat-embed.version>
 	</properties>
 
 	<modules>
