@@ -9,4 +9,38 @@
 		<packageUrl regex="true">^pkg:maven/org\.springframework\.security/.*@.*$</packageUrl>
 		<cve>CVE-2026-22747</cve>
 	</suppress>
+	<!--
+		False positive: CVE-2026-40981, CVE-2026-40982, CVE-2026-41002 apply to Spring Cloud Config Server.
+		Dependency-Check attaches cpe:vmware:spring_cloud_config to spring-cloud-consul-config and
+		spring-cloud-vault-config because they share the Spring Cloud train version; this repo does not
+		include spring-cloud-config-server.
+	-->
+	<suppress>
+		<notes><![CDATA[False positive — consul-config client library, not spring-cloud-config-server]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.cloud/spring-cloud-consul-config@.*$</packageUrl>
+		<cve>CVE-2026-40981</cve>
+		<cve>CVE-2026-40982</cve>
+		<cve>CVE-2026-41002</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[False positive — vault-config client library, not spring-cloud-config-server]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.cloud/spring-cloud-vault-config@.*$</packageUrl>
+		<cve>CVE-2026-40981</cve>
+		<cve>CVE-2026-40982</cve>
+		<cve>CVE-2026-41002</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[False positive — starter wraps consul-config client, not config-server]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.cloud/spring-cloud-starter-consul-config@.*$</packageUrl>
+		<cve>CVE-2026-40981</cve>
+		<cve>CVE-2026-40982</cve>
+		<cve>CVE-2026-41002</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[False positive — starter wraps vault-config client, not config-server]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.cloud/spring-cloud-starter-vault-config@.*$</packageUrl>
+		<cve>CVE-2026-40981</cve>
+		<cve>CVE-2026-40982</cve>
+		<cve>CVE-2026-41002</cve>
+	</suppress>
 </suppressions>
