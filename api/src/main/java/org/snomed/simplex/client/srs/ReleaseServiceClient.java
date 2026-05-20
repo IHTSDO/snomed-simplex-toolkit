@@ -16,7 +16,6 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.SnowstormExportConfiguration;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemBuildStatus;
-import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.srs.domain.OutputFile;
 import org.snomed.simplex.client.srs.domain.ProductUpdateRequestInternal;
@@ -50,7 +49,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
@@ -182,7 +180,7 @@ public class ReleaseServiceClient {
 		updateRequest.setEnableMRCMValidation(true);
 		updateRequest.setNamespaceId(codeSystem.getNamespace());
 		updateRequest.setDefaultModuleId(codeSystem.getDefaultModule());
-		updateRequest.setModuleIds(codeSystem.getModules().stream().map(ConceptMini::getConceptId).collect(Collectors.joining(",")));
+		updateRequest.setModuleIds(codeSystem.getDefaultModule());
 
 		getClient().put(
 				String.format("/centers/%s/products/%s/configuration", releaseCenter, getProductName(codeSystem.getShortName())),
