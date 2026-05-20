@@ -27,6 +27,8 @@ public class CodeSystem {
 	private CodeSystemValidationStatus validationStatus;
 	private CodeSystemBuildStatus buildStatus;
 	private boolean showCustomConcepts;
+	/** From branch metadata {@link Branch#SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY}; default false. */
+	private boolean validationIgnoreCase;
 	private boolean classified;
 	private String latestValidationReport;
 	private String latestReleaseCandidateBuild;
@@ -177,6 +179,14 @@ public class CodeSystem {
 
 	public void setShowCustomConcepts(boolean showCustomConcepts) {
 		this.showCustomConcepts = showCustomConcepts;
+	}
+
+	public boolean isValidationIgnoreCase() {
+		return validationIgnoreCase;
+	}
+
+	public void setValidationIgnoreCase(boolean validationIgnoreCase) {
+		this.validationIgnoreCase = validationIgnoreCase;
 	}
 
 	public String getDependencyPackage() {

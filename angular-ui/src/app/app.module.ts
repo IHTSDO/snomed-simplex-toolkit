@@ -67,6 +67,7 @@ import {MatProgressBarModule} from '@angular/material/progress-bar';
 import { TimelineComponent } from './components/timeline/timeline.component';
 import { ValidationResultsComponent } from './components/validation-results/validation-results.component';
 import {MatCardModule} from '@angular/material/card';
+import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import { ProductPackagingComponent } from './components/product-packaging/product-packaging.component';
 import { WelcomeComponent } from './components/welcome/welcome.component';
@@ -158,6 +159,7 @@ import {ConfigService} from "./services/config/config.service";
         MatTooltipModule,
         MatProgressBarModule,
         MatCardModule,
+        MatCheckboxModule,
         MatAutocompleteModule], providers: [
         AuthenticationService,
         AuthoringService,

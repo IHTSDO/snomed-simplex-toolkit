@@ -15,7 +15,9 @@ export class SelectEditionComponent implements OnInit {
   selectedEdition: any;
   newEditionMode= false;
   loading = false;
+  loadingValidationSetting = false;
   deleting = false;
+  validationIgnoreCase = false;
   roles: any[] = [];
   private subscriptions: Subscription = new Subscription();
 
@@ -30,9 +32,7 @@ export class SelectEditionComponent implements OnInit {
     const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
       if (edition) {
         this.selectedEdition = edition;
-        if (!edition.namespace) {
-          this.refreshEdition();
-        }
+        this.refreshEdition();
         this.changeDetectorRef.detectChanges();
         this.getRoles();
       }
@@ -45,6 +45,7 @@ export class SelectEditionComponent implements OnInit {
     lastValueFrom(this.simplexService.getEdition(this.selectedEdition.shortName)).then(
       (edition) => {
         this.selectedEdition = edition;
+        this.validationIgnoreCase = !!edition.validationIgnoreCase;
         this.loading = false;
       },
       (error) => {
@@ -79,6 +80,27 @@ export class SelectEditionComponent implements OnInit {
 
   isAdmin(): boolean {
     return this.roles.includes('ADMIN');
+  }
+
+  onValidationIgnoreCaseChange(): void {
+    if (!this.selectedEdition || !this.isAdmin()) {
+      return;
+    }
+    this.loadingValidationSetting = true;
+    lastValueFrom(this.simplexService.updateValidationSettings(this.selectedEdition.shortName, this.validationIgnoreCase)).then(
+      () => {
+        this.selectedEdition.validationIgnoreCase = this.validationIgnoreCase;
+        this.loadingValidationSetting = false;
+      },
+      (error) => {
+        console.error(error);
+        this.validationIgnoreCase = !!this.selectedEdition.validationIgnoreCase;
+        this.loadingValidationSetting = false;
+        this.snackBar.open('Failed to update validation settings', 'Dismiss', {
+          duration: 5000
+        });
+      }
+    );
   }
 
   loadEditions() {

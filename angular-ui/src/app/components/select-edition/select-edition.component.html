@@ -18,6 +18,19 @@
                     <mat-spinner [diameter]="20" *ngIf="!selectedEdition[field] && loading"></mat-spinner>
                 </div>
             </div>
+            <div class="component-row" *ngIf="isAdmin()">
+                <div class="component-col align-right">
+                    <span class="details-field-name">Ignore Case Sensitivity</span>
+                </div>
+                <div class="component-col">
+                    <mat-checkbox color="primary"
+                                  [(ngModel)]="validationIgnoreCase"
+                                  [disabled]="loading || loadingValidationSetting"
+                                  (change)="onValidationIgnoreCaseChange()"
+                                  aria-label="Ignore case sensitivity for RVF validation">
+                    </mat-checkbox>
+                </div>
+            </div>
             <div class="component-row">
                 <div class="component-col align-right">
                     <span class="details-field-name">Upgrade to a newer dependant release</span>

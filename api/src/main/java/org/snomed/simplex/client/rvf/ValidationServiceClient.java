@@ -48,6 +48,9 @@ public class ValidationServiceClient {
 	private static final String RVF_TS = "RVF_TS";
 	private static final String VALIDATION_RESPONSE_QUEUE = "termserver-release-validation.response";
 
+	/** RVF resource assertion UUID for the case-significance procedure (excluded when validation ignore-case is enabled on the edition). */
+	private static final String RVF_CASE_SIGNIFICANCE_RESOURCE_ASSERTION_ID = "458cde1f-224a-49d7-a6ca-2fc666d96e7d";
+
 	private final RestTemplate restTemplate;
 	private final String queuePrefix;
 	private final SpreadsheetService spreadsheetService;
@@ -169,6 +172,10 @@ public class ValidationServiceClient {
 		body.add("failureExportMax", "100");
 		String storageLocation = RVF_TS + "/Simplex_" + codeSystem.getShortName() + "/" + runId;
 		body.add("storageLocation", storageLocation);
+
+		if (codeSystem.isValidationIgnoreCase()) {
+			body.add("assertionExclusionList", RVF_CASE_SIGNIFICANCE_RESOURCE_ASSERTION_ID);
+		}
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.MULTIPART_FORM_DATA);

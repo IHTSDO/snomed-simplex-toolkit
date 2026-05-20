@@ -301,6 +301,13 @@ public class CodeSystemService {
 		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), newMetadata);
 	}
 
+	public void updateValidationSettings(String codeSystemShortName, boolean ignoreCaseSensitivity) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(codeSystemShortName);
+		setCodeSystemMetadata(Branch.SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY, Boolean.toString(ignoreCaseSensitivity), codeSystem,
+				snowstormClient);
+	}
+
 	private void createModuleOntologyExpression(String moduleId, CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
 		List<RefsetMember> ontologyMembers = snowstormClient.getRefsetMembers(OWL_ONTOLOGY_REFSET, codeSystem, false, 100, null).getItems();
 		RefsetMember existingOntologyExpressionMember = null;

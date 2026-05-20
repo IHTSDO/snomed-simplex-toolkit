@@ -19,6 +19,9 @@ public class Branch {
 	public static final String SIMPLEX_TRANSLATION_WEBLATE_METADATA_KEY = "simplex.translation.weblate.";
 	public static final String BATCH_CHANGE = "batch-change";
 
+	/** When true, RVF case-significance resource assertion is skipped for this edition. */
+	public static final String SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY = "simplex.validation.ignoreCase";
+
 	public static final String ORGANISATION_NAME = "package.orgName";
 	public static final String ORGANISATION_CONTACT_DETAILS = "package.orgContactDetails";
 

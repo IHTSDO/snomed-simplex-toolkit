@@ -63,6 +63,11 @@ export class SimplexService {
     return this.http.get(`api/codesystems/${edition}`).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public updateValidationSettings(edition: string, ignoreCase: boolean): Observable<void> {
+    return this.http.put<void>(`api/codesystems/${edition}/validation-settings`, { ignoreCase })
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getCodeSystemForBranch(branch: string): Observable<any> {
     return this.http.get(`/snowstorm/snomed-ct/codesystems?forBranch=${branch}`).pipe(catchError(this.handleError.bind(this)));
   }

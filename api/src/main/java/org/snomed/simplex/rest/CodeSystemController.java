@@ -23,6 +23,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.rest.pojos.SetBranchRequest;
+import org.snomed.simplex.rest.pojos.ValidationSettingsRequest;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.CodeSystemService;
 import org.snomed.simplex.service.external.*;
@@ -225,6 +226,18 @@ public class CodeSystemController {
 		CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		activityService.runActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
 			codeSystemService.updatePackageConfiguration(packageConfiguration, codeSystemObject.getBranchPath());
+			return null;
+		});
+	}
+
+	@PutMapping(path = "{codeSystem}/validation-settings")
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public void updateValidationSettings(
+			@PathVariable String codeSystem,
+			@RequestBody ValidationSettingsRequest request) throws ServiceException {
+
+		activityService.runActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
+			codeSystemService.updateValidationSettings(codeSystem, request.isIgnoreCase());
 			return null;
 		});
 	}
