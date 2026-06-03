@@ -53,7 +53,8 @@ public class WeblateClientFactory {
 		this.authenticationClient = authenticationClient;
 		this.adminUsername = adminUsername;
 		this.adminPassword = adminPassword;
-		this.adminClient = createAdminClient(authenticationClient, adminUsername, adminPassword);
+		this.adminClient = null;
+//		this.adminClient = createAdminClient(authenticationClient, adminUsername, adminPassword);
 		this.adminClientCreationTime = System.currentTimeMillis();
 	}
 

@@ -1,0 +1,72 @@
+<div class="ecl-input-section" [formGroup]="eclForm">
+    <h4>Selection Method</h4>
+    <mat-radio-group [(ngModel)]="eclInputMethod" (change)="onEclInputMethodChange()" [ngModelOptions]="{standalone: true}">
+        <mat-radio-button value="subtype"
+                         [disabled]="!edition?.branchPath"
+                         [matTooltip]="!edition?.branchPath ? 'Branch path not available. Please ensure an edition is selected.' : ''">
+            Select a concept and all descendants
+        </mat-radio-button>
+        <mat-radio-button value="refset">Select from a Refset in this Extension</mat-radio-button>
+        <mat-radio-button value="derivative">Select from a SNOMED CT Derivative</mat-radio-button>
+        <mat-radio-button value="manual">Manual ECL Input</mat-radio-button>
+    </mat-radio-group>
+
+    <mat-form-field *ngIf="eclInputMethod === 'manual'" class="ecl-field">
+        <mat-label>ECL</mat-label>
+        <input matInput formControlName="ecl">
+        <button *ngIf="eclForm.get('ecl')?.value" matSuffix
+            mat-icon-button aria-label="Clear" (click)="eclForm.get('ecl')?.setValue('')">
+            <mat-icon>close</mat-icon>
+        </button>
+        <mat-error *ngIf="eclForm.get('ecl')?.hasError('required')">ECL is required</mat-error>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="eclInputMethod === 'refset'" class="ecl-field">
+        <mat-label>Select Refset</mat-label>
+        <mat-select (selectionChange)="onRefsetSelectionChange($event.value)" [value]="selectedRefsetCode" [disabled]="loadingRefsets">
+            <mat-option *ngFor="let refset of refsets" [value]="refset.code">
+                {{ refset.display }} ({{ refset.code }})
+            </mat-option>
+            <mat-option *ngIf="!loadingRefsets && refsets.length === 0" disabled>
+                No refsets available
+            </mat-option>
+        </mat-select>
+        <mat-spinner *ngIf="loadingRefsets" matSuffix [diameter]="20"></mat-spinner>
+        <mat-error *ngIf="eclForm.get('ecl')?.hasError('required')">Refset selection is required</mat-error>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="eclInputMethod === 'derivative'" class="ecl-field">
+        <mat-label>Select Derivative</mat-label>
+        <mat-select (selectionChange)="onDerivativeSelectionChange($event.value)" [value]="selectedDerivativeCode" [disabled]="loadingDerivatives">
+            <mat-option *ngFor="let derivative of derivatives" [value]="derivative.code">
+                {{ derivative.display }} ({{ derivative.code }}){{ derivative.memberCount ? ' - ' + derivative.memberCount + ' members' : '' }}
+            </mat-option>
+            <mat-option *ngIf="!loadingDerivatives && derivatives.length === 0" disabled>
+                No derivatives available
+            </mat-option>
+        </mat-select>
+        <mat-spinner *ngIf="loadingDerivatives" matSuffix [diameter]="20"></mat-spinner>
+        <mat-error *ngIf="eclForm.get('ecl')?.hasError('required')">Derivative selection is required</mat-error>
+    </mat-form-field>
+
+    <div *ngIf="eclInputMethod === 'subtype'" class="subtype-selection">
+        <mat-label>Select Concept and All Descendants</mat-label>
+        <div *ngIf="!edition?.branchPath" class="error-message">
+            <mat-icon>error</mat-icon>
+            <span>Branch path not available. Please ensure an edition is selected.</span>
+        </div>
+        <app-autocomplete-binding
+            *ngIf="edition?.branchPath"
+            [binding]="{ecl: '<< 138875005', branchPath: edition.branchPath}"
+            [term]="selectedSubtype ? selectedSubtype.code + ' |' + selectedSubtype.display + '|' : ''"
+            (selectionChange)="onSubtypeSelectionChange($event)">
+        </app-autocomplete-binding>
+    </div>
+</div>
+
+<div class="codesystem-info" *ngIf="selectedCodesystem === 'SNOMEDCT-DERIVATIVES'">
+    <mat-icon class="info-icon">info</mat-icon>
+    <span class="info-text">
+        Members will be selected from concepts in the SNOMED CT Derivatives Edition.
+    </span>
+</div>

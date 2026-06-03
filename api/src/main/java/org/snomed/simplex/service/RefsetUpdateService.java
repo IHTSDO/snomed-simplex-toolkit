@@ -22,6 +22,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
+import static org.snomed.simplex.client.SnowstormClientFactory.SNOMEDCT_DERIVATIVES;
 import static java.util.function.Predicate.not;
 
 public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
@@ -65,6 +66,39 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId, codeSystem);
 		List<RefsetMemberIntent> refsetMembers = uploadProvider.readUpload();
 		return update(refset, refsetMembers, codeSystem, progressMonitor);
+	}
+
+	public ChangeSummary updateRefsetViaEcl(String refsetId, String ecl, String selectionCodesystem, CodeSystem codeSystem, ProgressMonitor progressMonitor) throws ServiceException {
+		ServiceHelper.requiredParameter("ecl", ecl);
+		ServiceHelper.requiredParameter("selectionCodesystem", selectionCodesystem);
+		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(refsetId, codeSystem);
+		List<RefsetMemberIntent> refsetMembers = readMembersFromEcl(ecl, selectionCodesystem, progressMonitor);
+		return update(refset, refsetMembers, codeSystem, progressMonitor);
+	}
+
+	private List<RefsetMemberIntent> readMembersFromEcl(String ecl, String selectionCodesystem, ProgressMonitor progressMonitor) throws ServiceException {
+		SnowstormClient.ConceptIdStream conceptIdStream = getConceptIdStream(selectionCodesystem, ecl);
+		int total = conceptIdStream.getTotal();
+		progressMonitor.setRecordsTotal(total > 0 ? total : 1);
+		List<RefsetMemberIntent> members = new ArrayList<>();
+		String conceptId;
+		while ((conceptId = conceptIdStream.get()) != null) {
+			members.add(new RefsetMemberIntent(conceptId));
+			progressMonitor.incrementRecordsProcessed();
+		}
+		logger.info("ECL returned {} concept IDs for refset population.", members.size());
+		return members;
+	}
+
+	private SnowstormClient.ConceptIdStream getConceptIdStream(String selectionCodesystemName, String ecl) throws ServiceException {
+		SnowstormClient snowstormClient;
+		if (SNOMEDCT_DERIVATIVES.equals(selectionCodesystemName)) {
+			snowstormClient = snowstormClientFactory.getDerivativesClient();
+		} else {
+			snowstormClient = snowstormClientFactory.getClient();
+		}
+		CodeSystem selectionCodeSystem = snowstormClient.getCodeSystemOrThrow(selectionCodesystemName);
+		return snowstormClient.getConceptIdStream(selectionCodeSystem.getBranchPath(), ecl);
 	}
 
 	private ChangeSummary update(ConceptMini refset, List<? extends RefsetMemberIntent> inputMembers, CodeSystem codeSystem, ProgressMonitor progressMonitor) throws ServiceException {

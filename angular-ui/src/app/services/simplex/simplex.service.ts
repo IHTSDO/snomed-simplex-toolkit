@@ -144,6 +144,11 @@ export class SimplexService {
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public populateRefsetViaEcl(edition: string, refsetId: string, payload: { ecl: string; selectionCodesystem: string }): Observable<any> {
+    const apiUrl = `api/${edition}/refsets/simple/${refsetId}/ecl`;
+    return this.http.put(apiUrl, payload).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public uploadSpreadsheetMap(edition: string, refsetId: string, file: File): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);

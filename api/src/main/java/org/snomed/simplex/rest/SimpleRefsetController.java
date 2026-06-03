@@ -10,6 +10,7 @@ import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.rest.pojos.PopulateRefsetViaEclRequest;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.RefsetToolSubsetReader;
@@ -57,6 +58,21 @@ public class SimpleRefsetController extends AbstractRefsetController<RefsetMembe
 	@Override
 	protected SimpleRefsetService getRefsetService() {
 		return simpleRefsetService;
+	}
+
+	@PutMapping(path = "{refsetId}/ecl")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob populateRefsetViaEcl(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@RequestBody PopulateRefsetViaEclRequest request) throws ServiceException {
+
+		SnowstormClient snowstormClient = getSnowstormClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		Activity activity = new Activity(codeSystem, ComponentType.SUBSET, ActivityType.UPDATE);
+		ContentJob contentJob = new ContentJob(theCodeSystem, "Subset upload (ECL)", refsetId);
+		String ecl = request.getEcl();
+		String selectionCodesystem = request.getSelectionCodesystem();
+		return jobService.queueContentJob(contentJob, refsetId, activity,
+				asyncJob -> simpleRefsetService.updateRefsetViaEcl(refsetId, ecl, selectionCodesystem, asyncJob.getCodeSystemObject(), asyncJob));
 	}
 
 	@PutMapping(path = "{refsetId}/refset-tool", consumes = "multipart/form-data")

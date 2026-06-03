@@ -1,0 +1,54 @@
+.ecl-input-section {
+    margin-bottom: 16px;
+    margin-left: 70px;
+
+    h4 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        color: rgba(0, 0, 0, 0.87);
+    }
+
+    mat-radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .ecl-field {
+        width: 100%;
+        display: block;
+    }
+}
+
+.subtype-selection {
+    margin-top: 8px;
+}
+
+.error-message {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #d32f2f;
+    margin: 8px 0;
+}
+
+.codesystem-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background-color: #e3f2fd;
+    border-radius: 4px;
+
+    .info-icon {
+        color: #1976d2;
+    }
+
+    .info-text {
+        font-size: 14px;
+    }
+}

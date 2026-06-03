@@ -1,4 +1,5 @@
 import {ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild} from '@angular/core';
+import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {Router} from '@angular/router';
 import {SimplexService} from '../../services/simplex/simplex.service';
@@ -6,6 +7,7 @@ import {ModalService} from '../../services/modal/modal.service';
 import {catchError, lastValueFrom, of, Subscription} from 'rxjs';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import {MatRadioChange} from '@angular/material/radio';
+import {EclSelectionComponent} from '../ecl-selection/ecl-selection.component';
 
 @Component({
   selector: 'app-jobs',
@@ -27,12 +29,19 @@ import {MatRadioChange} from '@angular/material/radio';
 })
 export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   @Input() edition: string;
+  @Input() editionDetails: any;
   @Input() refsetId: string;
   @Input() artifact: any;
 
   @Output() jobCompleted = new EventEmitter<any>();
 
   @ViewChild('fileInput') fileInput: ElementRef;
+  @ViewChild(EclSelectionComponent) eclSelection: EclSelectionComponent;
+
+  eclForm: FormGroup = this.fb.group({
+    ecl: ['', Validators.required]
+  });
+  populatingViaEcl = false;
 
   jobs: any[] = [];
   activities: any[] = [];
@@ -56,6 +65,11 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     {
       value: 'refsetToolSubset',
       viewValue: 'Refset Tool Subset',
+      artifactTypes: ['subset'],
+    },
+    {
+      value: 'eclSubset',
+      viewValue: 'SNOMED Query',
       artifactTypes: ['subset'],
     },
     {
@@ -93,6 +107,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   displayedColumns: string[] = ['date', 'display', 'status', 'total', 'icon'];
 
   constructor(
+    private fb: FormBuilder,
     private simplexService: SimplexService,
     private changeDetectorRef: ChangeDetectorRef,
     private snackBar: MatSnackBar,
@@ -500,8 +515,44 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   // Handle changes in selected file type
   onSelectedFileTypeChange(event: MatRadioChange): void {
     this.selectedFileType = event.value;
-    // Optionally reset related variables
     this.selectedFile = null;
+    this.eclForm.reset({ ecl: '' });
+    this.eclSelection?.resetSelection();
+  }
+
+  resetEditPanel() {
+    this.selectedFileType = null;
+    this.selectedFile = null;
+    this.eclForm.reset({ ecl: '' });
+    this.eclSelection?.resetSelection();
+    if (this.fileInput) {
+      this.fileInput.nativeElement.value = '';
+    }
+  }
+
+  populateSubsetViaEcl() {
+    this.eclForm.markAllAsTouched();
+    if (!this.eclForm.valid || !this.edition || !this.artifact?.conceptId || !this.eclSelection) {
+      return;
+    }
+    const payload = {
+      ecl: this.eclForm.value.ecl,
+      selectionCodesystem: this.eclSelection.selectedCodesystem
+    };
+    this.populatingViaEcl = true;
+    lastValueFrom(this.simplexService.populateRefsetViaEcl(this.edition, this.artifact.conceptId, payload)).then(
+      () => {
+        this.populatingViaEcl = false;
+        this.resetEditPanel();
+        this.loadJobs(false);
+        this.alert('Subset population job created');
+      },
+      (error) => {
+        console.error(error);
+        this.populatingViaEcl = false;
+        this.snackBar.open('Failed to populate subset via ECL', 'Dismiss', { duration: 5000 });
+      }
+    );
   }
 
   linkToWeblate() {

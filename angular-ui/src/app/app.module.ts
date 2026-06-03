@@ -81,6 +81,7 @@ import { CommonModule } from '@angular/common';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslationDashboardComponent } from './components/translation-dashboard/translation-dashboard.component';
 import { AutocompleteBindingComponent } from './components/binding-controls/autocomplete-binding/autocomplete-binding.component';
+import { EclSelectionComponent } from './components/ecl-selection/ecl-selection.component';
 import {DrawerComponent} from "./components/drawer/drawer.component";
 import {DrawerService} from "./services/drawer/drawer.service";
 import {ConfigService} from "./services/config/config.service";
@@ -131,6 +132,7 @@ import {ConfigService} from "./services/config/config.service";
         CreateSharedSetComponent,
         TranslationDashboardComponent,
         AutocompleteBindingComponent,
+        EclSelectionComponent,
         DrawerComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,

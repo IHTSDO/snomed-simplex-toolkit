@@ -205,6 +205,26 @@
     </div>
 </div>
 
+<div *ngIf="selectedFileType == 'eclSubset' && !shouldDisableEditing()">
+    <div class="step-row">
+        <span class="step-number">1</span>
+        Choose how to define the concept set
+    </div>
+    <app-ecl-selection *ngIf="editionDetails" [edition]="editionDetails" [eclForm]="eclForm"></app-ecl-selection>
+    <div class="step-row">
+        <span class="step-number">2</span>
+        Populate the refset using the selection (replaces current members)
+        <div class="upload-btn">
+            <button mat-flat-button color="accent"
+                (click)="populateSubsetViaEcl()"
+                [disabled]="eclForm.invalid || populatingViaEcl || !editionDetails">
+                <span *ngIf="!populatingViaEcl">Populate subset</span>
+                <span *ngIf="populatingViaEcl"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Starting job...</span>
+            </button>
+        </div>
+    </div>
+</div>
+
 <div *ngIf="selectedFileType == 'refsetToolSubset' && !shouldDisableEditing()">
     <div class="step-row">
         <span class="step-number">1</span>
