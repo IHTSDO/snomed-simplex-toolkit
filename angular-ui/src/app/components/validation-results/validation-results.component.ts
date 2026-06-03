@@ -85,6 +85,11 @@ export class ValidationResultsComponent implements OnChanges {
 
   public refreshIssues() {
     const validationStatus = this.editionDetailsSignal()?.validationStatus;
+    if (validationStatus === 'SYSTEM_ERROR') {
+      this.localIssues.set(null);
+      this.loadingValidationResults.set(false);
+      return;
+    }
     if (
       validationStatus !== 'TODO' &&
       validationStatus !== 'IN_PROGRESS'
@@ -158,7 +163,7 @@ export class ValidationResultsComponent implements OnChanges {
     const editionDetails = this.editionDetailsSignal();
     window.open('api/codesystems/' + this.editionDetails.shortName + '/validate/spreadsheet');
   }
-  
+
   toggleAdvice() {
     this.adviceVisible.update((visible) => !visible);
   }

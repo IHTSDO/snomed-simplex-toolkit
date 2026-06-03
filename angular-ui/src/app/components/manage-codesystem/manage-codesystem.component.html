@@ -46,7 +46,7 @@
                                     <span *ngIf="(edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'">
                                         Validation has completed and is up to date
                                     </span>
-                                    <span *ngIf="(edition.validationStatus == 'STALE' || edition.classificationStatus != 'COMPLETE') && edition.validationStatus != 'IN_PROGRESS'">
+                                    <span *ngIf="(edition.validationStatus == 'STALE' || edition.validationStatus == 'SYSTEM_ERROR' || edition.classificationStatus != 'COMPLETE') && edition.validationStatus != 'IN_PROGRESS'">
                                         {{ getValidationStatusInfo(edition.validationStatus) }} →&nbsp;
                                         <a href="javascript:void(0)" (click)="runClassificationAndValidation()">Run validation again</a>
                                     </span>
@@ -70,11 +70,11 @@
                         <div><b>Review</b></div>
                         <div class="sub-stage-text">
                             <div *ngIf="edition.editionStatus == 'AUTHORING'">
-                                Review content changes in Daily Build 
+                                Review content changes in Daily Build
                                     <span *ngIf="edition.editionStatus == 'AUTHORING'">→ <a href="javascript:void(0)" (click)="browseToDailyBuild()">Open browser</a></span>
                             </div>
                             <div *ngIf="edition.editionStatus == 'AUTHORING'">
-                                Download changes report 
+                                Download changes report
                                     <span *ngIf="edition.editionStatus == 'AUTHORING'">→ <a href="javascript:void(0)" (click)="generateChangeReport()">Download XLS</a></span>
                             </div>
                             <div *ngIf="edition.editionStatus && edition.editionStatus != 'AUTHORING'">Content editing is closed</div>
@@ -101,8 +101,8 @@
                         <button mat-flat-button disabled *ngIf="edition.editionStatus == 'AUTHORING' && edition.validationStatus == 'IN_PROGRESS'">
                             Validation running...
                         </button>
-                        <button mat-flat-button disabled *ngIf="edition.editionStatus == 'AUTHORING' && edition.validationStatus == 'SYSTEM_ERROR'">
-                            System error, contact support
+                        <button mat-flat-button color="accent" *ngIf="edition.editionStatus == 'AUTHORING' && edition.validationStatus == 'SYSTEM_ERROR'" (click)="runClassificationAndValidation()">
+                            Retry validation
                         </button>
                         <button mat-flat-button disabled *ngIf="edition.editionStatus == 'MAINTENANCE'">
                             Mainteance mode
@@ -112,7 +112,7 @@
                         </button>
                     </div>
                 </div>
-                <mat-icon class="completed-icon" 
+                <mat-icon class="completed-icon"
                         *ngIf="(edition.editionStatus == 'PREPARING_RELEASE' || edition.editionStatus == 'RELEASE')">
                         check_circle
                 </mat-icon>
@@ -141,10 +141,10 @@
                     <div class="sub-stage sub-stage-text">
                         <div><b>Final content review</b></div>
                         <div  *ngIf="edition.editionStatus == 'PREPARING_RELEASE'">
-                            <div>Review changes in Daily Build 
+                            <div>Review changes in Daily Build
                                 <span>→ <a href="javascript:void(0)" (click)="browseToDailyBuild()">Open browser</a></span>
                             </div>
-                            <div>Download changes report 
+                            <div>Download changes report
                                 <span>→ <a href="javascript:void(0)" (click)="generateChangeReport()">Download XLS</a></span>
                             </div>
                         </div>
@@ -158,7 +158,7 @@
                         edition.classificationStatus: {{ edition.classificationStatus }} -->
                     </div>
                     <div class="centered buttons-panel">
-                        <button mat-flat-button color="accent" *ngIf="edition.editionStatus == 'PREPARING_RELEASE' && (edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'; else noAction" 
+                        <button mat-flat-button color="accent" *ngIf="edition.editionStatus == 'PREPARING_RELEASE' && (edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'; else noAction"
                                 (click)="approveContentForRelease()">
                             Approve content changes <mat-icon>check</mat-icon>
                         </button>
@@ -183,9 +183,9 @@
                             Building release candidate
                         </button>
                     </div>
-                
+
                 </div>
-                <mat-icon class="completed-icon" 
+                <mat-icon class="completed-icon"
                     *ngIf="edition.editionStatus == 'RELEASE'">
                     check_circle
                 </mat-icon>
@@ -204,10 +204,10 @@
                     <div class="sub-stage sub-stage-text">
                         <div><b>Technical preview</b></div>
                         <div  *ngIf="edition.editionStatus == 'RELEASE'">
-                            <div>Preview content in browser 
+                            <div>Preview content in browser
                                 <span>→ <a href="javascript:void(0)" (click)="browseToDailyBuild()">Open browser</a></span>
                             </div>
-                            <div>Release candidate 
+                            <div>Release candidate
                                 <span>→&nbsp;
                                     <!-- <a href="javascript:void(0)" (click)="createReleaseCandidate()" *ngIf="edition.buildStatus != 'IN_PROGRESS' && edition.buildStatus != 'COMPLETE'">
                                         Not available

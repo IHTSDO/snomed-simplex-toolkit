@@ -1,7 +1,10 @@
 <div class="validation-container">
   <h4>Validation Results for {{ editionSignal() }} Edition</h4>
+  <p *ngIf="editionDetailsSignal()?.validationStatus === 'SYSTEM_ERROR'" class="aligned-p">
+    The last validation run failed due to a system error. Issues were not loaded. Use Run validation again or Retry validation above to try again.
+  </p>
   <!-- Skeleton Loader -->
-  <div *ngIf="loadingValidationResults() || !localIssues()" class="skeleton-loader">
+  <div *ngIf="editionDetailsSignal()?.validationStatus !== 'SYSTEM_ERROR' && (loadingValidationResults() || !localIssues())" class="skeleton-loader">
     <div class="skeleton-header">
       <div class="skeleton-item"></div>
       <div class="skeleton-item"></div>
@@ -20,7 +23,7 @@
   <div [@adviceAnimation]="adviceVisible() ? 'expanded' : 'collapsed'">
     <p class="small">
       The SIMPLEX Toolkit compiles information from different content authoring tools, like Snap2Snomed, Refset Editors, Webllate, etc.
-      After incorporating this content into a SNOMED Release the Validation Process runs and provides a list of <b>issues</b> that need to be 
+      After incorporating this content into a SNOMED Release the Validation Process runs and provides a list of <b>issues</b> that need to be
       fixed in order to produce a valid the SNOMED CT Edition package.
     </p>
     <p class="small">
@@ -30,17 +33,17 @@
     </p>
     <p class="small">
       This issues need to be fixed in each of the tools that originated the content. For example, if the issue is related to a Refset,
-      the Refset Editor tool should be used to fix the issue. If the issue is related to a Map, Sanp2Snomed should be used to fix the issue, 
+      the Refset Editor tool should be used to fix the issue. If the issue is related to a Map, Sanp2Snomed should be used to fix the issue,
       and so on.
     </p>
     <p class="small">
-      The SIMPLEX Toolkit provides a list of issues and the components that are causing the issue. The components are identified by their 
+      The SIMPLEX Toolkit provides a list of issues and the components that are causing the issue. The components are identified by their
       Concept ID and the Assertion Text that is causing the issue. The Assertion Text is a human readable text that describes the issue.
-      The user can click on the IDs links to open the <b>SIMPLEX Browser</b> to see the component in context and then fix the issue in the 
+      The user can click on the IDs links to open the <b>SIMPLEX Browser</b> to see the component in context and then fix the issue in the
       original tool.
     </p>
     <p class="small">
-      After content is fixed in the original tool, the Editing Stage need to be <b>reopen, cancelling the release preparation</b>, and the content 
+      After content is fixed in the original tool, the Editing Stage need to be <b>reopen, cancelling the release preparation</b>, and the content
       should be <b>re-imported</b> into the SIMPLEX Toolkit and the validation process should be run again.
     </p>
     <button mat-button (click)="toggleAdvice()" class="small"><i>Close</i></button>

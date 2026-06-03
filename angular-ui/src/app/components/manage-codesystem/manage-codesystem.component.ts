@@ -23,7 +23,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
 
 
   private refreshSubscription: Subscription;
- 
+
   jobs: any[] = [];
   releases: any[] = [];
   loadingReleaseStatus = false;
@@ -51,7 +51,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     this.startRefresh();
     this.subscriptions.add(editionSubscription);
   }
-    
+
 
   ngOnDestroy(): void {
     this.stopRefresh();
@@ -96,7 +96,11 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     if (this.edition.classificationStatus === 'STALE' || this.edition.classificationStatus === 'TODO') {
       await this.runClassification();
     }
-    if (this.edition.validationStatus === 'STALE' || this.edition.validationStatus === 'TODO') {
+    if (
+      this.edition.validationStatus === 'STALE' ||
+      this.edition.validationStatus === 'TODO' ||
+      this.edition.validationStatus === 'SYSTEM_ERROR'
+    ) {
       await this.runValidation();
     }
   }
@@ -241,33 +245,39 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   }
 
   async refreshIssues() {
-    if (this.edition.validationStatus != 'TODO' && this.edition.validationStatus != 'IN_PROGRESS') {
-      this.loadingIssues = true;
-      const response = await lastValueFrom(
-        this.simplexService.getValidationResults(this.edition.shortName)
-      );
-      response?.fixes.sort((a, b) => {
-        const severityOrder = { 'ERROR': 1, 'WARNING': 2 };
-        return severityOrder[a.severity] - severityOrder[b.severity];
-      });
-      this.issuesReport = response;
-      // fix issue report counts
-      let errorCount = 0;
-      let warningCount = 0;
-      this.issuesReport.fixes.forEach(fix => {
-        if (fix.severity === 'ERROR') {
-          errorCount += fix.componentCount;
-        } else if (fix.severity === 'WARNING') {
-          warningCount += fix.componentCount;
-        }
-      });
-      this.issuesReport.errorCount = errorCount;
-      this.issuesReport.warningCount = warningCount;
+    if (this.edition.validationStatus === 'TODO' || this.edition.validationStatus === 'IN_PROGRESS') {
+      this.issuesReport = { errorCount: 0, warningCount: 0, fixes: [] };
+      return;
+    }
+    if (this.edition.validationStatus === 'SYSTEM_ERROR') {
+      this.issuesReport = null;
       this.loadingIssues = false;
       this.changeDetectorRef.detectChanges();
-    } else {
-      this.issuesReport = {errorCount: 0, warningCount: 0, fixes: []};
+      return;
     }
+    this.loadingIssues = true;
+    const response = await lastValueFrom(
+      this.simplexService.getValidationResults(this.edition.shortName)
+    );
+    response?.fixes.sort((a, b) => {
+      const severityOrder = { 'ERROR': 1, 'WARNING': 2 };
+      return severityOrder[a.severity] - severityOrder[b.severity];
+    });
+    this.issuesReport = response;
+    // fix issue report counts
+    let errorCount = 0;
+    let warningCount = 0;
+    this.issuesReport.fixes.forEach(fix => {
+      if (fix.severity === 'ERROR') {
+        errorCount += fix.componentCount;
+      } else if (fix.severity === 'WARNING') {
+        warningCount += fix.componentCount;
+      }
+    });
+    this.issuesReport.errorCount = errorCount;
+    this.issuesReport.warningCount = warningCount;
+    this.loadingIssues = false;
+    this.changeDetectorRef.detectChanges();
   }
 
 
@@ -281,7 +291,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       COMPLETE: "Validation has completed successfully without any issues",
       STALE: "The content has changed and the results are outdated",
     };
-  
+
     return statusMessages[status] || "Unknown validation status";
   }
 
@@ -293,18 +303,18 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       SYSTEM_ERROR: "System error occurred. Please contact support",
       COMPLETE: "Classification completed successfully without any issues"
     };
-  
+
     return statusMessages[status] || "Unknown classification status";
   }
 
   generateChangeReport() {
     const branch = this.edition.branchPath;
     const reportSections: string[] = [
-      'new-concepts', 
-      'inactivated-concepts', 
-      'reactivated-concepts', 
-      'changed-fully-specified-names', 
-      'inactivated-synonyms', 
+      'new-concepts',
+      'inactivated-concepts',
+      'reactivated-concepts',
+      'changed-fully-specified-names',
+      'inactivated-synonyms',
       'new-synonyms-on-existing-concepts',
       'reactivated-synonyms',
       'new-refsets',
@@ -317,7 +327,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
 
     reportSections.forEach(section => {
       const url = `/snowstorm/snomed-ct/${branch}/authoring-stats/${section}`;
-      
+
       // Store the request promise
       requests.push(this.http.get<any[]>(url).toPromise().then(data => {
         const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(data);
@@ -386,5 +396,5 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     const fileUrl = `api/codesystems/${this.edition.shortName}/release-candidate`;
     window.open(fileUrl);
   }
-  
+
 }
