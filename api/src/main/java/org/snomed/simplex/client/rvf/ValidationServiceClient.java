@@ -168,6 +168,7 @@ public class ValidationServiceClient {
 		body.add("contentHeadTimestamp", Long.toString(headTimestamp));
 		body.add("responseQueue", queuePrefix + "." + VALIDATION_RESPONSE_QUEUE);
 		body.add("droolsRulesGroups", ReleaseServiceClient.DROOLS_RULES_GROUP_NAMES);
+		body.add("defaultModuleId", codeSystem.getDefaultModuleOrThrow());
 		body.add("includedModules", codeSystem.getDefaultModuleOrThrow());
 		body.add("failureExportMax", "100");
 		String storageLocation = RVF_TS + "/Simplex_" + codeSystem.getShortName() + "/" + runId;
