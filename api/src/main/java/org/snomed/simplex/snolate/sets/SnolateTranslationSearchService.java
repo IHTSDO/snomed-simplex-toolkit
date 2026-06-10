@@ -37,7 +37,15 @@ public class SnolateTranslationSearchService {
 	}
 
 	public Page<TranslationUnit> pageUnitsInSet(String compositeSetCode, String compositeLanguageCode, Pageable pageable) {
+		return pageUnitsInSet(compositeSetCode, compositeLanguageCode, pageable, null);
+	}
+
+	public Page<TranslationUnit> pageUnitsInSet(String compositeSetCode, String compositeLanguageCode, Pageable pageable,
+			TranslationStatus statusFilter) {
 		Criteria c = unitsInSetCriteria(compositeSetCode, compositeLanguageCode);
+		if (statusFilter != null) {
+			c = c.and(new Criteria(TranslationUnit.Fields.STATUS).is(statusFilter.name()));
+		}
 		CriteriaQuery query = new CriteriaQuery(c);
 		query.setPageable(pageable);
 		// Elasticsearch defaults to a 10,000 hit cap on total unless track_total_hits is enabled.

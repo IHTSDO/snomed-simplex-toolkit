@@ -47,6 +47,15 @@ export const TRANSLATION_SET_STATUS_SUMMARY_ORDER: readonly (typeof TRANSLATION_
 	'COMPLETE'
 ];
 
+/** Status filter dropdown on translation set concept table; {@code NOT_STARTED} first. */
+export const TRANSLATION_CONCEPT_STATUS_FILTER_ORDER: readonly (typeof TRANSLATION_STATUS_VALUES)[number][] = [
+	'NOT_STARTED',
+	'NEEDS_EDIT',
+	'FOR_REVIEW',
+	'APPROVED',
+	'COMPLETE'
+];
+
 export function translationStatusRadioLabel(status: string): string {
 	switch (status) {
 		case 'NEEDS_EDIT':

@@ -183,6 +183,17 @@
                                 <span class="details-field-value">{{ selectedLabelSet.size | number:'1.0-0' }}</span>
                             </div>
                         </div>
+                        <div class="component-row" *ngIf="selectedLabelSet.size && selectedLabelSet.status !== 'PROCESSING'">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">{{ translationConceptStatusFilterLabel('NOT_STARTED') }}</span>
+                            </div>
+                            <div class="component-col">
+                                <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
+                                <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
+                                    {{ translationSetNotStartedCount(selectedLabelSet) | number:'1.0-0' }}
+                                </span>
+                            </div>
+                        </div>
                         <ng-container *ngIf="selectedLabelSet.size && selectedLabelSet.status !== 'PROCESSING'">
                             <div class="component-row" *ngFor="let statusRow of translationSetStatusRows(selectedLabelSet)">
                                 <div class="component-col align-right">
@@ -243,14 +254,30 @@
 
                     <div class="members-heading-row">
                         <h3 class="members-heading">Translation concepts</h3>
-                        <button
-                            mat-stroked-button
-                            type="button"
-                            class="zen-mode-btn"
-                            (click)="openTranslationZenMode()"
-                            [disabled]="selectedLabelSet.status !== 'READY'">
-                            Zen Mode
-                        </button>
+                        <div class="members-heading-actions">
+                            <mat-form-field class="members-status-filter" subscriptSizing="dynamic">
+                                <mat-label>Filter</mat-label>
+                                <mat-select
+                                    [value]="labelSetMembersStatusFilter"
+                                    [disabled]="selectedLabelSet.status !== 'READY'"
+                                    (selectionChange)="onTranslationConceptStatusFilterChange($event.value)">
+                                    <mat-option [value]="null">All statuses</mat-option>
+                                    <mat-option
+                                        *ngFor="let status of translationConceptStatusFilterValues"
+                                        [value]="status">
+                                        {{ translationConceptStatusFilterLabel(status) }}
+                                    </mat-option>
+                                </mat-select>
+                            </mat-form-field>
+                            <button
+                                mat-stroked-button
+                                type="button"
+                                class="zen-mode-btn"
+                                (click)="openTranslationZenMode()"
+                                [disabled]="selectedLabelSet.status !== 'READY'">
+                                Zen Mode
+                            </button>
+                        </div>
                     </div>
                     <div *ngIf="selectedLabelSet.status !== 'READY'" class="status-message">
                         <p>Translation set members are only available when the set status is READY.</p>

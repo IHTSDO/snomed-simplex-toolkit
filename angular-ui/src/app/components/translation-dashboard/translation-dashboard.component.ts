@@ -13,7 +13,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
-import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER } from 'src/app/utils/translation-status-label';
+import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -37,6 +37,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     labelSetMembersTotalCount = 0;
     labelSetMembersPageIndex = 0;
     labelSetMembersPageSize = 25;
+    labelSetMembersStatusFilter: string | null = null;
+    readonly translationConceptStatusFilterValues = TRANSLATION_CONCEPT_STATUS_FILTER_ORDER;
     mode = 'view';
     saving = false;
     deleting = false;
@@ -610,6 +612,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         }
     }
 
+    translationSetNotStartedCount(set: any): number {
+        return set?.statusCounts?.NOT_STARTED ?? 0;
+    }
+
     translationSetStatusRows(set: any): { status: string; label: string; count: number }[] {
         return TRANSLATION_SET_STATUS_SUMMARY_ORDER.map((status) => ({
             status,
@@ -828,6 +834,17 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     }
 
 
+    onTranslationConceptStatusFilterChange(status: string | null): void {
+        this.labelSetMembersStatusFilter = status;
+        if (this.selectedLabelSet) {
+            this.getLabelSetMembers(this.selectedLabelSet, true);
+        }
+    }
+
+    translationConceptStatusFilterLabel(status: string): string {
+        return translationStatusRadioLabel(status);
+    }
+
     getLabelSetMembers(labelSet: any, resetPage = true) {
         if (resetPage) {
             this.labelSetMembersPageIndex = 0;
@@ -851,7 +868,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 labelSet.refset,
                 labelSet.label,
                 this.labelSetMembersPageIndex,
-                this.labelSetMembersPageSize
+                this.labelSetMembersPageSize,
+                this.labelSetMembersStatusFilter
             )
             .subscribe({
                 next: (labelSetMembers) => {
@@ -874,6 +892,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.selectedLabelSetMembers = [];
         this.labelSetMembersTotalCount = 0;
         this.labelSetMembersPageIndex = 0;
+        this.labelSetMembersStatusFilter = null;
     }
 
     setMode(mode: string) {

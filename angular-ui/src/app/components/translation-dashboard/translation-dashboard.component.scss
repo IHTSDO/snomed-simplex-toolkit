@@ -144,6 +144,18 @@
     margin: 0;
 }
 
+.members-heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+}
+
+.members-status-filter {
+    width: 220px;
+    margin: 0;
+}
+
 .members-table-wrap {
     width: 100%;
     margin-bottom: 2rem;

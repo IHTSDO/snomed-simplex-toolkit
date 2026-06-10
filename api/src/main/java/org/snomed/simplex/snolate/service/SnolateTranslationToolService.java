@@ -110,10 +110,16 @@ public class SnolateTranslationToolService {
 	 * Ordering is by status (NEEDS_EDIT, FOR_REVIEW, APPROVED, then not started), then source display order, then concept id.
 	 */
 	public TranslationUnitPage<TranslationUnitRow> getRows(SnolateTranslationSet translationSet, int page, int pageSize) {
+		return getRows(translationSet, page, pageSize, null);
+	}
+
+	public TranslationUnitPage<TranslationUnitRow> getRows(SnolateTranslationSet translationSet, int page, int pageSize,
+			TranslationStatus statusFilter) {
 		String setCode = translationSet.getCompositeSetCode();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
 		Sort sort = Sort.by("statusSort", "order", "code");
-		Page<TranslationUnit> pageResult = translationSearchService.pageUnitsInSet(setCode, lang, PageRequest.of(page, pageSize, sort));
+		Page<TranslationUnit> pageResult = translationSearchService.pageUnitsInSet(setCode, lang,
+				PageRequest.of(page, pageSize, sort), statusFilter);
 		List<String> codes = pageResult.getContent().stream().map(TranslationUnit::getCode).toList();
 		Map<String, TranslationSource> sourceByCode = Map.of();
 		if (!codes.isEmpty()) {

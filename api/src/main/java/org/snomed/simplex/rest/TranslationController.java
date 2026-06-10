@@ -155,14 +155,27 @@ public class TranslationController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public TranslationUnitPage<TranslationUnitRow> getSnolateSetRows(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@PathVariable String label, @RequestParam(required = false, defaultValue = "0") int page,
-			@RequestParam(required = false, defaultValue = "25") int size) throws ServiceException {
+			@RequestParam(required = false, defaultValue = "25") int size,
+			@RequestParam(required = false) String status) throws ServiceException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		int safePage = Math.max(0, page);
 		int safeSize = Math.min(2000, Math.max(1, size));
-		TranslationUnitPage<TranslationUnitRow> result = snolateTranslationToolService.getRows(translationSet, safePage, safeSize);
+		TranslationStatus statusFilter = parseOptionalTranslationStatus(status);
+		TranslationUnitPage<TranslationUnitRow> result = snolateTranslationToolService.getRows(translationSet, safePage, safeSize, statusFilter);
 		result.results().forEach(TranslationUnitRow::blankLabels);
 		return result;
+	}
+
+	private static TranslationStatus parseOptionalTranslationStatus(String status) throws ServiceExceptionWithStatusCode {
+		if (status == null || status.isBlank()) {
+			return null;
+		}
+		try {
+			return TranslationStatus.valueOf(status.trim());
+		} catch (IllegalArgumentException e) {
+			throw new ServiceExceptionWithStatusCode("Invalid translation status.", HttpStatus.BAD_REQUEST, e);
+		}
 	}
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/unit/{conceptId}")

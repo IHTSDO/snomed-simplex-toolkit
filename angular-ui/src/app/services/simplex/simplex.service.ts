@@ -411,8 +411,18 @@ export class SimplexService {
     return this.http.get(`api/${edition}/label-sets/${labelSetId}`).pipe(catchError(this.handleError.bind(this)));
   }
 
-  getTranslationSetRows(edition: string, refsetId: string, label: string, page: number, size: number): Observable<any> {
-    const params = new HttpParams().set('page', String(page)).set('size', String(size));
+  getTranslationSetRows(
+    edition: string,
+    refsetId: string,
+    label: string,
+    page: number,
+    size: number,
+    status?: string | null
+  ): Observable<any> {
+    let params = new HttpParams().set('page', String(page)).set('size', String(size));
+    if (status) {
+      params = params.set('status', status);
+    }
     return this.http
       .get(`api/${edition}/translations/${refsetId}/snolate-set/${label}/rows`, { params })
       .pipe(catchError(this.handleError.bind(this)));
