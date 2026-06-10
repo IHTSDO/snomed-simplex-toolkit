@@ -157,6 +157,9 @@ public class SnolateTranslationToolService {
 		}
 		TranslationUnit unit = tuOpt.get();
 		List<String> terms = normalizeTranslationTerms(rawTerms);
+		if (status == TranslationStatus.COMPLETE && unit.getStatus() != TranslationStatus.COMPLETE) {
+			throw new ServiceExceptionWithStatusCode("COMPLETE is set automatically when synced with Snowstorm.", HttpStatus.BAD_REQUEST);
+		}
 		if (terms.isEmpty()) {
 			if (status != TranslationStatus.NOT_STARTED) {
 				throw new ServiceExceptionWithStatusCode("Empty translation terms require status NOT_STARTED.", HttpStatus.BAD_REQUEST);

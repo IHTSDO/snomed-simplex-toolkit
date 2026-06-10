@@ -85,7 +85,7 @@ public class SnowstormTranslationSource implements TranslationSource {
 
 	@Override
 	public void writeTranslation(TranslationState translationState) {
-		throw new UnsupportedOperationException("Not implemented yet.");
+		throw new UnsupportedOperationException("Snowstorm writes go through TranslationService.doUploadTranslation");
 	}
 
 	@Override

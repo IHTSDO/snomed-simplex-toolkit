@@ -21,6 +21,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 public class TranslationMergeService {
 
+	record MergeResult(
+			TranslationIntent sourceIntent,
+			TranslationState sourceState,
+			TranslationState mergedTargetState,
+			TranslationState snowstormUploadState,
+			boolean hasChanges) {
+	}
+
 	private final TranslationStateRepository stateRepository;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -35,6 +43,20 @@ public class TranslationMergeService {
 	 * The final merged state is also persisted so it can be used to infer changes when the source and target are reversed later.
 	 */
 	void applyMerge(TranslationSource source, TranslationSource target, String languageCode, String langRefsetId) throws ServiceExceptionWithStatusCode {
+		MergeResult result = computeMerge(source, target, languageCode, langRefsetId);
+		if (!result.hasChanges()) {
+			logger.info("TranslationMerge {}-{} No translation changes found", languageCode, langRefsetId);
+			return;
+		}
+		logger.info("TranslationMerge {}-{} Applying {} additions and {} removals", languageCode, langRefsetId,
+				countIntents(result.sourceIntent(), Intent.ADD), countIntents(result.sourceIntent(), Intent.REMOVE));
+		target.writeTranslation(buildAdditionsState(result.sourceIntent()));
+		persistMergeSnapshots(result, langRefsetId, source.getType(), target.getType());
+		logger.info("TranslationMerge {}-{} Merging complete", languageCode, langRefsetId);
+	}
+
+	MergeResult computeMerge(TranslationSource source, TranslationSource target, String languageCode, String langRefsetId)
+			throws ServiceExceptionWithStatusCode {
 		logger.info("TranslationMerge {}-{} Merging from {} to {}", languageCode, langRefsetId, source.getType(), target.getType());
 
 		logger.info("TranslationMerge {}-{} Reading translations from {}", languageCode, langRefsetId, source.getType());
@@ -47,38 +69,69 @@ public class TranslationMergeService {
 
 		TranslationState previousSourceState = stateRepository.loadStateOrBlank(langRefsetId, source.getType());
 		TranslationIntent sourceIntent = inferIntent(previousSourceState, sourceState);
-		AtomicInteger additions = new AtomicInteger();
-		AtomicInteger removals = new AtomicInteger();
-		sourceIntent.getTermIntents().values().forEach(termIntent -> termIntent.forEach(term -> {
-			if (term.intent() == Intent.ADD) {
-				additions.incrementAndGet();
-			} else if (term.intent() == Intent.REMOVE) {
-				removals.incrementAndGet();
-			}
-		}));
-		if (additions.get() > 0 || removals.get() > 0) {
-			logger.info("TranslationMerge {}-{} Applying {} additions and {} removals", languageCode, langRefsetId, additions.get(), removals.get());
+		boolean hasChanges = hasAdditionsOrRemovals(sourceIntent);
+		TranslationState mergedTargetState = targetState;
+		TranslationState snowstormUploadState = new TranslationState();
+		if (hasChanges) {
 			applyIntent(targetState, sourceIntent);
-			// Build an additions-only state to avoid re-uploading unchanged translations.
-			// The full targetState is still saved to the repository for future diff operations.
-			TranslationState additionsState = new TranslationState();
-			Map<Long, List<String>> addedTerms = additionsState.getConceptTerms();
-			for (Map.Entry<Long, List<TermIntent>> entry : sourceIntent.getTermIntents().entrySet()) {
-				List<String> added = entry.getValue().stream()
-						.filter(ti -> ti.intent() == Intent.ADD)
-						.map(TermIntent::term)
-						.toList();
-				if (!added.isEmpty()) {
-					addedTerms.put(entry.getKey(), added);
+			mergedTargetState = targetState;
+			snowstormUploadState = buildSnowstormUploadState(sourceIntent, mergedTargetState);
+		}
+		return new MergeResult(sourceIntent, sourceState, mergedTargetState, snowstormUploadState, hasChanges);
+	}
+
+	void persistMergeSnapshots(MergeResult result, String langRefsetId, TranslationSourceType sourceType, TranslationSourceType targetType)
+			throws ServiceExceptionWithStatusCode {
+		stateRepository.saveState(langRefsetId, sourceType, result.sourceState());
+		stateRepository.saveState(langRefsetId, targetType, result.mergedTargetState());
+	}
+
+	TranslationState buildSnowstormUploadState(TranslationIntent sourceIntent, TranslationState mergedTargetState) {
+		TranslationState uploadState = new TranslationState();
+		Map<Long, List<String>> uploadTerms = uploadState.getConceptTerms();
+		Map<Long, List<String>> mergedTerms = mergedTargetState.getConceptTerms();
+		for (Map.Entry<Long, List<TermIntent>> entry : sourceIntent.getTermIntents().entrySet()) {
+			boolean changed = entry.getValue().stream()
+					.anyMatch(ti -> ti.intent() == Intent.ADD || ti.intent() == Intent.REMOVE);
+			if (changed) {
+				List<String> terms = mergedTerms.get(entry.getKey());
+				if (terms != null && !terms.isEmpty()) {
+					uploadTerms.put(entry.getKey(), new ArrayList<>(terms));
 				}
 			}
-			target.writeTranslation(additionsState);
-			stateRepository.saveState(langRefsetId, source.getType(), sourceState);
-			stateRepository.saveState(langRefsetId, target.getType(), targetState);
-			logger.info("TranslationMerge {}-{} Merging complete", languageCode, langRefsetId);
-		} else {
-			logger.info("TranslationMerge {}-{} No translation changes found", languageCode, langRefsetId);
 		}
+		return uploadState;
+	}
+
+	TranslationState buildAdditionsState(TranslationIntent sourceIntent) {
+		TranslationState additionsState = new TranslationState();
+		Map<Long, List<String>> addedTerms = additionsState.getConceptTerms();
+		for (Map.Entry<Long, List<TermIntent>> entry : sourceIntent.getTermIntents().entrySet()) {
+			List<String> added = entry.getValue().stream()
+					.filter(ti -> ti.intent() == Intent.ADD)
+					.map(TermIntent::term)
+					.toList();
+			if (!added.isEmpty()) {
+				addedTerms.put(entry.getKey(), added);
+			}
+		}
+		return additionsState;
+	}
+
+	private static boolean hasAdditionsOrRemovals(TranslationIntent sourceIntent) {
+		return sourceIntent.getTermIntents().values().stream()
+				.flatMap(Collection::stream)
+				.anyMatch(ti -> ti.intent() == Intent.ADD || ti.intent() == Intent.REMOVE);
+	}
+
+	private static int countIntents(TranslationIntent sourceIntent, Intent intent) {
+		AtomicInteger count = new AtomicInteger();
+		sourceIntent.getTermIntents().values().forEach(termIntent -> termIntent.forEach(term -> {
+			if (term.intent() == intent) {
+				count.incrementAndGet();
+			}
+		}));
+		return count.get();
 	}
 
 	private void logCounts(TranslationSource source, String languageCode, String langRefsetId, TranslationState sourceState) {
@@ -109,7 +162,7 @@ public class TranslationMergeService {
 		Map<Long, List<TermIntent>> intentMap = intent.getTermIntents();
 		for (Map.Entry<Long, List<TermIntent>> conceptIntent : intentMap.entrySet()) {
 			Long code = conceptIntent.getKey();
-			List<String> terms = currentMap.computeIfAbsent(code, c -> new ArrayList<>());
+			List<String> terms = new ArrayList<>(currentMap.getOrDefault(code, List.of()));
 			boolean ptFound = false;
 			for (TermIntent termIntent : conceptIntent.getValue()) {
 				Intent thisIntent = termIntent.intent();

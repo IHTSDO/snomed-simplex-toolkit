@@ -10,6 +10,8 @@ export function translationStatusLabel(status: string | null | undefined): strin
 			return 'For review';
 		case 'APPROVED':
 			return 'Approved';
+		case 'COMPLETE':
+			return 'Complete';
 		case 'NOT_STARTED':
 			return 'Not started';
 		default:
@@ -24,6 +26,7 @@ export const TRANSLATION_STATUS_VALUES = [
 	'NEEDS_EDIT',
 	'FOR_REVIEW',
 	'APPROVED',
+	'COMPLETE',
 	'NOT_STARTED'
 ] as const;
 
@@ -45,6 +48,8 @@ export function translationStatusRadioLabel(status: string): string {
 			return 'Waiting for review';
 		case 'APPROVED':
 			return 'Approved';
+		case 'COMPLETE':
+			return 'Complete';
 		case 'NOT_STARTED':
 			return 'Not started';
 		default:

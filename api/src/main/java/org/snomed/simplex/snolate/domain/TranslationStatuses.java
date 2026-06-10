@@ -10,13 +10,14 @@ public final class TranslationStatuses {
 
 	public static int sortOrdinal(TranslationStatus status) {
 		if (status == null) {
-			return 3;
+			return 4;
 		}
 		return switch (status) {
 			case NEEDS_EDIT -> 0;
 			case FOR_REVIEW -> 1;
 			case APPROVED -> 2;
-			case NOT_STARTED -> 3;
+			case COMPLETE -> 3;
+			case NOT_STARTED -> 4;
 		};
 	}
 

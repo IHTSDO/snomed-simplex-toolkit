@@ -261,10 +261,11 @@ public class TranslationController {
 
 		return jobService.queueContentJob(pullJob, refsetId, activity, job -> {
 			SnolateTranslationSet set = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-			translationService.synchroniseSnolateSubsetToSnowstorm(theCodeSystem, snowstormClient, set);
+			ChangeSummary summary = translationService.synchroniseSnolateSubsetToSnowstorm(
+					theCodeSystem, snowstormClient, set, job, job.getTaskCreationCallable());
 			set.setLastPulled(new Date());
 			snolateSetService.updateSet(set);
-			return new ChangeSummary();
+			return summary;
 		});
 	}
 
