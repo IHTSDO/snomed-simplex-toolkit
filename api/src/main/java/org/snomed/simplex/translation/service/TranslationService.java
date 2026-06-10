@@ -492,10 +492,19 @@ public class TranslationService {
 			String languageCode, String languageRefsetId, boolean translationTermsUseTitleCase,
 			ChangeMonitor changeMonitor, ChangeSummary changeSummary) throws ServiceException {
 
-		boolean anyChange = false;
 		existingDescriptions.sort(Comparator.comparing(Description::isActive).reversed());
+		uploadedDescriptions = prepareUploadedDescriptions(existingDescriptions, uploadedDescriptions, languageCode, languageRefsetId);
 
-		// Underscore term used to delete redundant terms
+		boolean anyChange = removeStaleDescriptions(conceptId, existingDescriptions, uploadedDescriptions, languageCode, languageRefsetId, changeMonitor, changeSummary);
+		anyChange = mergeUploadedDescriptions(conceptId, existingDescriptions, uploadedDescriptions, languageRefsetId, translationTermsUseTitleCase,
+				anyChange, changeMonitor, changeSummary);
+		anyChange |= removeInactiveLangRefsetEntries(conceptId, existingDescriptions, languageCode, languageRefsetId, changeMonitor, changeSummary);
+		return anyChange;
+	}
+
+	private static List<Description> prepareUploadedDescriptions(List<Description> existingDescriptions, List<Description> uploadedDescriptions,
+			String languageCode, String languageRefsetId) {
+
 		uploadedDescriptions = uploadedDescriptions.stream().filter(description -> !description.getTerm().equals("_"))
 				.collect(Collectors.toList());
 
@@ -512,85 +521,64 @@ public class TranslationService {
 			Description newPt = uploadedDescriptions.get(0);
 			newPt.getAcceptabilityMap().put(languageRefsetId, Description.Acceptability.PREFERRED);
 		}
+		return uploadedDescriptions;
+	}
 
-		// Remove any active descriptions in snowstorm with a matching concept, language and lang refset if the term is not in the latest CSV
+	private boolean removeStaleDescriptions(String conceptId, List<Description> existingDescriptions, List<Description> uploadedDescriptions,
+			String languageCode, String languageRefsetId, ChangeMonitor changeMonitor, ChangeSummary changeSummary) throws ServiceException {
+
+		boolean anyChange = false;
 		List<Description> toRemove = new ArrayList<>();
 		for (Description snowstormDescription : existingDescriptions) {
-			if (snowstormDescription.getLang().equals(languageCode)
-					&& snowstormDescription.isActive()
-					&& snowstormDescription.getAcceptabilityMap().containsKey(languageRefsetId)) {
-
-				if (uploadedDescriptions.stream().noneMatch(uploadedDescription -> descriptionsEqual(snowstormDescription, uploadedDescription))) {
-					// Description in Snowstorm does not match any of the uploaded descriptions. Remove the acceptability for this lang-refset
-					snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
-					anyChange = true;
-					changeSummary.incrementRemoved();// Removed from the language refset
-					changeMonitor.removed(conceptId, snowstormDescription.toString());
-
-					// Also suggest that Snowstorm deletes / inactivates this description if not used by any other lang refset
-					if (snowstormDescription.getAcceptabilityMap().isEmpty()) {
-						if (snowstormDescription.isReleased()) {
-							// Send the released inactive description rather than removing to ensure the acceptability is cleared in Snowstorm
-							snowstormDescription.setActive(false);
-						} else {
-							toRemove.add(snowstormDescription);
-						}
-					}
-				}
+			if (isActiveTranslationDescription(snowstormDescription, languageCode, languageRefsetId)
+					&& uploadedDescriptions.stream().noneMatch(uploadedDescription -> descriptionsEqual(snowstormDescription, uploadedDescription))) {
+				anyChange |= removeStaleDescription(conceptId, snowstormDescription, languageRefsetId, toRemove, changeMonitor, changeSummary);
 			}
 		}
 		existingDescriptions.removeAll(toRemove);
+		return anyChange;
+	}
 
-		// Add any missing descriptions in the snowstorm concept
-		boolean descriptionChange;
+	private static boolean isActiveTranslationDescription(Description description, String languageCode, String languageRefsetId) {
+		return description.getLang().equals(languageCode)
+				&& description.isActive()
+				&& description.getAcceptabilityMap().containsKey(languageRefsetId);
+	}
+
+	private boolean removeStaleDescription(String conceptId, Description snowstormDescription, String languageRefsetId,
+			List<Description> toRemove, ChangeMonitor changeMonitor, ChangeSummary changeSummary) throws ServiceException {
+
+		// Description in Snowstorm does not match any of the uploaded descriptions. Remove the acceptability for this lang-refset
+		snowstormDescription.getAcceptabilityMap().remove(languageRefsetId);
+		changeSummary.incrementRemoved();// Removed from the language refset
+		changeMonitor.removed(conceptId, snowstormDescription.toString());
+
+		// Also suggest that Snowstorm deletes / inactivates this description if not used by any other lang refset
+		if (snowstormDescription.getAcceptabilityMap().isEmpty()) {
+			if (snowstormDescription.isReleased()) {
+				// Send the released inactive description rather than removing to ensure the acceptability is cleared in Snowstorm
+				snowstormDescription.setActive(false);
+			} else {
+				toRemove.add(snowstormDescription);
+			}
+		}
+		return true;
+	}
+
+	private boolean mergeUploadedDescriptions(String conceptId, List<Description> existingDescriptions, List<Description> uploadedDescriptions,
+			String languageRefsetId, boolean translationTermsUseTitleCase, boolean anyChange,
+			ChangeMonitor changeMonitor, ChangeSummary changeSummary) throws ServiceException {
+
 		for (Description uploadedDescription : uploadedDescriptions) {
-			// Match by language, term and type only
 			Optional<Description> existingDescriptionOptional = existingDescriptions.stream()
 					.filter(d -> descriptionsEqual(uploadedDescription, d)).findFirst();
-
-			descriptionChange = false;
 
 			Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase, existingDescriptions);
 			uploadedDescription.setCaseSignificance(caseSignificance);
 
 			if (existingDescriptionOptional.isPresent()) {
-				Description existingDescription = existingDescriptionOptional.get();
-
-				if (!existingDescription.isActive()) {// Reactivation
-					existingDescription.setActive(true);
-					anyChange = true;
-					descriptionChange = true;
-				}
-
-				Description.CaseSignificance uploadedCaseSignificance = uploadedDescription.getCaseSignificance();
-				if (uploadedCaseSignificance != null && existingDescription.getCaseSignificance() != uploadedCaseSignificance) {
-					existingDescription.setCaseSignificance(uploadedCaseSignificance);
-					anyChange = true;
-					descriptionChange = true;
-				}
-
-				Description.Acceptability newAcceptability = uploadedDescription.getAcceptabilityMap().get(languageRefsetId);
-				Description.Acceptability existingAcceptability;
-				if (newAcceptability == null) {
-					existingAcceptability = existingDescription.getAcceptabilityMap().remove(languageRefsetId);
-				} else {
-					existingAcceptability = existingDescription.getAcceptabilityMap().put(languageRefsetId, newAcceptability);
-				}
-				if (newAcceptability != existingAcceptability) {
-					logger.debug("Correcting acceptability of {} '{}' from {} to {}",
-							existingDescription.getDescriptionId(), existingDescription.getTerm(), existingAcceptability, newAcceptability);
-					anyChange = true;
-					descriptionChange = true;
-				}
-
-				if (anyChange) {
-					changeSummary.incrementUpdated();
-				}
-				if (descriptionChange) {
-					changeMonitor.updated(conceptId, existingDescription.toString());
-				} else {
-					changeMonitor.noChange(conceptId, existingDescription.toString());
-				}
+				anyChange = updateExistingUploadedDescription(conceptId, existingDescriptionOptional.get(), uploadedDescription,
+						languageRefsetId, anyChange, changeMonitor, changeSummary);
 			} else {
 				// no existing match, create new
 				existingDescriptions.add(uploadedDescription);
@@ -599,8 +587,56 @@ public class TranslationService {
 				changeMonitor.added(conceptId, uploadedDescription.toString());
 			}
 		}
+		return anyChange;
+	}
 
-		// Remove existing lang refset entries on all inactive descriptions
+	private boolean updateExistingUploadedDescription(String conceptId, Description existingDescription, Description uploadedDescription,
+			String languageRefsetId, boolean anyChange, ChangeMonitor changeMonitor, ChangeSummary changeSummary) throws ServiceException {
+
+		boolean descriptionChange = false;
+
+		if (!existingDescription.isActive()) {// Reactivation
+			existingDescription.setActive(true);
+			anyChange = true;
+			descriptionChange = true;
+		}
+
+		Description.CaseSignificance uploadedCaseSignificance = uploadedDescription.getCaseSignificance();
+		if (uploadedCaseSignificance != null && existingDescription.getCaseSignificance() != uploadedCaseSignificance) {
+			existingDescription.setCaseSignificance(uploadedCaseSignificance);
+			anyChange = true;
+			descriptionChange = true;
+		}
+
+		Description.Acceptability newAcceptability = uploadedDescription.getAcceptabilityMap().get(languageRefsetId);
+		Description.Acceptability existingAcceptability;
+		if (newAcceptability == null) {
+			existingAcceptability = existingDescription.getAcceptabilityMap().remove(languageRefsetId);
+		} else {
+			existingAcceptability = existingDescription.getAcceptabilityMap().put(languageRefsetId, newAcceptability);
+		}
+		if (newAcceptability != existingAcceptability) {
+			logger.debug("Correcting acceptability of {} '{}' from {} to {}",
+					existingDescription.getDescriptionId(), existingDescription.getTerm(), existingAcceptability, newAcceptability);
+			anyChange = true;
+			descriptionChange = true;
+		}
+
+		if (anyChange) {
+			changeSummary.incrementUpdated();
+		}
+		if (descriptionChange) {
+			changeMonitor.updated(conceptId, existingDescription.toString());
+		} else {
+			changeMonitor.noChange(conceptId, existingDescription.toString());
+		}
+		return anyChange;
+	}
+
+	private boolean removeInactiveLangRefsetEntries(String conceptId, List<Description> existingDescriptions, String languageCode,
+			String languageRefsetId, ChangeMonitor changeMonitor, ChangeSummary changeSummary) throws ServiceException {
+
+		boolean anyChange = false;
 		for (Description snowstormDescription : existingDescriptions) {
 			if (snowstormDescription.getLang().equals(languageCode)
 					&& !snowstormDescription.isActive()
@@ -613,7 +649,6 @@ public class TranslationService {
 				logger.info("Removed redundant lang refset on concept {}, description {}.", conceptId, snowstormDescription.getDescriptionId());
 			}
 		}
-
 		return anyChange;
 	}
 
@@ -662,50 +697,63 @@ public class TranslationService {
 			Set<Long> conceptsCovered = new LongOpenHashSet();
 			while ((line = reader.readLine()) != null) {
 				lineNumber++;
-				String conceptString = null;
-				String translatedTerm = null;
-				if (csvFormat == TranslationCsvFormat.STANDARD) {
-					String[] columns = line.split("\",\"");
-					if (columns.length == 4) {
-						if (columns[2].isBlank() && columns[3].equals("\"")) {
-							// Strange case - some CSV exports use "concept id", "term" for synonyms
-							translatedTerm = columns[1];
-							conceptString = columns[0];
-						} else {
-							// source	target	context	developer_comments
-							// 0		1		2		3
-							translatedTerm = columns[1];
-							conceptString = columns[2];
-						}
-					}
-				} else {
-					String[] columns = line.split(",", 2);
-					if (columns.length == 2) {
-						// context	target
-						// 0		1
-						conceptString = columns[0];
-						translatedTerm = columns[1];
-					}
-				}
-				if (conceptString == null) {
+				String[] conceptAndTerm = parseConceptAndTermFromCsvLine(csvFormat, line);
+				if (conceptAndTerm.length == 0) {
 					logger.warn("Line {} has the wrong number of columns, skipping: '{}'", lineNumber, line);
 					continue;
 				}
-				translatedTerm = translatedTerm.replace("\"", "");
-				conceptString = conceptString.replace("\"", "");
-				if (!translatedTerm.isEmpty() && conceptString.matches("\\d+")) {
-					Long conceptId = parseLong(conceptString);
-					// First term in the spreadsheet is "preferred"
-					boolean firstTermForConcept = conceptsCovered.add(conceptId);
-					Description.Acceptability acceptability = firstTermForConcept ? Description.Acceptability.PREFERRED : Description.Acceptability.ACCEPTABLE;
-					conceptDescriptions.computeIfAbsent(conceptId, id -> new ArrayList<>())
-							.add(new Description(SYNONYM, languageCode, translatedTerm, null, languageRefsetId, acceptability));
-				}
+				addDescriptionFromCsvRow(conceptDescriptions, conceptsCovered, conceptAndTerm[0], conceptAndTerm[1],
+						languageCode, languageRefsetId);
 			}
 			return conceptDescriptions;
 		} catch (IOException e) {
 			throw new ServiceException("Failed to read translation CSV.", e);
 		}
+	}
+
+	private static String[] parseConceptAndTermFromCsvLine(TranslationCsvFormat csvFormat, String line) {
+		if (csvFormat == TranslationCsvFormat.STANDARD) {
+			return parseStandardConceptAndTerm(line);
+		}
+		return parseMinimumConceptAndTerm(line);
+	}
+
+	private static String[] parseStandardConceptAndTerm(String line) {
+		String[] columns = line.split("\",\"");
+		if (columns.length != 4) {
+			return new String[0];
+		}
+		if (columns[2].isBlank() && columns[3].equals("\"")) {
+			// Strange case - some CSV exports use "concept id", "term" for synonyms
+			return new String[] {columns[0], columns[1]};
+		}
+		// source	target	context	developer_comments
+		return new String[] {columns[2], columns[1]};
+	}
+
+	private static String[] parseMinimumConceptAndTerm(String line) {
+		String[] columns = line.split(",", 2);
+		if (columns.length != 2) {
+			return new String[0];
+		}
+		// context	target
+		return new String[] {columns[0], columns[1]};
+	}
+
+	private static void addDescriptionFromCsvRow(Map<Long, List<Description>> conceptDescriptions, Set<Long> conceptsCovered,
+			String conceptString, String translatedTerm, String languageCode, String languageRefsetId) {
+
+		translatedTerm = translatedTerm.replace("\"", "");
+		conceptString = conceptString.replace("\"", "");
+		if (translatedTerm.isEmpty() || !conceptString.matches("\\d+")) {
+			return;
+		}
+		Long conceptId = parseLong(conceptString);
+		// First term in the spreadsheet is "preferred"
+		boolean firstTermForConcept = conceptsCovered.add(conceptId);
+		Description.Acceptability acceptability = firstTermForConcept ? Description.Acceptability.PREFERRED : Description.Acceptability.ACCEPTABLE;
+		conceptDescriptions.computeIfAbsent(conceptId, id -> new ArrayList<>())
+				.add(new Description(SYNONYM, languageCode, translatedTerm, null, languageRefsetId, acceptability));
 	}
 
 	private static @NonNull TranslationCsvFormat getTranslationCsvFormat(BufferedReader reader) throws IOException, ServiceExceptionWithStatusCode {
@@ -827,20 +875,18 @@ public class TranslationService {
 		Map<Long, List<String>> snowstormTerms = snowstormState.getConceptTerms();
 		List<TranslationUnit> saveBuffer = new ArrayList<>();
 		for (TranslationUnit unit : translationUnitRepository.findAllByCompositeLanguageCode(compositeLanguageCode)) {
-			if (!unit.hasTermContent() || unit.getStatus() == TranslationStatus.NEEDS_EDIT) {
-				continue;
-			}
-			long conceptId;
-			try {
-				conceptId = Long.parseLong(unit.getCode());
-			} catch (NumberFormatException e) {
-				continue;
-			}
-			List<String> snowstormConceptTerms = snowstormTerms.getOrDefault(conceptId, List.of());
-			if (orderedTermsMatch(unit.getTerms(), snowstormConceptTerms)) {
-				unit.setStatus(TranslationStatus.COMPLETE);
-				saveBuffer.add(unit);
-				flushStatusSaveBufferIfNeeded(saveBuffer);
+			if (unit.hasTermContent() && unit.getStatus() != TranslationStatus.NEEDS_EDIT) {
+				try {
+					long conceptId = Long.parseLong(unit.getCode());
+					List<String> snowstormConceptTerms = snowstormTerms.getOrDefault(conceptId, List.of());
+					if (orderedTermsMatch(unit.getTerms(), snowstormConceptTerms)) {
+						unit.setStatus(TranslationStatus.COMPLETE);
+						saveBuffer.add(unit);
+						flushStatusSaveBufferIfNeeded(saveBuffer);
+					}
+				} catch (NumberFormatException e) {
+					// Skip units with non-numeric concept codes
+				}
 			}
 		}
 		flushStatusSaveBufferRemainder(saveBuffer);
