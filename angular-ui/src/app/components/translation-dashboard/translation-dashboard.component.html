@@ -260,7 +260,17 @@
                         </mat-menu>
                     </div>
 
-                    <h3 class="members-heading">Translated terms</h3>
+                    <div class="members-heading-row">
+                        <h3 class="members-heading">Translated terms</h3>
+                        <button
+                            mat-stroked-button
+                            type="button"
+                            class="zen-mode-btn"
+                            (click)="openTranslationZenMode()"
+                            [disabled]="selectedLabelSet.status !== 'READY'">
+                            Zen Mode
+                        </button>
+                    </div>
                     <div *ngIf="selectedLabelSet.status !== 'READY'" class="status-message">
                         <p>Translation set members are only available when the set status is READY.</p>
                         <p>Current status: <strong>{{ selectedLabelSet.status }}</strong></p>

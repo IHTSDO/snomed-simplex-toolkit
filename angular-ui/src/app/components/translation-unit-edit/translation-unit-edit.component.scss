@@ -71,6 +71,10 @@ $readonly-bg: #f7f7f8;
 	min-width: 0;
 }
 
+.zen-mode-link {
+	font-size: 1.3rem;
+}
+
 .toolbar-paging {
 	display: flex;
 	flex-wrap: wrap;
@@ -470,6 +474,13 @@ $readonly-bg: #f7f7f8;
 			height: 2.4rem;
 		}
 	}
+}
+
+.status-readonly {
+	margin: 0.6rem 0 0;
+	font-size: 1.4rem;
+	color: #424242;
+	line-height: 1.4;
 }
 
 .review-radios {

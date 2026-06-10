@@ -1,0 +1,150 @@
+<div class="zen-page">
+	<div class="toolbar">
+		<div class="toolbar-start">
+			<button mat-button type="button" class="back-button" (click)="goBack()">
+				<mat-icon>arrow_back</mat-icon>
+				Back to set
+			</button>
+		</div>
+		<h1 class="toolbar-page-title">Zen Mode</h1>
+		<div class="toolbar-end"></div>
+	</div>
+
+	<ng-container *ngIf="totalCount != null && totalCount > 0">
+		<ng-container *ngTemplateOutlet="pagingBar"></ng-container>
+	</ng-container>
+
+	<div *ngIf="loading" class="loading-wrap">
+		<mat-spinner [diameter]="56"></mat-spinner>
+	</div>
+
+	<div *ngIf="!loading" class="zen-units">
+		<article
+			*ngFor="let unit of units; let ui = index"
+			class="zen-unit"
+			[formGroup]="unit.form"
+		>
+			<div class="zen-unit__header">
+				<span class="zen-unit__index">{{ pageIndex * pageSize + ui + 1 }}</span>
+				<span class="zen-unit__save-state" aria-live="polite">
+					<mat-spinner *ngIf="unit.saving" [diameter]="16"></mat-spinner>
+					<span *ngIf="!unit.saving && unit.savedFlash" class="zen-unit__saved">Saved</span>
+					<span *ngIf="!unit.saving && unit.saveError" class="zen-unit__error">{{ unit.saveError }}</span>
+				</span>
+			</div>
+
+			<div class="field">
+				<label class="field-label field-label--source" [attr.for]="'zen-source-' + ui">English</label>
+				<input
+					[id]="'zen-source-' + ui"
+					class="text-input text-input--readonly"
+					type="text"
+					[value]="unit.sourceTerm"
+					readonly
+					tabindex="-1"
+				/>
+			</div>
+
+			<div class="field">
+				<label class="field-label field-label--emphasis" [attr.for]="'zen-pt-' + ui">
+					{{ dialectDisplayName }}, Preferred Term
+				</label>
+				<input
+					[id]="'zen-pt-' + ui"
+					class="text-input"
+					type="text"
+					formControlName="primaryTerm"
+					autocomplete="off"
+					(blur)="onTermBlur(unit)"
+					(input)="onUnitFormInput(unit)"
+				/>
+			</div>
+
+			<div class="synonyms-block">
+				<div class="synonyms-header">
+					<span class="field-label field-label--emphasis">Synonyms</span>
+					<button mat-stroked-button type="button" class="add-synonym-btn" (click)="addSynonym(unit)">
+						Add synonym
+					</button>
+				</div>
+				<div
+					*ngFor="let ctrl of unitSynonymControls(unit); let si = index"
+					class="synonym-row"
+				>
+					<label class="sr-only" [attr.for]="'zen-syn-' + ui + '-' + si">Synonym {{ si + 1 }}</label>
+					<input
+						class="text-input synonym-input"
+						type="text"
+						[id]="'zen-syn-' + ui + '-' + si"
+						[formControl]="$any(ctrl)"
+						autocomplete="off"
+						[attr.aria-label]="'Synonym ' + (si + 1)"
+						(blur)="onTermBlur(unit)"
+						(input)="onUnitFormInput(unit)"
+					/>
+					<button
+						mat-stroked-button
+						type="button"
+						class="synonym-make-pt-btn"
+						(click)="makeSynonymPreferredTerm(unit, si)"
+						aria-label="Make this synonym the preferred term">
+						Make PT
+					</button>
+					<button mat-icon-button type="button" (click)="removeSynonym(unit, si)" aria-label="Remove synonym">
+						<mat-icon>delete</mat-icon>
+					</button>
+				</div>
+			</div>
+
+			<div class="field field--review">
+				<div class="field-label field-label--emphasis">Status</div>
+				<p *ngIf="isCompleteStatusReadOnly(unit)" class="status-readonly">
+					{{ translationStatusRadioLabel('COMPLETE') }}
+				</p>
+				<mat-radio-group
+					*ngIf="!isCompleteStatusReadOnly(unit)"
+					formControlName="status"
+					class="review-radios"
+					color="primary"
+					(change)="onStatusChange(unit)"
+				>
+					<mat-radio-button *ngFor="let st of statusRadioOrder" [value]="st" class="review-radio">
+						{{ translationStatusRadioLabel(st) }}
+					</mat-radio-button>
+				</mat-radio-group>
+			</div>
+		</article>
+
+		<p *ngIf="units.length === 0" class="zen-empty">No translation units on this page.</p>
+	</div>
+
+	<ng-container *ngIf="!loading && totalCount != null && totalCount > 0">
+		<ng-container *ngTemplateOutlet="pagingBar"></ng-container>
+	</ng-container>
+</div>
+
+<ng-template #pagingBar>
+	<div class="zen-paging">
+		<span class="zen-paging__position">{{ positionLabel() }}</span>
+		<div class="zen-paging__buttons">
+			<button
+				mat-stroked-button
+				type="button"
+				class="zen-paging__btn"
+				(click)="goPrevPage()"
+				[disabled]="!canGoPrev() || loading">
+				<mat-icon>chevron_left</mat-icon>
+				Previous
+			</button>
+			<button
+				mat-stroked-button
+				type="button"
+				class="zen-paging__btn"
+				(click)="goNextPage()"
+				[disabled]="!canGoNext() || loading">
+				Next
+				<mat-icon>chevron_right</mat-icon>
+			</button>
+		</div>
+	</div>
+</ng-template>

@@ -79,6 +79,7 @@ import {CommonModule} from '@angular/common';
 import {MatDialogModule} from '@angular/material/dialog';
 import {TranslationDashboardComponent} from './components/translation-dashboard/translation-dashboard.component';
 import {TranslationUnitEditComponent} from './components/translation-unit-edit/translation-unit-edit.component';
+import {TranslationZenModeComponent} from './components/translation-zen-mode/translation-zen-mode.component';
 import {AutocompleteBindingComponent} from './components/binding-controls/autocomplete-binding/autocomplete-binding.component';
 import {EclSelectionComponent} from './components/ecl-selection/ecl-selection.component';
 import {DrawerComponent} from "./components/drawer/drawer.component";
@@ -130,6 +131,7 @@ import {ConfigService} from "./services/config/config.service";
         AdminSettingsComponent,
         TranslationDashboardComponent,
         TranslationUnitEditComponent,
+        TranslationZenModeComponent,
         AutocompleteBindingComponent,
         EclSelectionComponent,
         DrawerComponent

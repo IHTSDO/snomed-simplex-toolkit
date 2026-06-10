@@ -23,6 +23,14 @@ function snowstormBrowserBatchResponseItems(body: unknown): any[] {
 }
 import {SimplexService} from 'src/app/services/simplex/simplex.service';
 import {browserSnowstormConceptToContext, TranslationConceptContextRow} from 'src/app/utils/snowstorm-browser-concept-context';
+import {
+	buildUpdateBody,
+	currentTargetTerms,
+	isTranslationEmpty as isTranslationEmptyHelper,
+	normalizeTargetTerms,
+	syncStatusWithTranslationText as syncStatusWithTranslationTextHelper,
+	termsChangedFromLoaded
+} from 'src/app/utils/translation-unit-form.helper';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
 
 /** Snowstorm {@code POST .../concepts/partial-hierarchy} node (see PartialHierarchyNode). */
@@ -110,6 +118,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	readonly statusRadioOrder = TRANSLATION_STATUS_RADIO_ORDER;
 	readonly translationStatusRadioLabel = translationStatusRadioLabel;
 
+	/** Target terms as loaded from the API; used to detect edits on {@code COMPLETE} rows. */
+	private loadedTargetTerms: string[] = [];
+
 	private sub: Subscription | null = null;
 	private formSyncSub: Subscription | null = null;
 	/** True while Next/Previous is navigating + loading; suppresses duplicate paramMap-driven loads. */
@@ -161,16 +172,15 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 
 	/** True when preferred term and all synonyms are blank (trimmed). */
 	isTranslationEmpty(): boolean {
-		const primary = (this.form.get('primaryTerm')?.value as string)?.trim() ?? '';
-		if (primary.length > 0) {
-			return false;
-		}
-		for (const c of this.synonyms.controls) {
-			if (((c.value ?? '') as string).trim().length > 0) {
-				return false;
-			}
-		}
-		return true;
+		return isTranslationEmptyHelper(this.primaryTermValue(), this.synonymValues());
+	}
+
+	private primaryTermValue(): string {
+		return (this.form.get('primaryTerm')?.value as string) ?? '';
+	}
+
+	private synonymValues(): string[] {
+		return this.synonyms.controls.map((c) => ((c.value ?? '') as string));
 	}
 
 	ngOnInit(): void {
@@ -587,29 +597,40 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			});
 	}
 
+	isCompleteStatusReadOnly(): boolean {
+		const statusCtrl = this.form.get('status');
+		return statusCtrl?.value === 'COMPLETE' && statusCtrl.disabled;
+	}
+
 	/**
 	 * Empty translation ⇒ status {@code NOT_STARTED} and disabled control.
-	 * With terms ⇒ enabled; if status was {@code NOT_STARTED}, default to {@code FOR_REVIEW}.
+	 * {@code COMPLETE} with unchanged terms ⇒ disabled read-only.
+	 * With terms ⇒ enabled; {@code NOT_STARTED} or edited {@code COMPLETE} default to {@code FOR_REVIEW}.
 	 */
 	private syncStatusWithTranslationText(): void {
 		const statusCtrl = this.form.get('status');
 		if (!statusCtrl) {
 			return;
 		}
-		const empty = this.isTranslationEmpty();
-		if (empty) {
-			statusCtrl.patchValue('NOT_STARTED', { emitEvent: false });
-			if (statusCtrl.enabled) {
-				statusCtrl.disable({ emitEvent: false });
-			}
-		} else {
-			if (statusCtrl.disabled) {
-				statusCtrl.enable({ emitEvent: false });
-			}
-			if (statusCtrl.value === 'NOT_STARTED') {
-				statusCtrl.patchValue('FOR_REVIEW', { emitEvent: false });
-			}
+		const result = syncStatusWithTranslationTextHelper(
+			statusCtrl.value as string,
+			this.primaryTermValue(),
+			this.synonymValues(),
+			this.loadedTargetTerms
+		);
+		statusCtrl.patchValue(result.status, { emitEvent: false });
+		if (result.disabled && statusCtrl.enabled) {
+			statusCtrl.disable({ emitEvent: false });
+		} else if (!result.disabled && statusCtrl.disabled) {
+			statusCtrl.enable({ emitEvent: false });
 		}
+	}
+
+	private termsChangedFromLoaded(): boolean {
+		return termsChangedFromLoaded(
+			currentTargetTerms(this.primaryTermValue(), this.synonymValues()),
+			this.loadedTargetTerms
+		);
 	}
 
 	private applyRow(row: any): void {
@@ -622,6 +643,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		for (let i = 1; i < target.length; i++) {
 			this.synonyms.push(this.fb.control(target[i] ?? '', { nonNullable: true }));
 		}
+		this.loadedTargetTerms = normalizeTargetTerms(target);
 		const status = row.status ?? 'NOT_STARTED';
 		this.form.patchValue({
 			primaryTerm: primary,
@@ -676,6 +698,27 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			this.refset,
 			this.label
 		]);
+	}
+
+	goToZenMode(): void {
+		if (!this.edition || !this.refset || !this.label) {
+			return;
+		}
+		const page = Math.floor(this.globalIndex / 25);
+		const queryParams: Record<string, string | number> = { page };
+		if (this.totalCount != null) {
+			queryParams['t'] = this.totalCount;
+		}
+		if (this.dialectDisplayName !== 'Translation') {
+			queryParams['d'] = this.dialectDisplayName;
+		}
+		if (this.snowstormBranchQuery) {
+			queryParams['b'] = this.snowstormBranchQuery;
+		}
+		void this.router.navigate(
+			['/translation-studio', this.edition, this.refset, this.label, 'zen'],
+			{ queryParams }
+		);
 	}
 
 	canGoPrev(): boolean {
@@ -789,15 +832,11 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	}
 
 	private buildUpdateBody(): { terms: string[]; status: string } {
-		const primary = (this.form.get('primaryTerm')?.value as string)?.trim() ?? '';
-		const synVals = this.synonyms.controls
-			.map((c) => (c.value as string)?.trim() ?? '')
-			.filter((x) => x.length > 0);
-		const terms = primary ? [primary, ...synVals] : synVals;
-		const status = this.isTranslationEmpty()
-			? 'NOT_STARTED'
-			: ((this.form.getRawValue().status as string) ?? 'FOR_REVIEW');
-		return { terms, status };
+		return buildUpdateBody(
+			this.primaryTermValue(),
+			this.synonymValues(),
+			(this.form.getRawValue().status as string) ?? 'FOR_REVIEW'
+		);
 	}
 
 	private saveUnit$(): Observable<unknown> {

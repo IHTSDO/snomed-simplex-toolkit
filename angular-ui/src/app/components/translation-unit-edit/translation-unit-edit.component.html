@@ -8,6 +8,9 @@
 		</div>
 		<h1 class="toolbar-page-title">Translation</h1>
 		<div class="toolbar-end">
+			<button mat-stroked-button type="button" class="zen-mode-link" (click)="goToZenMode()">
+				Zen Mode
+			</button>
 			<ng-container *ngIf="totalCount != null">
 				<span class="position">Concept {{ globalIndex + 1 }} of {{ totalCount }}</span>
 				<div class="toolbar-paging">
@@ -260,7 +263,14 @@
 
 		<div class="field field--review">
 			<div class="field-label field-label--emphasis">Status</div>
-			<mat-radio-group formControlName="status" class="review-radios" color="primary">
+			<p *ngIf="isCompleteStatusReadOnly()" class="status-readonly">
+				{{ translationStatusRadioLabel('COMPLETE') }}
+			</p>
+			<mat-radio-group
+				*ngIf="!isCompleteStatusReadOnly()"
+				formControlName="status"
+				class="review-radios"
+				color="primary">
 				<mat-radio-button *ngFor="let st of statusRadioOrder" [value]="st" class="review-radio">
 					{{ translationStatusRadioLabel(st) }}
 				</mat-radio-button>

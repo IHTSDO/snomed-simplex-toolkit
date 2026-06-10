@@ -710,6 +710,36 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         );
     }
 
+    openTranslationZenMode(): void {
+        if (!this.selectedEdition?.shortName || !this.selectedLabelSet) {
+            return;
+        }
+        const globalStart = this.labelSetMembersPageIndex * this.labelSetMembersPageSize;
+        const page = Math.floor(globalStart / 25);
+        const dialect = this.displayTranslationLanguageDialect(this.selectedLabelSet?.translationName);
+        const snowstormBranch =
+            (this.selectedEdition as any)?.simplexWorkingBranch || this.selectedEdition?.branchPath;
+        const branchParam =
+            snowstormBranch && String(snowstormBranch).trim() ? String(snowstormBranch).trim() : undefined;
+        void this.router.navigate(
+            [
+                '/translation-studio',
+                this.selectedEdition.shortName,
+                this.selectedLabelSet.refset,
+                this.selectedLabelSet.label,
+                'zen'
+            ],
+            {
+                queryParams: {
+                    page,
+                    t: this.labelSetMembersTotalCount,
+                    ...(dialect ? { d: dialect } : {}),
+                    ...(branchParam ? { b: branchParam } : {})
+                }
+            }
+        );
+    }
+
     private startPolling() {
         this.isPolling = true;
         this.pollingInterval = setInterval(() => {

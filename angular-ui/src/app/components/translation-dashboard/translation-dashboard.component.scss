@@ -126,9 +126,19 @@
     margin: 16px 0 8px;
 }
 
+.members-heading-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    width: 100%;
+    margin-top: 24px;
+}
+
 .members-heading {
     align-self: flex-start;
-    margin-top: 24px;
+    margin: 0;
 }
 
 .members-table-wrap {
