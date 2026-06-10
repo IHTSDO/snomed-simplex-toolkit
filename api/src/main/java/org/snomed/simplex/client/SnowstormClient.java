@@ -32,6 +32,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -56,6 +57,11 @@ public class SnowstormClient {
 	/** Read timeout for POST /exports and GET …/exports/{id}/archive (large ZIP stream). Other Snowstorm calls use {@link #restTemplate} defaults. */
 	private static final Duration RF2_EXPORT_READ_TIMEOUT = Duration.ofMinutes(10);
 
+	/**
+	 * Cache TTL for CodeSystem objects: 10 minutes
+	 */
+	private static final long CACHE_TTL_MS = Duration.ofMinutes(10).toMillis();
+
 	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<ConceptMini>> responseTypeConceptMiniPage = new ParameterizedTypeReference<>(){};
@@ -65,12 +71,14 @@ public class SnowstormClient {
 	private final RestTemplate restTemplateRf2Export;
 	private final ObjectMapper objectMapper;
 	private final Map<String, String> workingBranches;
+	private final Map<String, CachedCodeSystem> codeSystemCache;
 
 	private static final Logger logger = LoggerFactory.getLogger(SnowstormClient.class);
 
 	public SnowstormClient(String snowstormUrl, String authenticationToken, ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;
 		this.workingBranches = new HashMap<>();
+		this.codeSystemCache = new ConcurrentHashMap<>();
 
 		if (Strings.isBlank(snowstormUrl)) {
 			throw new IllegalStateException("Snowstorm URL is not yet configured");
@@ -139,6 +147,12 @@ public class SnowstormClient {
 	}
 
 	public CodeSystem getCodeSystemOrThrow(String codesystemShortName) throws ServiceExceptionWithStatusCode {
+		// Check cache first
+		CachedCodeSystem cached = codeSystemCache.get(codesystemShortName);
+		if (cached != null && isCacheValid(cached)) {
+			return cached.codeSystem;
+		}
+
 		ServiceExceptionWithStatusCode notFoundException = new ServiceExceptionWithStatusCode(format("Code System not found %s", codesystemShortName), HttpStatus.NOT_FOUND);
 		try {
 			ResponseEntity<CodeSystem> response = restTemplate.getForEntity(format(CODESYSTEM_ENDPOINT, codesystemShortName), CodeSystem.class);
@@ -147,6 +161,8 @@ public class SnowstormClient {
 				throw notFoundException;
 			}
 			addCodeSystemBranchInfo(codeSystem);
+			// Store in cache
+			codeSystemCache.put(codesystemShortName, new CachedCodeSystem(codeSystem, System.currentTimeMillis()));
 			return codeSystem;
 		} catch (HttpClientErrorException.NotFound e) {
 			throw notFoundException;
@@ -180,6 +196,8 @@ public class SnowstormClient {
 		codeSystem.setTranslationLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_METADATA_KEY));
 		codeSystem.setTranslationSnolateLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_SNOLATE_METADATA_KEY));
 		clearOldMetadata(branch);
+		// Update cache if exists
+		codeSystemCache.put(codeSystem.getShortName(), new CachedCodeSystem(codeSystem, System.currentTimeMillis()));
 	}
 
 	private void clearOldMetadata(Branch branch) {
@@ -288,6 +306,8 @@ public class SnowstormClient {
 
 	public void updateCodeSystem(CodeSystem codeSystem) {
 		restTemplate.exchange(format(CODESYSTEM_ENDPOINT, codeSystem.getShortName()), HttpMethod.PUT, new HttpEntity<>(codeSystem), CodeSystem.class);
+		// Invalidate cache after update
+		codeSystemCache.remove(codeSystem.getShortName());
 	}
 
 	public void versionCodeSystem(CodeSystem codeSystem, String effectiveTime) {
@@ -305,6 +325,8 @@ public class SnowstormClient {
 
 	public void deleteCodeSystem(String shortName) {
 		restTemplate.delete(format(CODESYSTEM_ENDPOINT, shortName));
+		// Invalidate cache after deletion
+		codeSystemCache.remove(shortName);
 	}
 
 	public void setAuthorPermissions(CodeSystem newCodeSystem, String groupName) {
@@ -1001,6 +1023,13 @@ public class SnowstormClient {
 				return new ConceptBulkLoadRequest(conceptIds.stream().map(Objects::toString).collect(Collectors.toSet()));
 			}
 
+	}
+
+	private boolean isCacheValid(CachedCodeSystem cached) {
+		return (System.currentTimeMillis() - cached.timestamp) < CACHE_TTL_MS;
+	}
+
+	private record CachedCodeSystem(CodeSystem codeSystem, long timestamp) {
 	}
 
 	private static final class StatusHolder {
