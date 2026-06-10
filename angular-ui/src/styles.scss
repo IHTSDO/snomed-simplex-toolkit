@@ -193,3 +193,8 @@ select {
 //         font-weight: 300;
 //     }
 // }
+
+// Material overlays (tooltips, menus) must sit above Bootstrap sticky navbar (z-index: 1020)
+.cdk-overlay-container {
+    z-index: 1030;
+}

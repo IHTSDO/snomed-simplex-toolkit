@@ -252,6 +252,10 @@ public class TranslationService {
 		return codeSystem.getWorkingBranchPath();
 	}
 
+	public void clearLanguageRefsetCache(String codeSystemShortName) {
+		languageRefsetCache.remove(codeSystemShortName);
+	}
+
 	public ChangeSummary uploadTranslationCsv(ContentJob asyncJob) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		return uploadTranslationCsv(asyncJob.getRefsetId(), asyncJob.getCodeSystemObject(), asyncJob.getInputStream(), snowstormClient,

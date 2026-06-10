@@ -87,6 +87,16 @@ export class SimplexService {
     return cached;
   }
 
+  public refreshCache(edition: string): Observable<void> {
+    return this.http.post<void>(`api/codesystems/${edition}/refresh-cache`, null).pipe(
+      tap(() => {
+        this.clearEditionDetailCache(edition);
+        this.clearTranslationsCache(edition);
+      }),
+      catchError(this.handleError.bind(this))
+    );
+  }
+
   private clearEditionsListCache(): void {
     this.editionsList$ = null;
   }

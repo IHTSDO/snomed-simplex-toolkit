@@ -252,6 +252,12 @@ nav {
     cursor: pointer;
 }
 
+::ng-deep .refresh-cache-tooltip {
+    max-width: 28rem;
+    white-space: normal;
+    line-height: 1.4;
+}
+
 .black-bar {
     background-color: $black;
     height: 57px;

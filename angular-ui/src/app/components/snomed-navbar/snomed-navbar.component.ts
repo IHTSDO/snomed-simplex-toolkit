@@ -240,4 +240,15 @@ export class SnomedNavbarComponent implements OnInit {
         this.router.navigate(['/home']);
     }
 
+    refreshCache(): void {
+        const shortName = this.selectedEdition?.shortName;
+        if (!shortName) {
+            return;
+        }
+        this.simplexService.refreshCache(shortName).subscribe({
+            next: () => window.location.reload(),
+            error: () => { /* handleError shows snackbar */ }
+        });
+    }
+
 }

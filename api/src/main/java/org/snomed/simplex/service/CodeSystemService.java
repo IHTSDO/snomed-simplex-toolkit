@@ -15,6 +15,7 @@ import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
+import org.snomed.simplex.translation.service.TranslationService;
 import org.snomed.simplex.service.external.ClassifyJobService;
 import org.snomed.simplex.service.external.PublishReleaseJobService;
 import org.snomed.simplex.service.external.ReleaseCandidateJobService;
@@ -50,6 +51,7 @@ public class CodeSystemService {
 	private final PublishReleaseJobService publishReleaseJobService;
 	private final ReleaseServiceClient releaseServiceClient;
 	private final SecurityService securityService;
+	private final TranslationService translationService;
 	private final ResourceManager versionedPackagesResourceManager;
 
 	@Value("${simplex.short-name.max-length:70}")
@@ -62,7 +64,7 @@ public class CodeSystemService {
 			ReleaseCandidateJobService releaseCandidateJobService, ReleaseServiceClient releaseServiceClient,
 			PublishReleaseJobService publishReleaseJobService,
 			VersionedPackagesResourceManagerConfiguration resourceManagerConfiguration, ResourceLoader resourceLoader,
-			SecurityService securityService) {
+			SecurityService securityService, TranslationService translationService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.supportRegister = supportRegister;
@@ -73,6 +75,13 @@ public class CodeSystemService {
 		this.releaseCandidateJobService = releaseCandidateJobService;
 		this.versionedPackagesResourceManager = new ResourceManager(resourceManagerConfiguration, resourceLoader);
 		this.securityService = securityService;
+		this.translationService = translationService;
+	}
+
+	public void refreshCache(String codeSystemShortName) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		snowstormClient.invalidateCodeSystemCache(codeSystemShortName);
+		translationService.clearLanguageRefsetCache(codeSystemShortName);
 	}
 
 	public List<CodeSystem> getCodeSystems(boolean includeDetails) throws ServiceException {

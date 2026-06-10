@@ -30,6 +30,8 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.snomed.simplex.client.domain.Concepts.US_LANG_REFSET;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 
@@ -230,6 +232,23 @@ class TranslationServiceTest {
 		var unlinked = service.listTranslations(testCodeSystem, mockSnowstormClient);
 		assertEquals(1, unlinked.size());
 		assertEquals(Boolean.FALSE, unlinked.get(0).getExtraFields().get("isSnolate"));
+	}
+
+	@Test
+	void clearLanguageRefsetCache_forcesRefetchFromSnowstorm() throws ServiceException {
+		String cacheKey = testCodeSystem.getWorkingBranchPath();
+		service.clearLanguageRefsetCache(cacheKey);
+
+		ConceptMini refset = new ConceptMini(testLangRefset, new DescriptionMini("Test lang refset", "en"));
+		Mockito.when(mockSnowstormClient.getRefsets(anyString(), eq(testCodeSystem))).thenReturn(List.of(refset));
+
+		service.listTranslations(testCodeSystem, mockSnowstormClient);
+		service.listTranslations(testCodeSystem, mockSnowstormClient);
+		verify(mockSnowstormClient, times(1)).getRefsets(anyString(), eq(testCodeSystem));
+
+		service.clearLanguageRefsetCache(cacheKey);
+		service.listTranslations(testCodeSystem, mockSnowstormClient);
+		verify(mockSnowstormClient, times(2)).getRefsets(anyString(), eq(testCodeSystem));
 	}
 
 	private String toString(Description description) {

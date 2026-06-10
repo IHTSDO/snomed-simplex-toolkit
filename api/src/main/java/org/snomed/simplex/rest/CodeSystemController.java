@@ -86,6 +86,13 @@ public class CodeSystemController {
 		return codeSystemService.getCodeSystemDetails(codeSystem);
 	}
 
+	@PostMapping("{codeSystem}/refresh-cache")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void refreshCache(@PathVariable String codeSystem) throws ServiceException {
+		codeSystemService.refreshCache(codeSystem);
+	}
+
 	@Operation(description = """
 			`name` will have words 'Edition' and 'Extension' removed then 'Edition' added at the end.
 
