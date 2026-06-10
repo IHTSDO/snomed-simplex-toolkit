@@ -25,6 +25,24 @@ public class ConceptMini {
 		this.pt = pt;
 	}
 
+	public ConceptMini(Concept concept) {
+		this.conceptId = concept.getConceptId();
+		this.pt = concept.getPt();
+		this.fsn = concept.getFsn();
+		this.active = concept.isActive();
+		this.moduleId = concept.getModuleId();
+		this.activeMemberCount = 0L;
+	}
+
+	public ConceptMini(ConceptMini other) {
+		this.conceptId = other.conceptId;
+		this.active = other.active;
+		this.fsn = other.fsn;
+		this.pt = other.pt;
+		this.moduleId = other.moduleId;
+		this.activeMemberCount = other.activeMemberCount;
+	}
+
 	@JsonIgnore
 	public String getPtOrFsnOrConceptId() {
 		if (pt != null && pt.getTerm() != null) {

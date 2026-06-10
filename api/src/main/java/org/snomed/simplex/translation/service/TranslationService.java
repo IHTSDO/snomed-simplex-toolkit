@@ -49,6 +49,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -91,6 +92,8 @@ public class TranslationService {
 	private final TranslationMergeService translationMergeService;
 	private final SnolateTranslationUnitRepository translationUnitRepository;
 	private final SnolateTranslationSearchService translationSearchService;
+
+	private final Map<String, List<ConceptMini>> languageRefsetCache = new ConcurrentHashMap<>();
 
 	@Value("${simplex.mode:standard}")
 	private String simplexMode;
@@ -140,6 +143,7 @@ public class TranslationService {
 				Concepts.FOUNDATION_METADATA_CONCEPT_TAG, codeSystem);
 
 		snowstormClient.addTranslationLanguage(concept.getConceptId(), languageCode, codeSystem);
+		addLanguageRefsetToCache(codeSystem, concept);
 		return concept;
 	}
 
@@ -159,7 +163,9 @@ public class TranslationService {
 	public List<ConceptMini> listTranslations(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
 		TimerUtil timer = new TimerUtil("Load translations", Level.INFO, 2);
 
-		List<ConceptMini> translationRefsets = snowstormClient.getRefsets("<" + Concepts.LANG_REFSET, codeSystem);
+		List<ConceptMini> translationRefsets = getLanguageRefsets(codeSystem, snowstormClient).stream()
+				.map(ConceptMini::new)
+				.collect(Collectors.toCollection(ArrayList::new));
 		timer.checkpoint("ECL for lang refsets");
 
 		for (ConceptMini translationRefset : translationRefsets) {
@@ -193,6 +199,57 @@ public class TranslationService {
 					snolateLanguages != null && snolateLanguages.get(langRefsetId) != null);
 		}
 		return translationRefsets;
+	}
+
+	private List<ConceptMini> getLanguageRefsets(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
+		String cacheKey = getLanguageRefsetCacheKey(codeSystem);
+		List<ConceptMini> cached = languageRefsetCache.get(cacheKey);
+		if (cached != null) {
+			return cached;
+		}
+		List<ConceptMini> refsets = snowstormClient.getRefsets("<" + Concepts.LANG_REFSET, codeSystem);
+		languageRefsetCache.putIfAbsent(cacheKey, refsets);
+		return languageRefsetCache.get(cacheKey);
+	}
+
+	private void addLanguageRefsetToCache(CodeSystem codeSystem, Concept concept) {
+		ConceptMini refset = new ConceptMini(concept);
+		languageRefsetCache.compute(getLanguageRefsetCacheKey(codeSystem), (key, existing) -> {
+			if (existing == null) {
+				return new ArrayList<>(List.of(refset));
+			}
+			List<ConceptMini> updated = new ArrayList<>(existing);
+			updated.removeIf(r -> r.getConceptId().equals(refset.getConceptId()));
+			updated.add(refset);
+			updated.sort(Comparator.comparing(ConceptMini::getPtOrFsnOrConceptId));
+			return updated;
+		});
+	}
+
+	private void removeLanguageRefsetFromCache(CodeSystem codeSystem, String refsetId) {
+		languageRefsetCache.computeIfPresent(getLanguageRefsetCacheKey(codeSystem), (key, existing) -> {
+			List<ConceptMini> updated = existing.stream()
+					.filter(refset -> !refset.getConceptId().equals(refsetId))
+					.collect(Collectors.toCollection(ArrayList::new));
+			return updated.isEmpty() ? null : updated;
+		});
+	}
+
+	private void updateCachedLanguageRefsetMemberCount(CodeSystem codeSystem, String refsetId, int count) {
+		languageRefsetCache.computeIfPresent(getLanguageRefsetCacheKey(codeSystem), (key, refsets) -> {
+			refsets.stream()
+					.filter(refset -> refset.getConceptId().equals(refsetId))
+					.findFirst()
+					.ifPresent(refset -> refset.setActiveMemberCount((long) count));
+			return refsets;
+		});
+	}
+
+	private static String getLanguageRefsetCacheKey(CodeSystem codeSystem) {
+		if (!Strings.isNullOrEmpty(codeSystem.getShortName())) {
+			return codeSystem.getShortName();
+		}
+		return codeSystem.getWorkingBranchPath();
 	}
 
 	public ChangeSummary uploadTranslationCsv(ContentJob asyncJob) throws ServiceException {
@@ -294,6 +351,7 @@ public class TranslationService {
 
 		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor, taskCreationCallable);
 		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
+		updateCachedLanguageRefsetMemberCount(codeSystem, languageRefsetId, newActiveCount);
 		changeSummary.setNewTotal(newActiveCount);
 		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
 		return changeSummary;
@@ -671,6 +729,7 @@ public class TranslationService {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		snowstormClient.removeTranslationLanguage(refsetId, codeSystem);
 		snowstormClient.removeSnolateTranslationLanguage(refsetId, codeSystem);
+		removeLanguageRefsetFromCache(codeSystem, refsetId);
 	}
 
 	private CSVOutputChangeMonitor getCsvOutputChangeMonitor() throws ServiceException {
