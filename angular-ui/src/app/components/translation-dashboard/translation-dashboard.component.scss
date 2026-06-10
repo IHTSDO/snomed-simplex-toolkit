@@ -117,8 +117,11 @@
 
 .detail-fields {
     width: 100%;
-    max-width: 920px;
     align-self: flex-start;
+
+    .component-row > .component-col:first-child {
+        max-width: 300px;
+    }
 }
 
 .detail-manage {

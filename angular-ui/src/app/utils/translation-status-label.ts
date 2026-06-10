@@ -40,6 +40,13 @@ export const TRANSLATION_STATUS_RADIO_ORDER: readonly (typeof TRANSLATION_STATUS
 	'APPROVED'
 ];
 
+export const TRANSLATION_SET_STATUS_SUMMARY_ORDER: readonly (typeof TRANSLATION_STATUS_VALUES)[number][] = [
+	'NEEDS_EDIT',
+	'FOR_REVIEW',
+	'APPROVED',
+	'COMPLETE'
+];
+
 export function translationStatusRadioLabel(status: string): string {
 	switch (status) {
 		case 'NEEDS_EDIT':

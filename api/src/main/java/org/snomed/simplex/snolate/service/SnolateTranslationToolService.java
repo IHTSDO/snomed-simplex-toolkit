@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,7 +56,7 @@ public class SnolateTranslationToolService {
 	}
 
 	/**
-	 * Fills {@link SnolateTranslationSet#setTranslated} and {@link SnolateTranslationSet#setChangedSinceCreatedOrLastPulled}.
+	 * Fills {@link SnolateTranslationSet#setTranslated} and {@link SnolateTranslationSet#setStatusCounts}.
 	 * Counts are loaded in one round-trip per distinct {@link SnolateTranslationSet#getLanguageCodeWithRefsetId()} value.
 	 */
 	public void applyCounts(List<SnolateTranslationSet> sets) {
@@ -75,11 +76,16 @@ public class SnolateTranslationToolService {
 				continue;
 			}
 			Map<String, Long> translated = aggregateCounts(translationSearchService.countTranslatedInSubsetBatch(lang, setCodes));
-			Map<String, Long> outstanding = aggregateCounts(translationSearchService.countOutstandingReviewInSubsetBatch(lang, setCodes));
+			Map<String, Map<String, Long>> statusCountsBySet = translationSearchService.countStatusInSubsetBatch(lang, setCodes);
 			for (SnolateTranslationSet set : group) {
 				String code = set.getCompositeSetCode();
 				set.setTranslated(translated.getOrDefault(code, 0L).intValue());
-				set.setChangedSinceCreatedOrLastPulled(outstanding.getOrDefault(code, 0L).intValue());
+				Map<String, Long> counts = statusCountsBySet.getOrDefault(code, Map.of());
+				Map<String, Integer> statusCounts = new LinkedHashMap<>();
+				for (TranslationStatus status : TranslationStatus.values()) {
+					statusCounts.put(status.name(), counts.getOrDefault(status.name(), 0L).intValue());
+				}
+				set.setStatusCounts(statusCounts);
 			}
 		}
 	}

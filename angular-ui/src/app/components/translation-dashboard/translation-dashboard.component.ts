@@ -13,7 +13,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
-import { translationStatusLabel } from 'src/app/utils/translation-status-label';
+import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER } from 'src/app/utils/translation-status-label';
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -608,6 +608,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         } else if (!hasProcessingSets && this.isPolling) {
             this.stopPolling();
         }
+    }
+
+    translationSetStatusRows(set: any): { status: string; label: string; count: number }[] {
+        return TRANSLATION_SET_STATUS_SUMMARY_ORDER.map((status) => ({
+            status,
+            label: translationStatusRadioLabel(status),
+            count: set?.statusCounts?.[status] ?? 0
+        }));
     }
 
     translationProgressPercent(set: any): number {

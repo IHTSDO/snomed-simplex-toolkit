@@ -177,44 +177,25 @@
                         </div>
                         <div class="component-row" *ngIf="selectedLabelSet.size">
                             <div class="component-col align-right">
-                                <span class="details-field-name">Selected Concepts</span>
+                                <span class="details-field-name">Total concepts</span>
                             </div>
                             <div class="component-col">
                                 <span class="details-field-value">{{ selectedLabelSet.size | number:'1.0-0' }}</span>
                             </div>
                         </div>
-                        <div class="component-row" *ngIf="selectedLabelSet.size && selectedLabelSet.status !== 'PROCESSING'">
-                            <div class="component-col align-right">
-                                <span class="details-field-name">Translated so far</span>
-                            </div>
-                            <div class="component-col">
-                                <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
-                                <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
-                                    {{ selectedLabelSet.translated | number:'1.0-0' }} ({{ (selectedLabelSet.translated / selectedLabelSet.size * 100) | number:'1.0-1' }}%)
-                                </span>
-                            </div>
-                        </div>
-                        <div class="component-row" *ngIf="selectedLabelSet.size && selectedLabelSet.created">
-                            <div class="component-col align-right">
-                                <span class="details-field-name">Changes Since {{ selectedLabelSet.lastPulled ? 'Last Pull' : 'Created' }}</span>
-                            </div>
-                            <div class="component-col">
-                                <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
-                                <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
-                                    {{ selectedLabelSet.changedSinceCreatedOrLastPulled || 0 }}
-                                    <span *ngIf="selectedLabelSet.lastPulled"
-                                          matTooltip="Last pulled: {{ selectedLabelSet.lastPulled | date:'medium' }}"
-                                          class="last-pulled-hint">
-                                        ({{ selectedLabelSet.lastPulled | timeAgo }})
+                        <ng-container *ngIf="selectedLabelSet.size && selectedLabelSet.status !== 'PROCESSING'">
+                            <div class="component-row" *ngFor="let statusRow of translationSetStatusRows(selectedLabelSet)">
+                                <div class="component-col align-right">
+                                    <span class="details-field-name">{{ statusRow.label }}</span>
+                                </div>
+                                <div class="component-col">
+                                    <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
+                                    <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
+                                        {{ statusRow.count | number:'1.0-0' }}<ng-container *ngIf="statusRow.status === 'COMPLETE'"> ({{ (statusRow.count / selectedLabelSet.size * 100) | number:'1.0-1' }}%)</ng-container>
                                     </span>
-                                    <span *ngIf="!selectedLabelSet.lastPulled && selectedLabelSet.created"
-                                          matTooltip="Created: {{ selectedLabelSet.created | date:'medium' }}"
-                                          class="created-hint">
-                                        ({{ selectedLabelSet.created | timeAgo }})
-                                    </span>
-                                </span>
+                                </div>
                             </div>
-                        </div>
+                        </ng-container>
                     </div>
 
                     <div class="detail-manage">
@@ -261,7 +242,7 @@
                     </div>
 
                     <div class="members-heading-row">
-                        <h3 class="members-heading">Translated terms</h3>
+                        <h3 class="members-heading">Translation concepts</h3>
                         <button
                             mat-stroked-button
                             type="button"

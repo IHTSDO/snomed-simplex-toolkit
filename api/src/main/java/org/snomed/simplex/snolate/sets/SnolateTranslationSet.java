@@ -73,7 +73,7 @@ public final class SnolateTranslationSet {
 	private int translated;
 
 	@Transient
-	private int changedSinceCreatedOrLastPulled;
+	private Map<String, Integer> statusCounts;
 
 	@Transient
 	private boolean aiSetupComplete;
@@ -263,12 +263,12 @@ public final class SnolateTranslationSet {
 		return translated;
 	}
 
-	public int getChangedSinceCreatedOrLastPulled() {
-		return changedSinceCreatedOrLastPulled;
+	public Map<String, Integer> getStatusCounts() {
+		return statusCounts;
 	}
 
-	public void setChangedSinceCreatedOrLastPulled(int changedSinceCreatedOrLastPulled) {
-		this.changedSinceCreatedOrLastPulled = changedSinceCreatedOrLastPulled;
+	public void setStatusCounts(Map<String, Integer> statusCounts) {
+		this.statusCounts = statusCounts;
 	}
 
 	public void setAiSetupComplete(boolean aiSetupComplete) {

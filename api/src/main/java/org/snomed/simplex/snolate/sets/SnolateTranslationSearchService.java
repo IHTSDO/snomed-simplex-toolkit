@@ -96,15 +96,18 @@ public class SnolateTranslationSearchService {
 		return all;
 	}
 
-	public Map<String, Long> countOutstandingReviewInSubsetBatch(String compositeLanguageCode, Collection<String> compositeSetCodes) {
-		Map<String, Long> map = new HashMap<>();
-		List<Object> outstanding = List.of(TranslationStatus.NEEDS_EDIT.name(), TranslationStatus.FOR_REVIEW.name());
+	public Map<String, Map<String, Long>> countStatusInSubsetBatch(String compositeLanguageCode, Collection<String> compositeSetCodes) {
+		Map<String, Map<String, Long>> map = new HashMap<>();
 		for (String setCode : compositeSetCodes) {
-			Criteria c = new Criteria(TranslationUnit.Fields.COMPOSITE_LANGUAGE_CODE).is(compositeLanguageCode)
-					.and(new Criteria(TranslationUnit.Fields.MEMBER_OF).is(setCode))
-					.and(new Criteria(TranslationUnit.Fields.STATUS).in(outstanding));
-			long total = elasticsearchOperations.count(new CriteriaQuery(c), TranslationUnit.class);
-			map.put(setCode, total);
+			Map<String, Long> statusCounts = new LinkedHashMap<>();
+			for (TranslationStatus status : TranslationStatus.values()) {
+				Criteria c = new Criteria(TranslationUnit.Fields.COMPOSITE_LANGUAGE_CODE).is(compositeLanguageCode)
+						.and(new Criteria(TranslationUnit.Fields.MEMBER_OF).is(setCode))
+						.and(new Criteria(TranslationUnit.Fields.STATUS).is(status.name()));
+				long total = elasticsearchOperations.count(new CriteriaQuery(c), TranslationUnit.class);
+				statusCounts.put(status.name(), total);
+			}
+			map.put(setCode, statusCounts);
 		}
 		return map;
 	}
