@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom } from 'rxjs';
@@ -9,7 +9,7 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
   templateUrl: './new-edition.component.html',
   styleUrls: ['./new-edition.component.scss']
 })
-export class NewEditionComponent {
+export class NewEditionComponent implements OnInit {
   saving = false;
 
   @Output() closePanel = new EventEmitter<void>();
@@ -17,21 +17,23 @@ export class NewEditionComponent {
 
   form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(24), this.forbiddenWordsValidator]],
-    shortName: ['', Validators.required],
+    shortName: ['SNOMEDCT-', Validators.required],
+    createModule: [true],
     moduleId: [''],
     moduleName: [''],
     namespace: ['', Validators.required]
   });
-
-  get formKeys(): string[] {
-    return Object.keys(this.form.controls);
-  }
 
   constructor(
     private fb: FormBuilder,
     private simplexService: SimplexService,
     private snackBar: MatSnackBar
   ) { }
+
+  ngOnInit(): void {
+    this.form.get('moduleId')?.valueChanges.subscribe(() => this.updateNamespaceFromModuleId());
+    this.form.get('createModule')?.valueChanges.subscribe(() => this.updateNamespaceFromModuleId());
+  }
 
   forbiddenWordsValidator(control: AbstractControl): ValidationErrors | null {
     const forbiddenWords = ['edition', 'extension'];
@@ -45,16 +47,16 @@ export class NewEditionComponent {
   submit() {
     this.form.markAllAsTouched();
     if (this.form.valid) {
+      const { createModule, name, shortName, namespace, moduleId, moduleName } = this.form.value;
       const edition = {
-        createModule: true,
-        name: this.form.value.name,
-        shortName: this.form.value.shortName,
-        moduleId: this.form.value.moduleId,
-        moduleName: this.form.value.moduleName,
-        namespace: this.form.value.namespace
+        createModule,
+        name,
+        shortName,
+        namespace,
+        ...(createModule ? { moduleName } : { moduleId })
       };
       this.saving = true;
-      this.form.disable(); // Disable form to prevent multiple submissions
+      this.form.disable();
 
       lastValueFrom(this.simplexService.createEdition(edition)).then(
         () => {
@@ -65,7 +67,7 @@ export class NewEditionComponent {
         (error) => {
           console.error(error);
           this.saving = false;
-          this.form.enable(); // Re-enable form on error
+          this.form.enable();
           this.snackBar.open('Failed to create edition', 'Dismiss', {
             duration: 5000
           });
@@ -76,5 +78,23 @@ export class NewEditionComponent {
 
   closePanelEvent() {
     this.closePanel.emit();
+  }
+
+  private updateNamespaceFromModuleId(): void {
+    if (this.form.get('createModule')?.value) {
+      return;
+    }
+    const namespace = this.extractNamespaceFromModuleId(this.form.get('moduleId')?.value);
+    if (namespace) {
+      this.form.get('namespace')?.setValue(namespace);
+    }
+  }
+
+  private extractNamespaceFromModuleId(moduleId: string): string | null {
+    const trimmed = (moduleId ?? '').trim();
+    if (!trimmed || trimmed.length < 10) {
+      return null;
+    }
+    return trimmed.slice(0, -3).slice(-7);
   }
 }

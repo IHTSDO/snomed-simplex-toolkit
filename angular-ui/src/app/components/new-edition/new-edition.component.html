@@ -2,26 +2,81 @@
 <br><br>
 
 <form [formGroup]="form">
-    <mat-form-field *ngFor="let controlName of formKeys">
-        <mat-label>{{controlName}}</mat-label>
-        <input matInput formControlName="{{controlName}}" [maxlength]="controlName === 'name' ? 24 : null">
-        <button *ngIf="form.controls[controlName].value" 
-                matSuffix mat-icon-button 
-                aria-label="Clear" 
-                (click)="form.controls[controlName].setValue('')">
+    <mat-form-field>
+        <mat-label>name</mat-label>
+        <input matInput formControlName="name" maxlength="24">
+        <button *ngIf="form.controls['name'].value"
+                matSuffix mat-icon-button
+                aria-label="Clear"
+                (click)="form.controls['name'].setValue('')">
             <mat-icon>close</mat-icon>
         </button>
-
-        <mat-error *ngIf="form.controls[controlName].hasError('required')">
-            {{controlName}} is required
+        <mat-error *ngIf="form.controls['name'].hasError('required')">
+            name is required
         </mat-error>
-
-        <mat-error *ngIf="controlName === 'name' && form.controls['name'].hasError('maxlength')">
+        <mat-error *ngIf="form.controls['name'].hasError('maxlength')">
             Name cannot exceed 24 characters
         </mat-error>
-
-        <mat-error *ngIf="controlName === 'name' && form.controls['name'].hasError('forbiddenWords')">
+        <mat-error *ngIf="form.controls['name'].hasError('forbiddenWords')">
             Avoid using "edition" or "extension". "Edition" will be added automatically for display purposes.
+        </mat-error>
+    </mat-form-field>
+
+    <mat-form-field>
+        <mat-label>shortName</mat-label>
+        <input matInput formControlName="shortName">
+        <button *ngIf="form.controls['shortName'].value"
+                matSuffix mat-icon-button
+                aria-label="Clear"
+                (click)="form.controls['shortName'].setValue('')">
+            <mat-icon>close</mat-icon>
+        </button>
+        <mat-error *ngIf="form.controls['shortName'].hasError('required')">
+            shortName is required
+        </mat-error>
+    </mat-form-field>
+
+    <mat-checkbox class="create-module-checkbox" formControlName="createModule" color="primary">
+        New extension
+    </mat-checkbox>
+
+    <mat-form-field *ngIf="form.controls['createModule'].value">
+        <mat-label>moduleName</mat-label>
+        <input matInput formControlName="moduleName">
+        <button *ngIf="form.controls['moduleName'].value"
+                matSuffix mat-icon-button
+                aria-label="Clear"
+                (click)="form.controls['moduleName'].setValue('')">
+            <mat-icon>close</mat-icon>
+        </button>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="!form.controls['createModule'].value">
+        <mat-label>moduleId</mat-label>
+        <input matInput formControlName="moduleId">
+        <button *ngIf="form.controls['moduleId'].value"
+                matSuffix mat-icon-button
+                aria-label="Clear"
+                (click)="form.controls['moduleId'].setValue('')">
+            <mat-icon>close</mat-icon>
+        </button>
+    </mat-form-field>
+
+    <p class="namespace-registry-link">
+        <a href="https://cis.ihtsdotools.org/info" target="_blank" rel="noopener noreferrer">Namespace Registry</a>
+    </p>
+
+    <mat-form-field>
+        <mat-label>namespace</mat-label>
+        <input matInput formControlName="namespace">
+        <button *ngIf="form.controls['namespace'].value"
+                matSuffix mat-icon-button
+                aria-label="Clear"
+                (click)="form.controls['namespace'].setValue('')">
+            <mat-icon>close</mat-icon>
+        </button>
+        <mat-error *ngIf="form.controls['namespace'].hasError('required')">
+            namespace is required
         </mat-error>
     </mat-form-field>
 </form>
