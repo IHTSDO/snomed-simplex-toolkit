@@ -64,7 +64,8 @@ class SnolateTranslationSourceTest {
 
 	@Test
 	void writeTranslation_createsAndMergesAdditions() throws Exception {
-		TranslationUnit existing = new TranslationUnit("200", REFSET, LANG, COMPOSITE, 0, List.of("existing"), TranslationStatus.NEEDS_EDIT, Set.of());
+		TranslationUnit existing = new TranslationUnit(
+				new TranslationUnit.MembershipKey("200", REFSET, LANG, COMPOSITE, 0), List.of("existing"), TranslationStatus.NEEDS_EDIT, Set.of());
 		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(eq(COMPOSITE), any()))
 				.thenAnswer(invocation -> {
 					Collection<String> codes = invocation.getArgument(1);

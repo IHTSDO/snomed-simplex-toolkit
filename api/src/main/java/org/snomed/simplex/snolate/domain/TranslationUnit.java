@@ -56,16 +56,18 @@ public class TranslationUnit {
 	@Field(type = FieldType.Keyword)
 	private List<String> memberOf = new ArrayList<>();
 
+	public record MembershipKey(String code, String refsetId, String languageCode, String compositeLanguageCode, int order) {
+	}
+
 	public TranslationUnit() {
 	}
 
-	public TranslationUnit(String code, String refsetId, String languageCode, String compositeLanguageCode, int order,
-			List<String> terms, TranslationStatus status, Set<String> memberOf) {
-		this.code = code;
-		this.refsetId = refsetId;
-		this.languageCode = languageCode;
-		this.compositeLanguageCode = compositeLanguageCode;
-		this.order = order;
+	public TranslationUnit(MembershipKey key, List<String> terms, TranslationStatus status, Set<String> memberOf) {
+		this.code = key.code();
+		this.refsetId = key.refsetId();
+		this.languageCode = key.languageCode();
+		this.compositeLanguageCode = key.compositeLanguageCode();
+		this.order = key.order();
 		setTerms(terms);
 		setStatus(status);
 		this.memberOf = memberOf != null ? new ArrayList<>(memberOf) : new ArrayList<>();

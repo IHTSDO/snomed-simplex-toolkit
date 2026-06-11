@@ -53,7 +53,8 @@ class SnolateTranslationToolServiceCompleteStatusTest {
 	@Test
 	void updateTranslationUnit_rejectsCompleteOnNonCompleteUnit() {
 		String setCode = translationSet.getCompositeSetCode();
-		TranslationUnit unit = new TranslationUnit("100", REFSET, LANG, COMPOSITE, 0, List.of("term"),
+		TranslationUnit unit = new TranslationUnit(
+				new TranslationUnit.MembershipKey("100", REFSET, LANG, COMPOSITE, 0), List.of("term"),
 				TranslationStatus.FOR_REVIEW, new LinkedHashSet<>(Set.of(setCode)));
 		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
 				.thenReturn(Optional.of(unit));
@@ -67,7 +68,8 @@ class SnolateTranslationToolServiceCompleteStatusTest {
 	@Test
 	void updateTranslationUnit_allowsIdempotentCompleteSave() throws Exception {
 		String setCode = translationSet.getCompositeSetCode();
-		TranslationUnit unit = new TranslationUnit("100", REFSET, LANG, COMPOSITE, 0, List.of("term"),
+		TranslationUnit unit = new TranslationUnit(
+				new TranslationUnit.MembershipKey("100", REFSET, LANG, COMPOSITE, 0), List.of("term"),
 				TranslationStatus.COMPLETE, new LinkedHashSet<>(Set.of(setCode)));
 		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
 				.thenReturn(Optional.of(unit));

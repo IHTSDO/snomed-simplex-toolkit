@@ -70,14 +70,12 @@ public class TranslationMergeService {
 		TranslationState previousSourceState = stateRepository.loadStateOrBlank(langRefsetId, source.getType());
 		TranslationIntent sourceIntent = inferIntent(previousSourceState, sourceState);
 		boolean hasChanges = hasAdditionsOrRemovals(sourceIntent);
-		TranslationState mergedTargetState = targetState;
 		TranslationState snowstormUploadState = new TranslationState();
 		if (hasChanges) {
 			applyIntent(targetState, sourceIntent);
-			mergedTargetState = targetState;
-			snowstormUploadState = buildSnowstormUploadState(sourceIntent, mergedTargetState);
+			snowstormUploadState = buildSnowstormUploadState(sourceIntent, targetState);
 		}
-		return new MergeResult(sourceIntent, sourceState, mergedTargetState, snowstormUploadState, hasChanges);
+		return new MergeResult(sourceIntent, sourceState, targetState, snowstormUploadState, hasChanges);
 	}
 
 	void persistMergeSnapshots(MergeResult result, String langRefsetId, TranslationSourceType sourceType, TranslationSourceType targetType)

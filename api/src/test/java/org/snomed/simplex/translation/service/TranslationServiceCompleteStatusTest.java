@@ -119,7 +119,8 @@ class TranslationServiceCompleteStatusTest {
 	}
 
 	private TranslationUnit unit(String code, List<String> terms, TranslationStatus status, String setCode) {
-		return new TranslationUnit(code, REFSET, LANG, COMPOSITE, 0, terms, status, new LinkedHashSet<>(Set.of(setCode)));
+		return new TranslationUnit(new TranslationUnit.MembershipKey(code, REFSET, LANG, COMPOSITE, 0), terms, status,
+				new LinkedHashSet<>(Set.of(setCode)));
 	}
 
 	private void invokeMarkPulledUnitsComplete(SnolateTranslationSet set) throws Exception {

@@ -194,7 +194,7 @@ public class SnolateTranslationToolService {
 				.filter(Objects::nonNull)
 				.map(String::trim)
 				.filter(s -> !s.isEmpty())
-				.collect(Collectors.toList());
+				.toList();
 	}
 
 	private static List<String> copyTerms(Optional<TranslationUnit> tu) {

@@ -99,7 +99,7 @@ public class TranslationController {
 
 	@GetMapping("{codeSystem}/translations/snolate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public List<SnolateTranslationSet> listAllSnolateSets(@PathVariable String codeSystem) throws ServiceException {
+	public List<SnolateTranslationSet> listAllSnolateSets(@PathVariable String codeSystem) {
 		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystem(codeSystem);
 		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
 		snolateTranslationToolService.applyCounts(sets);
@@ -108,7 +108,7 @@ public class TranslationController {
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public List<SnolateTranslationSet> listSnolateSets(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
+	public List<SnolateTranslationSet> listSnolateSets(@PathVariable String codeSystem, @PathVariable String refsetId) {
 		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
 		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
 		snolateTranslationToolService.applyCounts(sets);

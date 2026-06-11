@@ -38,7 +38,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		queueJob(translationSet, JOB_TYPE_BATCH_AI_TRANSLATE, request);
 	}
 
-	public void doRunAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) throws ServiceException {
+	public void doRunAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) {
 		setProgress(translationSet, PERCENTAGE_PROCESSED_START);
 		int requestedTotal = request.size();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
@@ -71,7 +71,8 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 					u.setStatus(TranslationStatus.FOR_REVIEW);
 					translationUnitRepository.save(u);
 				} else {
-					TranslationUnit u = new TranslationUnit(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(), lang, src.getOrder(),
+					TranslationUnit u = new TranslationUnit(
+							new TranslationUnit.MembershipKey(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(), lang, src.getOrder()),
 							new ArrayList<>(List.of(suggestion)), TranslationStatus.FOR_REVIEW, new LinkedHashSet<>(List.of(setCode)));
 					translationUnitRepository.save(u);
 				}
@@ -88,18 +89,14 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		while (batchSources.size() < batchCap) {
 			Page<TranslationUnit> page = translationSearchService.pageUnitsInSet(setCode, lang,
 					PageRequest.of(pageNumber++, pageSize, Sort.by("code")));
-			if (page.isEmpty()) {
-				break;
-			}
-			for (TranslationUnit u : page.getContent()) {
-				if (batchSources.size() >= batchCap) {
-					break;
-				}
-				if (!u.hasTermContent()) {
-					translationSourceRepository.findById(u.getCode()).ifPresent(batchSources::add);
+			if (!page.isEmpty()) {
+				for (TranslationUnit u : page.getContent()) {
+					if (batchSources.size() < batchCap && !u.hasTermContent()) {
+						translationSourceRepository.findById(u.getCode()).ifPresent(batchSources::add);
+					}
 				}
 			}
-			if (!page.hasNext()) {
+			if (page.isEmpty() || !page.hasNext()) {
 				break;
 			}
 		}

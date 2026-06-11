@@ -34,5 +34,6 @@ public class SnolateSetRefsetCache {
 			cacheNames = SnolateTranslationSetCacheConfig.SNOLATE_SETS_BY_CODE_SYSTEM_AND_REFSET,
 			key = "#codeSystem + '|' + #refsetId")
 	public void evictByCodeSystemAndRefset(String codeSystem, String refsetId) {
+		// Intentionally empty: @CacheEvict clears the cache entry; no method body is required.
 	}
 }

@@ -558,8 +558,8 @@ public class TranslationService {
 		uploadedDescriptions = prepareUploadedDescriptions(existingDescriptions, uploadedDescriptions, languageCode, languageRefsetId);
 
 		boolean anyChange = removeStaleDescriptions(conceptId, existingDescriptions, uploadedDescriptions, languageCode, languageRefsetId, changeMonitor, changeSummary);
-		anyChange = mergeUploadedDescriptions(conceptId, existingDescriptions, uploadedDescriptions, languageRefsetId, translationTermsUseTitleCase,
-				anyChange, changeMonitor, changeSummary);
+		anyChange = mergeUploadedDescriptions(existingDescriptions, uploadedDescriptions, anyChange,
+				new UploadedDescriptionMergeContext(conceptId, languageRefsetId, translationTermsUseTitleCase, changeMonitor, changeSummary));
 		anyChange |= removeInactiveLangRefsetEntries(conceptId, existingDescriptions, languageCode, languageRefsetId, changeMonitor, changeSummary);
 		return anyChange;
 	}
@@ -627,29 +627,37 @@ public class TranslationService {
 		return true;
 	}
 
-	private boolean mergeUploadedDescriptions(String conceptId, List<Description> existingDescriptions, List<Description> uploadedDescriptions,
-			String languageRefsetId, boolean translationTermsUseTitleCase, boolean anyChange,
-			ChangeMonitor changeMonitor, ChangeSummary changeSummary) throws ServiceException {
+	private boolean mergeUploadedDescriptions(List<Description> existingDescriptions, List<Description> uploadedDescriptions,
+			boolean anyChange, UploadedDescriptionMergeContext context) throws ServiceException {
 
 		for (Description uploadedDescription : uploadedDescriptions) {
 			Optional<Description> existingDescriptionOptional = existingDescriptions.stream()
 					.filter(d -> descriptionsEqual(uploadedDescription, d)).findFirst();
 
-			Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), translationTermsUseTitleCase, existingDescriptions);
+			Description.CaseSignificance caseSignificance = guessCaseSignificance(uploadedDescription.getTerm(), context.translationTermsUseTitleCase(), existingDescriptions);
 			uploadedDescription.setCaseSignificance(caseSignificance);
 
 			if (existingDescriptionOptional.isPresent()) {
-				anyChange = updateExistingUploadedDescription(conceptId, existingDescriptionOptional.get(), uploadedDescription,
-						languageRefsetId, anyChange, changeMonitor, changeSummary);
+				anyChange = updateExistingUploadedDescription(context.conceptId(), existingDescriptionOptional.get(), uploadedDescription,
+						context.languageRefsetId(), anyChange, context.changeMonitor(), context.changeSummary());
 			} else {
 				// no existing match, create new
 				existingDescriptions.add(uploadedDescription);
 				anyChange = true;
-				changeSummary.incrementAdded();
-				changeMonitor.added(conceptId, uploadedDescription.toString());
+				context.changeSummary().incrementAdded();
+				context.changeMonitor().added(context.conceptId(), uploadedDescription.toString());
 			}
 		}
 		return anyChange;
+	}
+
+	private record UploadedDescriptionMergeContext(
+			String conceptId,
+			String languageRefsetId,
+			boolean translationTermsUseTitleCase,
+			ChangeMonitor changeMonitor,
+			ChangeSummary changeSummary
+	) {
 	}
 
 	private boolean updateExistingUploadedDescription(String conceptId, Description existingDescription, Description uploadedDescription,

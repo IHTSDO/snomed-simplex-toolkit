@@ -50,7 +50,7 @@ public class DiagramResourceRepository {
 		resourceManager.writeResource(relativePath, inputStream);
 	}
 
-	public boolean exists(String relativePath) throws IOException {
+	public boolean exists(String relativePath) {
 		return resourceManager.doesObjectExist(relativePath);
 	}
 

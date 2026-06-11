@@ -8,7 +8,7 @@ class TranslationStatusesTest {
 
 	@Test
 	void sortOrdinal_ordersCompleteAfterApprovedBeforeNotStarted() {
-		assertThat(TranslationStatuses.sortOrdinal(TranslationStatus.NEEDS_EDIT)).isEqualTo(0);
+		assertThat(TranslationStatuses.sortOrdinal(TranslationStatus.NEEDS_EDIT)).isZero();
 		assertThat(TranslationStatuses.sortOrdinal(TranslationStatus.FOR_REVIEW)).isEqualTo(1);
 		assertThat(TranslationStatuses.sortOrdinal(TranslationStatus.APPROVED)).isEqualTo(2);
 		assertThat(TranslationStatuses.sortOrdinal(TranslationStatus.COMPLETE)).isEqualTo(3);

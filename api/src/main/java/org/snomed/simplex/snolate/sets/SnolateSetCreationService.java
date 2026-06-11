@@ -108,7 +108,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		queueJob(translationSet, JOB_TYPE_DELETE);
 	}
 
-	public void doDeleteSet(SnolateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+	public void doDeleteSet(SnolateTranslationSet translationSet) {
 		String compositeSetCode = translationSet.getCompositeSetCode();
 		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
 		translationSearchService.forEachUnitInSet(compositeSetCode, compositeLang, u -> {
@@ -276,7 +276,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 	/**
 	 * @return number of requested codes not found in {@link TranslationSource} (skipped)
 	 */
-	private int bulkAddSetMembership(SnolateTranslationSet translationSet, List<String> codes, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
+	private int bulkAddSetMembership(SnolateTranslationSet translationSet, List<String> codes, TimerUtil timerUtil) {
 		String compositeSetCode = translationSet.getCompositeSetCode();
 		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
 
@@ -323,7 +323,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		return skipped;
 	}
 
-	private void bulkRemoveSetMembership(SnolateTranslationSet translationSet, List<String> codes, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
+	private void bulkRemoveSetMembership(SnolateTranslationSet translationSet, List<String> codes, TimerUtil timerUtil) {
 		String compositeSetCode = translationSet.getCompositeSetCode();
 		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
 		logger.info("Removing Snolate set membership:{} from {} concept IDs", compositeSetCode, codes.size());

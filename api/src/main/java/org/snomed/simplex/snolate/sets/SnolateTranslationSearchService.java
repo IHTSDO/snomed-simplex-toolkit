@@ -72,7 +72,8 @@ public class SnolateTranslationSearchService {
 	 */
 	public void forEachUnitInSet(String compositeSetCode, String compositeLanguageCode, Consumer<TranslationUnit> consumer) {
 		List<Object> searchAfter = null;
-		while (true) {
+		boolean hasMore = true;
+		while (hasMore) {
 			CriteriaQuery query = new CriteriaQuery(unitsInSetCriteria(compositeSetCode, compositeLanguageCode));
 			query.setPageable(PageRequest.of(0, STREAM_PAGE_SIZE, UNITS_IN_SET_STREAM_SORT));
 			query.setTrackTotalHits(false);
@@ -82,18 +83,20 @@ public class SnolateTranslationSearchService {
 			SearchHits<TranslationUnit> searchHits = elasticsearchOperations.search(query, TranslationUnit.class);
 			List<SearchHit<TranslationUnit>> hits = searchHits.getSearchHits();
 			if (hits.isEmpty()) {
-				break;
-			}
-			for (SearchHit<TranslationUnit> hit : hits) {
-				consumer.accept(hit.getContent());
-			}
-			if (hits.size() < STREAM_PAGE_SIZE) {
-				break;
-			}
-			searchAfter = hits.get(hits.size() - 1).getSortValues();
-			if (searchAfter == null || searchAfter.isEmpty()) {
-				throw new IllegalStateException(
-						"Elasticsearch returned no sort values for search_after; cannot continue streaming units in set.");
+				hasMore = false;
+			} else {
+				for (SearchHit<TranslationUnit> hit : hits) {
+					consumer.accept(hit.getContent());
+				}
+				if (hits.size() < STREAM_PAGE_SIZE) {
+					hasMore = false;
+				} else {
+					searchAfter = hits.get(hits.size() - 1).getSortValues();
+					if (searchAfter.isEmpty()) {
+						throw new IllegalStateException(
+								"Elasticsearch returned no sort values for search_after; cannot continue streaming units in set.");
+					}
+				}
 			}
 		}
 	}
