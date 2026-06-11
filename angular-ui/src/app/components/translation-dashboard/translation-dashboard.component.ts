@@ -14,6 +14,7 @@ import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialo
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
+import { parseTranslationStatusFilter, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -226,6 +227,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 		});
 		this.subscriptions.add(paramSub);
 
+		const statusFilterQuerySub = this.route.queryParamMap.subscribe(() => {
+			this.syncTranslationConceptStatusFilterFromRoute();
+		});
+		this.subscriptions.add(statusFilterQuerySub);
+
 		const legacyQuerySub = this.route.queryParamMap.subscribe(() => {
 			const r = (this.route.snapshot.queryParamMap.get('refset') ?? '').trim();
 			const l = (this.route.snapshot.queryParamMap.get('label') ?? '').trim();
@@ -297,7 +303,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 			void this.router.navigate(['/translation-studio']);
 			return;
 		}
-		void this.router.navigate(['/translation-studio', edition, refset, label]);
+		void this.router.navigate(['/translation-studio', edition, refset, label], {
+			queryParams: { status: null },
+			queryParamsHandling: 'merge'
+		});
 	}
 
 	/**
@@ -334,6 +343,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
 	private applyLabelSetSelection(labelSet: any): void {
 		this.selectedLabelSet = labelSet;
+		this.labelSetMembersStatusFilter = parseTranslationStatusFilter(this.route.snapshot.queryParamMap);
 		if (labelSet.status === 'READY') {
 			// List GET (.../translations/snolate-set) already returns full SnolateTranslationSet rows
 			// with the same applyCounts / dashboard metadata as the per-set GET — avoid redundant fetch.
@@ -713,13 +723,16 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 unit.context
             ],
             {
-                queryParams: {
-                    i,
-                    s: this.labelSetMembersPageSize,
-                    t: this.labelSetMembersTotalCount,
-                    ...(dialect ? { d: dialect } : {}),
-                    ...(branchParam ? { b: branchParam } : {})
-                }
+                queryParams: mergeTranslationStudioQueryParams(
+                    {
+                        i,
+                        s: this.labelSetMembersPageSize,
+                        t: this.labelSetMembersTotalCount,
+                        ...(dialect ? { d: dialect } : {}),
+                        ...(branchParam ? { b: branchParam } : {})
+                    },
+                    this.labelSetMembersStatusFilter
+                )
             }
         );
     }
@@ -744,12 +757,15 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 'zen'
             ],
             {
-                queryParams: {
-                    page,
-                    t: this.labelSetMembersTotalCount,
-                    ...(dialect ? { d: dialect } : {}),
-                    ...(branchParam ? { b: branchParam } : {})
-                }
+                queryParams: mergeTranslationStudioQueryParams(
+                    {
+                        page,
+                        t: this.labelSetMembersTotalCount,
+                        ...(dialect ? { d: dialect } : {}),
+                        ...(branchParam ? { b: branchParam } : {})
+                    },
+                    this.labelSetMembersStatusFilter
+                )
             }
         );
     }
@@ -836,7 +852,29 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
     onTranslationConceptStatusFilterChange(status: string | null): void {
         this.labelSetMembersStatusFilter = status;
+        if (this.translationSetRouteSelectionActive) {
+            void this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams: { status: status ?? null },
+                queryParamsHandling: 'merge',
+                replaceUrl: true
+            });
+        }
         if (this.selectedLabelSet) {
+            this.getLabelSetMembers(this.selectedLabelSet, true);
+        }
+    }
+
+    private syncTranslationConceptStatusFilterFromRoute(): void {
+        if (!this.translationSetRouteSelectionActive || !this.selectedLabelSet) {
+            return;
+        }
+        const parsed = parseTranslationStatusFilter(this.route.snapshot.queryParamMap);
+        if (parsed === this.labelSetMembersStatusFilter) {
+            return;
+        }
+        this.labelSetMembersStatusFilter = parsed;
+        if (this.selectedLabelSet.status === 'READY') {
             this.getLabelSetMembers(this.selectedLabelSet, true);
         }
     }

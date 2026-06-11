@@ -32,6 +32,7 @@ import {
 	termsChangedFromLoaded
 } from 'src/app/utils/translation-unit-form.helper';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
+import {mergeTranslationStudioQueryParams, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
 
 /** Snowstorm {@code POST .../concepts/partial-hierarchy} node (see PartialHierarchyNode). */
 export interface PartialHierarchyNode {
@@ -111,6 +112,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	globalIndex = 0;
 	pageSize = 25;
 	totalCount: number | null = null;
+	statusFilter: string | null = null;
 
 	loading = false;
 	saving = false;
@@ -263,6 +265,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.totalCount = Number.isFinite(parsedT) ? parsedT : null;
 		const bq = q.get('b')?.trim();
 		this.snowstormBranchQuery = bq && bq.length > 0 ? bq : null;
+		this.statusFilter = parseTranslationStatusFilter(q);
 	}
 
 	private loadSampleRowForSnapshot$(): Observable<any | null> {
@@ -273,7 +276,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.loading = true;
 		const sample$ =
 			this.totalCount == null
-				? this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, 0, 1).pipe(
+				? this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, 0, 1, this.statusFilter).pipe(
 						switchMap((page0) => {
 							this.totalCount = page0.count ?? 0;
 							const results = page0.results ?? [];
@@ -339,7 +342,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 
 	private segmentCacheKeyForBranch(branch: string): string {
 		const page = Math.floor(this.globalIndex / this.pageSize);
-		return `${this.edition}|${this.refset}|${this.label}|${branch}|${page}|${this.pageSize}`;
+		return `${this.edition}|${this.refset}|${this.label}|${branch}|${page}|${this.pageSize}|${this.statusFilter ?? ''}`;
 	}
 
 	private fillSliceTranslationTermsFromResults(results: any[]): void {
@@ -423,7 +426,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			results$ = of(prefetch.results);
 		} else {
 			results$ = this.simplexService
-				.getTranslationSetRows(this.edition, this.refset, this.label, page, this.pageSize)
+				.getTranslationSetRows(this.edition, this.refset, this.label, page, this.pageSize, this.statusFilter)
 				.pipe(map((resp) => resp.results ?? []));
 		}
 
@@ -692,12 +695,51 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	}
 
 	goBack(): void {
-		this.router.navigate([
-			'/translation-studio',
-			this.edition,
-			this.refset,
-			this.label
-		]);
+		void this.router.navigate(
+			['/translation-studio', this.edition, this.refset, this.label],
+			{ queryParams: mergeTranslationStudioQueryParams({}, this.statusFilter) }
+		);
+	}
+
+	statusFilterLabel(): string {
+		return this.statusFilter ? translationStatusRadioLabel(this.statusFilter) : '';
+	}
+
+	async clearStatusFilter(): Promise<void> {
+		if (!this.statusFilter || !this.edition || !this.refset || !this.label || !this.conceptId) {
+			return;
+		}
+		if (this.loading || this.saving) {
+			return;
+		}
+		this.loading = true;
+		try {
+			const globalIndex = await this.resolveConceptGlobalIndex(this.conceptId, null);
+			if (globalIndex < 0) {
+				this.snackBar.open('Translation row not found for this concept.', 'Dismiss', { duration: 6000 });
+				return;
+			}
+			const pageResp = await firstValueFrom(
+				this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, 0, 1, null)
+			);
+			const queryParams = this.buildStudioQueryParams({
+				i: globalIndex,
+				s: this.pageSize,
+				t: pageResp.count ?? 0
+			}, null);
+			await this.router.navigate(
+				['/translation-studio', this.edition, this.refset, this.label, 'edit', this.conceptId],
+				{ queryParams, replaceUrl: true }
+			);
+			this.segmentSnowstormCacheKey = null;
+			this.applySnapshotToFields();
+			await firstValueFrom(this.loadSampleRowForSnapshot$().pipe(take(1)));
+		} catch {
+			this.snackBar.open('Failed to clear filter.', 'Dismiss', { duration: 5000 });
+		} finally {
+			this.loading = false;
+			this.cdr.detectChanges();
+		}
 	}
 
 	goToZenMode(): void {
@@ -705,16 +747,10 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			return;
 		}
 		const page = Math.floor(this.globalIndex / 25);
-		const queryParams: Record<string, string | number> = { page };
-		if (this.totalCount != null) {
-			queryParams['t'] = this.totalCount;
-		}
-		if (this.dialectDisplayName !== 'Translation') {
-			queryParams['d'] = this.dialectDisplayName;
-		}
-		if (this.snowstormBranchQuery) {
-			queryParams['b'] = this.snowstormBranchQuery;
-		}
+		const queryParams = this.buildStudioQueryParams({
+			page,
+			...(this.totalCount != null ? { t: this.totalCount } : {})
+		});
 		void this.router.navigate(
 			['/translation-studio', this.edition, this.refset, this.label, 'zen'],
 			{ queryParams }
@@ -784,7 +820,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.loading = true;
 		try {
 			const pageResp = await firstValueFrom(
-				this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, page, s)
+				this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, page, s, this.statusFilter)
 			);
 			const results = pageResp.results ?? [];
 			const listRow = results[idx];
@@ -795,17 +831,11 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 				return;
 			}
 			const t = this.totalCount ?? pageResp.count ?? 0;
-			const queryParams: Record<string, string | number> = {
+			const queryParams = this.buildStudioQueryParams({
 				i: newIndex,
 				s,
 				t
-			};
-			if (this.dialectDisplayName !== 'Translation') {
-				queryParams['d'] = this.dialectDisplayName;
-			}
-			if (this.snowstormBranchQuery) {
-				queryParams['b'] = this.snowstormBranchQuery;
-			}
+			});
 			const urlTree = this.router.createUrlTree(
 				['/translation-studio', this.edition, this.refset, this.label, 'edit', nextConceptId],
 				{ queryParams }
@@ -828,6 +858,47 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			});
 		} finally {
 			this.pagingNavigation = false;
+		}
+	}
+
+	private buildStudioQueryParams(
+		extra: Record<string, string | number | null | undefined>,
+		status: string | null = this.statusFilter
+	): Record<string, string | number> {
+		return mergeTranslationStudioQueryParams(
+			{
+				...extra,
+				...(this.dialectDisplayName !== 'Translation' ? { d: this.dialectDisplayName } : {}),
+				...(this.snowstormBranchQuery ? { b: this.snowstormBranchQuery } : {})
+			},
+			status
+		);
+	}
+
+	private async resolveConceptGlobalIndex(conceptId: string, status: string | null): Promise<number> {
+		const scanPageSize = 2000;
+		let page = 0;
+		while (true) {
+			const resp = await firstValueFrom(
+				this.simplexService.getTranslationSetRows(
+					this.edition,
+					this.refset,
+					this.label,
+					page,
+					scanPageSize,
+					status
+				)
+			);
+			const results = resp.results ?? [];
+			const idx = results.findIndex((row) => String(row?.context) === String(conceptId));
+			if (idx >= 0) {
+				return page * scanPageSize + idx;
+			}
+			const total = resp.count ?? 0;
+			if ((page + 1) * scanPageSize >= total) {
+				return -1;
+			}
+			page++;
 		}
 	}
 

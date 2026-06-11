@@ -12,7 +12,20 @@
 				Zen Mode
 			</button>
 			<ng-container *ngIf="totalCount != null">
-				<span class="position">Concept {{ globalIndex + 1 }} of {{ totalCount }}</span>
+				<span class="position">
+					Concept {{ globalIndex + 1 }} of {{ totalCount }}
+					<ng-container *ngIf="statusFilter">
+						<span class="status-filter-hint"> · Filter: {{ statusFilterLabel() }}</span>
+						<button
+							mat-button
+							type="button"
+							class="status-filter-clear"
+							(click)="clearStatusFilter()"
+							[disabled]="loading || saving">
+							Clear
+						</button>
+					</ng-container>
+				</span>
 				<div class="toolbar-paging">
 					<button
 						mat-stroked-button

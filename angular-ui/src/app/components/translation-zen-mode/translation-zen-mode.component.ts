@@ -12,6 +12,7 @@ import {
 	TranslationUpdateBody
 } from 'src/app/utils/translation-unit-form.helper';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
+import {mergeTranslationStudioQueryParams, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
 
 export interface ZenUnitState {
 	context: string;
@@ -40,6 +41,7 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 	dialectDisplayName = 'Translation';
 	pageIndex = 0;
 	totalCount: number | null = null;
+	statusFilter: string | null = null;
 
 	loading = false;
 	units: ZenUnitState[] = [];
@@ -86,6 +88,21 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 		return `Units ${start}–${end} of ${this.totalCount.toLocaleString()}`;
 	}
 
+	statusFilterLabel(): string {
+		return this.statusFilter ? translationStatusRadioLabel(this.statusFilter) : '';
+	}
+
+	hasStatusFilter(): boolean {
+		return this.statusFilter != null;
+	}
+
+	async clearStatusFilter(): Promise<void> {
+		if (!this.statusFilter || this.loading) {
+			return;
+		}
+		await this.navigateToPage(0, null);
+	}
+
 	canGoPrev(): boolean {
 		return this.pageIndex > 0;
 	}
@@ -100,7 +117,10 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 	}
 
 	goBack(): void {
-		void this.router.navigate(['/translation-studio', this.edition, this.refset, this.label]);
+		void this.router.navigate(
+			['/translation-studio', this.edition, this.refset, this.label],
+			{ queryParams: mergeTranslationStudioQueryParams({}, this.statusFilter) }
+		);
 	}
 
 	async goPrevPage(): Promise<void> {
@@ -168,6 +188,7 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 		this.totalCount = Number.isFinite(parsedT) ? parsedT : null;
 		const bq = q.get('b')?.trim();
 		this.snowstormBranchQuery = bq && bq.length > 0 ? bq : null;
+		this.statusFilter = parseTranslationStatusFilter(q);
 	}
 
 	private async loadPage(): Promise<void> {
@@ -185,7 +206,8 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 					this.refset,
 					this.label,
 					this.pageIndex,
-					this.pageSize
+					this.pageSize,
+					this.statusFilter
 				)
 			);
 			this.totalCount = resp.count ?? 0;
@@ -329,18 +351,18 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 		}
 	}
 
-	private async navigateToPage(newPage: number): Promise<void> {
+	private async navigateToPage(newPage: number, statusOverride?: string | null): Promise<void> {
 		await this.flushPendingSaves();
-		const queryParams: Record<string, string | number> = { page: newPage };
-		if (this.totalCount != null) {
-			queryParams['t'] = this.totalCount;
-		}
-		if (this.dialectDisplayName !== 'Translation') {
-			queryParams['d'] = this.dialectDisplayName;
-		}
-		if (this.snowstormBranchQuery) {
-			queryParams['b'] = this.snowstormBranchQuery;
-		}
+		const status = statusOverride !== undefined ? statusOverride : this.statusFilter;
+		const queryParams = mergeTranslationStudioQueryParams(
+			{
+				page: newPage,
+				...(statusOverride === undefined && this.totalCount != null ? { t: this.totalCount } : {}),
+				...(this.dialectDisplayName !== 'Translation' ? { d: this.dialectDisplayName } : {}),
+				...(this.snowstormBranchQuery ? { b: this.snowstormBranchQuery } : {})
+			},
+			status
+		);
 		await this.router.navigate(
 			['/translation-studio', this.edition, this.refset, this.label, 'zen'],
 			{ queryParams }

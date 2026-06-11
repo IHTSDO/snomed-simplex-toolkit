@@ -101,6 +101,19 @@ $readonly-bg: #f7f7f8;
 	color: $label-muted;
 }
 
+.status-filter-hint {
+	color: $label-muted;
+}
+
+.status-filter-clear {
+	min-width: 0;
+	padding: 0 0.35rem;
+	margin-left: 0.15rem;
+	font-size: 1.2rem;
+	line-height: 1.3;
+	vertical-align: baseline;
+}
+
 .loading-wrap {
 	display: flex;
 	justify-content: center;
