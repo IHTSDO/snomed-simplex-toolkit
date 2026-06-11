@@ -10,7 +10,7 @@
 		<cve>CVE-2026-22747</cve>
 	</suppress>
 	<!--
-		False positive: CVE-2026-40981, CVE-2026-40982, CVE-2026-41002 apply to Spring Cloud Config Server.
+		False positive: CVE-2026-40981, CVE-2026-40982, CVE-2026-41002, CVE-2026-41004 apply to Spring Cloud Config Server.
 		Dependency-Check attaches cpe:vmware:spring_cloud_config to spring-cloud-consul-config and
 		spring-cloud-vault-config because they share the Spring Cloud train version; this repo does not
 		include spring-cloud-config-server.
@@ -21,6 +21,7 @@
 		<cve>CVE-2026-40981</cve>
 		<cve>CVE-2026-40982</cve>
 		<cve>CVE-2026-41002</cve>
+		<cve>CVE-2026-41004</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — vault-config client library, not spring-cloud-config-server]]></notes>
@@ -28,6 +29,7 @@
 		<cve>CVE-2026-40981</cve>
 		<cve>CVE-2026-40982</cve>
 		<cve>CVE-2026-41002</cve>
+		<cve>CVE-2026-41004</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — starter wraps consul-config client, not config-server]]></notes>
@@ -35,6 +37,7 @@
 		<cve>CVE-2026-40981</cve>
 		<cve>CVE-2026-40982</cve>
 		<cve>CVE-2026-41002</cve>
+		<cve>CVE-2026-41004</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — starter wraps vault-config client, not config-server]]></notes>
@@ -42,5 +45,6 @@
 		<cve>CVE-2026-40981</cve>
 		<cve>CVE-2026-40982</cve>
 		<cve>CVE-2026-41002</cve>
+		<cve>CVE-2026-41004</cve>
 	</suppress>
 </suppressions>

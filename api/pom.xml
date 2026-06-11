@@ -19,7 +19,7 @@
 		<langchain4j.version>1.4.0</langchain4j.version>
 
 		<!-- BOM Overrides -->
-		<spring.security.version>6.5.10</spring.security.version>
+		<spring.security.version>6.5.11</spring.security.version>
 		<snomed-boot.version>5.6.0</snomed-boot.version>
 		<!-- Hibernate 6.6 HQL lexer requires ANTLR 4.13+; snomed-parent-bom pins 4.5.3 (ATN v3). -->
 		<antlr4.version>4.13.1</antlr4.version>
