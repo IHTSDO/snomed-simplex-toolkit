@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, EventEmitter, Input, NgZone, OnChanges, OnInit, Output } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { lastValueFrom, Subscription } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
@@ -25,7 +26,8 @@ export class SelectEditionComponent implements OnInit {
   constructor(private simplexService: SimplexService,
               private snackBar: MatSnackBar,
               private uiConfigurationService: UiConfigurationService,
-              private changeDetectorRef: ChangeDetectorRef
+              private changeDetectorRef: ChangeDetectorRef,
+              private router: Router
               ) {}
 
   ngOnInit(): void {
@@ -115,6 +117,26 @@ export class SelectEditionComponent implements OnInit {
         console.error(error);
         this.loading = false;
         this.snackBar.open('Failed to load editions', 'Dismiss', {
+          duration: 5000
+        });
+      }
+    );
+  }
+
+  onEditionCreated(shortName: string) {
+    this.newEditionMode = false;
+    this.loading = true;
+    lastValueFrom(this.simplexService.getEdition(shortName)).then(
+      (edition) => {
+        this.selectedEdition = edition;
+        this.uiConfigurationService.setSelectedEdition(edition);
+        this.router.navigate(['info', shortName]);
+        this.loading = false;
+      },
+      (error) => {
+        console.error(error);
+        this.loading = false;
+        this.snackBar.open('Edition created but failed to load details', 'Dismiss', {
           duration: 5000
         });
       }

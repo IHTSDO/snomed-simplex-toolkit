@@ -13,7 +13,7 @@ export class NewEditionComponent implements OnInit {
   saving = false;
 
   @Output() closePanel = new EventEmitter<void>();
-  @Output() editionSaved = new EventEmitter<void>();
+  @Output() editionSaved = new EventEmitter<string>();
 
   form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(24), this.forbiddenWordsValidator]],
@@ -21,7 +21,9 @@ export class NewEditionComponent implements OnInit {
     createModule: [true],
     moduleId: [''],
     moduleName: [''],
-    namespace: ['', Validators.required]
+    namespace: ['', Validators.required],
+    dependantCodeSystem: ['SNOMEDCT'],
+    dependantCodeSystemVersion: ['']
   });
 
   constructor(
@@ -47,13 +49,26 @@ export class NewEditionComponent implements OnInit {
   submit() {
     this.form.markAllAsTouched();
     if (this.form.valid) {
-      const { createModule, name, shortName, namespace, moduleId, moduleName } = this.form.value;
+      const {
+        createModule,
+        name,
+        shortName,
+        namespace,
+        moduleId,
+        moduleName,
+        dependantCodeSystem,
+        dependantCodeSystemVersion
+      } = this.form.value;
       const edition = {
         createModule,
         name,
         shortName,
         namespace,
-        ...(createModule ? { moduleName } : { moduleId })
+        dependantCodeSystem,
+        ...(createModule ? { moduleName } : { moduleId }),
+        ...(dependantCodeSystemVersion !== '' && dependantCodeSystemVersion != null
+          ? { dependantCodeSystemVersion: Number(dependantCodeSystemVersion) }
+          : {})
       };
       this.saving = true;
       this.form.disable();
@@ -62,7 +77,7 @@ export class NewEditionComponent implements OnInit {
         () => {
           this.saving = false;
           this.closePanelEvent();
-          this.editionSaved.emit();
+          this.editionSaved.emit(shortName);
         },
         (error) => {
           console.error(error);

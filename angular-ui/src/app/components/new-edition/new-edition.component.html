@@ -79,6 +79,28 @@
             namespace is required
         </mat-error>
     </mat-form-field>
+
+    <mat-form-field>
+        <mat-label>dependantCodeSystem</mat-label>
+        <input matInput formControlName="dependantCodeSystem">
+        <button *ngIf="form.controls['dependantCodeSystem'].value"
+                matSuffix mat-icon-button
+                aria-label="Clear"
+                (click)="form.controls['dependantCodeSystem'].setValue('')">
+            <mat-icon>close</mat-icon>
+        </button>
+    </mat-form-field>
+
+    <mat-form-field>
+        <mat-label>dependantCodeSystemVersion (optional)</mat-label>
+        <input matInput type="number" formControlName="dependantCodeSystemVersion">
+        <button *ngIf="form.controls['dependantCodeSystemVersion'].value"
+                matSuffix mat-icon-button
+                aria-label="Clear"
+                (click)="form.controls['dependantCodeSystemVersion'].setValue('')">
+            <mat-icon>close</mat-icon>
+        </button>
+    </mat-form-field>
 </form>
 
 <div class="button-container">

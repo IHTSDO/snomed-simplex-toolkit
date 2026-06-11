@@ -48,7 +48,7 @@
             <app-product-packaging [edition]="selectedEdition" class="align-right"></app-product-packaging>
         </div>
         <div *ngIf="newEditionMode">
-            <app-new-edition (closePanel)="newEditionMode = false" (editionSaved)="loadEditions()"></app-new-edition>
+            <app-new-edition (closePanel)="newEditionMode = false" (editionSaved)="onEditionCreated($event)"></app-new-edition>
         </div>
     </div>
 </div>
