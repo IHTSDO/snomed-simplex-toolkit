@@ -1,16 +1,15 @@
-describe('Visit home page, accept legal agreement, log in.', () => {
-  it('Login', () => {
-    cy.clearAllCookies()
-    cy.visit('/')
-    cy.contains('Legal Agreement')
-    cy.get('.actions > button:first').click()
-    cy.url({timeout: 10_000}).should('contain', 'ims')
-    cy.contains('Please Log In')
-    cy.get('#username').type(Cypress.env('username'))
-    cy.get('#password').type(Cypress.env('password'))
-    cy.get('form').submit()
-    cy.url({timeout: 10_000}).should('contain', 'simplex')
-    cy.contains('Simplex')
-    cy.contains('Edition Artifacts')
-  })
-})
+import Utils from '../commands/Utils';
+
+const utils = new Utils();
+
+describe('Login', () => {
+
+    it('should log in and land on Edition artifacts', () => {
+        utils.login();
+        cy.dataCy('artifacts-title').should('contain', 'Edition artifacts');
+    });
+
+    it('should log out', () => {
+        utils.logout();
+    });
+});

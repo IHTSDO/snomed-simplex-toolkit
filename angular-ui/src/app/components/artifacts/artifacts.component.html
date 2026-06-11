@@ -1,7 +1,7 @@
 <div class="component-row">
     <div class="component-col-left">
         <div class="header-container">
-            <h4>Edition artifacts</h4>
+            <h4 data-cy="artifacts-title">Edition artifacts</h4>
             <span class="status-message" *ngIf="editionDetails">(Release cycle status: {{editionDetails.editionStatus}})</span>
         </div>
         <div *ngIf="!edition">

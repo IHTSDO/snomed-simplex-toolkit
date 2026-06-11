@@ -3,3 +3,9 @@ node_modules
 dist
 node
 src/main/web/node
+
+# Cypress
+/cypress/videos/
+/cypress/reports/
+/cypress/screenshots/
+/cypress.env.json

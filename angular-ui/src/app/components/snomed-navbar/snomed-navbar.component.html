@@ -5,14 +5,14 @@
         } @else {
             <a href="javascript:void(0)" (click)="goHome()"><img class="logo m-2 p-0" src="assets/simplex-logo.svg"></a>
         }
-        <span class="title text-ghost-grey">{{ navSuiteTitle }}</span>
+        <span class="title text-ghost-grey" data-cy="app-title">{{ navSuiteTitle }}</span>
     </a>
 
     <div class="navbar-toolbar d-flex align-items-center ms-auto flex-nowrap gap-2">
         @if(user) {
             <ul class="dropdown-nav p-0 m-0">
                 <li class="nav-item dropdown">
-                    <a class="nav-link user rounded-circle bg-cerulean" id="userMenuDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <a class="nav-link user rounded-circle bg-cerulean" id="userMenuDropdown" data-cy="user-menu" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         {{getInitials(user)}}
                     </a>
                     <div class="dropdown-menu dropdown-menu-end py-0" aria-labelledby="userMenuDropdown">
@@ -30,7 +30,7 @@
 
         <ul class="dropdown-nav p-0 m-0">
             <li class="nav-item dropdown">
-                <a class="nav-link rounded dropdown-toggle text-end add" id="branchDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <a class="nav-link rounded dropdown-toggle text-end add" id="branchDropdown" data-cy="branch-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     {{ selectedEdition?.name }}
                 </a>
                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="branchDropdown">

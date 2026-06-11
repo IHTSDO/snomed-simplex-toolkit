@@ -51,7 +51,8 @@
     "@angular/compiler-cli": "^18.2.5",
     "@cypress/schematic": "^2.5.1",
     "@types/jasmine": "~4.3.0",
-    "cypress": "latest",
+    "cypress": "^13.17.0",
+    "cypress-mochawesome-reporter": "^3.8.1",
     "jasmine-core": "~4.6.0",
     "typescript": "~5.4.4"
   }

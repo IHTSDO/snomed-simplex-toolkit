@@ -61,7 +61,7 @@ export function translationStatusRadioLabel(status: string): string {
 		case 'NEEDS_EDIT':
 			return 'Needs editing';
 		case 'FOR_REVIEW':
-			return 'Waiting for review';
+			return 'Ready for review';
 		case 'APPROVED':
 			return 'Approved';
 		case 'COMPLETE':
