@@ -68,8 +68,11 @@ export class SnomedNavbarComponent implements OnInit {
         });
         this.userSubscription = this.authenticationService.getUser().subscribe(data => {
             this.user = data;
+            if (!this.user) {
+                return;
+            }
             const allApps = this.configService.getLauncherApps();
-            this.apps = allApps.filter(a => !a.clientName || this.user.clientAccess.includes(a.clientName));
+            this.apps = allApps.filter(a => !a.clientName || this.user.clientAccess?.includes(a.clientName));
         });
     }
 

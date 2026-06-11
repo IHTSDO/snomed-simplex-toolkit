@@ -43,7 +43,7 @@
 
         <ul class="dropdown-nav p-0 m-0">
             <li class="nav-item dropdown">
-                <a class="nav-link icons rounded text-end" id="mainMenuDropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <a class="nav-link icons rounded text-end" id="mainMenuDropdown" data-cy="main-menu" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     <i class="fa-solid fa-bars"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end py-0" aria-labelledby="mainMenuDropdown">
@@ -60,6 +60,8 @@
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item ps-3 py-2" href="https://www.snomed.org/contact-us" target="_blank">Contact Us</a>
                     <a class="dropdown-item ps-3 py-2" href="https://www.snomed.org/" target="_blank">&copy; SNOMED International</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item ps-3 py-2" href="javascript:void(0)" (click)="logout()" data-cy="main-menu-logout">Logout</a>
                 </div>
             </li>
         </ul>

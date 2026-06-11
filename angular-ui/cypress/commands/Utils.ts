@@ -10,12 +10,17 @@ export default class Utils {
 		cy.dataCy('legal-agree-button').click();
 	}
 
+	clickLoginButton(): void {
+		cy.dataCy('login-button').should('be.visible').click();
+	}
+
 	login(): void {
 		cy.clearAllCookies();
 		cy.visit(this.url);
 		this.acceptLegalAgreement();
+		this.clickLoginButton();
 		cy.url({timeout: this.loginTimeoutInSeconds}).should('contain', 'ims');
-		cy.contains('Please Log In');
+		cy.contains('Welcome to SNOMED International');
 		cy.get('#username').clear();
 		cy.get('#username').type(this.username);
 		cy.get('#password').clear();
@@ -25,8 +30,8 @@ export default class Utils {
 	}
 
 	logout(): void {
-		cy.dataCy('user-menu').click({force: true});
-		cy.contains('Logout').should('be.visible').click();
+		cy.dataCy('main-menu').click({force: true});
+		cy.dataCy('main-menu-logout').should('be.visible').click();
 		cy.get('input#kc-logout').click();
 		cy.clearAllCookies();
 	}
