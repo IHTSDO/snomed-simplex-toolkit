@@ -194,21 +194,30 @@ $readonly-bg: #f7f7f8;
 	}
 }
 
-.synonyms-block {
-	margin-bottom: 1rem;
+.preferred-term-row {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
 }
 
-.synonyms-header {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.5rem;
-	margin-bottom: 0.5rem;
+.preferred-term-input {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .add-synonym-btn {
-	font-size: 1.2rem;
+	flex: 0 0 auto;
+	color: $label-muted;
+
+	mat-icon {
+		font-size: 2rem;
+		width: 2rem;
+		height: 2rem;
+	}
+}
+
+.synonyms-block {
+	margin-bottom: 1rem;
 }
 
 .synonym-row {

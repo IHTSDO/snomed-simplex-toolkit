@@ -634,6 +634,75 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         }));
     }
 
+    workflowStatusCount(set: any, status: string): number {
+        if (status === 'NOT_STARTED') {
+            return this.translationSetNotStartedCount(set);
+        }
+        return set?.statusCounts?.[status] ?? 0;
+    }
+
+    workflowStatusCards(set: any): { status: string; label: string; count: number }[] {
+        return TRANSLATION_CONCEPT_STATUS_FILTER_ORDER.map((status) => ({
+            status,
+            label: this.translationConceptStatusFilterLabel(status),
+            count: this.workflowStatusCount(set, status)
+        }));
+    }
+
+    workflowPipelineSegments(set: any): { status: string; percent: number }[] {
+        const size = set?.size ?? 0;
+        if (size <= 0) {
+            return [];
+        }
+        return TRANSLATION_CONCEPT_STATUS_FILTER_ORDER.map((status) => ({
+            status,
+            percent: (this.workflowStatusCount(set, status) / size) * 100
+        })).filter((segment) => segment.percent > 0);
+    }
+
+    workflowPushedCount(set: any): number {
+        return set?.statusCounts?.COMPLETE ?? 0;
+    }
+
+    workflowPushedPercent(set: any): number {
+        const size = set?.size ?? 0;
+        if (size <= 0) {
+            return 0;
+        }
+        return (this.workflowPushedCount(set) / size) * 100;
+    }
+
+    isWorkflowStatusActive(status: string): boolean {
+        return this.labelSetMembersStatusFilter === status;
+    }
+
+    onWorkflowStatusCardClick(status: string): void {
+        if (this.selectedLabelSet?.status !== 'READY' || this.loadingLabelSetDetails) {
+            return;
+        }
+        this.onTranslationConceptStatusFilterChange(
+            this.labelSetMembersStatusFilter === status ? null : status
+        );
+    }
+
+    clearWorkflowStatusFilter(): void {
+        this.onTranslationConceptStatusFilterChange(null);
+    }
+
+    translationStatusBadgeClass(status: string | null | undefined): string {
+        const key = (status ?? 'NOT_STARTED').toLowerCase().replace(/_/g, '-');
+        return `translation-status-badge--${key}`;
+    }
+
+    workflowStatusCssSuffix(status: string): string {
+        return status.toLowerCase().replace(/_/g, '-');
+    }
+
+    get translationLanguagePairLabel(): string {
+        const target = this.displayTranslationLanguageDialect(this.selectedLabelSet?.translationName);
+        return target ? `English → ${target}` : '';
+    }
+
     translationProgressPercent(set: any): number {
         const size = set?.size ?? 0;
         if (size <= 0) {

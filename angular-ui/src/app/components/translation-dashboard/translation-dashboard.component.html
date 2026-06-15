@@ -145,119 +145,133 @@
                     <p>Loading translation set…</p>
                 </div>
             } @else {
-                <div class="details-panel details-panel-fullwidth">
-                    <div class="title-container title-container-detail">
+                <div class="details-panel details-panel-fullwidth translation-set-detail-view">
+                    <header class="set-detail-header">
                         <div class="detail-back-row">
                             <button mat-button type="button" (click)="goToTranslationSetsList()" class="back-to-list">
                                 <mat-icon>arrow_back</mat-icon>
                                 Translation sets
                             </button>
                         </div>
-                        <div class="title-left-column">
-                            <h2>{{ selectedLabelSet.name }}</h2>
-                        </div>
-                    </div>
-
-                    <div class="detail-fields">
-                        <div class="component-row" *ngIf="selectedLabelSet.status !== 'READY'">
-                            <div class="component-col align-right">
-                                <span class="details-field-name">Status</span>
-                            </div>
-                            <div class="component-col">
-                                <span class="details-field-value">{{ selectedLabelSet.status }}</span>
-                            </div>
-                        </div>
-                        <div class="component-row">
-                            <div class="component-col align-right">
-                                <span class="details-field-name">Selection Criteria</span>
-                            </div>
-                            <div class="component-col">
-                                <span class="details-field-value">{{ selectedLabelSet.humanReadableSelectionLabel }}</span>
-                            </div>
-                        </div>
-                        <div class="component-row" *ngIf="selectedLabelSet.size">
-                            <div class="component-col align-right">
-                                <span class="details-field-name">Total concepts</span>
-                            </div>
-                            <div class="component-col">
-                                <span class="details-field-value">{{ selectedLabelSet.size | number:'1.0-0' }}</span>
-                            </div>
-                        </div>
-                        <div class="component-row" *ngIf="selectedLabelSet.size">
-                            <div class="component-col align-right">
-                                <span class="details-field-name"><b>Workflow</b></span>
-                            </div>
-                            <div class="component-col">
-                            </div>
-                        </div>
-                        <div class="component-row" *ngIf="selectedLabelSet.size && selectedLabelSet.status !== 'PROCESSING'">
-                            <div class="component-col align-right">
-                                <span class="details-field-name">{{ translationConceptStatusFilterLabel('NOT_STARTED') }}</span>
-                            </div>
-                            <div class="component-col">
-                                <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
-                                <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
-                                    {{ translationSetNotStartedCount(selectedLabelSet) | number:'1.0-0' }}
-                                </span>
-                            </div>
-                        </div>
-                        <ng-container *ngIf="selectedLabelSet.size && selectedLabelSet.status !== 'PROCESSING'">
-                            <div class="component-row" *ngFor="let statusRow of translationSetStatusRows(selectedLabelSet)">
-                                <div class="component-col align-right">
-                                    <span class="details-field-name">{{ statusRow.label }}</span>
-                                </div>
-                                <div class="component-col">
-                                    <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
-                                    <span *ngIf="!loadingLabelSetDetails" class="details-field-value">
-                                        {{ statusRow.count | number:'1.0-0' }}<ng-container *ngIf="statusRow.status === 'COMPLETE'"> ({{ (statusRow.count / selectedLabelSet.size * 100) | number:'1.0-1' }}%)</ng-container>
+                        <div class="set-detail-header__main">
+                            <div class="set-detail-header__title-block">
+                                <h1 class="set-detail-title">{{ selectedLabelSet.name }}</h1>
+                                <div class="set-detail-meta">
+                                    <span class="meta-chip" *ngIf="selectedLabelSet.size">
+                                        {{ selectedLabelSet.size | number:'1.0-0' }} concepts
+                                    </span>
+                                    <span class="meta-chip meta-chip--plain" *ngIf="translationLanguagePairLabel">
+                                        {{ translationLanguagePairLabel }}
+                                    </span>
+                                    <span class="meta-text" *ngIf="selectedLabelSet.humanReadableSelectionLabel">
+                                        {{ selectedLabelSet.humanReadableSelectionLabel }}
                                     </span>
                                 </div>
+                                <p *ngIf="selectedLabelSet.status !== 'READY'" class="set-detail-status-note">
+                                    Set status: <strong>{{ selectedLabelSet.status }}</strong>
+                                </p>
                             </div>
-                        </ng-container>
-                    </div>
+                            <div class="set-detail-header__actions">
+                                <button mat-stroked-button [matMenuTriggerFor]="detailActionsMenu" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                                    <mat-icon class="large-icon">more_vert</mat-icon>
+                                    Manage
+                                </button>
+                                <mat-menu #detailActionsMenu="matMenu">
+                                    <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                                            *ngIf="selectedLabelSet.status !== 'FAILED'">
+                                        <mat-icon class="large-icon">flash_on</mat-icon>
+                                        Setup AI Translation
+                                    </button>
+                                    <button mat-menu-item (click)="runAiBatchTranslation()"
+                                            [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                                            *ngIf="selectedLabelSet.status !== 'FAILED' && selectedLabelSet.aiSetupComplete">
+                                        <mat-icon class="large-icon">flash_on</mat-icon>
+                                        Run AI Translation
+                                    </button>
+                                    @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
+                                        <button mat-menu-item (click)="pullFromTranslationStudio()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                                            <mat-icon class="large-icon">cloud_download</mat-icon>
+                                            Push into extension
+                                        </button>
+                                    }
+                                    <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
+                                            *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
+                                        <mat-icon class="large-icon">refresh</mat-icon>
+                                        Refresh concept selection (Translation Studio)
+                                        <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
+                                    </button>
+                                    <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
+                                        <mat-icon class="large-icon">cancel</mat-icon>
+                                        <span>Delete Set</span>
+                                        <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
+                                    </button>
+                                    @if(authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
+                                        <button mat-menu-item (click)="export()">
+                                            <mat-icon class="large-icon">file_download</mat-icon>
+                                            <span>Export to Authoring Platform</span>
+                                        </button>
+                                    }
+                                </mat-menu>
+                            </div>
+                        </div>
+                    </header>
 
-                    <div class="detail-manage">
-                        <button mat-stroked-button [matMenuTriggerFor]="detailActionsMenu" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                            <mat-icon class="large-icon">more_vert</mat-icon>
-                            Manage
-                        </button>
-                        <mat-menu #detailActionsMenu="matMenu">
-                            <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
-                                    *ngIf="selectedLabelSet.status !== 'FAILED'">
-                                <mat-icon class="large-icon">flash_on</mat-icon>
-                                Setup AI Translation
+                    <section
+                        class="workflow-panel"
+                        *ngIf="selectedLabelSet.size && selectedLabelSet.status === 'READY'"
+                        aria-label="Workflow">
+                        <div class="workflow-panel__header" *ngIf="labelSetMembersStatusFilter">
+                            <button
+                                type="button"
+                                class="workflow-filter-chip"
+                                (click)="clearWorkflowStatusFilter()"
+                                [disabled]="loadingLabelSetMembers">
+                                Filtering: {{ translationConceptStatusFilterLabel(labelSetMembersStatusFilter) }}
+                                <mat-icon aria-hidden="true">close</mat-icon>
                             </button>
-                            <button mat-menu-item (click)="runAiBatchTranslation()"
-                                    [disabled]="selectedLabelSet.status === 'PROCESSING'"
-                                    *ngIf="selectedLabelSet.status !== 'FAILED' && selectedLabelSet.aiSetupComplete">
-                                <mat-icon class="large-icon">flash_on</mat-icon>
-                                Run AI Translation
+                        </div>
+
+                        <div class="workflow-pipeline">
+                            <div class="workflow-pipeline__label-row">
+                                <span class="workflow-pipeline__eyebrow">Pipeline progress</span>
+                                <span class="workflow-pipeline__summary" *ngIf="!loadingLabelSetDetails">
+                                    {{ workflowPushedCount(selectedLabelSet) | number:'1.0-0' }}
+                                    of {{ selectedLabelSet.size | number:'1.0-0' }} pushed
+                                    · {{ workflowPushedPercent(selectedLabelSet) | number:'1.0-1' }}%
+                                </span>
+                                <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="18" class="inline-spinner"></mat-spinner>
+                            </div>
+                            <div class="workflow-pipeline__bar" role="img" [attr.aria-label]="'Pipeline progress: ' + (workflowPushedPercent(selectedLabelSet) | number:'1.0-1') + '% pushed'">
+                                <div
+                                    *ngFor="let segment of workflowPipelineSegments(selectedLabelSet)"
+                                    class="workflow-pipeline__segment"
+                                    [class]="'workflow-pipeline__segment--' + workflowStatusCssSuffix(segment.status)"
+                                    [style.flex-grow]="segment.percent"
+                                    [style.flex-basis]="segment.percent + '%'">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="workflow-status-cards">
+                            <button
+                                type="button"
+                                class="workflow-status-card"
+                                *ngFor="let card of workflowStatusCards(selectedLabelSet)"
+                                [class.workflow-status-card--active]="isWorkflowStatusActive(card.status)"
+                                [disabled]="loadingLabelSetDetails"
+                                (click)="onWorkflowStatusCardClick(card.status)">
+                                <span
+                                    class="workflow-status-card__dot"
+                                    [class]="'workflow-status-card__dot--' + workflowStatusCssSuffix(card.status)">
+                                </span>
+                                <span class="workflow-status-card__label">{{ card.label }}</span>
+                                <span class="workflow-status-card__count">
+                                    <mat-spinner *ngIf="loadingLabelSetDetails" [diameter]="16" class="inline-spinner"></mat-spinner>
+                                    <ng-container *ngIf="!loadingLabelSetDetails">{{ card.count | number:'1.0-0' }}</ng-container>
+                                </span>
                             </button>
-                            @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
-                                <button mat-menu-item (click)="pullFromTranslationStudio()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
-                                    <mat-icon class="large-icon">cloud_download</mat-icon>
-                                    Push into extension
-                                </button>
-                            }
-                            <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
-                                    *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
-                                <mat-icon class="large-icon">refresh</mat-icon>
-                                Refresh concept selection (Translation Studio)
-                                <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
-                            </button>
-                            <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
-                                <mat-icon class="large-icon">cancel</mat-icon>
-                                <span>Delete Set</span>
-                                <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
-                            </button>
-                            @if(authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
-                                <button mat-menu-item (click)="export()">
-                                    <mat-icon class="large-icon">file_download</mat-icon>
-                                    <span>Export to Authoring Platform</span>
-                                </button>
-                            }
-                        </mat-menu>
-                    </div>
+                        </div>
+                    </section>
 
                     <div class="members-heading-row">
                         <h3 class="members-heading">Translation concepts</h3>
@@ -326,7 +340,11 @@
                                 <ng-container matColumnDef="status">
                                     <th mat-header-cell *matHeaderCellDef>Status</th>
                                     <td mat-cell *matCellDef="let unit">
-                                        {{ formatTranslationRowStatus(unit.status) }}
+                                        <span
+                                            class="translation-status-badge"
+                                            [ngClass]="translationStatusBadgeClass(unit.status)">
+                                            {{ formatTranslationRowStatus(unit.status) }}
+                                        </span>
                                     </td>
                                 </ng-container>
 

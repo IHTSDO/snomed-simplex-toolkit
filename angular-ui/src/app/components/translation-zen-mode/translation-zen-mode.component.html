@@ -49,24 +49,28 @@
 				<label class="field-label field-label--emphasis" [attr.for]="'zen-pt-' + ui">
 					{{ dialectDisplayName }}, Preferred Term
 				</label>
-				<input
-					[id]="'zen-pt-' + ui"
-					class="text-input"
-					type="text"
-					formControlName="primaryTerm"
-					autocomplete="off"
-					(blur)="onTermBlur(unit)"
-					(input)="onUnitFormInput(unit)"
-				/>
-			</div>
-
-			<div class="synonyms-block">
-				<div class="synonyms-header">
-					<span class="field-label field-label--emphasis">Synonyms</span>
-					<button mat-stroked-button type="button" class="add-synonym-btn" (click)="addSynonym(unit)">
-						Add synonym
+				<div class="preferred-term-row">
+					<input
+						[id]="'zen-pt-' + ui"
+						class="text-input preferred-term-input"
+						type="text"
+						formControlName="primaryTerm"
+						autocomplete="off"
+						(blur)="onTermBlur(unit)"
+						(input)="onUnitFormInput(unit)"
+					/>
+					<button
+						mat-icon-button
+						type="button"
+						class="add-synonym-btn"
+						(click)="addSynonym(unit)"
+						aria-label="Add synonym">
+						<mat-icon>add</mat-icon>
 					</button>
 				</div>
+			</div>
+
+			<div class="synonyms-block" *ngIf="unitSynonymControls(unit).length > 0">
 				<div
 					*ngFor="let ctrl of unitSynonymControls(unit); let si = index"
 					class="synonym-row"
