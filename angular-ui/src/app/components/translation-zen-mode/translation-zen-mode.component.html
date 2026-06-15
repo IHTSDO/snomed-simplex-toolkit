@@ -129,17 +129,18 @@
 			{{ positionLabel() }}
 			<ng-container *ngIf="hasStatusFilter()">
 				<span class="status-filter-hint"> · Filter: {{ statusFilterLabel() }}</span>
-				<button
-					mat-button
-					type="button"
-					class="status-filter-clear"
-					(click)="clearStatusFilter()"
-					[disabled]="loading">
-					Clear
-				</button>
 			</ng-container>
 		</span>
 		<div class="zen-paging__buttons">
+			<button
+				*ngIf="hasStatusFilter()"
+				mat-stroked-button
+				type="button"
+				class="zen-paging__btn"
+				(click)="clearStatusFilter()"
+				[disabled]="loading">
+				Clear filter
+			</button>
 			<button
 				mat-stroked-button
 				type="button"

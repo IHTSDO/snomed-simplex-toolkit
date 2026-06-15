@@ -16,17 +16,18 @@
 					Concept {{ globalIndex + 1 }} of {{ totalCount }}
 					<ng-container *ngIf="statusFilter">
 						<span class="status-filter-hint"> · Filter: {{ statusFilterLabel() }}</span>
-						<button
-							mat-button
-							type="button"
-							class="status-filter-clear"
-							(click)="clearStatusFilter()"
-							[disabled]="loading || saving">
-							Clear
-						</button>
 					</ng-container>
 				</span>
 				<div class="toolbar-paging">
+					<button
+						*ngIf="statusFilter"
+						mat-stroked-button
+						type="button"
+						class="toolbar-paging-btn"
+						(click)="clearStatusFilter()"
+						[disabled]="loading || saving">
+						Clear filter
+					</button>
 					<button
 						mat-stroked-button
 						type="button"
@@ -311,9 +312,5 @@
 		</div>
 	</form>
 		</div>
-
-		<aside class="edit-layout__side edit-layout__side--right" aria-label="Concept diagram">
-			<h2 class="edit-layout__side-title">Concept diagram</h2>
-		</aside>
 	</div>
 </div>

@@ -236,7 +236,7 @@
                             @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
                                 <button mat-menu-item (click)="pullFromTranslationStudio()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
                                     <mat-icon class="large-icon">cloud_download</mat-icon>
-                                    Pull Translation Studio translations into Snowstorm
+                                    Push into extension
                                 </button>
                             }
                             <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
@@ -492,7 +492,7 @@
         @if(!authoringPlatformMode && set.status !== 'FAILED') {
             <button mat-menu-item (click)="pullFromTranslationStudio(set)" [disabled]="set.status === 'PROCESSING'">
                 <mat-icon class="large-icon">cloud_download</mat-icon>
-                Pull Translation Studio translations into Snowstorm
+                Push into extension
             </button>
         }
         <button mat-menu-item (click)="refreshTranslationSet(set)" [disabled]="set.status === 'PROCESSING' || refreshingSet"
