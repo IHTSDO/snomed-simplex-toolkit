@@ -1,0 +1,23 @@
+<div class="edit-page">
+	<div class="toolbar">
+		<div class="toolbar-start">
+			<button mat-button type="button" class="back-button" (click)="goBack()">
+				<mat-icon>arrow_back</mat-icon>
+				Back to Translation Studio
+			</button>
+		</div>
+		<h1 class="toolbar-page-title">Language Translation Policy</h1>
+		<div class="toolbar-end"></div>
+	</div>
+
+	<app-language-policy-questionnaire
+		*ngIf="edition && refsetId"
+		[edition]="edition"
+		[refsetId]="refsetId"
+		[dialectName]="dialectName"
+		[showCancel]="true"
+		submitLabel="Save policy"
+		(policySaved)="onPolicySaved($event)"
+		(cancelled)="onCancel()">
+	</app-language-policy-questionnaire>
+</div>

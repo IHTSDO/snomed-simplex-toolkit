@@ -1003,3 +1003,28 @@ mat-list-item:not(:last-child) {
         font-size: 1.65rem;
     }
 }
+
+.language-policies-panel {
+    margin-top: 2rem;
+}
+
+.compact-skeleton {
+    .skeleton-text {
+        height: 14px;
+        margin-bottom: 8px;
+    }
+}
+
+.policy-configured {
+    color: #2e7d32;
+    font-weight: 500;
+}
+
+.policy-missing {
+    color: #e65100;
+    font-weight: 500;
+}
+
+.language-policies-table {
+    margin-bottom: 0;
+}

@@ -3,6 +3,7 @@ package org.snomed.simplex;
 import org.snomed.simplex.config.ApplicationConfig;
 import org.snomed.simplex.service.test.TestActivityRepository;
 import org.snomed.simplex.service.test.TestSnolateSetRepository;
+import org.snomed.simplex.snolate.sets.LanguageTranslationPolicyRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
@@ -47,6 +48,11 @@ public class TestConfig extends ApplicationConfig {
 	@Bean
 	public SnolateTranslationSearchService snolateTranslationSearchService() {
 		return mock(SnolateTranslationSearchService.class);
+	}
+
+	@Bean
+	public LanguageTranslationPolicyRepository languageTranslationPolicyRepository() {
+		return mock(LanguageTranslationPolicyRepository.class);
 	}
 
 }

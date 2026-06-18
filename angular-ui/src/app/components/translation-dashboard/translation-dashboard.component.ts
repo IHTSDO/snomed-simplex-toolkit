@@ -13,6 +13,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
+import { LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
 import { parseTranslationStatusFilter, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
 
@@ -30,6 +31,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     loadingLabelSetMembers = false;
     loadingTranslations = false;
     loadingLabelSetDetails = false;
+    loadingLanguagePolicies = false;
+    languagePolicyRows: LanguagePolicyRow[] = [];
     labelSets: any[] = [];
     translations: any[] = [];
     selectedTranslation: any;
@@ -52,6 +55,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     private translationSetsLoaded = false; // Flag to track if translation sets have been loaded
 
 	translationSetsColumns = ['name', 'languageDialect', 'concepts', 'lastUpdated', 'progress', 'actions'];
+	languagePoliciesColumns = ['languageDialect', 'status', 'lastUpdated', 'policyActions'];
 	translationSetsDataSource = new MatTableDataSource<any>([]);
 	translationSetRouteSelectionActive = false;
 
@@ -409,26 +413,26 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         }
 
         const dialogRef = this.dialog.open(SetupAiTranslationDialogComponent, {
-            width: '600px',
+            width: '720px',
+            maxHeight: '90vh',
             data: {
                 edition: this.selectedEdition.shortName,
                 refsetId: target.refset,
                 labelSetName: target.name,
                 label: target.label,
+                dialectName: this.displayTranslationLanguageDialect(target.translationName),
                 selectedLabelSet: target
             }
         });
 
         dialogRef.afterClosed().subscribe(result => {
             if (result && result.action === 'setup') {
-                console.log('AI Translation setup:', result);
-                // Here you would implement the actual AI translation setup logic
                 this.snackBar.open(`AI Translation setup completed for ${result.goldenExamples.length} golden examples`, 'Close', {
                     duration: 5000
                 });
 
-                // Reload the translation sets to reflect any changes made during setup
                 this.getTranslationSets();
+                this.loadLanguagePolicies();
 
                 // If a translation set is currently selected, reload its details to get updated AI setup information
                 if (this.selectedLabelSet) {
@@ -558,6 +562,55 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 }
             );
         }
+    }
+
+    loadLanguagePolicies(): void {
+        if (!this.selectedEdition?.shortName) {
+            return;
+        }
+        this.loadingLanguagePolicies = true;
+        this.simplexService.getLanguagePolicies(this.selectedEdition.shortName).subscribe({
+            next: (policies: any[]) => {
+                this.loadingLanguagePolicies = false;
+                this.refreshLanguagePolicyRows(policies || []);
+            },
+            error: () => {
+                this.loadingLanguagePolicies = false;
+                this.refreshLanguagePolicyRows([]);
+            }
+        });
+    }
+
+    private refreshLanguagePolicyRows(policies: any[]): void {
+        const policyByRefset = new Map(policies.map(p => [p.refset, p]));
+        const snolateTranslations = this.translations.filter((t: any) => t.extraFields?.isSnolate === true || t.isSnolate === true);
+
+        this.languagePolicyRows = snolateTranslations.map((translation: any) => {
+            const refsetId = translation.conceptId || translation.id;
+            const policy = policyByRefset.get(refsetId);
+            const displayName = translation.pt?.term || translation.fsn?.term || refsetId;
+            return {
+                refsetId,
+                displayName,
+                languageCode: translation.extraFields?.lang || translation.lang,
+                configured: !!policy,
+                policy,
+                lastModified: policy?.lastModified
+            };
+        }).sort((a, b) => a.displayName.localeCompare(b.displayName));
+    }
+
+    editLanguagePolicy(row?: LanguagePolicyRow): void {
+        const refsetId = row?.refsetId;
+        const dialectName = row?.displayName;
+        if (!refsetId || !this.selectedEdition?.shortName) {
+            return;
+        }
+
+        void this.router.navigate(
+            ['/translation-studio', this.selectedEdition.shortName, 'language-policy', refsetId],
+            { queryParams: dialectName ? { dialect: dialectName } : {} }
+        );
     }
 
     getTranslationSets() {
@@ -1039,6 +1092,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
                 // Load translation sets after translations are loaded
                 this.getTranslationSets();
+                this.loadLanguagePolicies();
             },
             (error) => {
                 console.error(error);

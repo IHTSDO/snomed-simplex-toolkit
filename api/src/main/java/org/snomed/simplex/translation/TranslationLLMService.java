@@ -4,6 +4,8 @@ import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.ai.LLMService;
+import org.snomed.simplex.snolate.domain.LanguageTranslationPolicy;
+import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.springframework.stereotype.Service;
 
@@ -16,24 +18,32 @@ import java.util.Map;
 public class TranslationLLMService {
 
 	private final LLMService llmService;
+	private final LanguageTranslationPolicyService languageTranslationPolicyService;
+	private final LanguagePolicyPromptFormatter languagePolicyPromptFormatter;
 	private final Logger logger = LoggerFactory.getLogger(TranslationLLMService.class);
 
-	public TranslationLLMService(LLMService llmService) {
+	public TranslationLLMService(LLMService llmService, LanguageTranslationPolicyService languageTranslationPolicyService,
+			LanguagePolicyPromptFormatter languagePolicyPromptFormatter) {
 		this.llmService = llmService;
+		this.languageTranslationPolicyService = languageTranslationPolicyService;
+		this.languagePolicyPromptFormatter = languagePolicyPromptFormatter;
 	}
 
 	public Map<String, List<String>> suggestTranslations(SnolateTranslationSet translationSet, List<String> englishTerm, boolean multipleSuggestions, boolean fast) {
-		return suggestTranslations(translationSet.getLanguageCode(), translationSet.getAiLanguageAdvice(), translationSet.getAiGoldenSet(),
+		LanguageTranslationPolicy policy = languageTranslationPolicyService
+				.findByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset())
+				.orElse(null);
+		String languagePolicyText = languagePolicyPromptFormatter.format(policy);
+		return suggestTranslations(translationSet.getLanguageCode(), languagePolicyText, translationSet.getAiGoldenSet(),
 				englishTerm, multipleSuggestions, fast);
 	}
 
-	public Map<String, List<String>> suggestTranslations(String languageCode, String aiLanguageAdvice, Map<String, String> aiGoldenSet,
+	public Map<String, List<String>> suggestTranslations(String languageCode, String languagePolicyText, Map<String, String> aiGoldenSet,
 			List<String> englishTerm, boolean multipleSuggestions, boolean fast) {
 		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(languageCode);
-		String languageAdvice = aiLanguageAdvice;
 		String languageAdviceFormatted = "";
-		if (Strings.isNotEmpty(languageAdvice)) {
-			languageAdviceFormatted = "%s".formatted(languageAdvice);
+		if (Strings.isNotEmpty(languagePolicyText)) {
+			languageAdviceFormatted = "%s".formatted(languagePolicyText);
 		}
 		String responseFormat = "For each term provided, return the term number and the %s translation.\n".formatted(languageCode) +
 				"Use the exact formatting below:\n" +

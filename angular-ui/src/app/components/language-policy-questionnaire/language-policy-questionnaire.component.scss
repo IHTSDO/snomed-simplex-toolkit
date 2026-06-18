@@ -1,0 +1,94 @@
+.policy-questionnaire {
+	width: 100%;
+}
+
+.intro {
+	margin-bottom: 16px;
+	color: #444;
+}
+
+.loading-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 24px;
+}
+
+.policy-stepper {
+	margin-bottom: 16px;
+}
+
+.step-content {
+	padding: 8px 0 16px;
+}
+
+.question-block {
+	padding-top: 30px;
+	margin-bottom: 24px;
+}
+
+.question-block h3 {
+	margin: 16px 0 8px;
+	color: #1976d2;
+}
+
+.question-block h3:first-child {
+	margin-top: 0;
+}
+
+.example-table,
+.lexical-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 16px;
+	font-size: 0.85em;
+}
+
+.example-table th,
+.example-table td,
+.lexical-table th,
+.lexical-table td {
+	border: 1px solid #e0e0e0;
+	padding: 8px;
+	text-align: left;
+	vertical-align: top;
+}
+
+.example-table th,
+.lexical-table th {
+	background: #f5f5f5;
+	font-weight: 600;
+}
+
+.lexical-table input {
+	width: 100%;
+	padding: 6px 8px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	box-sizing: border-box;
+}
+
+.radio-group {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.full-width {
+	width: 100%;
+}
+
+.actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding-top: 8px;
+	border-top: 1px solid #e0e0e0;
+}
+
+.loading-content {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}

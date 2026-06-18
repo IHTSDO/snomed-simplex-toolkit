@@ -9,6 +9,7 @@ import { AdminSettingsComponent } from './components/admin-settings/admin-settin
 import { TranslationDashboardComponent } from './components/translation-dashboard/translation-dashboard.component';
 import { TranslationUnitEditComponent } from './components/translation-unit-edit/translation-unit-edit.component';
 import { TranslationZenModeComponent } from './components/translation-zen-mode/translation-zen-mode.component';
+import { LanguagePolicyPageComponent } from './components/language-policy-page/language-policy-page.component';
 
 const routes: Routes = [
   { path: 'home', component: WelcomeComponent },
@@ -26,6 +27,7 @@ const routes: Routes = [
   { path: 'translation-studio', component: TranslationDashboardComponent },
   { path: 'translation-studio/:edition/:refset/:label/zen', component: TranslationZenModeComponent },
   { path: 'translation-studio/:edition/:refset/:label/edit/:conceptId', component: TranslationUnitEditComponent },
+  { path: 'translation-studio/:edition/language-policy/:refsetId', component: LanguagePolicyPageComponent },
   { path: 'translation-studio/:edition/:refset/:label', component: TranslationDashboardComponent },
   { path: 'translation-studio/:edition', component: TranslationDashboardComponent },
   { path: '', redirectTo: '/home', pathMatch: 'full' }

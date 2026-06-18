@@ -1,0 +1,321 @@
+{
+  "version": "snomed-language-policy-v1",
+  "title": "SNOMED CT Language Policy Questionnaire",
+  "sections": [
+    {
+      "id": "morphology",
+      "label": "Morphology",
+      "questions": [
+        {
+          "id": "q1-compound-words",
+          "type": "choice",
+          "required": true,
+          "title": "Q1. Compound Words vs Multi-word Expressions",
+          "hint": "When both are grammatically acceptable, which style should be preferred?",
+          "exampleTable": {
+            "headers": ["English Source", "Compound Style", "Phrase Style"],
+            "rows": [
+              ["Heart valve disorder", "German: Herzklappenerkrankung", "German: Erkrankung der Herzklappe"],
+              ["Kidney stone disease", "Danish: Nyrestenssygdom", "Danish: Sygdom med nyresten"],
+              ["Blood pressure measurement", "Dutch: Bloeddrukmeting", "Dutch: Meting van bloeddruk"]
+            ]
+          },
+          "options": [
+            { "value": "COMPOUND", "label": "Prefer compound words whenever possible", "prompt": "- Prefer compound words over multi-word expressions when both are grammatically acceptable." },
+            { "value": "PHRASE", "label": "Prefer multi-word expressions whenever possible", "prompt": "- Prefer multi-word expressions over compound words when both are grammatically acceptable." },
+            { "value": "CASE_BY_CASE", "label": "Decide case-by-case", "prompt": "- Decide compound vs multi-word expression case-by-case." },
+            { "value": "OTHER", "label": "Other", "allowFreeText": true, "freeTextKey": "q1-compound-words-other", "promptTemplate": "- Compound words vs multi-word expressions: {freeText}" }
+          ]
+        },
+        {
+          "id": "q2-adjectival-forms",
+          "type": "choice",
+          "required": true,
+          "title": "Q2. Adjectival vs Noun-based Forms",
+          "hint": "When both forms are commonly used, which should be preferred?",
+          "exampleTable": {
+            "headers": ["English Source", "Adjectival Form", "Noun-based Form"],
+            "rows": [
+              ["Femur fracture", "Spanish: Fractura femoral", "Spanish: Fractura de fémur"],
+              ["Liver disease", "French: Maladie hépatique", "French: Maladie du foie"],
+              ["Renal injury", "Portuguese: Lesão renal", "Portuguese: Lesão do rim"]
+            ]
+          },
+          "options": [
+            { "value": "ADJECTIVAL", "label": "Prefer adjectival forms", "prompt": "- Prefer adjectival forms over noun-based forms when both are commonly used." },
+            { "value": "NOUN_BASED", "label": "Prefer noun-based forms", "prompt": "- Prefer noun-based forms over adjectival forms when both are commonly used." },
+            { "value": "DEPENDS_ON_HIERARCHY", "label": "Depends on hierarchy", "prompt": "- Choose adjectival vs noun-based forms depending on hierarchy." },
+            { "value": "OTHER", "label": "Other", "allowFreeText": true, "freeTextKey": "q2-adjectival-forms-other", "promptTemplate": "- Adjectival vs noun-based forms: {freeText}" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "articles",
+      "label": "Articles",
+      "questions": [
+        {
+          "id": "q3-articles",
+          "type": "choice",
+          "required": true,
+          "title": "Q3. Use of Definite Articles with Anatomical Structures",
+          "hint": "When referring to body structures, should definite articles be used?",
+          "exampleTable": {
+            "headers": ["English Source", "Without Article", "With Article"],
+            "rows": [
+              ["Fracture of femur", "Spanish: Fractura de fémur", "Spanish: Fractura del fémur"],
+              ["Inflammation of liver", "Italian: Infiammazione di fegato", "Italian: Infiammazione del fegato"],
+              ["Injury of eye", "Portuguese: Lesão de olho", "Portuguese: Lesão do olho"]
+            ]
+          },
+          "options": [
+            { "value": "USE_ARTICLES", "label": "Use articles", "prompt": "- Use definite articles when referring to anatomical structures." },
+            { "value": "AVOID_ARTICLES", "label": "Avoid articles", "prompt": "- Avoid definite articles when referring to anatomical structures." },
+            { "value": "DEPENDS_ON_CONTEXT", "label": "Depends on context", "prompt": "- Use or omit definite articles with anatomical structures depending on context." }
+          ]
+        },
+        {
+          "id": "q4-possessive",
+          "type": "choice",
+          "required": true,
+          "title": "Q4. Possessive Constructions",
+          "hint": "How should relationships be expressed?",
+          "exampleTable": {
+            "headers": ["English Source", "Possessive Style", "Prepositional Style"],
+            "rows": [
+              ["Parkinson disease", "English: Parkinson's disease", "English: Parkinson disease"],
+              ["Child development disorder", "German: Kindesentwicklungsstörung", "German: Störung der Entwicklung des Kindes"],
+              ["Eye injury", "Danish compound", "Danish prepositional"]
+            ]
+          },
+          "options": [
+            { "value": "POSSESSIVE", "label": "Prefer possessive constructions", "prompt": "- Prefer possessive constructions when expressing relationships." },
+            { "value": "PREPOSITIONAL", "label": "Prefer prepositional constructions", "prompt": "- Prefer prepositional constructions when expressing relationships." },
+            { "value": "DEPENDS_ON_CONCEPT_TYPE", "label": "Depends on concept type", "prompt": "- Choose possessive vs prepositional constructions depending on concept type." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lexical",
+      "label": "Lexical",
+      "questions": [
+        {
+          "id": "q5-lexical-normalization",
+          "type": "choice",
+          "required": true,
+          "title": "Q5. Preferred Translation of Recurring SNOMED Terms",
+          "hint": "For recurring source words, should a single translation be enforced?",
+          "exampleTable": {
+            "headers": ["English", "Option A", "Option B"],
+            "rows": [
+              ["Disorder", "Spanish: Trastorno", "Spanish: Alteración"],
+              ["Disease", "French: Maladie", "French: Affection"],
+              ["Procedure", "Portuguese: Procedimento", "Portuguese: Intervenção"]
+            ]
+          },
+          "options": [
+            { "value": "ONE_APPROVED", "label": "One approved translation per lexical item", "prompt": "- Enforce one approved translation per recurring lexical item." },
+            { "value": "MULTIPLE_ACCEPTED", "label": "Multiple accepted translations", "prompt": "- Allow multiple accepted translations for recurring lexical items." },
+            { "value": "DEPENDS_ON_CONTEXT", "label": "Depends on context", "prompt": "- Choose lexical translations depending on context." }
+          ]
+        },
+        {
+          "id": "q5-lexical-preferences",
+          "type": "keyValueTable",
+          "required": false,
+          "title": "Q5. Preferred translations for recurring terms",
+          "hint": "List preferred translations for recurring SNOMED terms (optional but recommended).",
+          "rowKeys": ["Disorder", "Disease", "Procedure", "Finding", "Structure", "Substance"]
+        }
+      ]
+    },
+    {
+      "id": "register",
+      "label": "Register",
+      "questions": [
+        {
+          "id": "q6-clinical-register",
+          "type": "choice",
+          "required": true,
+          "title": "Q6. Preferred Terminology Register",
+          "hint": "Which terminology should SNOMED prioritize?",
+          "exampleTable": {
+            "headers": ["English Source", "Technical", "Common Clinical"],
+            "rows": [
+              ["Myocardial infarction", "Infarto do miocárdio", "Ataque cardíaco"],
+              ["Hypertension", "Hipertensión arterial", "Presión alta"],
+              ["Cerebrovascular accident", "Accident vasculaire cérébral", "AVC"]
+            ]
+          },
+          "options": [
+            { "value": "TECHNICAL", "label": "Technical medical terminology", "prompt": "- Use technical medical terminology." },
+            { "value": "COMMON_CLINICAL", "label": "Common clinical terminology", "prompt": "- Use common clinical terminology." },
+            { "value": "MIXED", "label": "Mixed approach", "prompt": "- Use a mixed approach of technical and common clinical terminology." }
+          ]
+        },
+        {
+          "id": "q7-eponyms",
+          "type": "choice",
+          "required": true,
+          "title": "Q7. Eponym Usage",
+          "hint": "How should eponyms be handled?",
+          "exampleTable": {
+            "headers": ["English Source", "Eponym", "Descriptive Alternative"],
+            "rows": [
+              ["Parkinson disease", "Enfermedad de Parkinson", "Trastorno neurodegenerativo parkinsoniano"],
+              ["Down syndrome", "Síndrome de Down", "Trisomía 21"],
+              ["Crohn disease", "Maladie de Crohn", "Entérite granulomateuse chronique"]
+            ]
+          },
+          "options": [
+            { "value": "PREFER_EPONYMS", "label": "Prefer eponyms", "prompt": "- Prefer eponyms over descriptive alternatives." },
+            { "value": "PREFER_DESCRIPTIVE", "label": "Prefer descriptive names", "prompt": "- Prefer descriptive names over eponyms." },
+            { "value": "USE_BOTH", "label": "Use both", "prompt": "- Use both eponyms and descriptive names as appropriate." },
+            { "value": "DEPENDS_ON_CONCEPT", "label": "Depends on concept", "prompt": "- Choose eponym vs descriptive name depending on concept." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "acronyms-order",
+      "label": "Acronyms & Order",
+      "questions": [
+        {
+          "id": "q8-acronyms",
+          "type": "choice",
+          "required": true,
+          "title": "Q8. Can Acronyms Be Preferred Terms?",
+          "exampleTable": {
+            "headers": ["Concept", "Full Form", "Acronym"],
+            "rows": [
+              ["Chronic obstructive pulmonary disease", "EPOC full form", "EPOC"],
+              ["Acquired immunodeficiency syndrome", "SIDA full form", "SIDA"],
+              ["Magnetic resonance imaging", "Imagen por resonancia magnética", "RM"]
+            ]
+          },
+          "options": [
+            { "value": "NEVER_PREFERRED", "label": "Never preferred", "prompt": "- Never use acronyms as preferred terms." },
+            { "value": "PREFERRED_IF_DOMINANT", "label": "Preferred if dominant in clinical practice", "prompt": "- Use acronyms as preferred terms when dominant in clinical practice." },
+            { "value": "ALLOWED_AS_SYNONYMS_ONLY", "label": "Allowed only as synonyms", "prompt": "- Allow acronyms only as synonyms, not as preferred terms." }
+          ]
+        },
+        {
+          "id": "q9-word-order",
+          "type": "choice",
+          "required": true,
+          "title": "Q9. Preferred Ordering of Clinical Descriptions",
+          "exampleTable": {
+            "headers": ["English Source", "Pattern A", "Pattern B"],
+            "rows": [
+              ["Liver disorder", "Trastorno hepático", "Trastorno del hígado"],
+              ["Kidney injury", "Lesão renal", "Lesão do rim"],
+              ["Eye disease", "Maladie oculaire", "Maladie de l'œil"]
+            ]
+          },
+          "options": [
+            { "value": "ADJECTIVE_BASED", "label": "Prefer adjective-based ordering", "prompt": "- Prefer adjective-based ordering in clinical descriptions." },
+            { "value": "ANATOMICAL_NOUN", "label": "Prefer anatomical noun ordering", "prompt": "- Prefer anatomical noun ordering in clinical descriptions." },
+            { "value": "DEPENDS_ON_CONCEPT", "label": "Depends on concept", "prompt": "- Choose word order depending on concept." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "orthography",
+      "label": "Orthography",
+      "questions": [
+        {
+          "id": "q10-capitalization",
+          "type": "choice",
+          "required": true,
+          "title": "Q10. Capitalization",
+          "exampleTable": {
+            "headers": ["Example", "Style A", "Style B"],
+            "rows": [
+              ["Parkinson disease", "enfermedad de Parkinson", "Enfermedad de Parkinson"],
+              ["Type 2 diabetes mellitus", "diabetes mellitus tipo 2", "Diabetes Mellitus Tipo 2"],
+              ["Chronic kidney disease", "enfermedad renal crónica", "Enfermedad Renal Crónica"]
+            ]
+          },
+          "options": [
+            { "value": "NATIONAL_STANDARDS", "label": "Follow national orthographic standards", "prompt": "- Follow national orthographic standards for capitalization." },
+            { "value": "SNOMED_SPECIFIC", "label": "Use SNOMED-specific capitalization rules", "prompt": "- Use SNOMED-specific capitalization rules." },
+            { "value": "OTHER", "label": "Other", "allowFreeText": true, "freeTextKey": "q10-capitalization-other", "promptTemplate": "- Capitalization: {freeText}" }
+          ]
+        },
+        {
+          "id": "q11-hyphenation",
+          "type": "text",
+          "required": false,
+          "title": "Q11. Hyphenation",
+          "hint": "Describe preferred hyphenation conventions.",
+          "exampleTable": {
+            "headers": ["Example", "Style A", "Style B"],
+            "rows": [
+              ["X-ray-guided procedure", "procedimiento guiado por rayos X", "procedimiento guiado por rayos-X"],
+              ["COVID-19-related disorder", "trastorno relacionado con COVID-19", "trastorno COVID-19 relacionado"],
+              ["T-cell leukemia", "leucemia de células T", "leucemia T-celular"]
+            ]
+          },
+          "promptTemplate": "- Hyphenation conventions: {value}"
+        }
+      ]
+    },
+    {
+      "id": "ai-support",
+      "label": "AI Support",
+      "questions": [
+        {
+          "id": "q12-consistency",
+          "type": "choice",
+          "required": true,
+          "title": "Q12. Consistency Preference",
+          "hint": "If several translations are equally correct, should AI:",
+          "options": [
+            { "value": "ALWAYS_SAME", "label": "Always use the same approved wording", "prompt": "- When several translations are equally correct, always use the same approved wording." },
+            { "value": "PREFER_CONSISTENCY", "label": "Prefer consistency but allow variation", "prompt": "- When several translations are equally correct, prefer consistency but allow variation." },
+            { "value": "ALLOW_VARIATION", "label": "Allow natural variation", "prompt": "- When several translations are equally correct, allow natural variation." }
+          ]
+        },
+        {
+          "id": "q13-reuse",
+          "type": "choice",
+          "required": true,
+          "title": "Q13. Existing Translation Reuse",
+          "hint": "Before generating a new translation, should AI:",
+          "options": [
+            { "value": "REUSE_SIBLINGS", "label": "Reuse wording from sibling concepts whenever possible", "prompt": "- Reuse wording from sibling concepts whenever possible before generating new translations." },
+            { "value": "REUSE_PARENTS", "label": "Reuse wording from parent concepts whenever possible", "prompt": "- Reuse wording from parent concepts whenever possible before generating new translations." },
+            { "value": "GENERATE_INDEPENDENTLY", "label": "Generate independently", "prompt": "- Generate translations independently without reusing sibling or parent wording." }
+          ]
+        },
+        {
+          "id": "q14-validation",
+          "type": "boolean",
+          "required": true,
+          "title": "Q14. Translation Validation",
+          "hint": "Should AI flag translations that violate established language policies?",
+          "options": [
+            { "value": "true", "label": "Yes", "prompt": "- Flag translations that violate established language policies." },
+            { "value": "false", "label": "No", "prompt": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "additional",
+      "label": "Additional Rules",
+      "questions": [
+        {
+          "id": "additional-rules",
+          "type": "text",
+          "required": false,
+          "title": "Additional Language-Specific Rules",
+          "hint": "Please document any additional linguistic conventions important for SNOMED CT in your language that are not covered above.",
+          "promptTemplate": "- Additional language-specific rules: {value}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+<div class="policy-questionnaire">
+	<div *ngIf="loading" class="loading-container">
+		<mat-spinner diameter="40"></mat-spinner>
+		<p>Loading language policy questionnaire...</p>
+	</div>
+
+	<div *ngIf="!loading && questionnaire">
+		<p class="intro" *ngIf="dialectName">
+			Configure the SNOMED CT language translation policy for <strong>{{ dialectName }}</strong>.
+		</p>
+
+		<mat-stepper linear="false" class="policy-stepper">
+			<mat-step *ngFor="let section of questionnaire.sections" [label]="section.label">
+				<div class="step-content">
+					<div *ngFor="let question of section.questions" class="question-block">
+						<h3>{{ question.title }}</h3>
+						<p *ngIf="question.hint">{{ question.hint }}</p>
+
+						<table *ngIf="question.exampleTable" class="example-table">
+							<thead>
+								<tr>
+									<th *ngFor="let header of question.exampleTable.headers">{{ header }}</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr *ngFor="let row of question.exampleTable.rows">
+									<td *ngFor="let cell of row">{{ cell }}</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<ng-container [ngSwitch]="question.type">
+							<mat-radio-group *ngSwitchCase="'choice'"
+								[(ngModel)]="policy.policyItems[question.id]"
+								[name]="question.id"
+								class="radio-group">
+								<mat-radio-button *ngFor="let option of question.options" [value]="option.value">
+									{{ option.label }}
+								</mat-radio-button>
+							</mat-radio-group>
+
+							<mat-radio-group *ngSwitchCase="'boolean'"
+								[(ngModel)]="policy.policyItems[question.id]"
+								[name]="question.id"
+								class="radio-group">
+								<mat-radio-button *ngFor="let option of question.options" [value]="option.value">
+									{{ option.label }}
+								</mat-radio-button>
+							</mat-radio-group>
+
+							<mat-form-field *ngSwitchCase="'text'" appearance="outline" class="full-width">
+								<mat-label>{{ question.title }}</mat-label>
+								<textarea matInput rows="3" [(ngModel)]="policy.policyItems[question.id]" [name]="question.id"></textarea>
+							</mat-form-field>
+
+							<table *ngSwitchCase="'keyValueTable'" class="lexical-table">
+								<thead>
+									<tr>
+										<th>Source Word</th>
+										<th>Preferred Translation</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr *ngFor="let key of question.rowKeys">
+										<td>{{ key }}</td>
+										<td>
+											<input [ngModel]="getKeyValueTable(question)[key]"
+												(ngModelChange)="setKeyValueCell(question, key, $event)"
+												[name]="question.id + '-' + key"
+												placeholder="Preferred translation">
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</ng-container>
+
+						<mat-form-field *ngIf="question.type === 'choice' && shouldShowFreeText(question)"
+							appearance="outline" class="full-width">
+							<mat-label>Other (please specify)</mat-label>
+							<textarea matInput rows="2"
+								[(ngModel)]="policy.policyItems[freeTextKey(question)]"
+								[name]="freeTextKey(question)"></textarea>
+						</mat-form-field>
+					</div>
+				</div>
+			</mat-step>
+		</mat-stepper>
+
+		<div class="actions">
+			<button *ngIf="showCancel" mat-button type="button" (click)="onCancel()" [disabled]="saving">Cancel</button>
+			<button mat-raised-button color="primary" type="button" (click)="onSave()" [disabled]="saving || !isComplete()">
+				<span *ngIf="saving" class="loading-content"><mat-spinner diameter="20"></mat-spinner> Saving...</span>
+				<span *ngIf="!saving">{{ submitLabel }}</span>
+			</button>
+		</div>
+	</div>
+</div>

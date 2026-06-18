@@ -490,6 +490,63 @@
                     </tr>
                 </table>
             </div>
+
+            <div class="language-policies-panel">
+                <div class="translation-sets-toolbar">
+                    <h4>Language Policies</h4>
+                </div>
+
+                <div *ngIf="loadingLanguagePolicies" class="skeleton-loader compact-skeleton">
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text"></div>
+                </div>
+
+                <div class="translation-sets-table-wrap" *ngIf="!loadingLanguagePolicies">
+                    <table mat-table [dataSource]="languagePolicyRows" class="translation-sets-table language-policies-table">
+                        <ng-container matColumnDef="languageDialect">
+                            <th mat-header-cell *matHeaderCellDef>Language/Dialect</th>
+                            <td mat-cell *matCellDef="let row">{{ row.displayName }}</td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="status">
+                            <th mat-header-cell *matHeaderCellDef>Status</th>
+                            <td mat-cell *matCellDef="let row">
+                                <span [class.policy-configured]="row.configured" [class.policy-missing]="!row.configured">
+                                    {{ row.configured ? 'Configured' : 'Not configured' }}
+                                </span>
+                            </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="lastUpdated">
+                            <th mat-header-cell *matHeaderCellDef>Last updated</th>
+                            <td mat-cell *matCellDef="let row">
+                                @if (row.lastModified) {
+                                    <span matTooltip="{{ row.lastModified | date:'medium' }}">{{ row.lastModified | timeAgo }}</span>
+                                } @else {
+                                    <span class="muted-cell">—</span>
+                                }
+                            </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="policyActions">
+                            <th mat-header-cell *matHeaderCellDef class="col-actions">Actions</th>
+                            <td mat-cell *matCellDef="let row" class="col-actions">
+                                <button mat-button color="primary" type="button" (click)="editLanguagePolicy(row)">
+                                    {{ row.configured ? 'Edit' : 'Create policy' }}
+                                </button>
+                            </td>
+                        </ng-container>
+
+                        <tr mat-header-row *matHeaderRowDef="languagePoliciesColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: languagePoliciesColumns;"></tr>
+                        <tr class="mat-row translation-sets-empty-row" *matNoDataRow>
+                            <td class="mat-mdc-cell translation-sets-empty-message" [attr.colspan]="languagePoliciesColumns.length">
+                                Link a language refset to Translation Studio to configure policies.
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
         </div>
     }
 </div>

@@ -1,0 +1,156 @@
+.loading-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 20px;
+}
+
+.policy-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 16px;
+	padding: 12px 16px;
+	background-color: #e8f5e9;
+	border-radius: 4px;
+	border-left: 4px solid #2e7d32;
+	font-size: 0.9em;
+}
+
+.golden-examples-section {
+	margin-top: 10px;
+}
+
+.section-description {
+	color: #666;
+	font-size: 0.9em;
+	margin-bottom: 16px;
+}
+
+.examples-list {
+	margin-bottom: 16px;
+}
+
+.example-item {
+	border: 1px solid #e0e0e0;
+	border-radius: 4px;
+	padding: 16px;
+	margin-bottom: 12px;
+	background-color: #fafafa;
+}
+
+.example-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 12px;
+}
+
+.example-number {
+	font-weight: bold;
+	color: #1976d2;
+	background-color: #e3f2fd;
+	padding: 4px 8px;
+	border-radius: 12px;
+	font-size: 0.8em;
+}
+
+.remove-button {
+	width: 32px;
+	height: 32px;
+	line-height: 32px;
+	font-size: 18px;
+}
+
+.example-content {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.example-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.example-field label {
+	font-weight: 500;
+	color: #333;
+	font-size: 0.9em;
+}
+
+.example-field input {
+	padding: 8px 12px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	font-size: 0.9em;
+}
+
+.example-field input[readonly] {
+	background-color: #f5f5f5;
+	color: #666;
+	cursor: not-allowed;
+}
+
+.add-example-button {
+	width: 100%;
+	margin-top: 8px;
+}
+
+.loading-content {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+mat-dialog-content {
+	min-width: 560px;
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+.suggestions-container {
+	margin-top: 8px;
+}
+
+.suggestions-label {
+	font-size: 0.8em;
+	color: #666;
+	font-weight: 500;
+	margin-bottom: 4px;
+	display: block;
+}
+
+.suggestions-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.suggestion-button {
+	background-color: #e3f2fd;
+	border: 1px solid #1976d2;
+	color: #1976d2;
+	padding: 4px 8px;
+	border-radius: 12px;
+	font-size: 0.8em;
+	cursor: pointer;
+}
+
+.suggestions-loading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 8px;
+	padding: 8px 12px;
+	background-color: #f5f5f5;
+	border-radius: 4px;
+}
+
+.loading-text {
+	font-size: 0.8em;
+	color: #666;
+	font-style: italic;
+}

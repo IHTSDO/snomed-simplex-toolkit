@@ -489,6 +489,29 @@ export class SimplexService {
       .pipe(catchError(this.handleError.bind(this)));
   }
 
+  public getLanguagePolicies(edition: string): Observable<any> {
+    return this.http.get(`api/${edition}/translations/language-policy`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getLanguagePolicyQuestionnaire(edition: string): Observable<any> {
+    return this.http.get(`api/${edition}/translations/language-policy-questionnaire`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getLanguagePolicy(edition: string, refsetId: string): Observable<any> {
+    return this.http.get(`api/${edition}/translations/${refsetId}/language-policy`).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 404) {
+          return throwError(() => error);
+        }
+        return this.handleError(error);
+      })
+    );
+  }
+
+  public saveLanguagePolicy(edition: string, refsetId: string, policy: any): Observable<any> {
+    return this.http.put(`api/${edition}/translations/${refsetId}/language-policy`, policy).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getCurrentAPTask(edition: string, refsetId: string, label: string): Observable<any> {
     return this.http.get(`api/${edition}/translations/current-ap-task`)
   }

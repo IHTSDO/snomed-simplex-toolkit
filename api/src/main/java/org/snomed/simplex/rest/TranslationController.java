@@ -18,7 +18,11 @@ import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.snolate.domain.LanguagePolicyQuestionnaire;
+import org.snomed.simplex.snolate.domain.LanguageTranslationPolicy;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
+import org.snomed.simplex.snolate.service.LanguagePolicyQuestionnaireService;
+import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
 import org.snomed.simplex.snolate.service.SnolateTranslationToolService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
@@ -46,10 +50,14 @@ public class TranslationController {
 	private final SnolateSetService snolateSetService;
 	private final SnolateTranslationToolService snolateTranslationToolService;
 	private final TranslationLLMService translationLLMService;
+	private final LanguageTranslationPolicyService languageTranslationPolicyService;
+	private final LanguagePolicyQuestionnaireService languagePolicyQuestionnaireService;
 
 	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService,
 			ContentProcessingJobService jobService, ActivityService activityService, SnolateSetService snolateSetService,
-			SnolateTranslationToolService snolateTranslationToolService, TranslationLLMService translationLLMService) {
+			SnolateTranslationToolService snolateTranslationToolService, TranslationLLMService translationLLMService,
+			LanguageTranslationPolicyService languageTranslationPolicyService,
+			LanguagePolicyQuestionnaireService languagePolicyQuestionnaireService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
@@ -58,6 +66,8 @@ public class TranslationController {
 		this.snolateSetService = snolateSetService;
 		this.snolateTranslationToolService = snolateTranslationToolService;
 		this.translationLLMService = translationLLMService;
+		this.languageTranslationPolicyService = languageTranslationPolicyService;
+		this.languagePolicyQuestionnaireService = languagePolicyQuestionnaireService;
 	}
 
 	@GetMapping("{codeSystem}/translations")
@@ -282,7 +292,34 @@ public class TranslationController {
 		});
 	}
 
+	@GetMapping("{codeSystem}/translations/language-policy-questionnaire")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public LanguagePolicyQuestionnaire getLanguagePolicyQuestionnaire(@PathVariable String codeSystem) {
+		return languagePolicyQuestionnaireService.getQuestionnaire();
+	}
+
+	@GetMapping("{codeSystem}/translations/language-policy")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public List<LanguageTranslationPolicy> listLanguagePolicies(@PathVariable String codeSystem) {
+		return languageTranslationPolicyService.findByCodeSystem(codeSystem);
+	}
+
+	@GetMapping("{codeSystem}/translations/{refsetId}/language-policy")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public LanguageTranslationPolicy getLanguagePolicy(@PathVariable String codeSystem, @PathVariable String refsetId)
+			throws ServiceExceptionWithStatusCode {
+		return languageTranslationPolicyService.getOrThrow(codeSystem, refsetId);
+	}
+
+	@PutMapping("{codeSystem}/translations/{refsetId}/language-policy")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public LanguageTranslationPolicy upsertLanguagePolicy(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@RequestBody LanguageTranslationPolicyRequest request) throws ServiceException {
+		return languageTranslationPolicyService.upsert(codeSystem, refsetId, request);
+	}
+
 	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/ai-language-advice")
+	@Deprecated
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void saveAiLanguageAdvice(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
 			@RequestBody AiLanguageAdviceRequest request) throws ServiceExceptionWithStatusCode {
@@ -298,7 +335,6 @@ public class TranslationController {
 			@RequestBody AiSetupRequest request) throws ServiceExceptionWithStatusCode {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		translationSet.setAiLanguageAdvice(request.languageAdvice());
 		translationSet.setAiGoldenSet(request.aiGoldenSet());
 		snolateSetService.updateSet(translationSet);
 	}

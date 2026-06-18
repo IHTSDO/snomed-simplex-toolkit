@@ -1,0 +1,100 @@
+<h2 mat-dialog-title>
+	{{ currentStep === 'policy' ? 'Language Translation Policy' : 'Create Golden Examples' }}
+</h2>
+
+<mat-dialog-content>
+	<div *ngIf="loadingPolicy" class="loading-container">
+		<mat-spinner diameter="40"></mat-spinner>
+		<p>Checking language policy...</p>
+	</div>
+
+	<div *ngIf="!loadingPolicy && currentStep === 'policy'">
+		<p *ngIf="!policyExists">Before setting up AI translation, establish a language policy for this dialect.</p>
+		<app-language-policy-questionnaire
+			[edition]="data.edition"
+			[refsetId]="data.refsetId"
+			[dialectName]="dialectName"
+			[initialPolicy]="existingPolicy"
+			[showCancel]="policyConfigured"
+			[submitLabel]="policyExists ? 'Update policy' : 'Save and continue'"
+			(policySaved)="onPolicySaved($event)"
+			(cancelled)="onPolicyCancelled()">
+		</app-language-policy-questionnaire>
+	</div>
+
+	<div *ngIf="!loadingPolicy && currentStep === 'golden'">
+		<div *ngIf="policyExists" class="policy-banner">
+			<span>Language policy configured for this dialect.</span>
+			<button mat-button color="primary" type="button" (click)="openPolicyReview()">Review policy</button>
+		</div>
+
+		<div *ngIf="loadingExamples" class="loading-container">
+			<mat-spinner diameter="40"></mat-spinner>
+			<p>Loading sample concepts...</p>
+		</div>
+
+		<div *ngIf="!loadingExamples" class="golden-examples-section">
+			<h4>Golden Examples for <strong>{{ data.labelSetName }}</strong></h4>
+			<p class="section-description">
+				Create five strong examples to demonstrate the correct translation approach for this set.
+			</p>
+
+			<div class="examples-list">
+				<div *ngFor="let example of goldenExamples; let i = index" class="example-item">
+					<div class="example-header">
+						<span class="example-number">{{ i + 1 }}</span>
+						<button mat-icon-button color="warn" (click)="removeExample(i)" class="remove-button">×</button>
+					</div>
+					<div class="example-content">
+						<div class="example-field">
+							<label>Concept ID:</label>
+							<input [(ngModel)]="example.conceptId" readonly class="concept-input">
+						</div>
+						<div class="example-field">
+							<label>Preferred Term:</label>
+							<input [(ngModel)]="example.preferredTerm" readonly class="term-input">
+						</div>
+						<div class="example-field">
+							<label>Translation:</label>
+							<input [(ngModel)]="example.translation" placeholder="e.g., Maladie cardiaque" class="translation-input">
+
+							<div *ngIf="loadingSuggestions && example.preferredTerm.trim() && !example.translation.trim()" class="suggestions-loading">
+								<mat-spinner diameter="16"></mat-spinner>
+								<span class="loading-text">Loading AI suggestions...</span>
+							</div>
+
+							<div *ngIf="!loadingSuggestions && example.suggestions?.length" class="suggestions-container">
+								<label class="suggestions-label">AI Suggestions:</label>
+								<div class="suggestions-list">
+									<button *ngFor="let suggestion of example.suggestions" type="button"
+										class="suggestion-button" (click)="selectSuggestion(example, suggestion)">
+										{{ suggestion }}
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<button mat-stroked-button color="primary" [disabled]="loadingNewExample" (click)="addExample()" class="add-example-button">
+				<span *ngIf="loadingNewExample" class="loading-content">
+					<mat-spinner diameter="16"></mat-spinner>
+					Loading example...
+				</span>
+				<span *ngIf="!loadingNewExample">+ Add Golden Example</span>
+			</button>
+		</div>
+	</div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" *ngIf="!loadingPolicy && currentStep === 'golden'">
+	<button mat-button (click)="onCancel()">Cancel</button>
+	<button mat-raised-button color="primary" [disabled]="loading" (click)="onSetup()">
+		<span *ngIf="loading" class="loading-content">
+			<mat-spinner diameter="20"></mat-spinner>
+			Setting up...
+		</span>
+		<span *ngIf="!loading">Complete Setup</span>
+	</button>
+</mat-dialog-actions>
