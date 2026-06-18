@@ -10,25 +10,16 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
-import org.snomed.simplex.util.TimerUtil;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
+import org.snomed.simplex.util.TimerUtil;
 import org.springframework.http.HttpStatus;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_CREATE;
-import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_DELETE;
-import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_REFRESH;
-import static org.snomed.simplex.snolate.sets.SnolateSetService.PERCENTAGE_PROCESSED_START;
+import static org.snomed.simplex.snolate.sets.SnolateSetService.*;
 
 public class SnolateSetCreationService extends AbstractSnolateSetProcessingService {
 
@@ -198,7 +189,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		return ids;
 	}
 
-	private void applyRemoveBatches(SnolateTranslationSet translationSet, List<String> toRemove, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
+	private void applyRemoveBatches(SnolateTranslationSet translationSet, List<String> toRemove, TimerUtil timerUtil) {
 		List<String> batch = new ArrayList<>();
 		for (String id : toRemove) {
 			batch.add(id);
@@ -211,7 +202,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		}
 	}
 
-	private int applyAddBatches(SnolateTranslationSet translationSet, List<String> toAdd, TimerUtil timerUtil) throws ServiceExceptionWithStatusCode {
+	private int applyAddBatches(SnolateTranslationSet translationSet, List<String> toAdd, TimerUtil timerUtil) {
 		int added = 0;
 		List<String> batch = new ArrayList<>();
 		for (String id : toAdd) {
