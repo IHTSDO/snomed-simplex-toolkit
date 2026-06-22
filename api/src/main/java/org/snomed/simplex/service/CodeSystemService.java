@@ -159,6 +159,10 @@ public class CodeSystemService {
 		return newCodeSystem;
 	}
 
+	/**
+	 * Extension-specific MDRS maintenance not covered by Snowstorm's {@code new-authoring-cycle} endpoint:
+	 * deduplicate rows, ensure core/model dependency members exist, and set target effective times.
+	 */
 	public void createUpdateMDRSRows(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
 		List<RefsetMember> mdrsRows = snowstormClient.loadAllRefsetMembers(Concepts.MODULE_DEPENDENCY_REFERENCE_SET, codeSystem, true);
 		// Filter out rows not in this module
@@ -166,7 +170,7 @@ public class CodeSystemService {
 		processMDRSRows(mdrsRows, codeSystem.getDefaultModule(), codeSystem.getDependantVersionEffectiveTime());
 		List<RefsetMember> changedMembers = mdrsRows.stream().filter(RefsetMember::isChanged).toList();
 		if (!changedMembers.isEmpty()) {
-			snowstormClient.createUpdateRefsetMembers(mdrsRows, codeSystem);
+			snowstormClient.createUpdateRefsetMembers(changedMembers, codeSystem);
 		}
 	}
 
@@ -192,17 +196,17 @@ public class CodeSystemService {
 	}
 
 	private static void createUpdateDependency(List<RefsetMember> activeMDRSRows, String defaultModule, String dependantVersionEffectiveTime, String targetModule) {
-		RefsetMember coreMember = activeMDRSRows.stream().filter(member -> member.isActive() && member.getReferencedComponentId().equals(targetModule)).findFirst()
+		RefsetMember dependencyMember = activeMDRSRows.stream().filter(member -> member.isActive() && member.getReferencedComponentId().equals(targetModule)).findFirst()
 			.orElseGet(() -> {
 				RefsetMember newMember = new RefsetMember(Concepts.MODULE_DEPENDENCY_REFERENCE_SET, defaultModule, targetModule);
+				newMember.setAdditionalField(TARGET_EFFECTIVE_TIME, dependantVersionEffectiveTime);
 				newMember.markChanged();
 				activeMDRSRows.add(newMember);
 				return newMember;
 			});
-		if (!"".equals(coreMember.getAdditionalFields().get(SOURCE_EFFECTIVE_TIME)) || !"dependantVersionEffectiveTime".equals(coreMember.getAdditionalFields().get(TARGET_EFFECTIVE_TIME))) {
-			coreMember.setAdditionalField(SOURCE_EFFECTIVE_TIME, "")
-				.setAdditionalField(TARGET_EFFECTIVE_TIME, dependantVersionEffectiveTime);
-			coreMember.markChanged();
+		if (!dependantVersionEffectiveTime.equals(dependencyMember.getAdditionalFields().get(TARGET_EFFECTIVE_TIME))) {
+			dependencyMember.setAdditionalField(TARGET_EFFECTIVE_TIME, dependantVersionEffectiveTime);
+			dependencyMember.markChanged();
 		}
 	}
 

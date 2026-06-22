@@ -279,6 +279,14 @@ public class SnowstormClient {
 		restTemplate.exchange(format(CODESYSTEMS_VERSIONS_ENDPOINT, codeSystem.getShortName()), HttpMethod.POST, new HttpEntity<>(request), Void.class);
 	}
 
+	public void startNewAuthoringCycle(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		try {
+			restTemplate.postForEntity(format("%s/new-authoring-cycle", format(CODESYSTEM_ENDPOINT, codeSystem.getShortName())), null, Void.class);
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "start new authoring cycle");
+		}
+	}
+
 	public void deleteCodeSystem(String shortName) {
 		restTemplate.delete(format(CODESYSTEM_ENDPOINT, shortName));
 	}
