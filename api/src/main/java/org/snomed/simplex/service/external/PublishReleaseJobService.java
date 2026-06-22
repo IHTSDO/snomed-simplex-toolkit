@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
-import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
@@ -14,11 +13,11 @@ import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.ActivityService;
+import org.snomed.simplex.service.CodeSystemService;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-
-import java.util.Map;
 
 import static org.snomed.simplex.service.CodeSystemService.*;
 
@@ -27,6 +26,7 @@ public class PublishReleaseJobService extends ExternalFunctionJobService<Void> {
 
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final ReleaseServiceClient releaseServiceClient;
+	private final CodeSystemService codeSystemService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -34,11 +34,13 @@ public class PublishReleaseJobService extends ExternalFunctionJobService<Void> {
 			SupportRegister supportRegister,
 			ActivityService activityService,
 			SnowstormClientFactory snowstormClientFactory,
-			ReleaseServiceClient releaseServiceClient) {
+			ReleaseServiceClient releaseServiceClient,
+			@Lazy CodeSystemService codeSystemService) {
 
 		super(supportRegister, activityService);
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.releaseServiceClient = releaseServiceClient;
+		this.codeSystemService = codeSystemService;
 	}
 
 	@Override
@@ -80,7 +82,9 @@ public class PublishReleaseJobService extends ExternalFunctionJobService<Void> {
 					String effectiveTime = build.configuration().getEffectiveTime();
 					String releasePackageFilename = releaseServiceClient.getReleasePackageFilename(buildUrl);
 					snowstormClient.setVersionReleasePackage(codeSystem, effectiveTime, releasePackageFilename);
-					snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(Branch.PREVIOUS_PACKAGE_METADATA_KEY, releasePackageFilename));
+					logger.info("Starting new authoring cycle for {}", codeSystem.getShortName());
+					snowstormClient.startNewAuthoringCycle(codeSystem);
+					codeSystemService.createUpdateMDRSRows(codeSystem, snowstormClient);
 
 					Activity finaliseActivity = activityService.findLatestByCodeSystemAndActivityType(codeSystemShortName, ActivityType.FINALIZE_RELEASE);
 					if (finaliseActivity != null) {

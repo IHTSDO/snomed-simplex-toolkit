@@ -95,9 +95,9 @@ class CodeSystemServiceTest {
 		assertEquals(6, mdrsRows.size());
 		List<RefsetMember> activeRows = mdrsRows.stream().filter(RefsetMember::isActive).toList();
 		assertEquals(2, activeRows.size());
-		assertEquals("", activeRows.get(0).getAdditionalFields().get(CodeSystemService.SOURCE_EFFECTIVE_TIME));
+		assertEquals("20251015", activeRows.get(0).getAdditionalFields().get(CodeSystemService.SOURCE_EFFECTIVE_TIME));
 		assertEquals("20251101", activeRows.get(0).getAdditionalFields().get(CodeSystemService.TARGET_EFFECTIVE_TIME));
-		assertEquals("", activeRows.get(1).getAdditionalFields().get(CodeSystemService.SOURCE_EFFECTIVE_TIME));
+		assertEquals("20251015", activeRows.get(1).getAdditionalFields().get(CodeSystemService.SOURCE_EFFECTIVE_TIME));
 		assertEquals("20251101", activeRows.get(1).getAdditionalFields().get(CodeSystemService.TARGET_EFFECTIVE_TIME));
 	}
 
@@ -110,10 +110,19 @@ class CodeSystemServiceTest {
 		assertEquals(2, mdrsRows.size());
 		List<RefsetMember> activeRows = mdrsRows.stream().filter(RefsetMember::isActive).toList();
 		assertEquals(2, activeRows.size());
-		assertEquals("", activeRows.get(0).getAdditionalFields().get(CodeSystemService.SOURCE_EFFECTIVE_TIME));
 		assertEquals("20250101", activeRows.get(0).getAdditionalFields().get(CodeSystemService.TARGET_EFFECTIVE_TIME));
-		assertEquals("", activeRows.get(1).getAdditionalFields().get(CodeSystemService.SOURCE_EFFECTIVE_TIME));
 		assertEquals("20250101", activeRows.get(1).getAdditionalFields().get(CodeSystemService.TARGET_EFFECTIVE_TIME));
+	}
+
+	@Test
+	void testProcessMDRSRowsNoChangeWhenTargetAlreadySet() {
+		List<RefsetMember> mdrsRows = new ArrayList<>();
+		mdrsRows.add(createMDRSRow(Concepts.CORE_MODULE, "20250101", "20251101"));
+		mdrsRows.add(createMDRSRow(Concepts.MODEL_MODULE, "20250101", "20251101"));
+
+		codeSystemService.processMDRSRows(mdrsRows, TestConcepts.MODULE, 20251101);
+
+		assertTrue(mdrsRows.stream().noneMatch(RefsetMember::isChanged));
 	}
 
 	private static RefsetMember createMDRSRow(String targetModule, String sourceDate, String targetDate) {
