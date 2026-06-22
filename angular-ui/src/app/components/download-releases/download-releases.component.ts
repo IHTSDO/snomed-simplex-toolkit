@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges, OnDestroy, OnInit, SimpleChanges } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { lastValueFrom } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
@@ -17,21 +18,36 @@ export class DownloadReleasesComponent implements OnInit, OnDestroy {
   skeleton: any[] = Array(4).fill({});
   displayedColumns: string[] = ['effectiveDate', 'releasePackage', 'action'];
   downloadReleaseDisabled = false;
+  roles: string[] = [];
+  addingToMlds: Record<number, boolean> = {};
   private subscriptions: Subscription = new Subscription();
 
   constructor(private simplexService: SimplexService, private uiConfigurationService: UiConfigurationService, private snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
-    // Add the subscription to the subscriptions object
     const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
       if (edition && (edition.shortName !== this.edition?.shortName)) {
         this.edition = edition;
         this.loadVersions();
       }
     });
-
-    // Add the subscription to the subscriptions container
     this.subscriptions.add(editionSubscription);
+    this.loadRoles();
+  }
+
+  loadRoles() {
+    lastValueFrom(this.simplexService.getRoles()).then(
+      (roles) => {
+        this.roles = roles;
+      },
+      () => {
+        this.roles = [];
+      }
+    );
+  }
+
+  isAdmin(): boolean {
+    return this.roles.includes('ADMIN');
   }
 
   loadVersions() {
@@ -44,7 +60,6 @@ export class DownloadReleasesComponent implements OnInit, OnDestroy {
 
   downloadRelease(version: any) {
       this.downloadReleaseDisabled = true;
-      // Use direct download link to allow Chrome's native download progress
       const downloadUrl = `api/codesystems/${this.edition.shortName}/versions/${version.effectiveDate}/package`;
       const anchor = document.createElement('a');
       anchor.href = downloadUrl;
@@ -52,11 +67,32 @@ export class DownloadReleasesComponent implements OnInit, OnDestroy {
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);
-      
-      // Re-enable button after a short delay
+
       setTimeout(() => {
         this.downloadReleaseDisabled = false;
       }, 1000);
+  }
+
+  addToMlds(version: any) {
+    if (!this.isAdmin() || this.addingToMlds[version.effectiveDate]) {
+      return;
+    }
+    this.addingToMlds[version.effectiveDate] = true;
+    lastValueFrom(this.simplexService.addReleaseToMlds(this.edition.shortName, version.effectiveDate)).then(
+      () => {
+        this.addingToMlds[version.effectiveDate] = false;
+        this.snackBar.open('Release added to MLDS', 'Dismiss', { duration: 5000 });
+      },
+      (error) => {
+        this.addingToMlds[version.effectiveDate] = false;
+        const message = error?.error?.message || error?.message || 'Failed to add release to MLDS';
+        this.snackBar.open(message, 'Dismiss', { duration: 8000 });
+      }
+    );
+  }
+
+  isAddingToMlds(version: any): boolean {
+    return !!this.addingToMlds[version.effectiveDate];
   }
 
   ngOnDestroy(): void {

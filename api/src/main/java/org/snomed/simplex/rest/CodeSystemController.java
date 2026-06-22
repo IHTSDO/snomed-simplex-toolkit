@@ -24,8 +24,10 @@ import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.snomed.simplex.rest.pojos.SetBranchRequest;
 import org.snomed.simplex.rest.pojos.ValidationSettingsRequest;
+import org.snomed.simplex.client.mlds.domain.MldsReleaseResult;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.CodeSystemService;
+import org.snomed.simplex.service.MldsReleaseService;
 import org.snomed.simplex.service.external.*;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
@@ -59,12 +61,13 @@ public class CodeSystemController {
 	private final ValidationServiceClient validationServiceClient;
 	private final UpgradeJobService upgradeJobService;
 	private final ActivityService activityService;
+	private final MldsReleaseService mldsReleaseService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService,
 			ValidationService validationService, ValidateJobService validateJobService, ValidationServiceClient validationServiceClient,
-			UpgradeJobService upgradeJobService, ActivityService activityService) {
+			UpgradeJobService upgradeJobService, ActivityService activityService, MldsReleaseService mldsReleaseService) {
 
 		this.clientFactory = clientFactory;
 		this.codeSystemService = codeSystemService;
@@ -73,6 +76,7 @@ public class CodeSystemController {
 		this.validationServiceClient = validationServiceClient;
 		this.upgradeJobService = upgradeJobService;
 		this.activityService = activityService;
+		this.mldsReleaseService = mldsReleaseService;
 	}
 
 	@GetMapping
@@ -398,6 +402,18 @@ public class CodeSystemController {
 		CodeSystemVersion codeSystemVersion = doGetVersion(theCodeSystem, effectiveTime);
 		Pair<String, File> packageNameAndFile = codeSystemService.downloadVersionPackage(theCodeSystem, codeSystemVersion);
 		respondWithFile(response, packageNameAndFile.getLeft(), packageNameAndFile.getRight());
+	}
+
+	@Operation(summary = "Create an offline release version in MLDS for a published release.")
+	@PostMapping("{codeSystem}/versions/{effectiveTime}/mlds")
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public MldsReleaseResult addReleaseToMlds(@PathVariable String codeSystem, @PathVariable Integer effectiveTime) throws ServiceException {
+		CodeSystem theCodeSystem = codeSystemService.getCodeSystemDetails(codeSystem);
+		CodeSystemVersion codeSystemVersion = doGetVersion(theCodeSystem, effectiveTime);
+		if (codeSystemVersion == null) {
+			throw new ServiceExceptionWithStatusCode("Release version not found.", HttpStatus.NOT_FOUND);
+		}
+		return mldsReleaseService.addReleaseToMlds(theCodeSystem, codeSystemVersion);
 	}
 
 	private CodeSystemVersion doGetVersion(CodeSystem codeSystem, Integer effectiveTime) throws ServiceException {

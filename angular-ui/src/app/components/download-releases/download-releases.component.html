@@ -39,6 +39,10 @@
             <button mat-icon-button matTooltip="Download" [disabled]="downloadReleaseDisabled" *ngIf="!loading" (click)="downloadRelease(element)">
                 <mat-icon>cloud_download</mat-icon>
             </button>
+            <button mat-icon-button matTooltip="Add to MLDS" *ngIf="!loading && isAdmin()"
+                [disabled]="isAddingToMlds(element)" (click)="addToMlds(element)">
+                <mat-icon>cloud_upload</mat-icon>
+            </button>
           </td>
         </ng-container>
 

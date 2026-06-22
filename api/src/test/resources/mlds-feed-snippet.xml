@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:ncts="http://ns.electronichealth.net.au/ncts/syndication/asf/extensions/1.0.0">
+    <entry>
+        <title>Czech Republic National Edition-June 2026 v1.0</title>
+        <link rel="alternate" type="application/zip" href="https://mlds.ihtsdotools.org/api/releasePackages/1422972/releaseVersions/1649214/releaseFiles/1649216/download" length="627425390" />
+        <ncts:contentItemIdentifier>http://snomed.info/sct/11000279109</ncts:contentItemIdentifier>
+        <ncts:contentItemVersion>http://snomed.info/sct/11000279109/version/20260603</ncts:contentItemVersion>
+    </entry>
+    <entry>
+        <title>Belgian National Edition-May 2025 v1.0</title>
+        <link rel="alternate" type="application/zip" href="https://mlds.ihtsdotools.org/api/releasePackages/190440/releaseVersions/1449560/releaseFiles/1449562/download" />
+        <ncts:contentItemIdentifier>http://snomed.info/sct/11000172109</ncts:contentItemIdentifier>
+    </entry>
+</feed>
