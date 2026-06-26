@@ -22,6 +22,7 @@
 		<tomcat-embed.version>10.1.55</tomcat-embed.version>
 		<spring.version>6.2.19</spring.version>
 		<spring-data-commons.version>3.5.12</spring-data-commons.version>
+		<spring-boot.version>3.5.15</spring-boot.version>
 	</properties>
 
 	<dependencyManagement>

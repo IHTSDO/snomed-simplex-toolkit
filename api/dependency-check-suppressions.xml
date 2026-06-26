@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
 	<!--
-		CVE-2026-22747: No patched Spring Security release is available yet that clears this
-		finding for our stack; suppress until an upstream fix can be adopted.
+		False positive: CVE-2026-0994 affects Python google.protobuf.json_format.ParseDict only.
+		Dependency-Check maps the CPE to protobuf-java via the shared protobuf product name.
 	-->
 	<suppress>
-		<notes><![CDATA[CVE-2026-22747 — awaiting remediated Spring Security release]]></notes>
-		<packageUrl regex="true">^pkg:maven/org\.springframework\.security/.*@.*$</packageUrl>
-		<cve>CVE-2026-22747</cve>
+		<notes><![CDATA[False positive — Python json_format.ParseDict only, not protobuf-java]]></notes>
+		<packageUrl regex="true">^pkg:maven/com\.google\.protobuf/protobuf-java@.*$</packageUrl>
+		<cve>CVE-2026-0994</cve>
 	</suppress>
 	<!--
 		False positive: CVE-2026-40981, CVE-2026-40982, CVE-2026-41002, CVE-2026-41004 apply to Spring Cloud Config Server.
