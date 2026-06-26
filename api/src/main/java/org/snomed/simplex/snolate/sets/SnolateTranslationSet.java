@@ -46,9 +46,6 @@ public final class SnolateTranslationSet {
 	@Field(type = FieldType.Object)
 	private LinkedHashMap<String, String> aiGoldenSet;
 
-	@Field(type = FieldType.Keyword)
-	private String aiLanguageAdvice;
-
 	@Field(type = FieldType.Integer)
 	private int size;
 
@@ -103,7 +100,6 @@ public final class SnolateTranslationSet {
 		c.setRefset(refset);
 		c.setLanguageCode(languageCode);
 		c.setAiGoldenSet(aiGoldenSet != null ? new LinkedHashMap<>(aiGoldenSet) : null);
-		c.setAiLanguageAdvice(aiLanguageAdvice);
 		c.setSize(size);
 		c.setPercentageProcessed(percentageProcessed);
 		c.setStatus(status);
@@ -245,14 +241,6 @@ public final class SnolateTranslationSet {
 
 	public Map<String, String> getAiGoldenSet() {
 		return aiGoldenSet;
-	}
-
-	public String getAiLanguageAdvice() {
-		return aiLanguageAdvice;
-	}
-
-	public void setAiLanguageAdvice(String aiLanguageAdvice) {
-		this.aiLanguageAdvice = aiLanguageAdvice;
 	}
 
 	public void setTranslated(int translated) {

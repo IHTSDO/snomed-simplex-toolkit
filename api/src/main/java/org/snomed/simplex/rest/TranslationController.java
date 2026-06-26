@@ -318,17 +318,6 @@ public class TranslationController {
 		return languageTranslationPolicyService.upsert(codeSystem, refsetId, request);
 	}
 
-	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/ai-language-advice")
-	@Deprecated
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public void saveAiLanguageAdvice(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-			@RequestBody AiLanguageAdviceRequest request) throws ServiceExceptionWithStatusCode {
-
-		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		translationSet.setAiLanguageAdvice(request.languageAdvice());
-		snolateSetService.updateSet(translationSet);
-	}
-
 	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/ai-setup")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void translationSetAiSetup(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
