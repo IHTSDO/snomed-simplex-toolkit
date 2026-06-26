@@ -44,6 +44,7 @@ public class LanguageTranslationPolicy {
 	}
 
 	public LanguageTranslationPolicy() {
+		// Empty constructor for Jackson deserialization
 	}
 
 	public String getId() {
