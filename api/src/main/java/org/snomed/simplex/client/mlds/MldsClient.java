@@ -5,9 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.snomed.simplex.client.mlds.domain.*;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.util.SecurityUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -17,36 +21,44 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class MldsClient {
 
+	private static final Logger logger = LoggerFactory.getLogger(MldsClient.class);
+
 	private final RestTemplate restTemplate;
-	private final RestTemplate feedRestTemplate;
 
 	public MldsClient(@Value("${mlds.api-url}") String mldsApiUrl) {
 		ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 		MappingJackson2HttpMessageConverter jsonConverter = new MappingJackson2HttpMessageConverter(objectMapper);
+		ClientHttpRequestInterceptor authenticationInterceptor = (request, body, execution) -> {
+			try {
+				String authenticationToken = getAuthenticationToken();
+				request.getHeaders().add(HttpHeaders.COOKIE, authenticationToken);
+			} catch (ServiceExceptionWithStatusCode e) {
+				throw new RestClientException(e.getMessage(), e);
+			}
+			return execution.execute(request, body);
+		};
+		ClientHttpRequestInterceptor loggingInterceptor = (request, body, execution) -> {
+			if (logger.isTraceEnabled()) {
+				logger.trace("MLDS request {} {}", request.getMethod(), request.getURI());
+				request.getHeaders().forEach((name, values) ->
+						values.forEach(value -> logger.trace("MLDS request header: {}={}", name, value)));
+			}
+			var response = execution.execute(request, body);
+			if (logger.isTraceEnabled()) {
+				logger.trace("MLDS response status: {}", response.getStatusCode());
+			}
+			return response;
+		};
 
 		this.restTemplate = new RestTemplateBuilder()
 				.rootUri(mldsApiUrl)
-				.interceptors((request, body, execution) -> {
-					try {
-						String authenticationToken = getAuthenticationToken();
-						request.getHeaders().add(HttpHeaders.COOKIE, authenticationToken);
-					} catch (ServiceExceptionWithStatusCode e) {
-						throw new RestClientException(e.getMessage(), e);
-					}
-					return execution.execute(request, body);
-				})
-				.messageConverters(jsonConverter)
-				.build();
-
-		this.feedRestTemplate = new RestTemplateBuilder()
-				.rootUri(mldsApiUrl)
-				.messageConverters(jsonConverter)
+				.interceptors(authenticationInterceptor, loggingInterceptor)
+				.messageConverters(jsonConverter, new StringHttpMessageConverter())
 				.build();
 	}
 
-	public String fetchFeed() {
-		ResponseEntity<String> response = feedRestTemplate.exchange("/api/feed", HttpMethod.GET, null, String.class);
-		return response.getBody();
+	public String fetchFeed() throws ServiceExceptionWithStatusCode {
+		return exchange(HttpMethod.GET, "/api/feed", null, String.class);
 	}
 
 	public MldsReleasePackageResponse getReleasePackage(long releasePackageId) throws ServiceExceptionWithStatusCode {

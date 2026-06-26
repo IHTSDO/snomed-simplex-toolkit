@@ -1,6 +1,7 @@
 package org.snomed.simplex.service;
 
 import org.ihtsdo.otf.resourcemanager.ResourceManager;
+import org.ihtsdo.otf.resourcemanager.ResourceMetadata;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemVersion;
 import org.snomed.simplex.client.mlds.MldsAtomFeedService;
@@ -14,13 +15,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -85,8 +83,8 @@ public class MldsReleaseService {
 				publishedAt
 		);
 
-		PackageDigest packageDigest = computePackageDigest(packageFilename);
 		String downloadUrl = applyTemplate(downloadUrlTemplate, defaultModule, effectiveTime, packageFilename);
+		ResourceMetadata packageMetadata = getPackageMetadata(packageFilename);
 
 		MldsReleaseVersionResponse createdVersion = mldsClient.createReleaseVersion(releasePackageId, versionRequest);
 		if (createdVersion == null || createdVersion.releaseVersionId() == null) {
@@ -96,8 +94,8 @@ public class MldsReleaseService {
 		MldsReleaseFileRequest fileRequest = new MldsReleaseFileRequest(
 				packageFilename,
 				downloadUrl,
-				packageDigest.md5Hash(),
-				packageDigest.fileSize(),
+				packageMetadata.md5Hash(),
+				packageMetadata.fileSize(),
 				true
 		);
 
@@ -160,33 +158,20 @@ public class MldsReleaseService {
 				.anyMatch(versionUri::equals);
 	}
 
+	private ResourceMetadata getPackageMetadata(String packageFilename) throws ServiceExceptionWithStatusCode {
+		try {
+			return versionedPackagesResourceManager.getResourceMetadata(packageFilename);
+		} catch (FileNotFoundException e) {
+			throw new ServiceExceptionWithStatusCode("Release package file not found.", HttpStatus.NOT_FOUND, e);
+		} catch (IOException e) {
+			throw new ServiceExceptionWithStatusCode("Failed to read release package metadata.", HttpStatus.BAD_GATEWAY, e);
+		}
+	}
+
 	private void assertVersionUriNotDuplicate(long releasePackageId, String versionUri) throws ServiceExceptionWithStatusCode {
 		MldsReleasePackageResponse releasePackage = mldsClient.getReleasePackage(releasePackageId);
 		if (hasDuplicateVersionUri(releasePackage.releaseVersions(), versionUri)) {
 			throw new ServiceExceptionWithStatusCode("Release version already exists in MLDS.", HttpStatus.CONFLICT);
 		}
-	}
-
-	private PackageDigest computePackageDigest(String filename) throws ServiceExceptionWithStatusCode {
-		try (InputStream inputStream = versionedPackagesResourceManager.readResourceStream(filename)) {
-			MessageDigest digest = MessageDigest.getInstance("MD5");
-			long fileSize = 0;
-			try (DigestInputStream digestInputStream = new DigestInputStream(inputStream, digest)) {
-				byte[] buffer = new byte[8192];
-				int read;
-				while ((read = digestInputStream.read(buffer)) != -1) {
-					fileSize += read;
-				}
-			}
-			String md5Hash = HexFormat.of().formatHex(digest.digest());
-			return new PackageDigest(md5Hash, fileSize);
-		} catch (FileNotFoundException e) {
-			throw new ServiceExceptionWithStatusCode("Release package file not found.", HttpStatus.NOT_FOUND, e);
-		} catch (Exception e) {
-			throw new ServiceExceptionWithStatusCode("Failed to read release package for MLDS upload.", HttpStatus.INTERNAL_SERVER_ERROR, e);
-		}
-	}
-
-	private record PackageDigest(String md5Hash, long fileSize) {
 	}
 }
