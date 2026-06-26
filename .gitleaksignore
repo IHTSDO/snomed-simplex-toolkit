@@ -1,0 +1,4 @@
+# Language policy questionnaire freeTextKey identifiers (not secrets)
+api/src/main/resources/language-policy-questionnaire.json:generic-api-key:244
+api/src/main/resources/language-policy-questionnaire.json:generic-api-key:27
+api/src/main/resources/language-policy-questionnaire.json:generic-api-key:48
