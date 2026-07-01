@@ -360,8 +360,7 @@ public class CustomConceptService {
 		headers.add(new SheetHeader("Parent Concept Term").setSubtitle("This is just for reference."));
 		headers.add(new SheetHeader("Concept Identifier").setSubtitle("Do not change this column. \r\n" +
 				"Concept identifiers will be generated."));
-		headers.add(new SheetHeader("Active").setSubtitle("Leave this column blank to start with. \r\n" +
-				"To make a concept inactive enter a value of false."));
+		headers.add(new SheetHeader("Active").setSubtitle("Enter true for active concepts or false to inactivate a concept."));
 		String termSubtitle = "The first term will be the preferred term. \r\n" +
 				"Each additional synonym should use a new row. There is no need to repeat the values in columns A to D.";
 		headers.add(new SheetHeader("Terms in English, US dialect. This term is required.").setSubtitle(termSubtitle));
@@ -407,7 +406,7 @@ public class CustomConceptService {
 			boolean conceptRow = parentCode != null;
 			if (conceptRow) {
 				conceptIntent = new ConceptIntent(parentCode, rowNumber);
-				boolean inactive = row.getCell(headerConfiguration.getColumn(ACTIVE), Row.MissingCellPolicy.CREATE_NULL_AS_BLANK).getStringCellValue().equalsIgnoreCase("false");
+				boolean inactive = !SpreadsheetService.readActiveFlag(row, headerConfiguration.getColumn(ACTIVE), rowNumber);
 				conceptIntent.setInactive(inactive);
 				mainComponent = conceptIntent;
 				String conceptCode = SpreadsheetService.readSnomedConcept(row, headerConfiguration.getColumn(CONCEPT_CODE), rowNumber);

@@ -1,5 +1,8 @@
 package org.snomed.simplex.service;
 
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.snomed.simplex.TestConfig;
 import org.snomed.simplex.client.domain.ConceptMini;
@@ -43,6 +46,39 @@ class SpreadsheetServiceTest {
 		basicSheetHeaders = customConceptService.getInputSheetHeaders(Collections.emptyList());
 		basicComponentExtractor = customConceptService.getInputSheetComponentExtractor(Collections.emptyList());
 		correctTimestamp = 1727964880378L;
+	}
+
+	@Test
+	void readActiveFlag() throws ServiceException {
+		XSSFWorkbook workbook = new XSSFWorkbook();
+		XSSFSheet sheet = workbook.createSheet();
+		int column = 3;
+		int rowNumber = 2;
+
+		Row blankRow = sheet.createRow(0);
+		assertTrue(SpreadsheetService.readActiveFlag(blankRow, column, rowNumber));
+
+		Row trueRow = sheet.createRow(1);
+		trueRow.createCell(column).setCellValue("true");
+		assertTrue(SpreadsheetService.readActiveFlag(trueRow, column, rowNumber));
+
+		Row falseRow = sheet.createRow(2);
+		falseRow.createCell(column).setCellValue("false");
+		assertFalse(SpreadsheetService.readActiveFlag(falseRow, column, rowNumber));
+
+		Row booleanTrueRow = sheet.createRow(3);
+		booleanTrueRow.createCell(column).setCellValue(true);
+		assertTrue(SpreadsheetService.readActiveFlag(booleanTrueRow, column, rowNumber));
+
+		Row booleanFalseRow = sheet.createRow(4);
+		booleanFalseRow.createCell(column).setCellValue(false);
+		assertFalse(SpreadsheetService.readActiveFlag(booleanFalseRow, column, rowNumber));
+
+		Row invalidRow = sheet.createRow(5);
+		invalidRow.createCell(column).setCellValue("yes");
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> SpreadsheetService.readActiveFlag(invalidRow, column, rowNumber));
+		assertEquals(JobStatus.USER_CONTENT_ERROR, exception.getJobStatus());
 	}
 
 	@Test

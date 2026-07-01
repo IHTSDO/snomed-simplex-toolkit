@@ -139,7 +139,7 @@ public class SpreadsheetService {
 		// add active
 		cell = row.createCell(columnOffset++);
 		cell.setCellStyle(cellStyle);
-		cell.setCellValue(concept.isActive() ? "" : "false");
+		cell.setCellValue(concept.isActive() ? "true" : "false");
 
 		// add terms
 		List<Description> descriptions = concept.getDescriptions();
@@ -464,6 +464,36 @@ public class SpreadsheetService {
 			chars[i] = goodCharacters.get(i);
 		}
 		return new String(chars);
+	}
+
+	/**
+	 * Reads the Active flag from a spreadsheet cell. Accepts true/false (case insensitive), Excel boolean cells,
+	 * or blank (treated as active for backward compatibility with older spreadsheets).
+	 * @return true if the concept is active
+	 * @throws ServiceException if the cell value is not a recognised active flag
+	 */
+	public static boolean readActiveFlag(Row row, int column, int rowNumber) throws ServiceException {
+		Cell cell = row.getCell(column, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+		CellType cellType = cell.getCellType();
+		if (cellType == CellType.BLANK) {
+			return true;
+		}
+		if (cellType == CellType.BOOLEAN) {
+			return cell.getBooleanCellValue();
+		}
+		String value = cell.getStringCellValue().trim();
+		if (value.isEmpty()) {
+			return true;
+		}
+		if (value.equalsIgnoreCase("true")) {
+			return true;
+		}
+		if (value.equalsIgnoreCase("false")) {
+			return false;
+		}
+		throw new ServiceExceptionWithStatusCode(
+				"Invalid value '%s' in Active column, row %s. Use true or false.".formatted(value, rowNumber),
+				HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
 	}
 
 	/**
