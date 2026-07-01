@@ -11,6 +11,7 @@ import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.ByQueryResponse;
 import org.springframework.data.elasticsearch.core.query.Criteria;
 import org.springframework.data.elasticsearch.core.query.CriteriaQuery;
+import org.springframework.data.elasticsearch.core.query.ScriptType;
 import org.springframework.data.elasticsearch.core.query.UpdateQuery;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +40,7 @@ public class SnolateSetMigrationService implements ApplicationRunner {
 		IndexCoordinates index = IndexCoordinates.of(indexNameProvider.indexName("snolate-set"));
 		CriteriaQuery query = new CriteriaQuery(new Criteria(REMOVED_FIELD).exists());
 		UpdateQuery updateQuery = UpdateQuery.builder(query)
+				.withScriptType(ScriptType.INLINE)
 				.withLang("painless")
 				.withScript(REMOVE_FIELD_SCRIPT)
 				.build();
