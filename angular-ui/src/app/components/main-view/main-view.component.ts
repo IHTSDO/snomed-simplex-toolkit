@@ -1,6 +1,8 @@
 import {ChangeDetectorRef, Component, Input, OnInit} from '@angular/core';
 import {ActivatedRoute, NavigationEnd, Router} from '@angular/router';
 import {filter} from 'rxjs';
+import {lastValueFrom} from 'rxjs';
+import {SimplexService} from 'src/app/services/simplex/simplex.service';
 import {UiConfigurationService} from 'src/app/services/ui-configuration/ui-configuration.service';
 
 @Component({
@@ -13,12 +15,22 @@ export class MainViewComponent implements OnInit {
     selectedMenuItem: string;
 
     authoringPlatformMode: boolean;
+    roles: string[] = [];
 
-    constructor(private router: Router, private route: ActivatedRoute, private uiService: UiConfigurationService, private changeDetectorRef: ChangeDetectorRef, private uiConfigurationService: UiConfigurationService) {
+    constructor(private router: Router, private route: ActivatedRoute, private uiService: UiConfigurationService,
+                private changeDetectorRef: ChangeDetectorRef, private uiConfigurationService: UiConfigurationService,
+                private simplexService: SimplexService) {
         this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => this.authoringPlatformMode = data);
     }
 
     ngOnInit(): void {
+        lastValueFrom(this.simplexService.getRoles()).then(
+            (roles) => {
+                this.roles = roles ?? [];
+                this.changeDetectorRef.detectChanges();
+            },
+            () => {}
+        );
         this.uiService.getSelectedEdition().subscribe(edition => {
             if (edition) {
                 this.selectedEdition = edition.shortName;
@@ -53,8 +65,19 @@ export class MainViewComponent implements OnInit {
                 this.selectedMenuItem = 'releases';
             } else if (url.includes('translation-studio') || url.includes('translation-dashboard')) {
                 this.selectedMenuItem = 'translation-studio';
+            } else if (url.includes('admin')) {
+                this.selectedMenuItem = 'admin';
             }
             this.changeDetectorRef.detectChanges();
         }
+    }
+
+    isAdmin(): boolean {
+        return this.roles.includes('ADMIN');
+    }
+
+    navigateToAdmin(): void {
+        this.selectedMenuItem = 'admin';
+        this.router.navigate(['/admin']);
     }
 }

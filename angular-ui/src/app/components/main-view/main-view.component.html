@@ -35,6 +35,12 @@
                 <span class="nav-item-name">Edition info</span>
               </span>
                 </mat-list-item>
+                <mat-list-item *ngIf="isAdmin()" [ngClass]="{'selected-menu-item': selectedMenuItem === 'admin'}" (click)="navigateToAdmin()" data-cy="nav-admin">
+              <span class="nav-item">
+                <mat-icon mat-list-icon>admin_panel_settings</mat-icon>
+                <span class="nav-item-name">Admin</span>
+              </span>
+                </mat-list-item>
             </mat-nav-list>
         </mat-drawer>
 

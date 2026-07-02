@@ -1,7 +1,142 @@
 <div class="main-container">
-    <h2>Admin</h2>
-    <p>Shared-component management for the legacy translation platform has been removed. Use Translation Studio for translation sets.</p>
-    <div class="button-container">
-        <button mat-flat-button color="primary" (click)="goHome()">Back to home</button>
+  <h2>LLM Usage</h2>
+
+  <p *ngIf="accessDenied" class="access-denied">Access denied. Admin role required.</p>
+
+  <ng-container *ngIf="isAdmin()">
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Period</span>
+        <mat-button-toggle-group [value]="selectedPeriod" (change)="onPeriodChange($event.value)">
+          <mat-button-toggle *ngFor="let period of periods" [value]="period.value">
+            {{ period.label }}
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
+      <div class="filter-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Codesystem</mat-label>
+          <mat-select [(value)]="selectedCodesystem" (selectionChange)="onCodesystemChange()">
+            <mat-option value="">All codesystems</mat-option>
+            <mat-option *ngFor="let edition of editions" [value]="edition.shortName">
+              {{ edition.shortName }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Model</mat-label>
+          <mat-select [(value)]="selectedModel" (selectionChange)="onModelChange()">
+            <mat-option value="">All models</mat-option>
+            <mat-option *ngFor="let model of knownModels" [value]="model">
+              {{ model }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
     </div>
+
+    <div *ngIf="loading" class="loading-panel">
+      <mat-spinner [diameter]="40"></mat-spinner>
+    </div>
+
+    <ng-container *ngIf="!loading && summary">
+      <p class="date-range" *ngIf="summary.startDate || summary.endDate">
+        <span *ngIf="summary.startDate">{{ summary.startDate }}</span>
+        <span *ngIf="summary.startDate && summary.endDate"> to </span>
+        <span *ngIf="summary.endDate">{{ summary.endDate }}</span>
+        <span *ngIf="!summary.startDate && summary.endDate">Through {{ summary.endDate }}</span>
+      </p>
+
+      <div class="summary-cards">
+        <div class="summary-card">
+          <div class="summary-label">Input tokens</div>
+          <div class="summary-value">{{ formatNumber(summary.inputTokens) }}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Output tokens</div>
+          <div class="summary-value">{{ formatNumber(summary.outputTokens) }}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Total tokens</div>
+          <div class="summary-value">{{ formatNumber(summary.totalTokens) }}</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Requests</div>
+          <div class="summary-value">{{ formatNumber(summary.requestCount) }}</div>
+        </div>
+      </div>
+
+      <h4>By model</h4>
+      <table mat-table [dataSource]="summary.byModel" class="usage-table">
+        <ng-container matColumnDef="model">
+          <th mat-header-cell *matHeaderCellDef>Model</th>
+          <td mat-cell *matCellDef="let row">{{ row.model }}</td>
+        </ng-container>
+        <ng-container matColumnDef="provider">
+          <th mat-header-cell *matHeaderCellDef>Provider</th>
+          <td mat-cell *matCellDef="let row">{{ row.provider }}</td>
+        </ng-container>
+        <ng-container matColumnDef="inputTokens">
+          <th mat-header-cell *matHeaderCellDef>Input</th>
+          <td mat-cell *matCellDef="let row">{{ formatNumber(row.inputTokens) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="outputTokens">
+          <th mat-header-cell *matHeaderCellDef>Output</th>
+          <td mat-cell *matCellDef="let row">{{ formatNumber(row.outputTokens) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalTokens">
+          <th mat-header-cell *matHeaderCellDef>Total</th>
+          <td mat-cell *matCellDef="let row">{{ formatNumber(row.totalTokens) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="requestCount">
+          <th mat-header-cell *matHeaderCellDef>Requests</th>
+          <td mat-cell *matCellDef="let row">{{ formatNumber(row.requestCount) }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="byModelColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: byModelColumns;"></tr>
+      </table>
+
+      <h4>Daily breakdown</h4>
+      <table mat-table [dataSource]="summary.dailyBreakdown" class="usage-table">
+        <ng-container matColumnDef="date">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let row">{{ row.date }}</td>
+        </ng-container>
+        <ng-container matColumnDef="codesystem">
+          <th mat-header-cell *matHeaderCellDef>Codesystem</th>
+          <td mat-cell *matCellDef="let row">{{ row.codesystem }}</td>
+        </ng-container>
+        <ng-container matColumnDef="model">
+          <th mat-header-cell *matHeaderCellDef>Model</th>
+          <td mat-cell *matCellDef="let row">{{ row.model }}</td>
+        </ng-container>
+        <ng-container matColumnDef="provider">
+          <th mat-header-cell *matHeaderCellDef>Provider</th>
+          <td mat-cell *matCellDef="let row">{{ row.provider }}</td>
+        </ng-container>
+        <ng-container matColumnDef="inputTokens">
+          <th mat-header-cell *matHeaderCellDef>Input</th>
+          <td mat-cell *matCellDef="let row">{{ formatNumber(row.inputTokens) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="outputTokens">
+          <th mat-header-cell *matHeaderCellDef>Output</th>
+          <td mat-cell *matCellDef="let row">{{ formatNumber(row.outputTokens) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="totalTokens">
+          <th mat-header-cell *matHeaderCellDef>Total</th>
+          <td mat-cell *matCellDef="let row">{{ formatNumber(row.totalTokens) }}</td>
+        </ng-container>
+        <ng-container matColumnDef="requestCount">
+          <th mat-header-cell *matHeaderCellDef>Requests</th>
+          <td mat-cell *matCellDef="let row">{{ formatNumber(row.requestCount) }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="dailyDisplayColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: dailyDisplayColumns;"></tr>
+      </table>
+    </ng-container>
+  </ng-container>
 </div>

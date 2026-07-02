@@ -42,6 +42,7 @@ import {MapsComponent} from './components/maps/maps.component';
 import {TranslationsComponent} from './components/translations/translations.component';
 import {ManageCodesystemComponent} from './components/manage-codesystem/manage-codesystem.component';
 import {MatButtonModule} from '@angular/material/button';
+import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {NewEditionComponent} from './components/new-edition/new-edition.component';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
@@ -149,6 +150,7 @@ import {ConfigService} from "./services/config/config.service";
         MatListModule,
         MatRippleModule,
         MatButtonModule,
+        MatButtonToggleModule,
         ReactiveFormsModule,
         MatFormFieldModule,
         MatInputModule,

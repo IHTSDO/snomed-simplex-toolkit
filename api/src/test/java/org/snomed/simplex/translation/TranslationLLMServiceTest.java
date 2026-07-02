@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.snomed.simplex.ai.LLMService;
+import org.snomed.simplex.ai.LlmCallContext;
 import org.snomed.simplex.snolate.domain.LanguageTranslationPolicy;
 import org.snomed.simplex.snolate.service.LanguagePolicyQuestionnaireServiceTest;
 import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
@@ -50,14 +51,14 @@ class TranslationLLMServiceTest {
 		when(mockPolicyFormatter.format(null)).thenReturn("");
 
 		List<String> englishTerms = List.of("Heart attack", "Diabetes mellitus");
-		when(mockLLMService.chat(anyString(), eq(false))).thenReturn("1|Ataque al corazón\n2|Diabetes mellitus");
+		when(mockLLMService.chat(anyString(), eq(false), any(LlmCallContext.class))).thenReturn("1|Ataque al corazón\n2|Diabetes mellitus");
 
 		Map<String, List<String>> result = translationLLMService.suggestTranslations(
 			mockTranslationSet, englishTerms, false, false);
 
 		assertEquals(2, result.size());
 		assertEquals(List.of("Ataque al corazón"), result.get("Heart attack"));
-		verify(mockLLMService).chat(argThat(r -> r.contains("1|Asthma → asma")), eq(false));
+		verify(mockLLMService).chat(argThat(r -> r.contains("1|Asthma → asma")), eq(false), eq(new LlmCallContext("SNOMEDCT-ES")));
 	}
 
 	@Test
@@ -73,7 +74,7 @@ class TranslationLLMServiceTest {
 		when(mockPolicyService.findByCodeSystemAndRefset("SNOMEDCT-IT", "450828004")).thenReturn(Optional.of(policy));
 		when(mockPolicyFormatter.format(policy)).thenReturn("Language policy:\n- Use technical medical terminology.");
 
-		when(mockLLMService.chat(anyString(), eq(false))).thenReturn("1|Polmonite");
+		when(mockLLMService.chat(anyString(), eq(false), any(LlmCallContext.class))).thenReturn("1|Polmonite");
 
 		Map<String, List<String>> result = translationLLMService.suggestTranslations(
 			mockTranslationSet, List.of("Pneumonia"), false, false);
@@ -81,7 +82,7 @@ class TranslationLLMServiceTest {
 		assertEquals(List.of("Polmonite"), result.get("Pneumonia"));
 		verify(mockLLMService).chat(argThat(request ->
 			request.contains("Language policy:") &&
-			request.contains("Use technical medical terminology.")), eq(false));
+			request.contains("Use technical medical terminology.")), eq(false), eq(new LlmCallContext("SNOMEDCT-IT")));
 	}
 
 	@Test
@@ -93,10 +94,10 @@ class TranslationLLMServiceTest {
 		when(mockPolicyService.findByCodeSystemAndRefset(anyString(), anyString())).thenReturn(Optional.empty());
 		when(mockPolicyFormatter.format(null)).thenReturn("");
 
-		when(mockLLMService.chat(anyString(), eq(true))).thenReturn("1|Fieber");
+		when(mockLLMService.chat(anyString(), eq(true), any(LlmCallContext.class))).thenReturn("1|Fieber");
 
 		translationLLMService.suggestTranslations(mockTranslationSet, List.of("Fever"), false, true);
 
-		verify(mockLLMService).chat(anyString(), eq(true));
+		verify(mockLLMService).chat(anyString(), eq(true), eq(new LlmCallContext("SNOMEDCT-DE")));
 	}
 }

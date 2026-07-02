@@ -520,4 +520,15 @@ export class SimplexService {
     return this.http.get(`api/${edition}/jobs/${id}`)
   }
 
+  public getLlmUsage(period: string, codesystem?: string, model?: string): Observable<any> {
+    let params = new HttpParams().set('period', period);
+    if (codesystem) {
+      params = params.set('codesystem', codesystem);
+    }
+    if (model) {
+      params = params.set('model', model);
+    }
+    return this.http.get('api/admin/llm-usage', { params }).pipe(catchError(this.handleError.bind(this)));
+  }
+
 }

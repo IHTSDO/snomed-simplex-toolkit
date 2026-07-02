@@ -4,6 +4,7 @@ import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.ai.LLMService;
+import org.snomed.simplex.ai.LlmCallContext;
 import org.snomed.simplex.snolate.domain.LanguageTranslationPolicy;
 import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
@@ -35,11 +36,11 @@ public class TranslationLLMService {
 				.orElse(null);
 		String languagePolicyText = languagePolicyPromptFormatter.format(policy);
 		return suggestTranslations(translationSet.getLanguageCode(), languagePolicyText, translationSet.getAiGoldenSet(),
-				englishTerm, multipleSuggestions, fast);
+				englishTerm, multipleSuggestions, fast, new LlmCallContext(translationSet.getCodesystem()));
 	}
 
 	public Map<String, List<String>> suggestTranslations(String languageCode, String languagePolicyText, Map<String, String> aiGoldenSet,
-			List<String> englishTerm, boolean multipleSuggestions, boolean fast) {
+			List<String> englishTerm, boolean multipleSuggestions, boolean fast, LlmCallContext context) {
 		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(languageCode);
 		String languageAdviceFormatted = "";
 		if (Strings.isNotEmpty(languagePolicyText)) {
@@ -72,7 +73,8 @@ public class TranslationLLMService {
 					%s
 					"""
 			).formatted(systemAdvice, responseFormat, guidelines, languageAdviceFormatted, formatGoldenExamples(aiGoldenSet), englishTerms),
-				fast
+				fast,
+				context
 		);
 
 		return processResponse(englishTerm, response);
