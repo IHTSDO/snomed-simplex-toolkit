@@ -32,11 +32,19 @@ public class LlmUsageDaily {
 	@Field(type = FieldType.Long)
 	private long requestCount;
 
+	@Field(type = FieldType.Long)
+	private long conceptsTranslated;
+
 	public LlmUsageDaily() {
 	}
 
 	public LlmUsageDaily(String id, String codesystem, String model, String provider, String date,
 			long inputTokens, long outputTokens, long requestCount) {
+		this(id, codesystem, model, provider, date, inputTokens, outputTokens, requestCount, 0);
+	}
+
+	public LlmUsageDaily(String id, String codesystem, String model, String provider, String date,
+			long inputTokens, long outputTokens, long requestCount, long conceptsTranslated) {
 		this.id = id;
 		this.codesystem = codesystem;
 		this.model = model;
@@ -45,6 +53,7 @@ public class LlmUsageDaily {
 		this.inputTokens = inputTokens;
 		this.outputTokens = outputTokens;
 		this.requestCount = requestCount;
+		this.conceptsTranslated = conceptsTranslated;
 	}
 
 	public String getId() {
@@ -77,6 +86,10 @@ public class LlmUsageDaily {
 
 	public long getRequestCount() {
 		return requestCount;
+	}
+
+	public long getConceptsTranslated() {
+		return conceptsTranslated;
 	}
 
 	public long getTotalTokens() {

@@ -24,8 +24,8 @@ export class AdminSettingsComponent implements OnInit {
   knownModels: string[] = [];
   summary: LlmUsageSummary | null = null;
 
-  byModelColumns = ['model', 'provider', 'inputTokens', 'outputTokens', 'totalTokens', 'requestCount'];
-  dailyColumns = ['date', 'codesystem', 'model', 'provider', 'inputTokens', 'outputTokens', 'totalTokens', 'requestCount'];
+  byModelColumns = ['model', 'provider', 'inputTokens', 'outputTokens', 'totalTokens', 'requestCount', 'conceptsTranslated', 'costUsd'];
+  dailyColumns = ['date', 'codesystem', 'model', 'provider', 'inputTokens', 'outputTokens', 'totalTokens', 'requestCount', 'conceptsTranslated'];
 
   constructor(private simplexService: SimplexService) { }
 
@@ -105,6 +105,18 @@ export class AdminSettingsComponent implements OnInit {
 
   formatNumber(value: number | undefined): string {
     return (value ?? 0).toLocaleString();
+  }
+
+  formatCost(value: number | undefined): string {
+    if (value == null) {
+      return '—';
+    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4
+    }).format(value);
   }
 
   get dailyDisplayColumns(): string[] {

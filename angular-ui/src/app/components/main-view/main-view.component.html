@@ -4,44 +4,48 @@
 @else {
     <mat-drawer-container class="drawer-container mat-typography">
         <mat-drawer #drawer mode="side" disableClose="true" opened="true" *ngIf="!isInHome()">
-            <mat-nav-list>
-                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'artifacts'}" (click)="navigateTo('artifact')" data-cy="nav-artifacts">
-                <span class="nav-item">
-                  <mat-icon mat-list-icon>edit</mat-icon>
-                  <span class="nav-item-name">Artifacts</span>
-                </span>
-                </mat-list-item>
-                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'translation-studio'}" (click)="navigateTo('translation-studio')" data-cy="nav-translation-studio">
-                <span class="nav-item">
-                  <mat-icon mat-list-icon>translate</mat-icon>
-                  <span class="nav-item-name">Translation Studio</span>
-                </span>
-                </mat-list-item>
-                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'manage'}" (click)="navigateTo('manage')" data-cy="nav-manage-edition">
-                <span class="nav-item">
-                  <mat-icon mat-list-icon>settings</mat-icon>
-                  <span class="nav-item-name">Manage Edition</span>
-                </span>
-                </mat-list-item>
-                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'releases'}" (click)="navigateTo('releases')" data-cy="nav-releases">
-                <span class="nav-item">
-                  <mat-icon mat-list-icon>library_books</mat-icon>
-                  <span class="nav-item-name">Releases</span>
-                </span>
-                </mat-list-item>
-                <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'info'}" (click)="navigateTo('info')" data-cy="nav-edition-info">
-              <span class="nav-item">
-                <mat-icon mat-list-icon>info</mat-icon>
-                <span class="nav-item-name">Edition info</span>
-              </span>
-                </mat-list-item>
-                <mat-list-item *ngIf="isAdmin()" [ngClass]="{'selected-menu-item': selectedMenuItem === 'admin'}" (click)="navigateToAdmin()" data-cy="nav-admin">
-              <span class="nav-item">
-                <mat-icon mat-list-icon>admin_panel_settings</mat-icon>
-                <span class="nav-item-name">Admin</span>
-              </span>
-                </mat-list-item>
-            </mat-nav-list>
+            <div class="side-nav">
+                <mat-nav-list class="side-nav-main">
+                    <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'artifacts'}" (click)="navigateTo('artifact')" data-cy="nav-artifacts">
+                    <span class="nav-item">
+                      <mat-icon mat-list-icon>edit</mat-icon>
+                      <span class="nav-item-name">Artifacts</span>
+                    </span>
+                    </mat-list-item>
+                    <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'translation-studio'}" (click)="navigateTo('translation-studio')" data-cy="nav-translation-studio">
+                    <span class="nav-item">
+                      <mat-icon mat-list-icon>translate</mat-icon>
+                      <span class="nav-item-name">Translation Studio</span>
+                    </span>
+                    </mat-list-item>
+                    <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'manage'}" (click)="navigateTo('manage')" data-cy="nav-manage-edition">
+                    <span class="nav-item">
+                      <mat-icon mat-list-icon>settings</mat-icon>
+                      <span class="nav-item-name">Manage Edition</span>
+                    </span>
+                    </mat-list-item>
+                    <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'releases'}" (click)="navigateTo('releases')" data-cy="nav-releases">
+                    <span class="nav-item">
+                      <mat-icon mat-list-icon>library_books</mat-icon>
+                      <span class="nav-item-name">Releases</span>
+                    </span>
+                    </mat-list-item>
+                    <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'info'}" (click)="navigateTo('info')" data-cy="nav-edition-info">
+                  <span class="nav-item">
+                    <mat-icon mat-list-icon>info</mat-icon>
+                    <span class="nav-item-name">Edition info</span>
+                  </span>
+                    </mat-list-item>
+                </mat-nav-list>
+                <mat-nav-list class="side-nav-footer" *ngIf="isAdmin()">
+                    <mat-list-item [ngClass]="{'selected-menu-item': selectedMenuItem === 'admin'}" (click)="navigateToAdmin()" data-cy="nav-admin">
+                  <span class="nav-item">
+                    <mat-icon mat-list-icon>admin_panel_settings</mat-icon>
+                    <span class="nav-item-name">Admin</span>
+                  </span>
+                    </mat-list-item>
+                </mat-nav-list>
+            </div>
         </mat-drawer>
 
         <div class="example-sidenav-content">

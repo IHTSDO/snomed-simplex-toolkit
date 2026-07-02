@@ -10,12 +10,18 @@ public class LlmUsageDailyBreakdown {
 	private long outputTokens;
 	private long totalTokens;
 	private long requestCount;
+	private long conceptsTranslated;
 
 	public LlmUsageDailyBreakdown() {
 	}
 
 	public LlmUsageDailyBreakdown(String date, String codesystem, String model, String provider,
 			long inputTokens, long outputTokens, long requestCount) {
+		this(date, codesystem, model, provider, inputTokens, outputTokens, requestCount, 0);
+	}
+
+	public LlmUsageDailyBreakdown(String date, String codesystem, String model, String provider,
+			long inputTokens, long outputTokens, long requestCount, long conceptsTranslated) {
 		this.date = date;
 		this.codesystem = codesystem;
 		this.model = model;
@@ -24,6 +30,7 @@ public class LlmUsageDailyBreakdown {
 		this.outputTokens = outputTokens;
 		this.totalTokens = inputTokens + outputTokens;
 		this.requestCount = requestCount;
+		this.conceptsTranslated = conceptsTranslated;
 	}
 
 	public String getDate() {
@@ -56,5 +63,9 @@ public class LlmUsageDailyBreakdown {
 
 	public long getRequestCount() {
 		return requestCount;
+	}
+
+	public long getConceptsTranslated() {
+		return conceptsTranslated;
 	}
 }

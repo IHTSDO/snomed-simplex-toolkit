@@ -5,6 +5,8 @@ export interface LlmUsageByModel {
   outputTokens: number;
   totalTokens: number;
   requestCount: number;
+  conceptsTranslated: number;
+  costUsd?: number;
 }
 
 export interface LlmUsageDailyBreakdown {
@@ -16,6 +18,7 @@ export interface LlmUsageDailyBreakdown {
   outputTokens: number;
   totalTokens: number;
   requestCount: number;
+  conceptsTranslated: number;
 }
 
 export interface LlmUsageSummary {
@@ -28,6 +31,7 @@ export interface LlmUsageSummary {
   outputTokens: number;
   totalTokens: number;
   requestCount: number;
+  conceptsTranslated: number;
   byModel: LlmUsageByModel[];
   dailyBreakdown: LlmUsageDailyBreakdown[];
 }

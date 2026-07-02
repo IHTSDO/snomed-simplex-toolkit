@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.ai.LlmUsageDaily;
 import org.snomed.simplex.ai.LlmUsageRecord;
 import org.snomed.simplex.config.IndexNameProvider;
-import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.config.OpenAiPricingConfig;
 import org.snomed.simplex.rest.pojos.LlmUsageByModel;
 import org.snomed.simplex.rest.pojos.LlmUsageDailyBreakdown;
 import org.snomed.simplex.rest.pojos.LlmUsageSummary;
@@ -20,7 +20,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,44 +30,52 @@ public class LlmUsageService {
 
 	private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;
 	private static final String INCREMENT_SCRIPT = """
-			ctx._source.inputTokens += params.inputTokens;
-			ctx._source.outputTokens += params.outputTokens;
-			ctx._source.requestCount += 1;
-			""";
+      ctx._source.inputTokens += params.inputTokens;
+      ctx._source.outputTokens += params.outputTokens;
+      ctx._source.requestCount += 1;
+      if (ctx._source.conceptsTranslated == null) {
+        ctx._source.conceptsTranslated = 0;
+      }
+      ctx._source.conceptsTranslated += params.conceptsTranslated;
+      """;
 
 	private final LlmUsageDailyRepository repository;
 	private final ElasticsearchOperations elasticsearchOperations;
 	private final IndexNameProvider indexNameProvider;
+	private final OpenAiPricingConfig openAiPricingConfig;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public LlmUsageService(LlmUsageDailyRepository repository, ElasticsearchOperations elasticsearchOperations,
-			IndexNameProvider indexNameProvider) {
+			IndexNameProvider indexNameProvider, OpenAiPricingConfig openAiPricingConfig) {
 		this.repository = repository;
 		this.elasticsearchOperations = elasticsearchOperations;
 		this.indexNameProvider = indexNameProvider;
+		this.openAiPricingConfig = openAiPricingConfig;
 	}
 
 	/**
 	 * Records token usage for the current UTC calendar day.
 	 */
-	public void recordUsage(LlmUsageRecord record) {
-		if (record == null || record.codesystem() == null || record.codesystem().isBlank()) {
+	public void recordUsage(LlmUsageRecord useRecord) {
+		if (useRecord == null || useRecord.codesystem() == null || useRecord.codesystem().isBlank()) {
 			return;
 		}
 		String date = currentUtcDate();
-		String id = documentId(record.codesystem(), record.model(), date);
+		String id = documentId(useRecord.codesystem(), useRecord.model(), date);
 		Map<String, Object> upsert = Map.of(
-				"codesystem", record.codesystem(),
-				"model", record.model(),
-				"provider", record.provider(),
+				"codesystem", useRecord.codesystem(),
+				"model", useRecord.model(),
+				"provider", useRecord.provider(),
 				"date", date,
-				"inputTokens", (long) record.inputTokens(),
-				"outputTokens", (long) record.outputTokens(),
-				"requestCount", 1L
+				"inputTokens", (long) useRecord.inputTokens(),
+				"outputTokens", (long) useRecord.outputTokens(),
+				"requestCount", 1L,
+				"conceptsTranslated", (long) useRecord.conceptsTranslated()
 		);
 		Map<String, Object> params = Map.of(
-				"inputTokens", record.inputTokens(),
-				"outputTokens", record.outputTokens()
+				"inputTokens", useRecord.inputTokens(),
+				"outputTokens", useRecord.outputTokens(),
+				"conceptsTranslated", useRecord.conceptsTranslated()
 		);
 
 		UpdateQuery updateQuery = UpdateQuery.builder(id)
@@ -82,10 +89,10 @@ public class LlmUsageService {
 
 		IndexCoordinates index = IndexCoordinates.of(indexNameProvider.indexName("llm-usage-daily"));
 		elasticsearchOperations.update(updateQuery, index);
-		logger.debug("Recorded LLM usage for {} model {} on {}", record.codesystem(), record.model(), date);
+		logger.debug("Recorded LLM usage for {} model {} on {}", useRecord.codesystem(), useRecord.model(), date);
 	}
 
-	public LlmUsageSummary getSummary(LlmUsagePeriod period, String codesystem, String model) throws ServiceExceptionWithStatusCode {
+	public LlmUsageSummary getSummary(LlmUsagePeriod period, String codesystem, String model) {
 		LocalDate endDate = currentUtcLocalDate();
 		LocalDate startDate = period == LlmUsagePeriod.ALL ? null : endDate.minusDays(period.getDays() - 1L);
 
@@ -104,23 +111,26 @@ public class LlmUsageService {
 		long inputTokens = 0;
 		long outputTokens = 0;
 		long requestCount = 0;
+		long conceptsTranslated = 0;
 		Map<String, ModelTotals> byModelMap = new LinkedHashMap<>();
 
-		for (LlmUsageDaily record : records) {
-			inputTokens += record.getInputTokens();
-			outputTokens += record.getOutputTokens();
-			requestCount += record.getRequestCount();
+		for (LlmUsageDaily useRecord : records) {
+			inputTokens += useRecord.getInputTokens();
+			outputTokens += useRecord.getOutputTokens();
+			requestCount += useRecord.getRequestCount();
+			conceptsTranslated += useRecord.getConceptsTranslated();
 
-			String modelKey = record.getModel() + "|" + record.getProvider();
+			String modelKey = useRecord.getModel() + "|" + useRecord.getProvider();
 			ModelTotals totals = byModelMap.computeIfAbsent(modelKey,
-					key -> new ModelTotals(record.getModel(), record.getProvider()));
-			totals.add(record);
+					key -> new ModelTotals(useRecord.getModel(), useRecord.getProvider(), openAiPricingConfig));
+			totals.add(useRecord);
 		}
 
 		summary.setInputTokens(inputTokens);
 		summary.setOutputTokens(outputTokens);
 		summary.setTotalTokens(inputTokens + outputTokens);
 		summary.setRequestCount(requestCount);
+		summary.setConceptsTranslated(conceptsTranslated);
 
 		List<LlmUsageByModel> byModel = byModelMap.values().stream()
 				.map(ModelTotals::toSummary)
@@ -132,14 +142,15 @@ public class LlmUsageService {
 				.sorted(Comparator.comparing(LlmUsageDaily::getDate).reversed()
 						.thenComparing(LlmUsageDaily::getCodesystem)
 						.thenComparing(LlmUsageDaily::getModel))
-				.map(record -> new LlmUsageDailyBreakdown(
-						record.getDate(),
-						record.getCodesystem(),
-						record.getModel(),
-						record.getProvider(),
-						record.getInputTokens(),
-						record.getOutputTokens(),
-						record.getRequestCount()))
+				.map(useRecord -> new LlmUsageDailyBreakdown(
+						useRecord.getDate(),
+						useRecord.getCodesystem(),
+						useRecord.getModel(),
+						useRecord.getProvider(),
+						useRecord.getInputTokens(),
+						useRecord.getOutputTokens(),
+						useRecord.getRequestCount(),
+						useRecord.getConceptsTranslated()))
 				.toList();
 		summary.setDailyBreakdown(dailyBreakdown);
 
@@ -198,23 +209,28 @@ public class LlmUsageService {
 	private static final class ModelTotals {
 		private final String model;
 		private final String provider;
+		private final OpenAiPricingConfig openAiPricingConfig;
 		private long inputTokens;
 		private long outputTokens;
 		private long requestCount;
+		private long conceptsTranslated;
 
-		private ModelTotals(String model, String provider) {
+		private ModelTotals(String model, String provider, OpenAiPricingConfig openAiPricingConfig) {
 			this.model = model;
 			this.provider = provider;
+			this.openAiPricingConfig = openAiPricingConfig;
 		}
 
-		private void add(LlmUsageDaily record) {
-			inputTokens += record.getInputTokens();
-			outputTokens += record.getOutputTokens();
-			requestCount += record.getRequestCount();
+		private void add(LlmUsageDaily useRecord) {
+			inputTokens += useRecord.getInputTokens();
+			outputTokens += useRecord.getOutputTokens();
+			requestCount += useRecord.getRequestCount();
+			conceptsTranslated += useRecord.getConceptsTranslated();
 		}
 
 		private LlmUsageByModel toSummary() {
-			return new LlmUsageByModel(model, provider, inputTokens, outputTokens, requestCount);
+			Double costUsd = openAiPricingConfig.calculateCostUsd(model, inputTokens, outputTokens);
+			return new LlmUsageByModel(model, provider, inputTokens, outputTokens, requestCount, conceptsTranslated, costUsd);
 		}
 	}
 }

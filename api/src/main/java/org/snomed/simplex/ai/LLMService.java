@@ -83,7 +83,8 @@ public class LLMService {
 				resolveModelName(configuredModel, response),
 				configuredModel.provider(),
 				inputTokens,
-				outputTokens
+				outputTokens,
+				context.conceptsTranslated()
 		));
 	}
 

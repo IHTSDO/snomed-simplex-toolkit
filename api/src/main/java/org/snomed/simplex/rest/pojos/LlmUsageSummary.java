@@ -14,6 +14,7 @@ public class LlmUsageSummary {
 	private long outputTokens;
 	private long totalTokens;
 	private long requestCount;
+	private long conceptsTranslated;
 	private List<LlmUsageByModel> byModel = new ArrayList<>();
 	private List<LlmUsageDailyBreakdown> dailyBreakdown = new ArrayList<>();
 
@@ -87,6 +88,14 @@ public class LlmUsageSummary {
 
 	public void setRequestCount(long requestCount) {
 		this.requestCount = requestCount;
+	}
+
+	public long getConceptsTranslated() {
+		return conceptsTranslated;
+	}
+
+	public void setConceptsTranslated(long conceptsTranslated) {
+		this.conceptsTranslated = conceptsTranslated;
 	}
 
 	public List<LlmUsageByModel> getByModel() {

@@ -36,7 +36,7 @@ public class TranslationLLMService {
 				.orElse(null);
 		String languagePolicyText = languagePolicyPromptFormatter.format(policy);
 		return suggestTranslations(translationSet.getLanguageCode(), languagePolicyText, translationSet.getAiGoldenSet(),
-				englishTerm, multipleSuggestions, fast, new LlmCallContext(translationSet.getCodesystem()));
+				englishTerm, multipleSuggestions, fast, new LlmCallContext(translationSet.getCodesystem(), englishTerm.size()));
 	}
 
 	public Map<String, List<String>> suggestTranslations(String languageCode, String languagePolicyText, Map<String, String> aiGoldenSet,

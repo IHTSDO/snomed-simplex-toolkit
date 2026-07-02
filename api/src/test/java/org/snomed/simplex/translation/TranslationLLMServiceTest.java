@@ -58,7 +58,7 @@ class TranslationLLMServiceTest {
 
 		assertEquals(2, result.size());
 		assertEquals(List.of("Ataque al corazón"), result.get("Heart attack"));
-		verify(mockLLMService).chat(argThat(r -> r.contains("1|Asthma → asma")), eq(false), eq(new LlmCallContext("SNOMEDCT-ES")));
+		verify(mockLLMService).chat(argThat(r -> r.contains("1|Asthma → asma")), eq(false), eq(new LlmCallContext("SNOMEDCT-ES", 2)));
 	}
 
 	@Test
@@ -82,7 +82,7 @@ class TranslationLLMServiceTest {
 		assertEquals(List.of("Polmonite"), result.get("Pneumonia"));
 		verify(mockLLMService).chat(argThat(request ->
 			request.contains("Language policy:") &&
-			request.contains("Use technical medical terminology.")), eq(false), eq(new LlmCallContext("SNOMEDCT-IT")));
+			request.contains("Use technical medical terminology.")), eq(false), eq(new LlmCallContext("SNOMEDCT-IT", 1)));
 	}
 
 	@Test
@@ -98,6 +98,6 @@ class TranslationLLMServiceTest {
 
 		translationLLMService.suggestTranslations(mockTranslationSet, List.of("Fever"), false, true);
 
-		verify(mockLLMService).chat(anyString(), eq(true), eq(new LlmCallContext("SNOMEDCT-DE")));
+		verify(mockLLMService).chat(anyString(), eq(true), eq(new LlmCallContext("SNOMEDCT-DE", 1)));
 	}
 }

@@ -33,6 +33,12 @@ public abstract class ApplicationConfig {
 		return new ValidationTriageConfig();
 	}
 
+	@Bean
+	@ConfigurationProperties(prefix = "openai.pricing")
+	public OpenAiPricingConfig getOpenAiPricingConfig() {
+		return new OpenAiPricingConfig();
+	}
+
 	@Bean(name = "indexNameProvider")
 	public IndexNameProvider getIndexNameProvider(@Value("${elasticsearch.index.prefix}") String prefix) {
 		return new IndexNameProvider(prefix);

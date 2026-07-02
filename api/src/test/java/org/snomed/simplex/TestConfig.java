@@ -1,6 +1,7 @@
 package org.snomed.simplex;
 
 import org.snomed.simplex.config.ApplicationConfig;
+import org.snomed.simplex.service.LlmUsageDailyRepository;
 import org.snomed.simplex.service.test.TestActivityRepository;
 import org.snomed.simplex.service.test.TestSnolateSetRepository;
 import org.snomed.simplex.snolate.sets.LanguageTranslationPolicyRepository;
@@ -53,6 +54,11 @@ public class TestConfig extends ApplicationConfig {
 	@Bean
 	public LanguageTranslationPolicyRepository languageTranslationPolicyRepository() {
 		return mock(LanguageTranslationPolicyRepository.class);
+	}
+
+	@Bean
+	public LlmUsageDailyRepository llmUsageDailyRepository() {
+		return mock(LlmUsageDailyRepository.class);
 	}
 
 }

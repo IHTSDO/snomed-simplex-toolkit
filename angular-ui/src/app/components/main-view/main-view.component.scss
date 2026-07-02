@@ -38,6 +38,20 @@ div.main-view {
     padding-bottom: 50px;
   }
   
+  .side-nav {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .side-nav-main {
+    flex: 1;
+  }
+
+  mat-drawer {
+    height: 100%;
+  }
+
   mat-nav-list {
     width: 60px;
     overflow: hidden;
