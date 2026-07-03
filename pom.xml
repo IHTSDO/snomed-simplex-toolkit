@@ -19,7 +19,8 @@
 
 	<properties>
 		<!-- BOM Overrides. Remove and reassert as needed when upgrading the BOM. -->
-		<tomcat-embed.version>10.1.55</tomcat-embed.version>
+		<activemq.version>6.2.7</activemq.version>
+		<tomcat-embed.version>10.1.56</tomcat-embed.version>
 		<spring.version>6.2.19</spring.version>
 		<spring-data-commons.version>3.5.12</spring-data-commons.version>
 		<spring-boot.version>3.5.15</spring-boot.version>
@@ -31,6 +32,11 @@
 				<groupId>org.springframework.data</groupId>
 				<artifactId>spring-data-commons</artifactId>
 				<version>${spring-data-commons.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tomcat.embed</groupId>
+				<artifactId>tomcat-embed-el</artifactId>
+				<version>${tomcat-embed.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
