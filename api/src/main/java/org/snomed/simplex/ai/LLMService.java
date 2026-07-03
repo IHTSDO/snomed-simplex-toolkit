@@ -66,8 +66,10 @@ public class LLMService {
 
 		recordUsage(configuredModel, response, context);
 
-		logger.info("Chat took {}s using model {}\nRequest:\n{}\nResponse:\n{}",
+		if (logger.isInfoEnabled()) {
+			logger.info("Chat took {}s using model {}\nRequest:\n{}\nResponse:\n{}",
 				((float) duration) / 1000, resolveModelName(configuredModel, response), message, text);
+		}
 		return text;
 	}
 
