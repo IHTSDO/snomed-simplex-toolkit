@@ -12,8 +12,8 @@ import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
+import org.snomed.simplex.util.ElasticsearchExceptionSupport;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.elasticsearch.UncategorizedElasticsearchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsTemplate;
@@ -165,8 +165,8 @@ public class SnolateSetService {
 			logger.error("Error - {} Snolate translation set: {}/{}/{}",
 					jobType, translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel(), e);
 
-			if (e instanceof UncategorizedElasticsearchException elasticsearchException) {
-				logger.info(elasticsearchException.getResponseBody());
+			if (ElasticsearchExceptionSupport.isElasticsearchFailure(e)) {
+				logger.error("Elasticsearch failure | {}", ElasticsearchExceptionSupport.buildLogDetails(e));
 			}
 
 			if (!jobType.equals(JOB_TYPE_DELETE)) {

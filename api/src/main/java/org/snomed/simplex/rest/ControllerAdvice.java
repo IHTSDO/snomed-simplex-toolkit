@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.exceptions.HTTPClientException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.util.ElasticsearchExceptionSupport;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,8 @@ import java.util.Map;
 public class ControllerAdvice {
 
 	private static final Logger logger = LoggerFactory.getLogger(ControllerAdvice.class);
+	public static final String ERROR = "error";
+	public static final String MESSAGE = "message";
 
 	@ExceptionHandler({
 			IllegalArgumentException.class,
@@ -42,8 +46,8 @@ public class ControllerAdvice {
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public Map<String, Object> handleIllegalArgumentException(Exception exception) {
 		HashMap<String, Object> result = new HashMap<>();
-		result.put("error", HttpStatus.BAD_REQUEST);
-		result.put("message", exception.getMessage());
+		result.put(ERROR, HttpStatus.BAD_REQUEST);
+		result.put(MESSAGE, exception.getMessage());
 		if (exception.getCause() != null) {
 			result.put("causeMessage", exception.getCause().getMessage());
 		}
@@ -58,8 +62,8 @@ public class ControllerAdvice {
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public Map<String, Object> handleIllegalStateException(Exception exception) {
 		HashMap<String, Object> result = new HashMap<>();
-		result.put("error", HttpStatus.CONFLICT);
-		result.put("message", exception.getMessage());
+		result.put(ERROR, HttpStatus.CONFLICT);
+		result.put(MESSAGE, exception.getMessage());
 		if (exception.getCause() != null) {
 			result.put("causeMessage", exception.getCause().getMessage());
 		}
@@ -85,8 +89,8 @@ public class ControllerAdvice {
 	public ResponseEntity<HashMap<String, Object>> handleClientException(HTTPClientException clientException) {
 		HttpStatusCodeException cause = clientException.getCause();
 		HashMap<String, Object> result = new HashMap<>();
-		result.put("error", cause.getStatusCode());
-		result.put("message", "Client error: " + cause.getMessage());
+		result.put(ERROR, cause.getStatusCode());
+		result.put(MESSAGE, "Client error: " + cause.getMessage());
 		logger.info("Http Client Exception.", clientException);
 		return new ResponseEntity<>(result, cause.getStatusCode());
 	}
@@ -95,8 +99,8 @@ public class ControllerAdvice {
 	public ResponseEntity<HashMap<String, Object>> handleClientException(ServiceExceptionWithStatusCode exception) {
 		int statusCode = exception.getStatusCode();
 		HashMap<String, Object> result = new HashMap<>();
-		result.put("error", statusCode);
-		result.put("message", exception.getMessage());
+		result.put(ERROR, statusCode);
+		result.put(MESSAGE, exception.getMessage());
 		String message = "Exception with status code: {} - {}";
 		if (statusCode >= 500 && statusCode < 600) {
 			logger.error(message, statusCode, exception.getMessage(), exception);
@@ -112,9 +116,24 @@ public class ControllerAdvice {
 	public Map<String, Object> handleAccessDeniedException(AccessDeniedException exception) {
 		logger.debug(exception.getMessage(), exception);
 		HashMap<String, Object> result = new HashMap<>();
-		result.put("error", HttpStatus.FORBIDDEN);
-		result.put("message", exception.getMessage());
+		result.put(ERROR, HttpStatus.FORBIDDEN);
+		result.put(MESSAGE, exception.getMessage());
 		return result;
+	}
+
+	@ExceptionHandler(DataAccessException.class)
+	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+	public Map<String, Object> handleDataAccessException(DataAccessException exception) {
+		if (ElasticsearchExceptionSupport.isElasticsearchFailure(exception)) {
+			if (logger.isErrorEnabled()) {
+			logger.error("Elasticsearch failure | {}", ElasticsearchExceptionSupport.buildLogDetails(exception), exception);
+			}
+			HashMap<String, Object> result = new HashMap<>();
+			result.put(ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
+			result.put(MESSAGE, "An unexpected error occurred.");
+			return result;
+		}
+		return handleException(exception);
 	}
 
 	@ExceptionHandler(Exception.class)
@@ -122,8 +141,8 @@ public class ControllerAdvice {
 	public Map<String,Object> handleException(Exception exception) {
 		logger.error(exception.getMessage(), exception);
 		HashMap<String, Object> result = new HashMap<>();
-		result.put("error", HttpStatus.INTERNAL_SERVER_ERROR);
-		result.put("message", exception.getMessage());
+		result.put(ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
+		result.put(MESSAGE, exception.getMessage());
 		return result;
 	}
 

@@ -8,6 +8,7 @@ import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.snomed.simplex.util.ElasticsearchExceptionSupport;
 import org.snomed.simplex.util.ExceptionUtil;
 import org.springframework.stereotype.Service;
 
@@ -38,8 +39,16 @@ public class SupportRegister {
 		}
 		job.setErrorMessage(format("%s The support team have been made aware. Please try again later.", errorMessage));
 		String stackTrace = getStackTrace(exception);
-		supportLog.error("Support Issue|System|CodeSystem:{}| Job:{},{}| MESSAGE:{}| STACK_TRACE:{}", job.getCodeSystem(), job.getId(),
-				job.getDisplay(), errorMessage, stackTrace);
+		if (supportLog.isErrorEnabled()) {
+			if (exception != null && ElasticsearchExceptionSupport.isElasticsearchFailure(exception)) {
+				supportLog.error("Support Issue|System|CodeSystem:{}| Job:{},{}| MESSAGE:{}| ES_DETAILS:{}| STACK_TRACE:{}",
+					job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage,
+					ElasticsearchExceptionSupport.buildLogDetails(exception), stackTrace);
+			} else {
+				supportLog.error("Support Issue|System|CodeSystem:{}| Job:{},{}| MESSAGE:{}| STACK_TRACE:{}",
+					job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage, stackTrace);
+			}
+		}
 		supportLog.info("Stack trace", exception);
 		if (job instanceof ExternalServiceJob externalServiceJob) {
 			Activity activity = externalServiceJob.getActivity();
@@ -50,11 +59,20 @@ public class SupportRegister {
 
 	public void handleSystemError(CodeSystem codeSystem, String errorMessage, ServiceException exception) {
 		String stackTrace = getStackTrace(exception);
-		supportLog.error("Support Issue|System|CodeSystem:{}| MESSAGE:{}| STACK_TRACE:{}", codeSystem.getShortName(), errorMessage, stackTrace);
+		if (exception != null && ElasticsearchExceptionSupport.isElasticsearchFailure(exception)) {
+			if (supportLog.isErrorEnabled()) {
+				supportLog.error("Support Issue|System|CodeSystem:{}| MESSAGE:{}| ES_DETAILS:{}| STACK_TRACE:{}",
+						codeSystem.getShortName(), errorMessage,
+						ElasticsearchExceptionSupport.buildLogDetails(exception), stackTrace);
+			}
+		} else {
+			supportLog.error("Support Issue|System|CodeSystem:{}| MESSAGE:{}| STACK_TRACE:{}",
+					codeSystem.getShortName(), errorMessage, stackTrace);
+		}
 		supportLog.info("Stack trace", exception);
 	}
 
 	private String getStackTrace(ServiceException exception) {
-		return exception != null ? ExceptionUtil.getStackTraceAsString(exception).replace("\n", "") : "none";
+		return exception != null ? ExceptionUtil.getStackTraceAsString(exception) : "none";
 	}
 }

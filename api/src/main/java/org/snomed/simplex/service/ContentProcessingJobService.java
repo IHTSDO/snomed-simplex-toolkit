@@ -7,6 +7,7 @@ import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.util.ElasticsearchExceptionSupport;
 import org.snomed.simplex.service.job.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -71,7 +72,7 @@ public class ContentProcessingJobService {
 			} catch (ServiceException e) {
 				handleServiceException(asyncJob, activity, e);
 			} catch (Exception e) {
-				ServiceException serviceException = new ServiceException("Unexpected error.", e);
+				ServiceException serviceException = ElasticsearchExceptionSupport.wrapWithCause(e);
 				activity.exception(serviceException);
 				supportRegister.handleSystemError(asyncJob, "Unexpected error.", serviceException);
 			} finally {
