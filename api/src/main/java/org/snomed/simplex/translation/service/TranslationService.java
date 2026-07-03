@@ -897,11 +897,11 @@ public class TranslationService {
 			throws ServiceExceptionWithStatusCode {
 
 		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
-		TranslationState snowstormState = snowstormTranslationSource.readTranslation();
 		SnolateTranslationSource snolateTranslationSource = new SnolateTranslationSource(translationUnitRepository, languageCode, refsetId);
-		translationMergeService.applyMerge(snowstormTranslationSource, snolateTranslationSource, languageCode, refsetId);
+		TranslationMergeService.MergeResult mergeResult = translationMergeService.applyMerge(
+				snowstormTranslationSource, snolateTranslationSource, languageCode, refsetId);
 		String compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
-		markSnowstormMatchingUnitsComplete(compositeLanguageCode, snowstormState);
+		markSnowstormMatchingUnitsComplete(compositeLanguageCode, mergeResult.sourceState());
 	}
 
 	public ChangeSummary synchroniseSnolateSubsetToSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient,

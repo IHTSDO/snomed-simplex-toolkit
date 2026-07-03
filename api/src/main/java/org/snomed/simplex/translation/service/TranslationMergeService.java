@@ -42,17 +42,18 @@ public class TranslationMergeService {
 	 * The previous state of each translation source is used to infer the type of change of each term.
 	 * The final merged state is also persisted so it can be used to infer changes when the source and target are reversed later.
 	 */
-	void applyMerge(TranslationSource source, TranslationSource target, String languageCode, String langRefsetId) throws ServiceExceptionWithStatusCode {
+	MergeResult applyMerge(TranslationSource source, TranslationSource target, String languageCode, String langRefsetId) throws ServiceExceptionWithStatusCode {
 		MergeResult result = computeMerge(source, target, languageCode, langRefsetId);
 		if (!result.hasChanges()) {
 			logger.info("TranslationMerge {}-{} No translation changes found", languageCode, langRefsetId);
-			return;
+			return result;
 		}
 		logger.info("TranslationMerge {}-{} Applying {} additions and {} removals", languageCode, langRefsetId,
 				countIntents(result.sourceIntent(), Intent.ADD), countIntents(result.sourceIntent(), Intent.REMOVE));
 		target.writeTranslation(buildAdditionsState(result.sourceIntent()));
 		persistMergeSnapshots(result, langRefsetId, source.getType(), target.getType());
 		logger.info("TranslationMerge {}-{} Merging complete", languageCode, langRefsetId);
+		return result;
 	}
 
 	MergeResult computeMerge(TranslationSource source, TranslationSource target, String languageCode, String langRefsetId)

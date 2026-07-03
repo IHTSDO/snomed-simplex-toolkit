@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,6 +79,26 @@ class TranslationMergeServiceTest {
 		TranslationState uploadState = mergeService.buildSnowstormUploadState(sourceIntent, mergedTargetState);
 
 		assertThat(uploadState.getConceptTerms()).isEmpty();
+	}
+
+	@Test
+	void applyMerge_returnsMergeResultWithSourceState() throws Exception {
+		TranslationState sourceState = new TranslationState();
+		sourceState.getConceptTerms().put(100L, List.of("term"));
+
+		TranslationState targetState = new TranslationState();
+		targetState.getConceptTerms().put(100L, List.of("existing"));
+
+		when(source.getType()).thenReturn(TranslationSourceType.TERMINOLOGY_SERVER);
+		when(target.getType()).thenReturn(TranslationSourceType.SNOLATE);
+		when(source.readTranslation()).thenReturn(sourceState);
+		when(target.readTranslation()).thenReturn(targetState);
+		when(stateRepository.loadStateOrBlank("1000123", TranslationSourceType.TERMINOLOGY_SERVER)).thenReturn(new TranslationState());
+
+		TranslationMergeService.MergeResult result = mergeService.applyMerge(source, target, "en", "1000123");
+
+		assertThat(result.sourceState()).isSameAs(sourceState);
+		verify(source, times(1)).readTranslation();
 	}
 
 	@Test
