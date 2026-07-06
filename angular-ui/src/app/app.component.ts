@@ -79,7 +79,8 @@ export class AppComponent implements OnInit {
         });
 
         this.uiConfigurationService.httpGetUIConfiguration().subscribe(data => {
-            this.uiConfigurationService.setAuthoringPlatformMode(!!data.features.authoringPlatformMode);
+            this.uiConfigurationService.setConfiguration(data);
+            this.uiConfigurationService.setAuthoringPlatformMode(!!data.features?.authoringPlatformMode);
         });
     }
 

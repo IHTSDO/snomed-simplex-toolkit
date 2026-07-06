@@ -3,5 +3,6 @@ export class UIConfiguration {
         imsEndpoint: string;
         terminologyServerEndpoint: string;
         collectorEndpoint: string;
+        snowstormDerivativesEndpoint?: string;
     };
 }
