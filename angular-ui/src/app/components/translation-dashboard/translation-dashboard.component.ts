@@ -897,7 +897,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Loads derivatives from the server using the fixed URL
+     * Loads derivatives from Snowstorm using the configured derivatives URL
      */
     loadDerivativesFromServer() {
         this.loadingDerivatives = true;

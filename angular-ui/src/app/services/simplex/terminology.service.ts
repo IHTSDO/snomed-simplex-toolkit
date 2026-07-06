@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { catchError, map, Observable, of, tap } from 'rxjs';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BehaviorSubject } from 'rxjs';
+import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
 
 
 type ConceptType = {
@@ -65,7 +66,7 @@ export class TerminologyService {
   editionName$ = this.editionNameSubject.asObservable();
 
 
-  constructor(private http: HttpClient, private _snackBar: MatSnackBar) { 
+  constructor(private http: HttpClient, private _snackBar: MatSnackBar, private uiConfigurationService: UiConfigurationService) { 
     this.loadCache();
   }
 
@@ -665,11 +666,12 @@ export class TerminologyService {
   }
 
   /**
-   * Retrieves derivatives from the fixed SNOMED CT derivatives URL
+   * Retrieves derivatives from the configured SNOMED CT derivatives Snowstorm URL
    * @returns Observable with the derivatives data containing memberCountsByReferenceSet and referenceSets
    */
   getDerivativesFromServer(): Observable<any> {
-    const requestUrl = 'https://browser.ihtsdotools.org/snowstorm/snomed-ct/browser/MAIN/SNOMEDCT-DERIVATIVES/members?active=true&limit=1';
+    const baseUrl = this.getSnowstormDerivativesBaseUrl();
+    const requestUrl = `${baseUrl}browser/MAIN/SNOMEDCT-DERIVATIVES/members?active=true&limit=1`;
     
     // Hardcoded list of concept IDs to exclude from derivatives
     const excludedConceptIds = [
@@ -739,5 +741,11 @@ export class TerminologyService {
         }),
         catchError(this.handleError<any>('getDerivativesFromServer', {}))
       );
+  }
+
+  private getSnowstormDerivativesBaseUrl(): string {
+    const configured = this.uiConfigurationService.getConfiguration()?.endpoints?.snowstormDerivativesEndpoint?.trim();
+    const baseUrl = configured || '/snowstorm/snomed-ct/';
+    return baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
   }
 }
