@@ -43,6 +43,30 @@ public final class ElasticsearchExceptionSupport {
 		return new ServiceException(GENERIC_MESSAGE, original);
 	}
 
+	public static String buildShortSummary(Throwable throwable) {
+		if (throwable == null) {
+			return "unknown";
+		}
+		Optional<ElasticsearchException> clientException = findClientException(throwable);
+		if (clientException.isPresent()) {
+			ErrorCause error = clientException.get().error();
+			if (error != null && error.rootCause() != null && !error.rootCause().isEmpty()) {
+				ErrorCause rootCause = error.rootCause().get(0);
+				if (rootCause.reason() != null && !rootCause.reason().isBlank()) {
+					return rootCause.reason();
+				}
+			}
+			if (error != null && error.reason() != null && !error.reason().isBlank()) {
+				return error.reason();
+			}
+		}
+		Optional<UncategorizedElasticsearchException> uncategorized = findUncategorized(throwable);
+		if (uncategorized.isPresent() && uncategorized.get().getMessage() != null) {
+			return uncategorized.get().getMessage();
+		}
+		return throwable.getMessage() != null ? throwable.getMessage() : throwable.getClass().getSimpleName();
+	}
+
 	public static String buildLogDetails(Throwable throwable) {
 		if (throwable == null) {
 			return "none";

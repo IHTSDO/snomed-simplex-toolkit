@@ -102,8 +102,15 @@ class TranslationServiceCompleteStatusTest {
 		TranslationUnit mismatch = unit("400", List.of("different"), TranslationStatus.FOR_REVIEW, "set");
 		TranslationUnit shell = unit("500", List.of(), TranslationStatus.NOT_STARTED, "set");
 
-		when(translationUnitRepository.findAllByCompositeLanguageCode(COMPOSITE))
-				.thenReturn(List.of(forReviewMatch, approvedMatch, needsEditMatch, mismatch, shell));
+		doAnswer(invocation -> {
+			Consumer<TranslationUnit> consumer = invocation.getArgument(1);
+			consumer.accept(forReviewMatch);
+			consumer.accept(approvedMatch);
+			consumer.accept(needsEditMatch);
+			consumer.accept(mismatch);
+			consumer.accept(shell);
+			return null;
+		}).when(translationSearchService).forEachUnitByCompositeLanguageCode(eq(COMPOSITE), any());
 
 		invokeMarkSnowstormMatchingUnitsComplete(COMPOSITE, snowstormState);
 

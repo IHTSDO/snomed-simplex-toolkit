@@ -897,7 +897,7 @@ public class TranslationService {
 			throws ServiceExceptionWithStatusCode {
 
 		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
-		SnolateTranslationSource snolateTranslationSource = new SnolateTranslationSource(translationUnitRepository, languageCode, refsetId);
+		SnolateTranslationSource snolateTranslationSource = new SnolateTranslationSource(translationUnitRepository, translationSearchService, languageCode, refsetId);
 		TranslationMergeService.MergeResult mergeResult = translationMergeService.applyMerge(
 				snowstormTranslationSource, snolateTranslationSource, languageCode, refsetId);
 		String compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
@@ -945,7 +945,7 @@ public class TranslationService {
 	private void markSnowstormMatchingUnitsComplete(String compositeLanguageCode, TranslationState snowstormState) {
 		Map<Long, List<String>> snowstormTerms = snowstormState.getConceptTerms();
 		List<TranslationUnit> saveBuffer = new ArrayList<>();
-		for (TranslationUnit unit : translationUnitRepository.findAllByCompositeLanguageCode(compositeLanguageCode)) {
+		translationSearchService.forEachUnitByCompositeLanguageCode(compositeLanguageCode, unit -> {
 			if (unit.hasTermContent() && unit.getStatus() != TranslationStatus.NEEDS_EDIT) {
 				try {
 					long conceptId = Long.parseLong(unit.getCode());
@@ -959,7 +959,7 @@ public class TranslationService {
 					// Skip units with non-numeric concept codes
 				}
 			}
-		}
+		});
 		flushStatusSaveBufferRemainder(saveBuffer);
 	}
 

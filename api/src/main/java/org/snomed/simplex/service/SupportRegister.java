@@ -41,8 +41,9 @@ public class SupportRegister {
 		String stackTrace = getStackTrace(exception);
 		if (supportLog.isErrorEnabled()) {
 			if (exception != null && ElasticsearchExceptionSupport.isElasticsearchFailure(exception)) {
+				String logMessage = errorMessage + " | " + ElasticsearchExceptionSupport.buildShortSummary(exception);
 				supportLog.error("Support Issue|System|CodeSystem:{}| Job:{},{}| MESSAGE:{}| ES_DETAILS:{}| STACK_TRACE:{}",
-					job.getCodeSystem(), job.getId(), job.getDisplay(), errorMessage,
+					job.getCodeSystem(), job.getId(), job.getDisplay(), logMessage,
 					ElasticsearchExceptionSupport.buildLogDetails(exception), stackTrace);
 			} else {
 				supportLog.error("Support Issue|System|CodeSystem:{}| Job:{},{}| MESSAGE:{}| STACK_TRACE:{}",
@@ -61,8 +62,9 @@ public class SupportRegister {
 		String stackTrace = getStackTrace(exception);
 		if (exception != null && ElasticsearchExceptionSupport.isElasticsearchFailure(exception)) {
 			if (supportLog.isErrorEnabled()) {
+				String logMessage = errorMessage + " | " + ElasticsearchExceptionSupport.buildShortSummary(exception);
 				supportLog.error("Support Issue|System|CodeSystem:{}| MESSAGE:{}| ES_DETAILS:{}| STACK_TRACE:{}",
-						codeSystem.getShortName(), errorMessage,
+						codeSystem.getShortName(), logMessage,
 						ElasticsearchExceptionSupport.buildLogDetails(exception), stackTrace);
 			}
 		} else {

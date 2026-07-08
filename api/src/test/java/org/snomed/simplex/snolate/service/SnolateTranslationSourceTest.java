@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.TranslationSourceType;
@@ -16,11 +17,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,18 +37,23 @@ class SnolateTranslationSourceTest {
 
 	@Mock
 	private SnolateTranslationUnitRepository translationUnitRepository;
+	@Mock
+	private SnolateTranslationSearchService translationSearchService;
 
 	private SnolateTranslationSource source;
 
 	@BeforeEach
 	void setUp() {
-		source = new SnolateTranslationSource(translationUnitRepository, LANG, REFSET);
+		source = new SnolateTranslationSource(translationUnitRepository, translationSearchService, LANG, REFSET);
 	}
 
 	@Test
 	void readTranslation_mapsPersistedUnits() throws Exception {
-		when(translationUnitRepository.findAllByCompositeLanguageCode(COMPOSITE))
-				.thenReturn(List.of(new TranslationUnit("100", COMPOSITE, List.of("alpha", "beta"), TranslationStatus.FOR_REVIEW)));
+		doAnswer(invocation -> {
+			Consumer<TranslationUnit> consumer = invocation.getArgument(1);
+			consumer.accept(new TranslationUnit("100", COMPOSITE, List.of("alpha", "beta"), TranslationStatus.FOR_REVIEW));
+			return null;
+		}).when(translationSearchService).forEachUnitByCompositeLanguageCode(eq(COMPOSITE), any());
 
 		TranslationState state = source.readTranslation();
 
@@ -55,8 +63,11 @@ class SnolateTranslationSourceTest {
 
 	@Test
 	void readTranslation_rejectsNonNumericCode() {
-		when(translationUnitRepository.findAllByCompositeLanguageCode(COMPOSITE))
-				.thenReturn(List.of(new TranslationUnit("x", COMPOSITE, List.of("t"), TranslationStatus.APPROVED)));
+		doAnswer(invocation -> {
+			Consumer<TranslationUnit> consumer = invocation.getArgument(1);
+			consumer.accept(new TranslationUnit("x", COMPOSITE, List.of("t"), TranslationStatus.APPROVED));
+			return null;
+		}).when(translationSearchService).forEachUnitByCompositeLanguageCode(eq(COMPOSITE), any());
 
 		assertThatThrownBy(source::readTranslation)
 				.hasMessageContaining("non-numeric code");
@@ -95,8 +106,11 @@ class SnolateTranslationSourceTest {
 
 	@Test
 	void readTranslation_ignoresOtherLanguageBuckets() throws Exception {
-		when(translationUnitRepository.findAllByCompositeLanguageCode(COMPOSITE))
-				.thenReturn(List.of(new TranslationUnit("100", COMPOSITE, List.of("en-term"), TranslationStatus.APPROVED)));
+		doAnswer(invocation -> {
+			Consumer<TranslationUnit> consumer = invocation.getArgument(1);
+			consumer.accept(new TranslationUnit("100", COMPOSITE, List.of("en-term"), TranslationStatus.APPROVED));
+			return null;
+		}).when(translationSearchService).forEachUnitByCompositeLanguageCode(eq(COMPOSITE), any());
 
 		TranslationState state = source.readTranslation();
 

@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.TranslationSource;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -30,12 +32,15 @@ public class SnolateTranslationSource implements TranslationSource {
 	private static final int WRITE_SAVE_BATCH_SIZE = 5_000;
 
 	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationSearchService translationSearchService;
 	private final String isoLanguageCode;
 	private final String refsetId;
 	private final String compositeLanguageCode;
 
-	public SnolateTranslationSource(SnolateTranslationUnitRepository translationUnitRepository, String languageCode, String refsetId) {
+	public SnolateTranslationSource(SnolateTranslationUnitRepository translationUnitRepository,
+			SnolateTranslationSearchService translationSearchService, String languageCode, String refsetId) {
 		this.translationUnitRepository = translationUnitRepository;
+		this.translationSearchService = translationSearchService;
 		this.isoLanguageCode = languageCode;
 		this.refsetId = refsetId;
 		this.compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
@@ -45,14 +50,21 @@ public class SnolateTranslationSource implements TranslationSource {
 	public TranslationState readTranslation() throws ServiceExceptionWithStatusCode {
 		TranslationState state = new TranslationState();
 		Map<Long, List<String>> conceptTerms = state.getConceptTerms();
-		for (TranslationUnit unit : translationUnitRepository.findAllByCompositeLanguageCode(compositeLanguageCode)) {
+		AtomicReference<ServiceExceptionWithStatusCode> readFailure = new AtomicReference<>();
+		translationSearchService.forEachUnitByCompositeLanguageCode(compositeLanguageCode, unit -> {
+			if (readFailure.get() != null) {
+				return;
+			}
 			try {
 				conceptTerms.put(Long.parseLong(unit.getCode()), new ArrayList<>(unit.getTerms()));
 			} catch (NumberFormatException e) {
-				throw new ServiceExceptionWithStatusCode(
+				readFailure.set(new ServiceExceptionWithStatusCode(
 						"Snolate translation unit has non-numeric code: %s".formatted(unit.getCode()),
-						HttpStatus.INTERNAL_SERVER_ERROR, e);
+						HttpStatus.INTERNAL_SERVER_ERROR, e));
 			}
+		});
+		if (readFailure.get() != null) {
+			throw readFailure.get();
 		}
 		return state;
 	}

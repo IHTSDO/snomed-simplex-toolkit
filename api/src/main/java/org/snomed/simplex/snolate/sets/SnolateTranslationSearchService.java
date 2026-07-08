@@ -71,10 +71,23 @@ public class SnolateTranslationSearchService {
 	 * Visits every translation unit in the set using {@code search_after} paging (no {@code from} offsets beyond ES's result window).
 	 */
 	public void forEachUnitInSet(String compositeSetCode, String compositeLanguageCode, Consumer<TranslationUnit> consumer) {
+		forEachMatching(unitsInSetCriteria(compositeSetCode, compositeLanguageCode),
+				"cannot continue streaming units in set", consumer);
+	}
+
+	/**
+	 * Visits every translation unit for a language/refset bucket using {@code search_after} paging.
+	 */
+	public void forEachUnitByCompositeLanguageCode(String compositeLanguageCode, Consumer<TranslationUnit> consumer) {
+		Criteria criteria = new Criteria(TranslationUnit.Fields.COMPOSITE_LANGUAGE_CODE).is(compositeLanguageCode);
+		forEachMatching(criteria, "cannot continue streaming units by composite language code", consumer);
+	}
+
+	private void forEachMatching(Criteria criteria, String searchAfterFailureMessage, Consumer<TranslationUnit> consumer) {
 		List<Object> searchAfter = null;
 		boolean hasMore = true;
 		while (hasMore) {
-			CriteriaQuery query = new CriteriaQuery(unitsInSetCriteria(compositeSetCode, compositeLanguageCode));
+			CriteriaQuery query = new CriteriaQuery(criteria);
 			query.setPageable(PageRequest.of(0, STREAM_PAGE_SIZE, UNITS_IN_SET_STREAM_SORT));
 			query.setTrackTotalHits(false);
 			if (searchAfter != null) {
@@ -94,7 +107,7 @@ public class SnolateTranslationSearchService {
 					searchAfter = hits.get(hits.size() - 1).getSortValues();
 					if (searchAfter.isEmpty()) {
 						throw new IllegalStateException(
-								"Elasticsearch returned no sort values for search_after; cannot continue streaming units in set.");
+								"Elasticsearch returned no sort values for search_after; " + searchAfterFailureMessage + ".");
 					}
 				}
 			}

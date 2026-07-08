@@ -113,16 +113,31 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
 		}
 		try {
 			HttpEntity entity = response.getEntity();
-			String body = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
+			String body = readResponseBody(entity);
 			HttpRequest request = (HttpRequest) context.getAttribute(HttpCoreContext.HTTP_REQUEST);
 			String method = request != null ? request.getRequestLine().getMethod() : "UNKNOWN";
 			String uri = request != null ? request.getRequestLine().getUri() : "UNKNOWN";
-			logger.error("Elasticsearch HTTP failure: method={} uri={} status={} body={}", method, uri, status, body);
-			if (entity != null) {
+			if (body != null) {
+				logger.error("Elasticsearch HTTP failure: method={} uri={} status={} body={}", method, uri, status, body);
 				response.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+			} else {
+				logger.error("Elasticsearch HTTP failure: method={} uri={} status={} (response body unavailable)", method, uri, status);
 			}
 		} catch (Exception e) {
 			logger.error("Failed to log Elasticsearch HTTP failure response", e);
+		}
+	}
+
+	private String readResponseBody(HttpEntity entity) {
+		if (entity == null) {
+			return null;
+		}
+		try {
+			return EntityUtils.toString(entity, StandardCharsets.UTF_8);
+		} catch (IllegalStateException e) {
+			return null;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to read Elasticsearch HTTP failure response body", e);
 		}
 	}
 

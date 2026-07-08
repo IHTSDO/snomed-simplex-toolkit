@@ -33,6 +33,13 @@ class ElasticsearchExceptionSupportTest {
 	}
 
 	@Test
+	void buildShortSummaryExtractsRootCauseReason() {
+		String summary = ElasticsearchExceptionSupport.buildShortSummary(productionLikeFailureChain());
+
+		assertEquals("failed to create query", summary);
+	}
+
+	@Test
 	void buildLogDetailsIncludesStatusRootCauseAndResponseBody() {
 		UncategorizedElasticsearchException uncategorized = uncategorizedException();
 
