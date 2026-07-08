@@ -75,7 +75,7 @@ public class SnowstormClient {
 
 	private static final Logger logger = LoggerFactory.getLogger(SnowstormClient.class);
 
-	public SnowstormClient(String snowstormUrl, String authenticationToken, ObjectMapper objectMapper) {
+	public SnowstormClient(String snowstormUrl, String authenticationToken, String userAgent, ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;
 		this.workingBranches = new HashMap<>();
 		this.codeSystemCache = new ConcurrentHashMap<>();
@@ -88,6 +88,9 @@ public class SnowstormClient {
 				.defaultHeader("Cookie", authenticationToken)
 				// Set the request content type to JSON
 				.messageConverters(new MappingJackson2HttpMessageConverter());
+		if (!Strings.isBlank(userAgent)) {
+			builder = builder.defaultHeader("User-Agent", userAgent);
+		}
 		restTemplate = builder.build();
 		ClientHttpRequestFactorySettings exportHttpSettings = ClientHttpRequestFactorySettings.defaults()
 				.withReadTimeout(RF2_EXPORT_READ_TIMEOUT);

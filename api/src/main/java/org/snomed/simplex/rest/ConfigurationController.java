@@ -30,6 +30,7 @@ public class ConfigurationController {
 		addProperty("spring.application.name", properties);
 		addProperty("snowstorm.url", properties);
 		addProperty("snowstorm.derivatives.url", properties);
+		addProperty("snowstorm.user-agent", properties);
 		addProperty("snomed-release-service.url", properties);
 		addProperty("snomed-release-service.username", properties);
 		addProperty("ims-security.api-url", properties);
