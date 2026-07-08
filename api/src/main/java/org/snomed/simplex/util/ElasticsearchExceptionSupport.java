@@ -13,6 +13,7 @@ import java.util.StringJoiner;
 public final class ElasticsearchExceptionSupport {
 
 	private static final String GENERIC_MESSAGE = "Unexpected error.";
+	public static final String UNKNOWN = "unknown";
 
 	private ElasticsearchExceptionSupport() {
 	}
@@ -45,7 +46,7 @@ public final class ElasticsearchExceptionSupport {
 
 	public static String buildShortSummary(Throwable throwable) {
 		if (throwable == null) {
-			return "unknown";
+			return UNKNOWN;
 		}
 		Optional<ElasticsearchException> clientException = findClientException(throwable);
 		if (clientException.isPresent()) {
@@ -128,8 +129,8 @@ public final class ElasticsearchExceptionSupport {
 	}
 
 	private static String formatErrorCause(ErrorCause errorCause) {
-		String type = errorCause.type() != null ? errorCause.type() : "unknown";
-		String reason = errorCause.reason() != null ? errorCause.reason() : "unknown";
+		String type = errorCause.type() != null ? errorCause.type() : UNKNOWN;
+		String reason = errorCause.reason() != null ? errorCause.reason() : UNKNOWN;
 		return "{type=" + type + ", reason=" + reason + "}";
 	}
 
