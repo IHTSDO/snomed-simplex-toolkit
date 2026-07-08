@@ -47,4 +47,14 @@
 		<cve>CVE-2026-41002</cve>
 		<cve>CVE-2026-41004</cve>
 	</suppress>
+	<!--
+		False positive: CVE-2026-54399 and CVE-2026-54428 affect org.apache.httpcomponents.core5:httpcore5 only.
+		Dependency-Check maps the shared CPE apache:httpcomponents_core onto the legacy 4.x httpcore artifact.
+	-->
+	<suppress>
+		<notes><![CDATA[False positive — CVEs apply to httpcore5 (5.x), not legacy httpcore 4.x line]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.apache\.httpcomponents/httpcore(-nio)?@.*$</packageUrl>
+		<cve>CVE-2026-54399</cve>
+		<cve>CVE-2026-54428</cve>
+	</suppress>
 </suppressions>
