@@ -1,0 +1,30 @@
+<h2 mat-dialog-title>Edit title and description</h2>
+<mat-dialog-content>
+    <div class="dialog-content">
+        <p class="label-hint">URL label: <strong>{{ data.label }}</strong></p>
+
+        <form [formGroup]="editForm" class="edit-form">
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Title</mat-label>
+                <input matInput formControlName="name" required>
+                <mat-error *ngIf="editForm.get('name')?.hasError('required')">Title is required</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Description (optional)</mat-label>
+                <textarea matInput formControlName="description" rows="4"></textarea>
+            </mat-form-field>
+        </form>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()" [disabled]="loading">Cancel</button>
+    <button mat-raised-button color="primary" [disabled]="loading || editForm.invalid" (click)="onSave()">
+        <span *ngIf="loading" class="loading-content">
+            <mat-spinner diameter="20"></mat-spinner>
+            Saving...
+        </span>
+        <span *ngIf="!loading">Save</span>
+    </button>
+</mat-dialog-actions>

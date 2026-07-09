@@ -29,10 +29,13 @@ public final class SnolateTranslationSet {
 	private String languageCode;
 
 	@Field(type = FieldType.Keyword)
-	private final String name;
+	private String name;
 
 	@Field(type = FieldType.Keyword)
 	private final String label;
+
+	@Field(type = FieldType.Text)
+	private String description;
 
 	@Field(type = FieldType.Keyword)
 	private final String ecl;
@@ -110,6 +113,7 @@ public final class SnolateTranslationSet {
 			c.setLastPulled(new Date(lastPulled.getTime()));
 		}
 		c.setInternationalEffectiveTime(internationalEffectiveTime);
+		c.setDescription(description);
 		return c;
 	}
 
@@ -169,6 +173,18 @@ public final class SnolateTranslationSet {
 
 	public String getName() {
 		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
 	}
 
 	public String getLabel() {

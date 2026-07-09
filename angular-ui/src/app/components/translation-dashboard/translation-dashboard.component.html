@@ -22,6 +22,12 @@
                     <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
                 </mat-form-field>
 
+                <!-- Description Field -->
+                <mat-form-field>
+                    <mat-label>Description (optional)</mat-label>
+                    <textarea matInput formControlName="description" rows="3"></textarea>
+                </mat-form-field>
+
                 <!-- Translation Selection -->
                 <mat-form-field>
                     <mat-label>Translation</mat-label>
@@ -156,6 +162,9 @@
                         <div class="set-detail-header__main">
                             <div class="set-detail-header__title-block">
                                 <h1 class="set-detail-title">{{ selectedLabelSet.name }}</h1>
+                                <p class="set-detail-description" *ngIf="selectedLabelSet.description">
+                                    {{ selectedLabelSet.description }}
+                                </p>
                                 <div class="set-detail-meta">
                                     <span class="meta-chip" *ngIf="selectedLabelSet.size">
                                         {{ selectedLabelSet.size | number:'1.0-0' }} concepts
@@ -177,6 +186,11 @@
                                     Manage
                                 </button>
                                 <mat-menu #detailActionsMenu="matMenu">
+                                    <button mat-menu-item (click)="editTranslationSetMetadata()"
+                                            [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                                        <mat-icon class="large-icon">edit</mat-icon>
+                                        Edit title and description
+                                    </button>
                                     <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
                                             *ngIf="selectedLabelSet.status !== 'FAILED'">
                                         <mat-icon class="large-icon">flash_on</mat-icon>
@@ -553,6 +567,11 @@
 
 <mat-menu #rowActionsMenu="matMenu">
     <ng-template matMenuContent let-set="set">
+        <button mat-menu-item (click)="editTranslationSetMetadata(set)"
+                [disabled]="set.status === 'PROCESSING'">
+            <mat-icon class="large-icon">edit</mat-icon>
+            Edit title and description
+        </button>
         <button mat-menu-item (click)="setupAiTranslation(set)" [disabled]="set.status === 'PROCESSING'"
                 *ngIf="set.status !== 'FAILED'">
             <mat-icon class="large-icon">flash_on</mat-icon>

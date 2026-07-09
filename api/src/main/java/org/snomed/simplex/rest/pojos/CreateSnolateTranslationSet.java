@@ -6,6 +6,7 @@ public class CreateSnolateTranslationSet {
 
 	private String name;
 	private String label;
+	private String description;
 	private String ecl;
 	private TranslationSubsetType subsetType;
 	private String selectionCodesystem;
@@ -24,6 +25,14 @@ public class CreateSnolateTranslationSet {
 
 	public void setLabel(String label) {
 		this.label = label;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
 	}
 
 	public String getEcl() {

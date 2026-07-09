@@ -1,0 +1,29 @@
+.dialog-content {
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.edit-form {
+  margin: 16px 0;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.label-hint {
+  margin: 0 0 8px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9em;
+}
+
+.loading-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+mat-dialog-content {
+  max-height: 600px;
+  overflow-y: auto;
+}

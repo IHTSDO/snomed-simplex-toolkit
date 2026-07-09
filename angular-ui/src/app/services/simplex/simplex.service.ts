@@ -469,6 +469,10 @@ export class SimplexService {
     return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set`, translationSetData).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public updateTranslationSet(edition: string, refsetId: string, label: string, data: { name: string; description?: string }): Observable<any> {
+    return this.http.put(`api/${edition}/translations/${refsetId}/snolate-set/${label}`, data).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public pullFromTranslationStudio(edition: string, refsetId: string, label: string, apTaskRequest?: any): Observable<any> {
     return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set/${label}/pull-content`, apTaskRequest || {}).pipe(catchError(this.handleError.bind(this)));
   }

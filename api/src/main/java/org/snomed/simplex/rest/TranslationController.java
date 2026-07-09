@@ -15,6 +15,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.*;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
+import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
@@ -42,6 +43,8 @@ import java.util.Map;
 @Tag(name = "Translation", description = "-")
 @RequestMapping("api")
 public class TranslationController {
+
+	private static final int MAX_DESCRIPTION_LENGTH = 2000;
 
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final TranslationService translationService;
@@ -146,10 +149,48 @@ public class TranslationController {
 		if (!label.matches("^[a-z0-9_-]+$")) {
 			throw new ServiceExceptionWithStatusCode("Label parameter must contain only lowercase letters, numbers, hyphens, and underscores.", HttpStatus.BAD_REQUEST);
 		}
+		validateDescriptionLength(createRequest.getDescription());
 
 		SnolateTranslationSet set = new SnolateTranslationSet(codeSystem, refsetId, createRequest.getName(), label,
 				createRequest.getEcl(), createRequest.getSubsetType(), createRequest.getSelectionCodesystem());
+		set.setDescription(normaliseDescription(createRequest.getDescription()));
 		return snolateSetService.createSet(set);
+	}
+
+	@PutMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}")
+	@Operation(summary = "Update a Snolate translation set display name and description.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public SnolateTranslationSet updateSnolateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
+			@RequestBody UpdateSnolateTranslationSet updateRequest) throws ServiceException {
+
+		ServiceHelper.requiredParameter("name", updateRequest.getName());
+		if (updateRequest.getName().isBlank()) {
+			throw new ServiceExceptionWithStatusCode("Parameter 'name' cannot be blank.", HttpStatus.BAD_REQUEST);
+		}
+		validateDescriptionLength(updateRequest.getDescription());
+
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		translationSet.setName(updateRequest.getName().trim());
+		translationSet.setDescription(normaliseDescription(updateRequest.getDescription()));
+		snolateSetService.updateSet(translationSet);
+		snolateTranslationToolService.applyCounts(translationSet);
+		snolateTranslationToolService.applyDashboardMetadata(translationSet);
+		return translationSet;
+	}
+
+	private static String normaliseDescription(String description) {
+		if (description == null || description.isBlank()) {
+			return null;
+		}
+		return description.trim();
+	}
+
+	private static void validateDescriptionLength(String description) throws ServiceExceptionWithStatusCode {
+		if (description != null && description.length() > MAX_DESCRIPTION_LENGTH) {
+			throw new ServiceExceptionWithStatusCode(
+					"Parameter 'description' must not exceed %d characters.".formatted(MAX_DESCRIPTION_LENGTH),
+					HttpStatus.BAD_REQUEST);
+		}
 	}
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}")

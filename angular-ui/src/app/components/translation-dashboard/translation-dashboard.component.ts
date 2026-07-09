@@ -13,6 +13,7 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
+import { EditTranslationSetDialogComponent } from '../edit-translation-set-dialog/edit-translation-set-dialog.component';
 import { LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
 import { parseTranslationStatusFilter, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
@@ -85,6 +86,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     form: FormGroup = this.fb.group({
         translation: ['', Validators.required],
         name: ['', Validators.required],
+        description: [''],
         label: [{ value: '', disabled: true }, Validators.required],
         ecl: ['', Validators.required]
     });
@@ -403,6 +405,53 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         });
     }
 
+    editTranslationSetMetadata(labelSet?: any): void {
+        const target = labelSet ?? this.selectedLabelSet;
+        if (!target) {
+            this.snackBar.open('Please select a translation set first.', 'Close', {
+                duration: 3000
+            });
+            return;
+        }
+
+        const dialogRef = this.dialog.open(EditTranslationSetDialogComponent, {
+            width: '500px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                refsetId: target.refset ?? target.translationId,
+                label: target.label,
+                name: target.name,
+                description: target.description
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result?.action === 'updated' && result.set) {
+                this.applyTranslationSetMetadataUpdate(target, result.set);
+            }
+        });
+    }
+
+    private applyTranslationSetMetadataUpdate(original: any, updated: any): void {
+        original.name = updated.name;
+        original.description = updated.description;
+
+        const listIndex = this.labelSets.findIndex(set =>
+            set.translationId === original.translationId &&
+            set.label === original.label
+        );
+        if (listIndex >= 0) {
+            this.labelSets[listIndex].name = updated.name;
+            this.labelSets[listIndex].description = updated.description;
+        }
+
+        if (this.selectedLabelSet?.label === original.label &&
+            (this.selectedLabelSet?.refset ?? this.selectedLabelSet?.translationId) === (original.refset ?? original.translationId)) {
+            this.selectedLabelSet.name = updated.name;
+            this.selectedLabelSet.description = updated.description;
+        }
+    }
+
     setupAiTranslation(labelSet?: any): void {
 		const target = labelSet ?? this.selectedLabelSet;
         if (!target) {
@@ -524,6 +573,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             const apiPayload = {
                 name: formData.name,
                 label: formData.label,
+                description: formData.description?.trim() || undefined,
                 ecl: formData.ecl,
                 subsetType: this.determineSubsetType(),
                 selectionCodesystem: this.determineSelectionCodesystem()
