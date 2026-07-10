@@ -7,6 +7,16 @@ const TARGET_QUERY_PARAM = 'target';
 
 const VALID_STATUS_SET = new Set<string>(TRANSLATION_STATUS_VALUES);
 
+export const TRANSLATION_TERM_SEARCH_MIN_LENGTH = 2;
+
+export function effectiveTranslationTermSearch(value: string | null | undefined): string | null {
+	const trimmed = value?.trim();
+	if (!trimmed || trimmed.length < TRANSLATION_TERM_SEARCH_MIN_LENGTH) {
+		return null;
+	}
+	return trimmed;
+}
+
 export function parseTranslationStatusFilter(queryParamMap: ParamMap | null | undefined): string | null {
 	const raw = queryParamMap?.get(STATUS_QUERY_PARAM)?.trim();
 	if (!raw || !VALID_STATUS_SET.has(raw)) {
@@ -24,8 +34,7 @@ export function parseTranslationTargetSearch(queryParamMap: ParamMap | null | un
 }
 
 function parseOptionalSearchQueryParam(raw: string | null | undefined): string | null {
-	const trimmed = raw?.trim();
-	return trimmed ? trimmed : null;
+	return effectiveTranslationTermSearch(raw);
 }
 
 /** Router query fragment for an active status filter, or empty object when unset. */
@@ -43,13 +52,13 @@ export function translationTermSearchQueryParams(
 	target: string | null | undefined
 ): Record<string, string> {
 	const params: Record<string, string> = {};
-	const englishTrimmed = english?.trim();
-	const targetTrimmed = target?.trim();
-	if (englishTrimmed) {
-		params[ENGLISH_QUERY_PARAM] = englishTrimmed;
+	const englishEffective = effectiveTranslationTermSearch(english);
+	const targetEffective = effectiveTranslationTermSearch(target);
+	if (englishEffective) {
+		params[ENGLISH_QUERY_PARAM] = englishEffective;
 	}
-	if (targetTrimmed) {
-		params[TARGET_QUERY_PARAM] = targetTrimmed;
+	if (targetEffective) {
+		params[TARGET_QUERY_PARAM] = targetEffective;
 	}
 	return params;
 }

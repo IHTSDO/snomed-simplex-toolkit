@@ -38,7 +38,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		queueJob(translationSet, JOB_TYPE_BATCH_AI_TRANSLATE, request);
 	}
 
-	public void doRunAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) {
+	public void doRunAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) throws ServiceException {
 		setProgress(translationSet, PERCENTAGE_PROCESSED_START);
 		int requestedTotal = request.size();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
@@ -82,7 +82,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		setProgressToComplete(translationSet);
 	}
 
-	private List<TranslationSource> collectEmptySources(String setCode, String lang, int batchCap) {
+	private List<TranslationSource> collectEmptySources(String setCode, String lang, int batchCap) throws ServiceException {
 		List<TranslationSource> batchSources = new ArrayList<>();
 		int pageNumber = 0;
 		final int pageSize = 500;

@@ -17,7 +17,7 @@ import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dia
 import { EditTranslationSetDialogComponent } from '../edit-translation-set-dialog/edit-translation-set-dialog.component';
 import { LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
-import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
+import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, effectiveTranslationTermSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -46,6 +46,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     labelSetMembersStatusFilter: string | null = null;
     labelSetMembersEnglishSearch = '';
     labelSetMembersTargetSearch = '';
+    /** Last English/target terms sent to the API (effective values with min length applied). */
+    private labelSetMembersAppliedEnglishSearch: string | null = null;
+    private labelSetMembersAppliedTargetSearch: string | null = null;
     private readonly labelSetMembersSearchChanges$ = new Subject<{ english: string; target: string }>();
     readonly translationConceptStatusFilterValues = TRANSLATION_CONCEPT_STATUS_FILTER_ORDER;
     mode = 'view';
@@ -1088,12 +1091,22 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     }
 
     private applyLabelSetMembersSearchFilters(): void {
+        const englishEffective = effectiveTranslationTermSearch(this.labelSetMembersEnglishSearch);
+        const targetEffective = effectiveTranslationTermSearch(this.labelSetMembersTargetSearch);
+        if (
+            englishEffective === this.labelSetMembersAppliedEnglishSearch &&
+            targetEffective === this.labelSetMembersAppliedTargetSearch
+        ) {
+            return;
+        }
+        this.labelSetMembersAppliedEnglishSearch = englishEffective;
+        this.labelSetMembersAppliedTargetSearch = targetEffective;
         if (this.translationSetRouteSelectionActive) {
             void this.router.navigate([], {
                 relativeTo: this.route,
                 queryParams: {
-                    english: this.labelSetMembersEnglishSearch.trim() || null,
-                    target: this.labelSetMembersTargetSearch.trim() || null
+                    english: englishEffective,
+                    target: targetEffective
                 },
                 queryParamsHandling: 'merge',
                 replaceUrl: true
@@ -1102,6 +1115,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         if (this.selectedLabelSet) {
             this.getLabelSetMembers(this.selectedLabelSet, true);
         }
+    }
+
+    private syncAppliedLabelSetMemberSearchFilters(): void {
+        this.labelSetMembersAppliedEnglishSearch = effectiveTranslationTermSearch(this.labelSetMembersEnglishSearch);
+        this.labelSetMembersAppliedTargetSearch = effectiveTranslationTermSearch(this.labelSetMembersTargetSearch);
     }
 
     private syncTranslationConceptFiltersFromRoute(skipRefetch = false): void {
@@ -1118,6 +1136,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.labelSetMembersStatusFilter = parsedStatus;
         this.labelSetMembersEnglishSearch = parsedEnglish;
         this.labelSetMembersTargetSearch = parsedTarget;
+        this.syncAppliedLabelSetMemberSearchFilters();
         if (skipRefetch || (!statusChanged && !englishChanged && !targetChanged)) {
             return;
         }
@@ -1155,8 +1174,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 this.labelSetMembersPageIndex,
                 this.labelSetMembersPageSize,
                 this.labelSetMembersStatusFilter,
-                this.labelSetMembersEnglishSearch,
-                this.labelSetMembersTargetSearch
+                this.labelSetMembersAppliedEnglishSearch,
+                this.labelSetMembersAppliedTargetSearch
             )
             .subscribe({
                 next: (labelSetMembers) => {
@@ -1167,10 +1186,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 },
                 error: (error) => {
                     console.error(error);
-                    this.snackBar.open('Failed to fetch label set members', 'Dismiss', {
-                        duration: 5000
+                    const errorMessage =
+                        (error?.error?.message && String(error.error.message).trim()) ||
+                        'Failed to fetch label set members';
+                    this.snackBar.open(errorMessage, 'Dismiss', {
+                        duration: 8000
                     });
                     this.loadingLabelSetMembers = false;
+                    this.changeDetectorRef.detectChanges();
                 }
             });
     }
@@ -1182,6 +1205,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.labelSetMembersStatusFilter = null;
         this.labelSetMembersEnglishSearch = '';
         this.labelSetMembersTargetSearch = '';
+        this.labelSetMembersAppliedEnglishSearch = null;
+        this.labelSetMembersAppliedTargetSearch = null;
     }
 
     setMode(mode: string) {

@@ -4,6 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, of, throwError } from 'rxjs';
 import { catchError, delay, shareReplay, tap } from 'rxjs/operators';
 import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
+import { effectiveTranslationTermSearch } from 'src/app/utils/translation-studio-query-params';
 
 @Injectable({
   providedIn: 'root'
@@ -425,13 +426,13 @@ export class SimplexService {
     if (status) {
       params = params.set('status', status);
     }
-    const englishTrimmed = english?.trim();
-    if (englishTrimmed) {
-      params = params.set('english', englishTrimmed);
+    const englishEffective = effectiveTranslationTermSearch(english);
+    if (englishEffective) {
+      params = params.set('english', englishEffective);
     }
-    const targetTrimmed = target?.trim();
-    if (targetTrimmed) {
-      params = params.set('target', targetTrimmed);
+    const targetEffective = effectiveTranslationTermSearch(target);
+    if (targetEffective) {
+      params = params.set('target', targetEffective);
     }
     return this.http
       .get(`api/${edition}/translations/${refsetId}/snolate-set/${label}/rows`, { params })

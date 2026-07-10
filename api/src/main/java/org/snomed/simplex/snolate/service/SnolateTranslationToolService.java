@@ -110,17 +110,18 @@ public class SnolateTranslationToolService {
 	 * Paginated translation-set rows: English term from {@link TranslationSource}, dialect terms and {@link TranslationUnit#getStatus()} from persistence.
 	 * Ordering is by status (NEEDS_EDIT, FOR_REVIEW, APPROVED, then not started), then source display order, then concept id.
 	 */
-	public TranslationUnitPage<TranslationUnitRow> getRows(SnolateTranslationSet translationSet, int page, int pageSize) {
+	public TranslationUnitPage<TranslationUnitRow> getRows(SnolateTranslationSet translationSet, int page, int pageSize)
+			throws ServiceExceptionWithStatusCode {
 		return getRows(translationSet, page, pageSize, null, null, null);
 	}
 
 	public TranslationUnitPage<TranslationUnitRow> getRows(SnolateTranslationSet translationSet, int page, int pageSize,
-			TranslationStatus statusFilter) {
+			TranslationStatus statusFilter) throws ServiceExceptionWithStatusCode {
 		return getRows(translationSet, page, pageSize, statusFilter, null, null);
 	}
 
 	public TranslationUnitPage<TranslationUnitRow> getRows(SnolateTranslationSet translationSet, int page, int pageSize,
-			TranslationStatus statusFilter, String englishSearch, String targetSearch) {
+			TranslationStatus statusFilter, String englishSearch, String targetSearch) throws ServiceExceptionWithStatusCode {
 		String setCode = translationSet.getCompositeSetCode();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
 		Sort sort = Sort.by("statusSort", "order", "code");

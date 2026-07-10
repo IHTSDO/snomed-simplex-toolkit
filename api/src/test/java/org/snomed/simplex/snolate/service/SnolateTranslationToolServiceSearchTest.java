@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationUnitPage;
 import org.snomed.simplex.rest.pojos.TranslationUnitRow;
 import org.snomed.simplex.snolate.domain.TranslationSource;
@@ -58,7 +59,7 @@ class SnolateTranslationToolServiceSearchTest {
 	}
 
 	@Test
-	void getRows_withoutSearchUsesExistingPagingPath() {
+	void getRows_withoutSearchUsesExistingPagingPath() throws ServiceExceptionWithStatusCode {
 		TranslationUnit unit = unit("100", List.of("asma"));
 		when(translationSearchService.pageUnitsInSet(eq(translationSet.getCompositeSetCode()),
 				eq(translationSet.getLanguageCodeWithRefsetId()), any(Pageable.class), isNull(), isNull(), isNull()))
@@ -75,7 +76,7 @@ class SnolateTranslationToolServiceSearchTest {
 	}
 
 	@Test
-	void getRows_withEnglishSearchResolvesSourceCodes() {
+	void getRows_withEnglishSearchResolvesSourceCodes() throws ServiceExceptionWithStatusCode {
 		when(translationSearchService.findSourceCodesByTermSubstring("asthma")).thenReturn(List.of("100"));
 		when(translationSearchService.pageUnitsInSet(eq(translationSet.getCompositeSetCode()),
 				eq(translationSet.getLanguageCodeWithRefsetId()), any(Pageable.class), isNull(), eq(List.of("100")),
@@ -91,7 +92,7 @@ class SnolateTranslationToolServiceSearchTest {
 	}
 
 	@Test
-	void getRows_withEmptyEnglishMatchReturnsNoRows() {
+	void getRows_withEmptyEnglishMatchReturnsNoRows() throws ServiceExceptionWithStatusCode {
 		when(translationSearchService.findSourceCodesByTermSubstring("nomatch")).thenReturn(List.of());
 		when(translationSearchService.pageUnitsInSet(eq(translationSet.getCompositeSetCode()),
 				eq(translationSet.getLanguageCodeWithRefsetId()), any(Pageable.class), isNull(), eq(List.of()),
@@ -105,7 +106,7 @@ class SnolateTranslationToolServiceSearchTest {
 	}
 
 	@Test
-	void getRows_withTargetAndStatusFiltersPassesBothToSearchService() {
+	void getRows_withTargetAndStatusFiltersPassesBothToSearchService() throws ServiceExceptionWithStatusCode {
 		ArgumentCaptor<Collection<String>> englishCodesCaptor = ArgumentCaptor.forClass(Collection.class);
 		when(translationSearchService.pageUnitsInSet(eq(translationSet.getCompositeSetCode()),
 				eq(translationSet.getLanguageCodeWithRefsetId()), any(Pageable.class), eq(TranslationStatus.APPROVED),
