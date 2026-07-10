@@ -31,6 +31,7 @@ public class WeblateClientFactory {
 	private final String url;
 	private final SupportRegister supportRegister;
 	private WeblateAdminClient adminClient;
+	private WeblateClient adminWeblateClient;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 	private final int uploadBatchSize;
 
@@ -97,12 +98,19 @@ public class WeblateClientFactory {
 		return adminClient;
 	}
 
+	public WeblateClient getAdminWeblateClient() {
+		getAdminClient();
+		return adminWeblateClient;
+	}
+
 	private WeblateAdminClient createAdminClient(AuthenticationClient authenticationClient, String adminUsername,
 			String adminPassword) throws ServiceException {
 		try {
 			String weblateAdminAuthenticationToken = authenticationClient.fetchAuthenticationToken(adminUsername,
 					adminPassword);
-			return new WeblateAdminClient(getRestTemplate(weblateAdminAuthenticationToken));
+			RestTemplate restTemplate = getRestTemplate(weblateAdminAuthenticationToken);
+			adminWeblateClient = new WeblateClient(restTemplate, supportRegister, uploadBatchSize);
+			return new WeblateAdminClient(restTemplate);
 		} catch (HttpClientErrorException.BadRequest e) {
 			String message = "Failed to create Weblate admin client. Check IMS is up and Weblate admin credentials.";
 			logger.error(message);

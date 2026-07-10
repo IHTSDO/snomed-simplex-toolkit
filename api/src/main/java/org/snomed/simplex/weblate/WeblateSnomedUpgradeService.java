@@ -311,7 +311,7 @@ public class WeblateSnomedUpgradeService {
 	}
 
 	public ChangeSummary runSnomedUpgrade(TranslationToolUpdatePlan updatePlan, ContentJob contentJob) throws ServiceExceptionWithStatusCode {
-		WeblateClient weblateClient = weblateClientFactory.getClient();
+		WeblateClient weblateClient = weblateClientFactory.getAdminWeblateClient();
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 
 		contentJob.setRecordsTotal(100);// Percent rather than records
