@@ -12,7 +12,7 @@ import {
 	TranslationUpdateBody
 } from 'src/app/utils/translation-unit-form.helper';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
-import {mergeTranslationStudioQueryParams, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
+import {mergeTranslationStudioQueryParams, parseTranslationEnglishSearch, parseTranslationTargetSearch, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
 
 export interface ZenUnitState {
 	context: string;
@@ -42,6 +42,8 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 	pageIndex = 0;
 	totalCount: number | null = null;
 	statusFilter: string | null = null;
+	englishSearch: string | null = null;
+	targetSearch: string | null = null;
 
 	loading = false;
 	units: ZenUnitState[] = [];
@@ -119,7 +121,7 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 	goBack(): void {
 		void this.router.navigate(
 			['/translation-studio', this.edition, this.refset, this.label],
-			{ queryParams: mergeTranslationStudioQueryParams({}, this.statusFilter) }
+			{ queryParams: mergeTranslationStudioQueryParams({}, this.statusFilter, this.englishSearch, this.targetSearch) }
 		);
 	}
 
@@ -189,6 +191,8 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 		const bq = q.get('b')?.trim();
 		this.snowstormBranchQuery = bq && bq.length > 0 ? bq : null;
 		this.statusFilter = parseTranslationStatusFilter(q);
+		this.englishSearch = parseTranslationEnglishSearch(q);
+		this.targetSearch = parseTranslationTargetSearch(q);
 	}
 
 	private async loadPage(): Promise<void> {
@@ -207,7 +211,9 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 					this.label,
 					this.pageIndex,
 					this.pageSize,
-					this.statusFilter
+					this.statusFilter,
+					this.englishSearch,
+					this.targetSearch
 				)
 			);
 			this.totalCount = resp.count ?? 0;
@@ -361,7 +367,9 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 				...(this.dialectDisplayName !== 'Translation' ? { d: this.dialectDisplayName } : {}),
 				...(this.snowstormBranchQuery ? { b: this.snowstormBranchQuery } : {})
 			},
-			status
+			status,
+			this.englishSearch,
+			this.targetSearch
 		);
 		await this.router.navigate(
 			['/translation-studio', this.edition, this.refset, this.label, 'zen'],

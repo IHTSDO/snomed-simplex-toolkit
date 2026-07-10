@@ -1,8 +1,13 @@
 package org.snomed.simplex.snolate.sets;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.springframework.data.domain.*;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
@@ -25,6 +30,12 @@ public class SnolateTranslationSearchService {
 
 	private static final int STREAM_PAGE_SIZE = 5_000;
 
+	private static final int SOURCE_TERM_SEARCH_PAGE_SIZE = 5_000;
+
+	private static final String TRANSLATION_SOURCE_TERM_FIELD = "term";
+
+	private static final String TRANSLATION_UNIT_TERMS_FIELD = "terms";
+
 	private final ElasticsearchOperations elasticsearchOperations;
 
 	public SnolateTranslationSearchService(ElasticsearchOperations elasticsearchOperations) {
@@ -37,10 +48,81 @@ public class SnolateTranslationSearchService {
 	}
 
 	public Page<TranslationUnit> pageUnitsInSet(String compositeSetCode, String compositeLanguageCode, Pageable pageable) {
-		return pageUnitsInSet(compositeSetCode, compositeLanguageCode, pageable, null);
+		return pageUnitsInSet(compositeSetCode, compositeLanguageCode, pageable, null, null, null);
 	}
 
 	public Page<TranslationUnit> pageUnitsInSet(String compositeSetCode, String compositeLanguageCode, Pageable pageable,
+			TranslationStatus statusFilter) {
+		return pageUnitsInSet(compositeSetCode, compositeLanguageCode, pageable, statusFilter, null, null);
+	}
+
+	public Page<TranslationUnit> pageUnitsInSet(String compositeSetCode, String compositeLanguageCode, Pageable pageable,
+			TranslationStatus statusFilter, Collection<String> englishConceptCodes, String targetTerm) {
+		if (englishConceptCodes != null && englishConceptCodes.isEmpty()) {
+			return Page.empty(pageable);
+		}
+		String trimmedTarget = normalizeOptionalSearchTerm(targetTerm);
+		if (englishConceptCodes == null && trimmedTarget == null) {
+			return pageUnitsInSetWithCriteria(compositeSetCode, compositeLanguageCode, pageable, statusFilter);
+		}
+		Query query = buildUnitsInSetQuery(compositeSetCode, compositeLanguageCode, statusFilter, englishConceptCodes, trimmedTarget);
+		NativeQuery nativeQuery = NativeQuery.builder()
+				.withQuery(query)
+				.withPageable(pageable)
+				.withTrackTotalHits(true)
+				.build();
+		SearchHits<TranslationUnit> searchHits = elasticsearchOperations.search(nativeQuery, TranslationUnit.class);
+		List<TranslationUnit> content = searchHits.getSearchHits().stream().map(SearchHit::getContent).toList();
+		return new PageImpl<>(content, pageable, searchHits.getTotalHits());
+	}
+
+	/**
+	 * Concept ids whose English {@link TranslationSource#getTerm()} contains {@code term} (case-insensitive substring).
+	 * Returns an empty list when nothing matches.
+	 */
+	public List<String> findSourceCodesByTermSubstring(String term) {
+		String trimmed = normalizeOptionalSearchTerm(term);
+		if (trimmed == null) {
+			return List.of();
+		}
+		Query query = caseInsensitiveSubstringWildcardQuery(TRANSLATION_SOURCE_TERM_FIELD, trimmed);
+		List<String> codes = new ArrayList<>();
+		List<Object> searchAfter = null;
+		boolean hasMore = true;
+		while (hasMore) {
+			NativeQueryBuilder builder = NativeQuery.builder()
+					.withQuery(query)
+					.withPageable(PageRequest.of(0, SOURCE_TERM_SEARCH_PAGE_SIZE, Sort.by(Sort.Order.asc("order"))))
+					.withTrackTotalHits(false);
+			if (searchAfter != null) {
+				builder.withSearchAfter(searchAfter);
+			}
+			SearchHits<TranslationSource> searchHits = elasticsearchOperations.search(builder.build(), TranslationSource.class);
+			List<SearchHit<TranslationSource>> hits = searchHits.getSearchHits();
+			if (hits.isEmpty()) {
+				hasMore = false;
+			} else {
+				for (SearchHit<TranslationSource> hit : hits) {
+					TranslationSource source = hit.getContent();
+					if (source != null && source.getCode() != null) {
+						codes.add(source.getCode());
+					}
+				}
+				if (hits.size() < SOURCE_TERM_SEARCH_PAGE_SIZE) {
+					hasMore = false;
+				} else {
+					searchAfter = hits.get(hits.size() - 1).getSortValues();
+					if (searchAfter.isEmpty()) {
+						throw new IllegalStateException(
+								"Elasticsearch returned no sort values for search_after; cannot continue English term search.");
+					}
+				}
+			}
+		}
+		return codes;
+	}
+
+	private Page<TranslationUnit> pageUnitsInSetWithCriteria(String compositeSetCode, String compositeLanguageCode, Pageable pageable,
 			TranslationStatus statusFilter) {
 		Criteria c = unitsInSetCriteria(compositeSetCode, compositeLanguageCode);
 		if (statusFilter != null) {
@@ -53,6 +135,53 @@ public class SnolateTranslationSearchService {
 		SearchHits<TranslationUnit> searchHits = elasticsearchOperations.search(query, TranslationUnit.class);
 		List<TranslationUnit> content = searchHits.getSearchHits().stream().map(SearchHit::getContent).toList();
 		return new PageImpl<>(content, pageable, searchHits.getTotalHits());
+	}
+
+	private static Query buildUnitsInSetQuery(String compositeSetCode, String compositeLanguageCode,
+			TranslationStatus statusFilter, Collection<String> englishConceptCodes, String targetTerm) {
+		return Query.of(q -> q.bool(b -> {
+			b.filter(f -> f.term(t -> t.field(TranslationUnit.Fields.MEMBER_OF).value(compositeSetCode)));
+			b.filter(f -> f.term(t -> t.field(TranslationUnit.Fields.COMPOSITE_LANGUAGE_CODE).value(compositeLanguageCode)));
+			if (statusFilter != null) {
+				b.filter(f -> f.term(t -> t.field(TranslationUnit.Fields.STATUS).value(statusFilter.name())));
+			}
+			if (englishConceptCodes != null) {
+				List<FieldValue> values = englishConceptCodes.stream().map(FieldValue::of).toList();
+				b.filter(f -> f.terms(t -> t.field(TranslationUnit.Fields.CODE).terms(tv -> tv.value(values))));
+			}
+			if (targetTerm != null) {
+				b.filter(caseInsensitiveSubstringWildcardQuery(TRANSLATION_UNIT_TERMS_FIELD, targetTerm));
+			}
+			return b;
+		}));
+	}
+
+	private static Query caseInsensitiveSubstringWildcardQuery(String field, String term) {
+		String pattern = "*" + escapeWildcard(term) + "*";
+		return Query.of(q -> q.wildcard(w -> w.field(field).value(pattern).caseInsensitive(true)));
+	}
+
+	static String escapeWildcard(String raw) {
+		if (raw == null || raw.isEmpty()) {
+			return "";
+		}
+		StringBuilder out = new StringBuilder(raw.length());
+		for (int i = 0; i < raw.length(); i++) {
+			char ch = raw.charAt(i);
+			if (ch == '*' || ch == '?' || ch == '\\') {
+				out.append('\\');
+			}
+			out.append(ch);
+		}
+		return out.toString();
+	}
+
+	public static String normalizeOptionalSearchTerm(String term) {
+		if (term == null) {
+			return null;
+		}
+		String trimmed = term.trim();
+		return trimmed.isEmpty() ? null : trimmed;
 	}
 
 	public Map<String, Long> countTranslatedInSubsetBatch(String compositeLanguageCode, Collection<String> compositeSetCodes) {

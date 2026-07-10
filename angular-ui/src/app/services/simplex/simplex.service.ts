@@ -417,11 +417,21 @@ export class SimplexService {
     label: string,
     page: number,
     size: number,
-    status?: string | null
+    status?: string | null,
+    english?: string | null,
+    target?: string | null
   ): Observable<any> {
     let params = new HttpParams().set('page', String(page)).set('size', String(size));
     if (status) {
       params = params.set('status', status);
+    }
+    const englishTrimmed = english?.trim();
+    if (englishTrimmed) {
+      params = params.set('english', englishTrimmed);
+    }
+    const targetTrimmed = target?.trim();
+    if (targetTrimmed) {
+      params = params.set('target', targetTrimmed);
     }
     return this.http
       .get(`api/${edition}/translations/${refsetId}/snolate-set/${label}/rows`, { params })

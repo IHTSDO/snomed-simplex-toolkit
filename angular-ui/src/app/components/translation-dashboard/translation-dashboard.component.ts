@@ -5,7 +5,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { PageEvent } from '@angular/material/paginator';
-import { lastValueFrom, Subscription } from 'rxjs';
+import { lastValueFrom, Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { TerminologyService } from 'src/app/services/simplex/terminology.service';
@@ -16,7 +17,7 @@ import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dia
 import { EditTranslationSetDialogComponent } from '../edit-translation-set-dialog/edit-translation-set-dialog.component';
 import { LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
-import { parseTranslationStatusFilter, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
+import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -43,6 +44,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     labelSetMembersPageIndex = 0;
     labelSetMembersPageSize = 25;
     labelSetMembersStatusFilter: string | null = null;
+    labelSetMembersEnglishSearch = '';
+    labelSetMembersTargetSearch = '';
+    private readonly labelSetMembersSearchChanges$ = new Subject<{ english: string; target: string }>();
     readonly translationConceptStatusFilterValues = TRANSLATION_CONCEPT_STATUS_FILTER_ORDER;
     mode = 'view';
     saving = false;
@@ -234,9 +238,17 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 		this.subscriptions.add(paramSub);
 
 		const statusFilterQuerySub = this.route.queryParamMap.subscribe(() => {
-			this.syncTranslationConceptStatusFilterFromRoute();
+			this.syncTranslationConceptFiltersFromRoute();
 		});
 		this.subscriptions.add(statusFilterQuerySub);
+
+		const searchDebounceSub = this.labelSetMembersSearchChanges$.pipe(
+			debounceTime(300),
+			distinctUntilChanged((a, b) => a.english === b.english && a.target === b.target)
+		).subscribe(() => {
+			this.applyLabelSetMembersSearchFilters();
+		});
+		this.subscriptions.add(searchDebounceSub);
 
 		const legacyQuerySub = this.route.queryParamMap.subscribe(() => {
 			const r = (this.route.snapshot.queryParamMap.get('refset') ?? '').trim();
@@ -268,6 +280,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
     ngOnDestroy(): void {
         this.stopPolling();
+        this.labelSetMembersSearchChanges$.complete();
         this.subscriptions.unsubscribe();
         this.isInitialized = false; // Reset initialization flag
         this.isSubscribedToEdition = false; // Reset subscription flag
@@ -310,7 +323,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 			return;
 		}
 		void this.router.navigate(['/translation-studio', edition, refset, label], {
-			queryParams: { status: null },
+			queryParams: { status: null, english: null, target: null },
 			queryParamsHandling: 'merge'
 		});
 	}
@@ -349,7 +362,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
 	private applyLabelSetSelection(labelSet: any): void {
 		this.selectedLabelSet = labelSet;
-		this.labelSetMembersStatusFilter = parseTranslationStatusFilter(this.route.snapshot.queryParamMap);
+		this.syncTranslationConceptFiltersFromRoute(true);
 		if (labelSet.status === 'READY') {
 			// List GET (.../translations/snolate-set) already returns full SnolateTranslationSet rows
 			// with the same applyCounts / dashboard metadata as the per-set GET — avoid redundant fetch.
@@ -903,7 +916,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                         ...(dialect ? { d: dialect } : {}),
                         ...(branchParam ? { b: branchParam } : {})
                     },
-                    this.labelSetMembersStatusFilter
+                    this.labelSetMembersStatusFilter,
+                    this.labelSetMembersEnglishSearch,
+                    this.labelSetMembersTargetSearch
                 )
             }
         );
@@ -936,7 +951,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                         ...(dialect ? { d: dialect } : {}),
                         ...(branchParam ? { b: branchParam } : {})
                     },
-                    this.labelSetMembersStatusFilter
+                    this.labelSetMembersStatusFilter,
+                    this.labelSetMembersEnglishSearch,
+                    this.labelSetMembersTargetSearch
                 )
             }
         );
@@ -1037,15 +1054,73 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         }
     }
 
-    private syncTranslationConceptStatusFilterFromRoute(): void {
+    onLabelSetMembersEnglishSearchInput(value: string): void {
+        this.labelSetMembersEnglishSearch = value;
+        this.emitLabelSetMembersSearchChange();
+    }
+
+    onLabelSetMembersTargetSearchInput(value: string): void {
+        this.labelSetMembersTargetSearch = value;
+        this.emitLabelSetMembersSearchChange();
+    }
+
+    private emitLabelSetMembersSearchChange(): void {
+        this.labelSetMembersSearchChanges$.next({
+            english: this.labelSetMembersEnglishSearch,
+            target: this.labelSetMembersTargetSearch
+        });
+    }
+
+    clearLabelSetMembersEnglishSearch(): void {
+        if (!this.labelSetMembersEnglishSearch) {
+            return;
+        }
+        this.labelSetMembersEnglishSearch = '';
+        this.applyLabelSetMembersSearchFilters();
+    }
+
+    clearLabelSetMembersTargetSearch(): void {
+        if (!this.labelSetMembersTargetSearch) {
+            return;
+        }
+        this.labelSetMembersTargetSearch = '';
+        this.applyLabelSetMembersSearchFilters();
+    }
+
+    private applyLabelSetMembersSearchFilters(): void {
+        if (this.translationSetRouteSelectionActive) {
+            void this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams: {
+                    english: this.labelSetMembersEnglishSearch.trim() || null,
+                    target: this.labelSetMembersTargetSearch.trim() || null
+                },
+                queryParamsHandling: 'merge',
+                replaceUrl: true
+            });
+        }
+        if (this.selectedLabelSet) {
+            this.getLabelSetMembers(this.selectedLabelSet, true);
+        }
+    }
+
+    private syncTranslationConceptFiltersFromRoute(skipRefetch = false): void {
         if (!this.translationSetRouteSelectionActive || !this.selectedLabelSet) {
             return;
         }
-        const parsed = parseTranslationStatusFilter(this.route.snapshot.queryParamMap);
-        if (parsed === this.labelSetMembersStatusFilter) {
+        const queryParamMap = this.route.snapshot.queryParamMap;
+        const parsedStatus = parseTranslationStatusFilter(queryParamMap);
+        const parsedEnglish = parseTranslationEnglishSearch(queryParamMap) ?? '';
+        const parsedTarget = parseTranslationTargetSearch(queryParamMap) ?? '';
+        const statusChanged = parsedStatus !== this.labelSetMembersStatusFilter;
+        const englishChanged = parsedEnglish !== this.labelSetMembersEnglishSearch;
+        const targetChanged = parsedTarget !== this.labelSetMembersTargetSearch;
+        this.labelSetMembersStatusFilter = parsedStatus;
+        this.labelSetMembersEnglishSearch = parsedEnglish;
+        this.labelSetMembersTargetSearch = parsedTarget;
+        if (skipRefetch || (!statusChanged && !englishChanged && !targetChanged)) {
             return;
         }
-        this.labelSetMembersStatusFilter = parsed;
         if (this.selectedLabelSet.status === 'READY') {
             this.getLabelSetMembers(this.selectedLabelSet, true);
         }
@@ -1079,7 +1154,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 labelSet.label,
                 this.labelSetMembersPageIndex,
                 this.labelSetMembersPageSize,
-                this.labelSetMembersStatusFilter
+                this.labelSetMembersStatusFilter,
+                this.labelSetMembersEnglishSearch,
+                this.labelSetMembersTargetSearch
             )
             .subscribe({
                 next: (labelSetMembers) => {
@@ -1103,6 +1180,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.labelSetMembersTotalCount = 0;
         this.labelSetMembersPageIndex = 0;
         this.labelSetMembersStatusFilter = null;
+        this.labelSetMembersEnglishSearch = '';
+        this.labelSetMembersTargetSearch = '';
     }
 
     setMode(mode: string) {

@@ -207,13 +207,16 @@ public class TranslationController {
 	public TranslationUnitPage<TranslationUnitRow> getSnolateSetRows(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@PathVariable String label, @RequestParam(required = false, defaultValue = "0") int page,
 			@RequestParam(required = false, defaultValue = "25") int size,
-			@RequestParam(required = false) String status) throws ServiceException {
+			@RequestParam(required = false) String status,
+			@RequestParam(required = false) String english,
+			@RequestParam(required = false) String target) throws ServiceException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		int safePage = Math.max(0, page);
 		int safeSize = Math.min(2000, Math.max(1, size));
 		TranslationStatus statusFilter = parseOptionalTranslationStatus(status);
-		TranslationUnitPage<TranslationUnitRow> result = snolateTranslationToolService.getRows(translationSet, safePage, safeSize, statusFilter);
+		TranslationUnitPage<TranslationUnitRow> result = snolateTranslationToolService.getRows(translationSet, safePage, safeSize,
+				statusFilter, english, target);
 		result.results().forEach(TranslationUnitRow::blankLabels);
 		return result;
 	}

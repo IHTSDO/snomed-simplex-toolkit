@@ -32,7 +32,7 @@ import {
 	termsChangedFromLoaded
 } from 'src/app/utils/translation-unit-form.helper';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
-import {mergeTranslationStudioQueryParams, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
+import {mergeTranslationStudioQueryParams, parseTranslationEnglishSearch, parseTranslationTargetSearch, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
 
 /** Snowstorm {@code POST .../concepts/partial-hierarchy} node (see PartialHierarchyNode). */
 export interface PartialHierarchyNode {
@@ -113,6 +113,8 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	pageSize = 25;
 	totalCount: number | null = null;
 	statusFilter: string | null = null;
+	englishSearch: string | null = null;
+	targetSearch: string | null = null;
 
 	loading = false;
 	saving = false;
@@ -266,6 +268,8 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		const bq = q.get('b')?.trim();
 		this.snowstormBranchQuery = bq && bq.length > 0 ? bq : null;
 		this.statusFilter = parseTranslationStatusFilter(q);
+		this.englishSearch = parseTranslationEnglishSearch(q);
+		this.targetSearch = parseTranslationTargetSearch(q);
 	}
 
 	private loadSampleRowForSnapshot$(): Observable<any | null> {
@@ -276,7 +280,16 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.loading = true;
 		const sample$ =
 			this.totalCount == null
-				? this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, 0, 1, this.statusFilter).pipe(
+				? this.simplexService.getTranslationSetRows(
+						this.edition,
+						this.refset,
+						this.label,
+						0,
+						1,
+						this.statusFilter,
+						this.englishSearch,
+						this.targetSearch
+					).pipe(
 						switchMap((page0) => {
 							this.totalCount = page0.count ?? 0;
 							const results = page0.results ?? [];
@@ -342,7 +355,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 
 	private segmentCacheKeyForBranch(branch: string): string {
 		const page = Math.floor(this.globalIndex / this.pageSize);
-		return `${this.edition}|${this.refset}|${this.label}|${branch}|${page}|${this.pageSize}|${this.statusFilter ?? ''}`;
+		return `${this.edition}|${this.refset}|${this.label}|${branch}|${page}|${this.pageSize}|${this.statusFilter ?? ''}|${this.englishSearch ?? ''}|${this.targetSearch ?? ''}`;
 	}
 
 	private fillSliceTranslationTermsFromResults(results: any[]): void {
@@ -426,7 +439,16 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			results$ = of(prefetch.results);
 		} else {
 			results$ = this.simplexService
-				.getTranslationSetRows(this.edition, this.refset, this.label, page, this.pageSize, this.statusFilter)
+				.getTranslationSetRows(
+					this.edition,
+					this.refset,
+					this.label,
+					page,
+					this.pageSize,
+					this.statusFilter,
+					this.englishSearch,
+					this.targetSearch
+				)
 				.pipe(map((resp) => resp.results ?? []));
 		}
 
@@ -697,7 +719,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	goBack(): void {
 		void this.router.navigate(
 			['/translation-studio', this.edition, this.refset, this.label],
-			{ queryParams: mergeTranslationStudioQueryParams({}, this.statusFilter) }
+			{ queryParams: mergeTranslationStudioQueryParams({}, this.statusFilter, this.englishSearch, this.targetSearch) }
 		);
 	}
 
@@ -720,7 +742,16 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 				return;
 			}
 			const pageResp = await firstValueFrom(
-				this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, 0, 1, null)
+				this.simplexService.getTranslationSetRows(
+					this.edition,
+					this.refset,
+					this.label,
+					0,
+					1,
+					null,
+					this.englishSearch,
+					this.targetSearch
+				)
 			);
 			const queryParams = this.buildStudioQueryParams({
 				i: globalIndex,
@@ -820,7 +851,16 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.loading = true;
 		try {
 			const pageResp = await firstValueFrom(
-				this.simplexService.getTranslationSetRows(this.edition, this.refset, this.label, page, s, this.statusFilter)
+				this.simplexService.getTranslationSetRows(
+					this.edition,
+					this.refset,
+					this.label,
+					page,
+					s,
+					this.statusFilter,
+					this.englishSearch,
+					this.targetSearch
+				)
 			);
 			const results = pageResp.results ?? [];
 			const listRow = results[idx];
@@ -871,7 +911,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 				...(this.dialectDisplayName !== 'Translation' ? { d: this.dialectDisplayName } : {}),
 				...(this.snowstormBranchQuery ? { b: this.snowstormBranchQuery } : {})
 			},
-			status
+			status,
+			this.englishSearch,
+			this.targetSearch
 		);
 	}
 
@@ -886,7 +928,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 					this.label,
 					page,
 					scanPageSize,
-					status
+					status,
+					this.englishSearch,
+					this.targetSearch
 				)
 			);
 			const results = resp.results ?? [];
