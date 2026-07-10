@@ -43,4 +43,41 @@
 		<cve>CVE-2026-40982</cve>
 		<cve>CVE-2026-41002</cve>
 	</suppress>
+	<!--
+		False positive: CVE-2026-54399 and CVE-2026-54428 apply to Apache HttpComponents Core 5.x (5.4.2 and earlier).
+		Dependency-Check maps them to httpcore 4.4.16 via the shared httpcomponents_core CPE; this project uses the legacy 4.x line only via Elasticsearch REST client.
+	-->
+	<suppress>
+		<notes><![CDATA[False positive — httpcore 4.x CVEs are misattributed from HttpComponents Core 5.x advisories]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.apache\.httpcomponents/httpcore@.*$</packageUrl>
+		<cve>CVE-2026-54399</cve>
+		<cve>CVE-2026-54428</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[False positive — httpcore-nio 4.x CVEs are misattributed from HttpComponents Core 5.x advisories]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.apache\.httpcomponents/httpcore-nio@.*$</packageUrl>
+		<cve>CVE-2026-54399</cve>
+		<cve>CVE-2026-54428</cve>
+	</suppress>
+	<!--
+		False positive: CVE-2026-0994 affects google.protobuf.json_format.ParseDict() in Python only, not protobuf-java.
+	-->
+	<suppress>
+		<notes><![CDATA[False positive — Python protobuf ParseDict CVE does not apply to protobuf-java]]></notes>
+		<packageUrl regex="true">^pkg:maven/com\.google\.protobuf/protobuf-java@.*$</packageUrl>
+		<cve>CVE-2026-0994</cve>
+	</suppress>
+	<!--
+		False positive: CVE-2026-41004 applies to Spring Cloud Config Server trace logging, not consul/vault config clients.
+	-->
+	<suppress>
+		<notes><![CDATA[False positive — consul-config client library, not spring-cloud-config-server]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.cloud/spring-cloud-consul-config@.*$</packageUrl>
+		<cve>CVE-2026-41004</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[False positive — vault-config client library, not spring-cloud-config-server]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.cloud/spring-cloud-vault-config@.*$</packageUrl>
+		<cve>CVE-2026-41004</cve>
+	</suppress>
 </suppressions>

@@ -19,8 +19,38 @@
 
 	<properties>
 		<!-- BOM Overrides. Remove and reassert as needed when upgrading the BOM. -->
-		<tomcat-embed.version>10.1.55</tomcat-embed.version>
+		<spring-boot.version>3.5.15</spring-boot.version>
+		<spring.version>6.2.19</spring.version>
+		<jackson.version>2.18.8</jackson.version>
+		<activemq.version>6.2.7</activemq.version>
+		<logback.version>1.5.34</logback.version>
+		<tomcat-embed.version>10.1.56</tomcat-embed.version>
 	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.apache.httpcomponents.core5</groupId>
+				<artifactId>httpcore5</artifactId>
+				<version>5.4.3</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.httpcomponents.core5</groupId>
+				<artifactId>httpcore5-h2</artifactId>
+				<version>5.4.3</version>
+			</dependency>
+			<dependency>
+				<groupId>org.eclipse.parsson</groupId>
+				<artifactId>parsson</artifactId>
+				<version>1.1.8</version>
+			</dependency>
+			<dependency>
+				<groupId>com.google.protobuf</groupId>
+				<artifactId>protobuf-java</artifactId>
+				<version>4.29.4</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<modules>
 		<module>angular-ui</module>
