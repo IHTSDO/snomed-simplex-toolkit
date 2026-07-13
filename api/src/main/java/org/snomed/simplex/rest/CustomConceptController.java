@@ -79,6 +79,7 @@ public class CustomConceptController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.upsertBranchMetadata(theCodeSystem.getBranchPath(), Map.of(Branch.SHOW_CUSTOM_CONCEPTS, "true"));
+		theCodeSystem.setShowCustomConcepts(true);
 	}
 
 	@PostMapping("/hide")
@@ -88,6 +89,7 @@ public class CustomConceptController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.upsertBranchMetadata(theCodeSystem.getBranchPath(), Map.of(Branch.SHOW_CUSTOM_CONCEPTS, "false"));
+		theCodeSystem.setShowCustomConcepts(false);
 	}
 
 }
