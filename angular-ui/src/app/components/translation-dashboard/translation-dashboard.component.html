@@ -435,9 +435,25 @@
         <div class="translation-sets-list-panel">
             <div class="translation-sets-toolbar">
                 <h4>Translation Sets</h4>
-                <button mat-flat-button color="primary" (click)="setMode('create')" [disabled]="showSkeleton">
-                    Create new set
-                </button>
+                <div class="translation-sets-toolbar-actions">
+                    <mat-form-field class="translation-sets-language-filter" subscriptSizing="dynamic">
+                        <mat-label>Language/Dialect</mat-label>
+                        <mat-select
+                            [value]="translationSetsLanguageDialectFilter"
+                            [disabled]="showSkeleton"
+                            (selectionChange)="onTranslationSetsLanguageDialectFilterChange($event.value)">
+                            <mat-option [value]="null">All languages/dialects</mat-option>
+                            <mat-option
+                                *ngFor="let option of translationSetsLanguageDialectFilterOptions; trackBy: trackTranslationSetLanguageDialectOption"
+                                [value]="option.refsetId">
+                                {{ option.label }}
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                    <button mat-flat-button color="primary" (click)="setMode('create')" [disabled]="showSkeleton">
+                        Create new set
+                    </button>
+                </div>
             </div>
 
             <div *ngIf="showSkeleton" class="skeleton-loader">
@@ -540,7 +556,11 @@
                         (click)="onTranslationSetRowClick(row)"></tr>
                     <tr class="mat-row translation-sets-empty-row" *matNoDataRow>
                         <td class="mat-mdc-cell translation-sets-empty-message" [attr.colspan]="translationSetsColumns.length">
-                            Create a Translation Set to get started.
+                            @if (translationSetsLanguageDialectFilter) {
+                                No translation sets match the selected language/dialect.
+                            } @else {
+                                Create a Translation Set to get started.
+                            }
                         </td>
                     </tr>
                 </table>

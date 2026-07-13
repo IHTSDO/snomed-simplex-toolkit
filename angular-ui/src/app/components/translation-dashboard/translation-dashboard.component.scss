@@ -27,6 +27,18 @@
     }
 }
 
+.translation-sets-toolbar-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.translation-sets-language-filter {
+    width: 260px;
+}
+
 .translation-sets-table-wrap {
     width: 100%;
     overflow: auto;

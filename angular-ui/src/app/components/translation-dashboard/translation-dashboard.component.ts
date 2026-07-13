@@ -66,6 +66,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 	translationSetsColumns = ['name', 'languageDialect', 'concepts', 'lastUpdated', 'progress', 'actions'];
 	languagePoliciesColumns = ['languageDialect', 'status', 'lastUpdated', 'policyActions'];
 	translationSetsDataSource = new MatTableDataSource<any>([]);
+	translationSetsLanguageDialectFilter: string | null = null;
+	translationSetsLanguageDialectFilterOptions: Array<{ refsetId: string; label: string }> = [];
 	translationSetRouteSelectionActive = false;
 
 	@ViewChild(MatSort) set matSort(sort: MatSort | undefined) {
@@ -307,11 +309,60 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.loadingLabelSetMembers = false;
         this.loadingLabelSetDetails = false;
 		this.translationSetRouteSelectionActive = false;
+		this.translationSetsLanguageDialectFilter = null;
+		this.translationSetsLanguageDialectFilterOptions = [];
 		this.refreshTranslationSetsTable();
     }
 
+	private rebuildTranslationSetsLanguageDialectFilterOptions(): void {
+		const seen = new Map<string, string>();
+		for (const set of this.labelSets) {
+			const refsetId = String(set.refset ?? set.translationId ?? '');
+			if (!refsetId || seen.has(refsetId)) {
+				continue;
+			}
+			seen.set(refsetId, this.displayTranslationLanguageDialect(set.translationName) || 'Unknown Translation');
+		}
+		const next = [...seen.entries()]
+			.map(([refsetId, label]) => ({ refsetId, label }))
+			.sort((a, b) => a.label.localeCompare(b.label));
+
+		const current = this.translationSetsLanguageDialectFilterOptions;
+		if (current.length === next.length
+			&& current.every((option, index) =>
+				option.refsetId === next[index].refsetId && option.label === next[index].label)) {
+			return;
+		}
+
+		this.translationSetsLanguageDialectFilterOptions = next;
+
+		if (this.translationSetsLanguageDialectFilter
+			&& !next.some(option => option.refsetId === this.translationSetsLanguageDialectFilter)) {
+			this.translationSetsLanguageDialectFilter = null;
+		}
+	}
+
+	trackTranslationSetLanguageDialectOption(
+		_index: number,
+		option: { refsetId: string; label: string }
+	): string {
+		return option.refsetId;
+	}
+
+	onTranslationSetsLanguageDialectFilterChange(refsetId: string | null): void {
+		this.translationSetsLanguageDialectFilter = refsetId;
+		this.refreshTranslationSetsTable();
+	}
+
 	private refreshTranslationSetsTable(): void {
-		this.translationSetsDataSource.data = this.labelSets;
+		this.rebuildTranslationSetsLanguageDialectFilterOptions();
+		let rows = this.labelSets;
+		if (this.translationSetsLanguageDialectFilter) {
+			rows = rows.filter(set =>
+				String(set.refset ?? set.translationId) === this.translationSetsLanguageDialectFilter
+			);
+		}
+		this.translationSetsDataSource.data = rows;
 	}
 
 	private goToTranslationStudioList(options?: { replaceUrl?: boolean }): void {
