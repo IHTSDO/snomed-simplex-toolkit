@@ -82,8 +82,9 @@ public class CustomConceptService {
 		List<String> extensionLangRefsets = langRefsets.stream().map(ConceptMini::getConceptId).toList();
 		Set<String> allLangRefsetsInScope = new HashSet<>(extensionLangRefsets);
 		allLangRefsetsInScope.add(Concepts.US_LANG_REFSET);
+		long expectedContentHeadTimestamp = codeSystem.isConceptsMaintainedExternally() ? 0 : codeSystem.getContentHeadTimestamp();
 		List<ConceptIntent> sheetConcepts = spreadsheetService.readComponentSpreadsheet(inputStream, getInputSheetHeaders(langRefsets),
-				getInputSheetComponentExtractor(extensionLangRefsets), codeSystem.getContentHeadTimestamp());
+				getInputSheetComponentExtractor(extensionLangRefsets), expectedContentHeadTimestamp);
 		return createUpdateConcepts(codeSystem, sheetConcepts, allLangRefsetsInScope, asyncJob, snowstormClient);
 	}
 
@@ -138,14 +139,24 @@ public class CustomConceptService {
 
 		boolean changed = false;
 		if (conceptCode != null) {
-			// Existing concept
 			concept = existingConceptMap.get(conceptCode);
-			changed = updateExistingConcept(intent, defaultModule, changeSummary, concept, conceptCode, changed, parentConcept);
+			if (concept != null) {
+				changed = updateExistingConcept(intent, defaultModule, changeSummary, concept, conceptCode, changed, parentConcept);
+			} else if (intent.isInactive()) {
+				if (codeSystem.isConceptsMaintainedExternally()) {
+					asyncJob.incrementRecordsProcessed();
+					return;
+				}
+				throw new ServiceException(format("Concept with code '%s' on row %s could not be found.", conceptCode, intent.getRowNumber()));
+			} else if (codeSystem.isConceptsMaintainedExternally()) {
+				concept = newPrimitiveConcept(defaultModule, parentConcept, conceptCode);
+				changeSummary.incrementAdded();
+				changed = true;
+			} else {
+				throw new ServiceException(format("Concept with code '%s' on row %s could not be found.", conceptCode, intent.getRowNumber()));
+			}
 		} else {
-			// New concept
-			concept = new Concept(defaultModule)
-				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0))));
-			copyInferredRelationshipsFromParent(concept, parentConcept);
+			concept = newPrimitiveConcept(defaultModule, parentConcept, null);
 			changeSummary.incrementAdded();
 			changed = true;
 		}
@@ -337,6 +348,16 @@ public class CustomConceptService {
 	}
 
 	// Copying the inferred relationships from the parent to a primitive concept gives a good preview of the inferred form
+	private Concept newPrimitiveConcept(String defaultModule, Concept parentConcept, String conceptId) {
+		Concept concept = new Concept(defaultModule)
+				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(IS_A, parentConcept.getConceptId(), 0))));
+		if (conceptId != null) {
+			concept.setConceptId(conceptId);
+		}
+		copyInferredRelationshipsFromParent(concept, parentConcept);
+		return concept;
+	}
+
 	private void copyInferredRelationshipsFromParent(Concept concept, Concept parentConcept) {
 		List<Relationship> relationships = new ArrayList<>();
 		relationships.add(Relationship.inferred(IS_A, parentConcept.getConceptId(), 0));

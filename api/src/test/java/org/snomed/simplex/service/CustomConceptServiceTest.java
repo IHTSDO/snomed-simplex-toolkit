@@ -24,7 +24,10 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.never;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -102,5 +105,149 @@ class CustomConceptServiceTest {
 		assertEquals(0, changeSummary.getUpdated());
 		assertEquals(0, changeSummary.getRemoved());
 		assertEquals(1, changeSummary.getNewTotal());
+	}
+
+	@Test
+	void createUpdateConcepts_externalConceptIdWhenAllowed() throws ServiceException, IOException {
+		String dummyModule = "101000003010";
+		String externalConceptId = "123456789012345678";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+		codeSystem.setConceptsMaintainedExternally(true);
+
+		ConceptIntent intent = new ConceptIntent("429926006", 1);
+		intent.setConceptCode(externalConceptId);
+		intent.addTerm("External concept term", Concepts.US_LANG_REFSET);
+		List<ConceptIntent> conceptIntents = List.of(intent);
+
+		Concept parentConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem)))
+				.thenAnswer(invocation -> {
+					List<Long> ids = invocation.getArgument(0);
+					if (ids.contains(429926006L)) {
+						return List.of(parentConcept);
+					}
+					return List.of();
+				});
+
+		ChangeSummary changeSummary = customConceptService.createUpdateConcepts(codeSystem, conceptIntents, List.of(Concepts.US_LANG_REFSET),
+				new ContentJob(new CodeSystem(), "", null), mockSnowstormClient);
+
+		Mockito.verify(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptListCaptor.capture(), Mockito.eq(codeSystem));
+		List<Concept> conceptsSaved = conceptListCaptor.getValue();
+		assertEquals(1, conceptsSaved.size());
+		assertEquals(externalConceptId, conceptsSaved.get(0).getConceptId());
+		assertEquals(1, changeSummary.getAdded());
+	}
+
+	@Test
+	void createUpdateConcepts_externalConceptIdWhenNotAllowed() throws IOException {
+		String dummyModule = "101000003010";
+		String externalConceptId = "123456789012345678";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+
+		ConceptIntent intent = new ConceptIntent("429926006", 1);
+		intent.setConceptCode(externalConceptId);
+		intent.addTerm("External concept term", Concepts.US_LANG_REFSET);
+		List<ConceptIntent> conceptIntents = List.of(intent);
+
+		Concept parentConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem)))
+				.thenAnswer(invocation -> {
+					List<Long> ids = invocation.getArgument(0);
+					if (ids.contains(429926006L)) {
+						return List.of(parentConcept);
+					}
+					return List.of();
+				});
+
+		ServiceException exception = assertThrows(ServiceException.class, () ->
+				customConceptService.createUpdateConcepts(codeSystem, conceptIntents, List.of(Concepts.US_LANG_REFSET),
+						new ContentJob(new CodeSystem(), "", null), mockSnowstormClient));
+
+		assertTrue(exception.getMessage().contains("could not be found"));
+		assertTrue(exception.getMessage().contains(externalConceptId));
+	}
+
+	@Test
+	void createUpdateConcepts_inactiveUnknownConceptSkippedWhenMaintainedExternally() throws ServiceException {
+		String dummyModule = "101000003010";
+		String unknownConceptId = "123456789012345678";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+		codeSystem.setConceptsMaintainedExternally(true);
+
+		ConceptIntent intent = new ConceptIntent("429926006", 1);
+		intent.setConceptCode(unknownConceptId);
+		intent.setInactive(true);
+		List<ConceptIntent> conceptIntents = List.of(intent);
+
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem)))
+				.thenReturn(List.of());
+
+		ChangeSummary changeSummary = customConceptService.createUpdateConcepts(codeSystem, conceptIntents, List.of(Concepts.US_LANG_REFSET),
+				new ContentJob(new CodeSystem(), "", null), mockSnowstormClient);
+
+		Mockito.verify(mockSnowstormClient, never()).createUpdateBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem));
+		assertEquals(0, changeSummary.getAdded());
+		assertEquals(0, changeSummary.getUpdated());
+		assertEquals(0, changeSummary.getRemoved());
+	}
+
+	@Test
+	void createUpdateConcepts_inactiveUnknownConceptFailsWhenNotMaintainedExternally() {
+		String dummyModule = "101000003010";
+		String unknownConceptId = "123456789012345678";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+
+		ConceptIntent intent = new ConceptIntent("429926006", 1);
+		intent.setConceptCode(unknownConceptId);
+		intent.setInactive(true);
+		List<ConceptIntent> conceptIntents = List.of(intent);
+
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem)))
+				.thenReturn(List.of());
+
+		ServiceException exception = assertThrows(ServiceException.class, () ->
+				customConceptService.createUpdateConcepts(codeSystem, conceptIntents, List.of(Concepts.US_LANG_REFSET),
+						new ContentJob(new CodeSystem(), "", null), mockSnowstormClient));
+
+		assertTrue(exception.getMessage().contains("could not be found"));
+		assertTrue(exception.getMessage().contains(unknownConceptId));
+	}
+
+	@Test
+	void createUpdateConcepts_inactiveExistingConceptInactivatedWhenMaintainedExternally() throws ServiceException, IOException {
+		String dummyModule = "101000003010";
+		String existingConceptId = "429926006";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+		codeSystem.setConceptsMaintainedExternally(true);
+
+		ConceptIntent intent = new ConceptIntent(existingConceptId, 1);
+		intent.setConceptCode(existingConceptId);
+		intent.setInactive(true);
+		List<ConceptIntent> conceptIntents = List.of(intent);
+
+		Concept existingConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
+		existingConcept.setModuleId(dummyModule);
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem)))
+				.thenReturn(List.of(existingConcept));
+
+		ChangeSummary changeSummary = customConceptService.createUpdateConcepts(codeSystem, conceptIntents, List.of(Concepts.US_LANG_REFSET),
+				new ContentJob(new CodeSystem(), "", null), mockSnowstormClient);
+
+		Mockito.verify(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptListCaptor.capture(), Mockito.eq(codeSystem));
+		List<Concept> conceptsSaved = conceptListCaptor.getValue();
+		assertEquals(1, conceptsSaved.size());
+		assertFalse(conceptsSaved.get(0).isActive());
+		assertEquals(1, changeSummary.getRemoved());
 	}
 }

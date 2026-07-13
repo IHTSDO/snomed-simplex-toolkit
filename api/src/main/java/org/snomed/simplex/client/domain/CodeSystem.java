@@ -29,6 +29,8 @@ public class CodeSystem {
 	private boolean showCustomConcepts;
 	/** From branch metadata {@link Branch#SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY}; default false. */
 	private boolean validationIgnoreCase;
+	/** From branch metadata {@link Branch#SIMPLEX_CONCEPTS_MAINTAINED_EXTERNALLY_METADATA_KEY}; default false. */
+	private boolean conceptsMaintainedExternally;
 	private boolean classified;
 	private String latestValidationReport;
 	private String latestReleaseCandidateBuild;
@@ -187,6 +189,14 @@ public class CodeSystem {
 
 	public void setValidationIgnoreCase(boolean validationIgnoreCase) {
 		this.validationIgnoreCase = validationIgnoreCase;
+	}
+
+	public boolean isConceptsMaintainedExternally() {
+		return conceptsMaintainedExternally;
+	}
+
+	public void setConceptsMaintainedExternally(boolean conceptsMaintainedExternally) {
+		this.conceptsMaintainedExternally = conceptsMaintainedExternally;
 	}
 
 	public String getDependencyPackage() {

@@ -109,6 +109,16 @@ class SpreadsheetServiceTest {
 	}
 
 	@Test
+	void testSpreadsheetUpdateCheckSkippedWhenTimestampZero() {
+		try {
+			InputStream inputStream = getClass().getResourceAsStream("/test-spreadsheets/conceptsSpreadsheet.xlsx");
+			spreadsheetService.readComponentSpreadsheet(inputStream, basicSheetHeaders, basicComponentExtractor, 0);
+		} catch (ServiceException e) {
+			fail("Timestamp check should be skipped when expected timestamp is zero.");
+		}
+	}
+
+	@Test
 	void testSpreadsheetBlankTerm() {
 		try {
 			InputStream inputStream = getClass().getResourceAsStream("/test-spreadsheets/conceptsSpreadsheet-blank-term.xlsx");

@@ -31,6 +31,19 @@
                     </mat-checkbox>
                 </div>
             </div>
+            <div class="component-row" *ngIf="isAdmin() || conceptsMaintainedExternally">
+                <div class="component-col align-right">
+                    <span class="details-field-name">Concepts maintained externally</span>
+                </div>
+                <div class="component-col">
+                    <mat-checkbox color="primary"
+                                  [(ngModel)]="conceptsMaintainedExternally"
+                                  [disabled]="!isAdmin() || loading || loadingValidationSetting"
+                                  (change)="onConceptsMaintainedExternallyChange()"
+                                  aria-label="Concepts maintained externally on spreadsheet upload">
+                    </mat-checkbox>
+                </div>
+            </div>
             <div class="component-row">
                 <div class="component-col align-right">
                     <span class="details-field-name">Upgrade to a newer dependant release</span>

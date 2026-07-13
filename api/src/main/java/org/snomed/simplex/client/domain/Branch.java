@@ -22,6 +22,9 @@ public class Branch {
 	/** When true, RVF case-significance resource assertion is skipped for this edition. */
 	public static final String SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY = "simplex.validation.ignoreCase";
 
+	/** When true, custom concept upload may create concepts with pre-assigned SCTIDs and skips spreadsheet freshness checks. */
+	public static final String SIMPLEX_CONCEPTS_MAINTAINED_EXTERNALLY_METADATA_KEY = "simplex.concepts.maintainedExternally";
+
 	public static final String ORGANISATION_NAME = "package.orgName";
 	public static final String ORGANISATION_CONTACT_DETAILS = "package.orgContactDetails";
 

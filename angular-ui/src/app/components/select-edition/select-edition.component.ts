@@ -19,6 +19,7 @@ export class SelectEditionComponent implements OnInit {
   loadingValidationSetting = false;
   deleting = false;
   validationIgnoreCase = false;
+  conceptsMaintainedExternally = false;
   roles: any[] = [];
   private subscriptions: Subscription = new Subscription();
 
@@ -48,6 +49,7 @@ export class SelectEditionComponent implements OnInit {
       (edition) => {
         this.selectedEdition = edition;
         this.validationIgnoreCase = !!edition.validationIgnoreCase;
+        this.conceptsMaintainedExternally = !!edition.conceptsMaintainedExternally;
         this.loading = false;
       },
       (error) => {
@@ -88,15 +90,32 @@ export class SelectEditionComponent implements OnInit {
     if (!this.selectedEdition || !this.isAdmin()) {
       return;
     }
+    this.saveValidationSettings();
+  }
+
+  onConceptsMaintainedExternallyChange(): void {
+    if (!this.selectedEdition || !this.isAdmin()) {
+      return;
+    }
+    this.saveValidationSettings();
+  }
+
+  private saveValidationSettings(): void {
     this.loadingValidationSetting = true;
-    lastValueFrom(this.simplexService.updateValidationSettings(this.selectedEdition.shortName, this.validationIgnoreCase)).then(
+    lastValueFrom(this.simplexService.updateValidationSettings(
+      this.selectedEdition.shortName,
+      this.validationIgnoreCase,
+      this.conceptsMaintainedExternally
+    )).then(
       () => {
         this.selectedEdition.validationIgnoreCase = this.validationIgnoreCase;
+        this.selectedEdition.conceptsMaintainedExternally = this.conceptsMaintainedExternally;
         this.loadingValidationSetting = false;
       },
       (error) => {
         console.error(error);
         this.validationIgnoreCase = !!this.selectedEdition.validationIgnoreCase;
+        this.conceptsMaintainedExternally = !!this.selectedEdition.conceptsMaintainedExternally;
         this.loadingValidationSetting = false;
         this.snackBar.open('Failed to update validation settings', 'Dismiss', {
           duration: 5000

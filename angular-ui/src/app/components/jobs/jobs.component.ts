@@ -546,6 +546,10 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     return true;
   }
 
+  conceptsMaintainedExternally(): boolean {
+    return !!this.editionDetails?.conceptsMaintainedExternally;
+  }
+
   shouldDisableEditing(): boolean {
     return this.hasTranslationStudioActivity || this.hasActiveRefsetChangeJob();
   }

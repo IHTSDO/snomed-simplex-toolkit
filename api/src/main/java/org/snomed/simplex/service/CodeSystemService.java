@@ -314,10 +314,12 @@ public class CodeSystemService {
 		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), newMetadata);
 	}
 
-	public void updateValidationSettings(String codeSystemShortName, boolean ignoreCaseSensitivity) throws ServiceException {
+	public void updateValidationSettings(String codeSystemShortName, boolean ignoreCaseSensitivity, boolean conceptsMaintainedExternally) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(codeSystemShortName);
 		setCodeSystemMetadata(Branch.SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY, Boolean.toString(ignoreCaseSensitivity), codeSystem,
+				snowstormClient);
+		setCodeSystemMetadata(Branch.SIMPLEX_CONCEPTS_MAINTAINED_EXTERNALLY_METADATA_KEY, Boolean.toString(conceptsMaintainedExternally), codeSystem,
 				snowstormClient);
 	}
 

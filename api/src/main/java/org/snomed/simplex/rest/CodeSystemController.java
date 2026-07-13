@@ -244,7 +244,7 @@ public class CodeSystemController {
 			@RequestBody ValidationSettingsRequest request) throws ServiceException {
 
 		activityService.runActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
-			codeSystemService.updateValidationSettings(codeSystem, request.isIgnoreCase());
+			codeSystemService.updateValidationSettings(codeSystem, request.isIgnoreCase(), request.isConceptsMaintainedExternally());
 			return null;
 		});
 	}
