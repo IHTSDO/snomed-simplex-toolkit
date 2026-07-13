@@ -1,0 +1,41 @@
+.dialog-content {
+  min-width: 360px;
+  max-width: 480px;
+}
+
+.set-hint,
+.language-hint {
+  margin: 0 0 8px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.filter-option {
+  display: block;
+}
+
+.filter-option__label {
+  margin-right: 4px;
+}
+
+.filter-option__count {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9em;
+}
+
+.loading-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+mat-dialog-content {
+  max-height: 600px;
+  overflow-y: auto;
+}

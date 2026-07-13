@@ -22,11 +22,13 @@ import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.snolate.domain.LanguagePolicyQuestionnaire;
 import org.snomed.simplex.snolate.domain.LanguageTranslationPolicy;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
+import org.snomed.simplex.snolate.domain.TranslationStatusLabels;
 import org.snomed.simplex.snolate.service.LanguagePolicyQuestionnaireService;
 import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
 import org.snomed.simplex.snolate.service.SnolateTranslationToolService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.service.TranslationService;
 import org.springframework.http.HttpStatus;
@@ -34,6 +36,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
@@ -219,6 +222,32 @@ public class TranslationController {
 				statusFilter, english, target);
 		result.results().forEach(TranslationUnitRow::blankLabels);
 		return result;
+	}
+
+	@GetMapping(path = "{codeSystem}/translations/{refsetId}/snolate-set/{label}/csv", produces = "text/csv")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void downloadSnolateSetCsv(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@PathVariable String label, @RequestParam(required = false) String status, HttpServletResponse response)
+			throws ServiceException, IOException {
+
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		if (translationSet.getStatus() != TranslationSetStatus.READY) {
+			throw new ServiceExceptionWithStatusCode(
+					"Translation set CSV export is only available when set status is READY.",
+					HttpStatus.BAD_REQUEST);
+		}
+		TranslationStatus statusFilter = parseOptionalTranslationStatus(status);
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		ConceptMini refset = snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+		String languageDisplayName = SnolateTranslationToolService.displayLanguageDialect(refset.getPt().getTerm());
+
+		String filename = ControllerHelper.normaliseFilename(translationSet.getName()) + "-"
+				+ TranslationStatusLabels.exportFilenameSlug(statusFilter) + ".csv";
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+		snolateTranslationToolService.writeTranslationSetCsv(translationSet, statusFilter, languageDisplayName,
+				response.getOutputStream());
 	}
 
 	private static TranslationStatus parseOptionalTranslationStatus(String status) throws ServiceExceptionWithStatusCode {

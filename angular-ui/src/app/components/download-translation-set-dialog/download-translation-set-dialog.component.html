@@ -1,0 +1,35 @@
+<h2 mat-dialog-title>File download</h2>
+<mat-dialog-content>
+    <div class="dialog-content">
+        <p class="set-hint">
+            Download concepts from <strong>{{ data.setName }}</strong> as CSV.
+        </p>
+        <p class="language-hint" *ngIf="data.languageDialect">
+            Language/dialect: <strong>{{ data.languageDialect }}</strong>
+        </p>
+
+        <mat-radio-group
+            class="filter-options"
+            [(ngModel)]="selectedFilter"
+            [disabled]="loading">
+            <mat-radio-button
+                class="filter-option"
+                *ngFor="let option of filterOptions"
+                [value]="option.value">
+                <span class="filter-option__label">{{ option.label }}</span>
+                <span class="filter-option__count">({{ conceptCount(option) | number:'1.0-0' }})</span>
+            </mat-radio-button>
+        </mat-radio-group>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()" [disabled]="loading">Cancel</button>
+    <button mat-raised-button color="primary" [disabled]="loading" (click)="onDownload()">
+        <span *ngIf="loading" class="loading-content">
+            <mat-spinner diameter="20"></mat-spinner>
+            Downloading...
+        </span>
+        <span *ngIf="!loading">Download</span>
+    </button>
+</mat-dialog-actions>

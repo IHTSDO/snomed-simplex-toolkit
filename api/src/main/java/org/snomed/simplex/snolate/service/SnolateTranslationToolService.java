@@ -4,8 +4,10 @@ import com.google.common.base.Strings;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationUnitPage;
 import org.snomed.simplex.rest.pojos.TranslationUnitRow;
+import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
+import org.snomed.simplex.snolate.domain.TranslationStatusLabels;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
@@ -17,6 +19,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,6 +38,8 @@ import java.util.stream.StreamSupport;
 
 @Service
 public class SnolateTranslationToolService {
+
+	private static final int CSV_EXPORT_PAGE_SIZE = 2000;
 
 	private final SnolateTranslationUnitRepository translationUnitRepository;
 	private final SnolateTranslationSourceRepository translationSourceRepository;
@@ -220,5 +229,97 @@ public class SnolateTranslationToolService {
 
 	private static List<String> copyTerms(Optional<TranslationUnit> tu) {
 		return tu.map(u -> new ArrayList<>(u.getTerms())).orElseGet(ArrayList::new);
+	}
+
+	/**
+	 * Plain-text language/dialect label for CSV headers; strips trailing SNOMED-style refset name suffixes.
+	 */
+	public static String displayLanguageDialect(String refsetPreferredTerm) {
+		if (refsetPreferredTerm == null) {
+			return "Translation";
+		}
+		String s = refsetPreferredTerm.trim();
+		if (s.isEmpty()) {
+			return "Translation";
+		}
+		String lower = s.toLowerCase();
+		for (String suffix : List.of("language reference set", "language refset")) {
+			if (lower.endsWith(suffix)) {
+				s = s.substring(0, s.length() - suffix.length()).trim();
+				break;
+			}
+		}
+		return s.isEmpty() ? "Translation" : s;
+	}
+
+	public void writeTranslationSetCsv(SnolateTranslationSet translationSet, TranslationStatus statusFilter,
+			String languageDisplayName, OutputStream out) throws ServiceException {
+		String dialect = languageDisplayName == null || languageDisplayName.isBlank()
+				? "Translation"
+				: languageDisplayName.trim();
+		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
+			writeCsvLine(writer,
+					"Concept Code",
+					"English Term",
+					dialect + " Preferred Term",
+					"Other " + dialect + " Terms",
+					"Status",
+					"URL");
+			int page = 0;
+			while (true) {
+				TranslationUnitPage<TranslationUnitRow> pageResult = getRows(translationSet, page, CSV_EXPORT_PAGE_SIZE,
+						statusFilter, null, null);
+				List<TranslationUnitRow> rows = pageResult.results();
+				if (rows == null || rows.isEmpty()) {
+					break;
+				}
+				for (TranslationUnitRow row : rows) {
+					writeCsvDataRow(writer, row);
+				}
+				if (rows.size() < CSV_EXPORT_PAGE_SIZE) {
+					break;
+				}
+				page++;
+			}
+		} catch (IOException e) {
+			throw new ServiceException("Failed to write translation set CSV.", e);
+		}
+	}
+
+	private static void writeCsvDataRow(BufferedWriter writer, TranslationUnitRow row) throws IOException {
+		String conceptCode = row.getContext() != null ? row.getContext() : "";
+		String englishTerm = firstTerm(row.getSource());
+		List<String> targetTerms = row.getTarget() != null ? row.getTarget() : List.of();
+		String preferredTerm = targetTerms.isEmpty() ? "" : targetTerms.get(0);
+		String otherTerms = targetTerms.size() <= 1 ? "" : String.join("\n", targetTerms.subList(1, targetTerms.size()));
+		String statusLabel = TranslationStatusLabels.radioLabel(row.getStatus());
+		String url = conceptCode.isEmpty() ? "" : "https://snomed.info/id/" + conceptCode;
+		writeCsvLine(writer, conceptCode, englishTerm, preferredTerm, otherTerms, statusLabel, url);
+	}
+
+	private static String firstTerm(List<String> terms) {
+		return terms != null && !terms.isEmpty() ? terms.get(0) : "";
+	}
+
+	private static void writeCsvLine(BufferedWriter writer, String... fields) throws IOException {
+		for (int i = 0; i < fields.length; i++) {
+			if (i > 0) {
+				writer.write(',');
+			}
+			writer.write(escapeCsvField(fields[i]));
+		}
+		writer.newLine();
+	}
+
+	static String escapeCsvField(String value) {
+		if (value == null) {
+			return "";
+		}
+		boolean needsQuotes = value.indexOf(',') >= 0 || value.indexOf('"') >= 0 || value.indexOf('\n') >= 0
+				|| value.indexOf('\r') >= 0;
+		if (!needsQuotes) {
+			return value;
+		}
+		return "\"" + value.replace("\"", "\"\"") + "\"";
 	}
 }

@@ -254,6 +254,22 @@ export class SimplexService {
     );
   }
 
+  public downloadTranslationSetCsv(
+    edition: string,
+    refsetId: string,
+    label: string,
+    status?: string | null
+  ): Observable<Blob> {
+    let params = new HttpParams();
+    if (status) {
+      params = params.set('status', status);
+    }
+    const apiUrl = `api/${edition}/translations/${refsetId}/snolate-set/${label}/csv`;
+    return this.http.get(apiUrl, { params, responseType: 'blob' }).pipe(
+      catchError(this.handleError.bind(this))
+    );
+  }
+
   // Method to trigger file download in the browser
   public triggerDownload(file: Blob, filename: string): void {
     const url = window.URL.createObjectURL(file);

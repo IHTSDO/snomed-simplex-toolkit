@@ -15,6 +15,7 @@ import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialo
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
 import { EditTranslationSetDialogComponent } from '../edit-translation-set-dialog/edit-translation-set-dialog.component';
+import { DownloadTranslationSetDialogComponent } from '../download-translation-set-dialog/download-translation-set-dialog.component';
 import { LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
 import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, effectiveTranslationTermSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
@@ -417,6 +418,35 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 console.log('Export to Authoring Platform started:', result);
                 // Refresh members to show any changed translations (though they won't change yet as the task is starting)
                 this.getLabelSetMembers(target, false);
+            }
+        });
+    }
+
+    downloadTranslationSet(labelSet?: any): void {
+        const target = labelSet ?? this.selectedLabelSet;
+        if (!target) {
+            this.snackBar.open('Please select a translation set first.', 'Close', {
+                duration: 3000
+            });
+            return;
+        }
+        if (target.status !== 'READY') {
+            this.snackBar.open('File download is only available when the set status is READY.', 'Close', {
+                duration: 5000
+            });
+            return;
+        }
+
+        this.dialog.open(DownloadTranslationSetDialogComponent, {
+            width: '480px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                refsetId: target.refset ?? target.translationId,
+                label: target.label,
+                setName: target.name,
+                languageDialect: this.displayTranslationLanguageDialect(target.translationName),
+                statusCounts: target.statusCounts,
+                totalSize: target.size
             }
         });
     }

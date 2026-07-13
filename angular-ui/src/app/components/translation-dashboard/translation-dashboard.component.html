@@ -214,6 +214,11 @@
                                         Refresh concept selection (Translation Studio)
                                         <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
                                     </button>
+                                    <button mat-menu-item (click)="downloadTranslationSet()"
+                                            [disabled]="selectedLabelSet.status !== 'READY'">
+                                        <mat-icon class="large-icon">file_download</mat-icon>
+                                        File download
+                                    </button>
                                     <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
                                         <mat-icon class="large-icon">cancel</mat-icon>
                                         <span>Delete Set</span>
