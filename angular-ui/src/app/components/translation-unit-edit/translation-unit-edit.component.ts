@@ -34,6 +34,10 @@ import {
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
 import {mergeTranslationStudioQueryParams, parseTranslationEnglishSearch, parseTranslationTargetSearch, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
 import {
+	loadTranslationStudioHierarchyPreferences,
+	saveTranslationStudioHierarchyPreferences
+} from 'src/app/utils/translation-studio-hierarchy-preferences';
+import {
 	buildHierarchyDisplayRows,
 	PartialHierarchyNode,
 	PartialHierarchyRow
@@ -146,6 +150,10 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	}
 
 	ngOnInit(): void {
+		const hierarchyPrefs = loadTranslationStudioHierarchyPreferences();
+		this.showHierarchyTranslationTerms = hierarchyPrefs.showHierarchyTranslationTerms;
+		this.showFullPartialHierarchy = hierarchyPrefs.showFullPartialHierarchy;
+
 		this.formSyncSub = merge(
 			this.form.get('primaryTerm')!.valueChanges,
 			this.synonyms.valueChanges
@@ -377,9 +385,15 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		);
 	}
 
+	onHierarchyTranslationToggle(checked: boolean): void {
+		this.showHierarchyTranslationTerms = checked;
+		saveTranslationStudioHierarchyPreferences({ showHierarchyTranslationTerms: checked });
+	}
+
 	onFullHierarchyToggle(checked: boolean): void {
 		this.showFullPartialHierarchy = checked;
 		this.rebuildPartialHierarchyRows();
+		saveTranslationStudioHierarchyPreferences({ showFullPartialHierarchy: checked });
 	}
 
 	private fillSegmentConceptCacheFromRaw(rawConcepts: any[]): void {

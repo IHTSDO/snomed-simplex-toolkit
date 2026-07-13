@@ -89,7 +89,7 @@
 			<div *ngIf="!conceptDetailsLoading && partialHierarchyRows.length" class="partial-hierarchy__toggle">
 				<mat-slide-toggle
 					[checked]="showHierarchyTranslationTerms"
-					(change)="showHierarchyTranslationTerms = $event.checked"
+					(change)="onHierarchyTranslationToggle($event.checked)"
 					color="primary"
 				>
 					Translation
