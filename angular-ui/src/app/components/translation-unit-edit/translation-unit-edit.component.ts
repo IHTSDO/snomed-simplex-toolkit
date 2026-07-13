@@ -33,60 +33,11 @@ import {
 } from 'src/app/utils/translation-unit-form.helper';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
 import {mergeTranslationStudioQueryParams, parseTranslationEnglishSearch, parseTranslationTargetSearch, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
-
-/** Snowstorm {@code POST .../concepts/partial-hierarchy} node (see PartialHierarchyNode). */
-export interface PartialHierarchyNode {
-	code: string;
-	parents: string[] | null;
-	term: string | null;
-}
-
-export interface PartialHierarchyRow {
-	code: string;
-	term: string;
-	depth: number;
-}
-
-/**
- * Computes indent depth from parent links; list order matches Snowstorm (layer-sorted).
- */
-function buildPartialHierarchyRows(nodes: PartialHierarchyNode[]): PartialHierarchyRow[] {
-	if (!nodes.length) {
-		return [];
-	}
-	const nodeMap = new Map(nodes.map((n) => [n.code, n]));
-	const depthMemo = new Map<string, number>();
-
-	function depthOf(code: string, visiting: Set<string>): number {
-		if (depthMemo.has(code)) {
-			return depthMemo.get(code)!;
-		}
-		if (visiting.has(code)) {
-			return 0;
-		}
-		const n = nodeMap.get(code);
-		if (!n) {
-			return 0;
-		}
-		const ps = n.parents ?? [];
-		let d = 0;
-		visiting.add(code);
-		for (const p of ps) {
-			if (nodeMap.has(p)) {
-				d = Math.max(d, depthOf(p, visiting) + 1);
-			}
-		}
-		visiting.delete(code);
-		depthMemo.set(code, d);
-		return d;
-	}
-
-	return nodes.map((n) => ({
-		code: n.code,
-		term: (n.term != null && String(n.term).trim().length > 0 ? String(n.term).trim() : null) ?? n.code,
-		depth: depthOf(n.code, new Set())
-	}));
-}
+import {
+	buildHierarchyDisplayRows,
+	PartialHierarchyNode,
+	PartialHierarchyRow
+} from 'src/app/utils/partial-hierarchy.helper';
 
 @Component({
 	selector: 'app-translation-unit-edit',
@@ -154,11 +105,18 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	/** Inferred IS-A partial hierarchy for the current translation page concept ids (Snowstorm partial-hierarchy API). */
 	partialHierarchyRows: PartialHierarchyRow[] = [];
 
-	/** First target term per concept id on the current page slice (from API; live-updated for the open row from the form). */
-	private sliceFirstTargetTermByConceptId = new Map<string, string>();
+	/** Cached Snowstorm partial-hierarchy response for the current page slice (toggle rebuild without re-fetch). */
+	private lastPartialHierarchyNodes: PartialHierarchyNode[] = [];
+	private lastPartialHierarchyOrderInPage = new Map<string, number>();
 
 	/** When true, hierarchy list shows slice translations (primary term) instead of Snowstorm terms. */
 	showHierarchyTranslationTerms = false;
+
+	/** When true, show intermediate off-page nodes between the common ancestor and page concepts. */
+	showFullPartialHierarchy = false;
+
+	/** First target term per concept id on the current page slice (from API; live-updated for the open row from the form). */
+	private sliceFirstTargetTermByConceptId = new Map<string, string>();
 
 	constructor(
 		private fb: FormBuilder,
@@ -333,6 +291,8 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.loading = false;
 		if (row == null) {
 			this.partialHierarchyRows = [];
+			this.lastPartialHierarchyNodes = [];
+			this.lastPartialHierarchyOrderInPage.clear();
 			this.currentPageConceptIdSet.clear();
 			this.sliceFirstTargetTermByConceptId.clear();
 			return of(null);
@@ -391,10 +351,35 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 
 	/** True when showing translations but this concept has no primary target yet. */
 	hierarchyTermIsMissingTranslation(row: PartialHierarchyRow): boolean {
-		if (!this.showHierarchyTranslationTerms) {
+		if (!this.showHierarchyTranslationTerms || !row.onCurrentPage) {
 			return false;
 		}
 		return (this.sliceFirstTargetTermByConceptId.get(row.code) ?? '').trim().length === 0;
+	}
+
+	private buildOrderInPageFromResults(results: any[]): Map<string, number> {
+		const orderInPage = new Map<string, number>();
+		results.forEach((r, i) => {
+			const cid = r?.context != null ? String(r.context) : '';
+			if (cid.length > 0 && !orderInPage.has(cid)) {
+				orderInPage.set(cid, i);
+			}
+		});
+		return orderInPage;
+	}
+
+	private rebuildPartialHierarchyRows(): void {
+		this.partialHierarchyRows = buildHierarchyDisplayRows(
+			this.lastPartialHierarchyNodes,
+			this.currentPageConceptIdSet,
+			this.lastPartialHierarchyOrderInPage,
+			this.showFullPartialHierarchy
+		);
+	}
+
+	onFullHierarchyToggle(checked: boolean): void {
+		this.showFullPartialHierarchy = checked;
+		this.rebuildPartialHierarchyRows();
 	}
 
 	private fillSegmentConceptCacheFromRaw(rawConcepts: any[]): void {
@@ -466,6 +451,8 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 					this.segmentRawConceptById.clear();
 					this.segmentSnowstormCacheKey = segmentKey;
 					this.partialHierarchyRows = [];
+					this.lastPartialHierarchyNodes = [];
+					this.lastPartialHierarchyOrderInPage.clear();
 					this.currentPageConceptIdSet.clear();
 					this.sliceFirstTargetTermByConceptId.clear();
 					return of(undefined);
@@ -492,17 +479,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 						this.segmentSnowstormCacheKey = segmentKey;
 						this.fillSliceTranslationTermsFromResults(results);
 						this.syncSliceMapForCurrentConceptFromForm();
-						const sliceNodes = partial.filter((n) => this.currentPageConceptIdSet.has(n.code));
-						const rows = buildPartialHierarchyRows(sliceNodes);
-						const orderInPage = new Map<string, number>();
-						results.forEach((r, i) => {
-							const cid = r?.context != null ? String(r.context) : '';
-							if (cid.length > 0 && !orderInPage.has(cid)) {
-								orderInPage.set(cid, i);
-							}
-						});
-						rows.sort((a, b) => (orderInPage.get(a.code) ?? 0) - (orderInPage.get(b.code) ?? 0));
-						this.partialHierarchyRows = rows;
+						this.lastPartialHierarchyNodes = partial;
+						this.lastPartialHierarchyOrderInPage = this.buildOrderInPageFromResults(results);
+						this.rebuildPartialHierarchyRows();
 					}),
 					switchMap(() =>
 						this.segmentConceptContextById.has(this.conceptId)

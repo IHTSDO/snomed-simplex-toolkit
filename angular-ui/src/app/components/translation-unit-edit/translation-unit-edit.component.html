@@ -56,8 +56,13 @@
 	</div>
 
 	<div *ngIf="!loading" class="edit-layout">
-		<aside class="edit-layout__side edit-layout__side--left" aria-label="SNOMED hierarchy">
-			<h2 class="edit-layout__side-title">SNOMED hierarchy</h2>
+		<aside
+			class="edit-layout__side edit-layout__side--left"
+			[attr.aria-label]="showFullPartialHierarchy ? 'SNOMED hierarchy (all ancestors)' : 'SNOMED hierarchy (compact)'"
+		>
+			<h2 class="edit-layout__side-title">
+				{{ showFullPartialHierarchy ? 'SNOMED hierarchy (all ancestors)' : 'SNOMED hierarchy (compact)' }}
+			</h2>
 			<div *ngIf="conceptDetailsLoading" class="partial-hierarchy__loading">
 				<mat-spinner [diameter]="28"></mat-spinner>
 			</div>
@@ -66,6 +71,8 @@
 					*ngFor="let row of partialHierarchyRows"
 					class="partial-hierarchy__row"
 					[class.partial-hierarchy__row--current]="row.code === conceptId"
+					[class.partial-hierarchy__row--on-page]="row.onCurrentPage"
+					[class.partial-hierarchy__row--off-page]="!row.onCurrentPage"
 					[style.padding-left.rem]="0.6 + row.depth * 1.2"
 					role="listitem"
 				>
@@ -73,6 +80,8 @@
 					<span class="partial-hierarchy__dot" aria-hidden="true"></span>
 					<span
 						class="partial-hierarchy__term"
+						[class.partial-hierarchy__term--on-page]="row.onCurrentPage"
+						[class.partial-hierarchy__term--off-page]="!row.onCurrentPage"
 						[class.partial-hierarchy__term--untranslated]="hierarchyTermIsMissingTranslation(row)"
 					>{{ hierarchyTermDisplay(row) }}</span>
 				</li>
@@ -84,6 +93,13 @@
 					color="primary"
 				>
 					Translation
+				</mat-slide-toggle>
+				<mat-slide-toggle
+					[checked]="showFullPartialHierarchy"
+					(change)="onFullHierarchyToggle($event.checked)"
+					color="primary"
+				>
+					Full hierarchy
 				</mat-slide-toggle>
 			</div>
 			<p *ngIf="!conceptDetailsLoading && !partialHierarchyRows.length" class="partial-hierarchy__empty">

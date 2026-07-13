@@ -1,0 +1,957 @@
+[ {
+  "code" : "138875005",
+  "parents" : [ ],
+  "term" : "SNOMED CT Concept"
+}, {
+  "code" : "123037004",
+  "parents" : [ "138875005" ],
+  "term" : "Body structure"
+}, {
+  "code" : "442083009",
+  "parents" : [ "123037004" ],
+  "term" : "Anatomical or acquired body structure"
+}, {
+  "code" : "91723000",
+  "parents" : [ "442083009" ],
+  "term" : "Anatomical structure"
+}, {
+  "code" : "113343008",
+  "parents" : [ "91723000" ],
+  "term" : "Body organ structure"
+}, {
+  "code" : "52530000",
+  "parents" : [ "91723000" ],
+  "term" : "Body region structure"
+}, {
+  "code" : "91689009",
+  "parents" : [ "91723000" ],
+  "term" : "Body system structure"
+}, {
+  "code" : "362884007",
+  "parents" : [ "91723000" ],
+  "term" : "Gland structure"
+}, {
+  "code" : "91722005",
+  "parents" : [ "91723000" ],
+  "term" : "Physical anatomical entity"
+}, {
+  "code" : "57312000",
+  "parents" : [ "91723000" ],
+  "term" : "Sex structure"
+}, {
+  "code" : "699589007",
+  "parents" : [ "91723000" ],
+  "term" : "Structure of anatomical cluster"
+}, {
+  "code" : "38866009",
+  "parents" : [ "52530000" ],
+  "term" : "Body part structure"
+}, {
+  "code" : "416775004",
+  "parents" : [ "52530000" ],
+  "term" : "Chest, abdomen, and pelvis"
+}, {
+  "code" : "1086007",
+  "parents" : [ "57312000" ],
+  "term" : "Female structure"
+}, {
+  "code" : "10052007",
+  "parents" : [ "57312000" ],
+  "term" : "Male structure"
+}, {
+  "code" : "698967008",
+  "parents" : [ "91722005" ],
+  "term" : "Material anatomical entity"
+}, {
+  "code" : "416319003",
+  "parents" : [ "52530000" ],
+  "term" : "Neck, chest, abdomen, and pelvis"
+}, {
+  "code" : "91717005",
+  "parents" : [ "113343008" ],
+  "term" : "Organ part"
+}, {
+  "code" : "699590003",
+  "parents" : [ "699589007" ],
+  "term" : "Structure of anatomical compartment"
+}, {
+  "code" : "86762007",
+  "parents" : [ "91689009" ],
+  "term" : "Structure of digestive system"
+}, {
+  "code" : "113331007",
+  "parents" : [ "91689009" ],
+  "term" : "Structure of endocrine system"
+}, {
+  "code" : "423857001",
+  "parents" : [ "52530000" ],
+  "term" : "Structure of half of body lateral to midsagittal plane"
+}, {
+  "code" : "25087005",
+  "parents" : [ "91689009" ],
+  "term" : "Structure of nervous system"
+}, {
+  "code" : "20139000",
+  "parents" : [ "91689009" ],
+  "term" : "Structure of respiratory system"
+}, {
+  "code" : "714488006",
+  "parents" : [ "91689009" ],
+  "term" : "Structure of subdivision of organ system"
+}, {
+  "code" : "362937008",
+  "parents" : [ "113343008" ],
+  "term" : "Structure of viscus"
+}, {
+  "code" : "49596003",
+  "parents" : [ "86762007", "113343008" ],
+  "term" : "Digestive organ structure"
+}, {
+  "code" : "51289009",
+  "parents" : [ "86762007" ],
+  "term" : "Digestive tract structure"
+}, {
+  "code" : "387910009",
+  "parents" : [ "113331007", "362884007" ],
+  "term" : "Endocrine gland structure"
+}, {
+  "code" : "272625005",
+  "parents" : [ "113343008", "698967008" ],
+  "term" : "Entire body organ"
+}, {
+  "code" : "714645007",
+  "parents" : [ "362884007", "698967008" ],
+  "term" : "Entire gland"
+}, {
+  "code" : "91690000",
+  "parents" : [ "714488006" ],
+  "term" : "Entire subdivision of organ system"
+}, {
+  "code" : "66019005",
+  "parents" : [ "38866009", "423857001" ],
+  "term" : "Limb structure"
+}, {
+  "code" : "128263001",
+  "parents" : [ "38866009" ],
+  "term" : "Lower body structure"
+}, {
+  "code" : "400141005",
+  "parents" : [ "20139000" ],
+  "term" : "Lower respiratory system structure"
+}, {
+  "code" : "416152001",
+  "parents" : [ "416319003" ],
+  "term" : "Neck, chest and abdomen"
+}, {
+  "code" : "321667001",
+  "parents" : [ "20139000" ],
+  "term" : "Respiratory tract structure"
+}, {
+  "code" : "786857006",
+  "parents" : [ "86762007" ],
+  "term" : "Structure of intestine and/or mesentery"
+}, {
+  "code" : "31156008",
+  "parents" : [ "423857001" ],
+  "term" : "Structure of left half of body"
+}, {
+  "code" : "85421007",
+  "parents" : [ "423857001" ],
+  "term" : "Structure of right half of body"
+}, {
+  "code" : "1193638008",
+  "parents" : [ "25087005", "714488006" ],
+  "term" : "Structure of subdivision of nervous system"
+}, {
+  "code" : "22943007",
+  "parents" : [ "38866009" ],
+  "term" : "Trunk structure"
+}, {
+  "code" : "128262006",
+  "parents" : [ "38866009" ],
+  "term" : "Upper body structure"
+}, {
+  "code" : "416550000",
+  "parents" : [ "416152001", "416775004" ],
+  "term" : "Chest and abdomen"
+}, {
+  "code" : "119210004",
+  "parents" : [ "49596003", "91717005" ],
+  "term" : "Digestive organ part"
+}, {
+  "code" : "709519000",
+  "parents" : [ "51289009" ],
+  "term" : "Digestive tract part"
+}, {
+  "code" : "2861001",
+  "parents" : [ "272625005", "714645007" ],
+  "term" : "Entire gland (organ)"
+}, {
+  "code" : "120573002",
+  "parents" : [ "66019005" ],
+  "term" : "Limb part"
+}, {
+  "code" : "69548008",
+  "parents" : [ "128263001" ],
+  "term" : "Lower body part structure"
+}, {
+  "code" : "82094008",
+  "parents" : [ "321667001", "400141005" ],
+  "term" : "Lower respiratory tract structure"
+}, {
+  "code" : "417437006",
+  "parents" : [ "416152001" ],
+  "term" : "Neck and chest"
+}, {
+  "code" : "118969007",
+  "parents" : [ "20139000", "91690000" ],
+  "term" : "Respiratory system subdivision"
+}, {
+  "code" : "91829005",
+  "parents" : [ "22943007", "699590003" ],
+  "term" : "Structure of body cavity and/or content"
+}, {
+  "code" : "21483005",
+  "parents" : [ "1193638008" ],
+  "term" : "Structure of central nervous system"
+}, {
+  "code" : "420473002",
+  "parents" : [ "22943007" ],
+  "term" : "Structure of subregion of trunk"
+}, {
+  "code" : "70104002",
+  "parents" : [ "128262006" ],
+  "term" : "Upper body part structure"
+}, {
+  "code" : "53120007",
+  "parents" : [ "66019005" ],
+  "term" : "Upper limb structure"
+}, {
+  "code" : "818982008",
+  "parents" : [ "420473002" ],
+  "term" : "Abdominopelvic cross-sectional segment"
+}, {
+  "code" : "63337009",
+  "parents" : [ "69548008", "416775004", "420473002" ],
+  "term" : "Abdominopelvic segment of trunk"
+}, {
+  "code" : "119234009",
+  "parents" : [ "21483005" ],
+  "term" : "Central nervous system part"
+}, {
+  "code" : "1231522001",
+  "parents" : [ "69548008" ],
+  "term" : "Cross-sectional pelvis and/or lower limb"
+}, {
+  "code" : "816094009",
+  "parents" : [ "420473002" ],
+  "term" : "Cross-sectional thorax"
+}, {
+  "code" : "82680008",
+  "parents" : [ "120573002" ],
+  "term" : "Digit structure"
+}, {
+  "code" : "40818001",
+  "parents" : [ "2861001", "387910009" ],
+  "term" : "Entire endocrine gland"
+}, {
+  "code" : "122865005",
+  "parents" : [ "709519000" ],
+  "term" : "Gastrointestinal tract structure"
+}, {
+  "code" : "422697005",
+  "parents" : [ "420473002", "423857001" ],
+  "term" : "Structure of half of trunk lateral to midsagittal plane"
+}, {
+  "code" : "774007",
+  "parents" : [ "70104002" ],
+  "term" : "Structure of head and/or neck"
+}, {
+  "code" : "80768000",
+  "parents" : [ "31156008", "53120007" ],
+  "term" : "Structure of left upper limb"
+}, {
+  "code" : "714323000",
+  "parents" : [ "113343008", "118969007" ],
+  "term" : "Structure of organ in respiratory system"
+}, {
+  "code" : "6921000",
+  "parents" : [ "53120007", "85421007" ],
+  "term" : "Structure of right upper limb"
+}, {
+  "code" : "127868003",
+  "parents" : [ "709519000" ],
+  "term" : "Upper digestive tract structure"
+}, {
+  "code" : "120574008",
+  "parents" : [ "53120007", "70104002", "120573002" ],
+  "term" : "Upper limb part"
+}, {
+  "code" : "818983003",
+  "parents" : [ "63337009", "416550000", "818982008" ],
+  "term" : "Abdomen"
+}, {
+  "code" : "818985005",
+  "parents" : [ "63337009", "818982008" ],
+  "term" : "Abdomen proper segment of trunk"
+}, {
+  "code" : "389079005",
+  "parents" : [ "113343008", "119234009" ],
+  "term" : "Brain and spinal cord structure"
+}, {
+  "code" : "818981001",
+  "parents" : [ "818982008" ],
+  "term" : "Cross-sectional abdomen"
+}, {
+  "code" : "816092008",
+  "parents" : [ "63337009", "818982008", "1231522001" ],
+  "term" : "Cross-sectional pelvis"
+}, {
+  "code" : "69536005",
+  "parents" : [ "774007" ],
+  "term" : "Head structure"
+}, {
+  "code" : "5668004",
+  "parents" : [ "63337009", "122865005", "818982008" ],
+  "term" : "Lower gastrointestinal tract structure"
+}, {
+  "code" : "21514008",
+  "parents" : [ "63337009", "91689009" ],
+  "term" : "Structure of genitourinary system"
+}, {
+  "code" : "61379005",
+  "parents" : [ "31156008", "422697005" ],
+  "term" : "Structure of left side of trunk"
+}, {
+  "code" : "762211005",
+  "parents" : [ "80768000", "120574008" ],
+  "term" : "Structure of part of left upper limb"
+}, {
+  "code" : "762212003",
+  "parents" : [ "6921000", "120574008" ],
+  "term" : "Structure of part of right upper limb"
+}, {
+  "code" : "609617007",
+  "parents" : [ "63337009" ],
+  "term" : "Structure of pelvic segment of trunk"
+}, {
+  "code" : "127948008",
+  "parents" : [ "120574008" ],
+  "term" : "Structure of regional part of upper limb"
+}, {
+  "code" : "39132006",
+  "parents" : [ "85421007", "422697005" ],
+  "term" : "Structure of right side of trunk"
+}, {
+  "code" : "67734004",
+  "parents" : [ "70104002", "816094009" ],
+  "term" : "Thoracic segment of trunk"
+}, {
+  "code" : "62834003",
+  "parents" : [ "122865005", "127868003" ],
+  "term" : "Upper gastrointestinal tract structure"
+}, {
+  "code" : "818984009",
+  "parents" : [ "818983003", "818985005" ],
+  "term" : "Abdomen proper"
+}, {
+  "code" : "66014000",
+  "parents" : [ "1086007", "21514008" ],
+  "term" : "Female genitourinary system structure"
+}, {
+  "code" : "123850002",
+  "parents" : [ "69536005" ],
+  "term" : "Head part"
+}, {
+  "code" : "818986006",
+  "parents" : [ "91829005", "818983003" ],
+  "term" : "Intra-abdominopelvic structure"
+}, {
+  "code" : "372198002",
+  "parents" : [ "5668004", "119210004" ],
+  "term" : "Lower gastrointestinal tract part"
+}, {
+  "code" : "49917003",
+  "parents" : [ "10052007", "21514008" ],
+  "term" : "Male genitourinary system structure"
+}, {
+  "code" : "302185003",
+  "parents" : [ "62834003" ],
+  "term" : "Oesophageal and/or gastric structures"
+}, {
+  "code" : "12921003",
+  "parents" : [ "609617007", "816092008" ],
+  "term" : "Pelvic region"
+}, {
+  "code" : "38864007",
+  "parents" : [ "609617007", "816092008" ],
+  "term" : "Perineal structure"
+}, {
+  "code" : "896766000",
+  "parents" : [ "127948008" ],
+  "term" : "Structure of free upper limb"
+}, {
+  "code" : "699880003",
+  "parents" : [ "21514008", "714488006" ],
+  "term" : "Structure of genitourinary system subdivision"
+}, {
+  "code" : "819001005",
+  "parents" : [ "422697005", "818983003" ],
+  "term" : "Structure of lateral half of abdomen lateral to midsagittal plane"
+}, {
+  "code" : "699878009",
+  "parents" : [ "1086007", "609617007", "816092008" ],
+  "term" : "Structure of pelvic segment of trunk of female"
+}, {
+  "code" : "51185008",
+  "parents" : [ "67734004", "416550000", "417437006" ],
+  "term" : "Thoracic structure"
+}, {
+  "code" : "118973005",
+  "parents" : [ "91690000", "699880003" ],
+  "term" : "Entire subdivision of genitourinary system"
+}, {
+  "code" : "281501002",
+  "parents" : [ "49596003", "818986006" ],
+  "term" : "Intra-abdominal digestive structure"
+}, {
+  "code" : "818988007",
+  "parents" : [ "818984009", "818986006" ],
+  "term" : "Intra-abdominal proper structure"
+}, {
+  "code" : "1172989009",
+  "parents" : [ "12921003", "818986006" ],
+  "term" : "Intra-pelvic structure of pelvis"
+}, {
+  "code" : "128319008",
+  "parents" : [ "123850002", "699590003" ],
+  "term" : "Intracranial structure"
+}, {
+  "code" : "32849002",
+  "parents" : [ "49596003", "302185003", "362937008" ],
+  "term" : "Oesophageal structure"
+}, {
+  "code" : "818993005",
+  "parents" : [ "362937008", "818986006" ],
+  "term" : "Organ within abdominopelvic cavity"
+}, {
+  "code" : "82849001",
+  "parents" : [ "818986006" ],
+  "term" : "Retroperitoneal compartment structure"
+}, {
+  "code" : "245500007",
+  "parents" : [ "699880003" ],
+  "term" : "Structure of anatomical reproductive system"
+}, {
+  "code" : "736982006",
+  "parents" : [ "12921003", "699878009" ],
+  "term" : "Structure of female pelvis"
+}, {
+  "code" : "699881004",
+  "parents" : [ "699880003" ],
+  "term" : "Structure of genitourinary tract"
+}, {
+  "code" : "422614002",
+  "parents" : [ "51185008", "422697005" ],
+  "term" : "Structure of half of thorax lateral to midsagittal plane"
+}, {
+  "code" : "1204373005",
+  "parents" : [ "12921003", "61379005" ],
+  "term" : "Structure of left half of pelvis"
+}, {
+  "code" : "1204374004",
+  "parents" : [ "12921003", "39132006" ],
+  "term" : "Structure of right half of pelvis"
+}, {
+  "code" : "699593001",
+  "parents" : [ "51185008", "91829005" ],
+  "term" : "Structure of thoracic cavity and/or content"
+}, {
+  "code" : "714320002",
+  "parents" : [ "113343008", "699880003" ],
+  "term" : "Structure of urogenital organ"
+}, {
+  "code" : "67149001",
+  "parents" : [ "38864007" ],
+  "term" : "Structure of urogenital region of perineum"
+}, {
+  "code" : "307113009",
+  "parents" : [ "896766000" ],
+  "term" : "Structure of wrist and/or hand"
+}, {
+  "code" : "80266002",
+  "parents" : [ "12921003" ],
+  "term" : "True pelvis"
+}, {
+  "code" : "122489005",
+  "parents" : [ "699880003" ],
+  "term" : "Urinary system structure"
+}, {
+  "code" : "12738006",
+  "parents" : [ "128319008", "389079005" ],
+  "term" : "Brain structure"
+}, {
+  "code" : "71934003",
+  "parents" : [ "245500007" ],
+  "term" : "Genital structure"
+}, {
+  "code" : "85562004",
+  "parents" : [ "307113009" ],
+  "term" : "Hand structure"
+}, {
+  "code" : "113276009",
+  "parents" : [ "122865005", "281501002", "786857006", "818993005" ],
+  "term" : "Intestinal structure"
+}, {
+  "code" : "826984001",
+  "parents" : [ "80266002", "1172989009" ],
+  "term" : "Intra-pelvic structure of true pelvis"
+}, {
+  "code" : "40768004",
+  "parents" : [ "61379005", "422614002" ],
+  "term" : "Left thorax structure"
+}, {
+  "code" : "303270005",
+  "parents" : [ "281501002", "818981001" ],
+  "term" : "Liver and/or biliary structure"
+}, {
+  "code" : "59183004",
+  "parents" : [ "699881004" ],
+  "term" : "Lower genitourinary tract structure"
+}, {
+  "code" : "251007",
+  "parents" : [ "422614002" ],
+  "term" : "Pectoral region structure"
+}, {
+  "code" : "51872008",
+  "parents" : [ "39132006", "422614002" ],
+  "term" : "Right thorax structure"
+}, {
+  "code" : "302184004",
+  "parents" : [ "62834003", "281501002" ],
+  "term" : "Stomach and/or duodenal structures"
+}, {
+  "code" : "699879001",
+  "parents" : [ "66014000", "245500007" ],
+  "term" : "Structure of female genital system subdivision"
+}, {
+  "code" : "699884007",
+  "parents" : [ "66014000", "699881004" ],
+  "term" : "Structure of female genitourinary tract"
+}, {
+  "code" : "699882006",
+  "parents" : [ "49917003", "245500007" ],
+  "term" : "Structure of male genital system subdivision"
+}, {
+  "code" : "699883001",
+  "parents" : [ "49917003", "699881004" ],
+  "term" : "Structure of male genitourinary tract"
+}, {
+  "code" : "699602007",
+  "parents" : [ "818981001", "818988007", "818993005" ],
+  "term" : "Structure of organ within abdomen proper cavity"
+}, {
+  "code" : "699594007",
+  "parents" : [ "422614002", "699593001" ],
+  "term" : "Structure of pulmopleural compartment"
+}, {
+  "code" : "27832009",
+  "parents" : [ "362937008", "699593001" ],
+  "term" : "Structure of thoracic viscus"
+}, {
+  "code" : "45308003",
+  "parents" : [ "699881004" ],
+  "term" : "Upper genitourinary tract structure"
+}, {
+  "code" : "118972000",
+  "parents" : [ "118973005", "122489005" ],
+  "term" : "Urinary system subdivision"
+}, {
+  "code" : "34707002",
+  "parents" : [ "303270005" ],
+  "term" : "Biliary tract structure"
+}, {
+  "code" : "119235005",
+  "parents" : [ "12738006", "91717005" ],
+  "term" : "Brain part"
+}, {
+  "code" : "77142006",
+  "parents" : [ "71934003", "609617007" ],
+  "term" : "External genitalia structure"
+}, {
+  "code" : "53065001",
+  "parents" : [ "71934003", "699878009", "699879001" ],
+  "term" : "Female genital structure"
+}, {
+  "code" : "43174007",
+  "parents" : [ "71934003", "113343008", "422697005" ],
+  "term" : "Gonadal structure"
+}, {
+  "code" : "120577001",
+  "parents" : [ "85562004" ],
+  "term" : "Hand part"
+}, {
+  "code" : "310535003",
+  "parents" : [ "71934003", "818986006" ],
+  "term" : "Intra-abdominal genital structure"
+}, {
+  "code" : "10200004",
+  "parents" : [ "303270005", "699602007" ],
+  "term" : "Liver structure"
+}, {
+  "code" : "62816002",
+  "parents" : [ "59183004", "699883001" ],
+  "term" : "Lower male genitourinary tract structure"
+}, {
+  "code" : "39607008",
+  "parents" : [ "27832009", "82094008", "699594007", "714323000" ],
+  "term" : "Lung structure"
+}, {
+  "code" : "90264002",
+  "parents" : [ "71934003", "609617007", "699882006" ],
+  "term" : "Male genital structure"
+}, {
+  "code" : "69695003",
+  "parents" : [ "302184004", "302185003", "699602007" ],
+  "term" : "Stomach structure"
+}, {
+  "code" : "700037000",
+  "parents" : [ "71934003", "714320002" ],
+  "term" : "Structure of genital organ"
+}, {
+  "code" : "281901006",
+  "parents" : [ "118972000", "818986006" ],
+  "term" : "Structure of intra-abdominal urinary tract"
+}, {
+  "code" : "14742008",
+  "parents" : [ "113276009", "372198002" ],
+  "term" : "Structure of large intestine"
+}, {
+  "code" : "85151006",
+  "parents" : [ "85562004", "762211005" ],
+  "term" : "Structure of left hand"
+}, {
+  "code" : "53851002",
+  "parents" : [ "59183004", "699884007" ],
+  "term" : "Structure of lower female genitourinary tract"
+}, {
+  "code" : "32655009",
+  "parents" : [ "251007" ],
+  "term" : "Structure of mammary region"
+}, {
+  "code" : "818972007",
+  "parents" : [ "818993005", "826984001" ],
+  "term" : "Structure of organ within cavity of true pelvis"
+}, {
+  "code" : "78791008",
+  "parents" : [ "85562004", "762212003" ],
+  "term" : "Structure of right hand"
+}, {
+  "code" : "297935002",
+  "parents" : [ "699879001" ],
+  "term" : "Structure of upper female genital system"
+}, {
+  "code" : "27436002",
+  "parents" : [ "45308003", "699884007" ],
+  "term" : "Structure of upper female genitourinary tract"
+}, {
+  "code" : "714321003",
+  "parents" : [ "118972000", "714320002" ],
+  "term" : "Structure of urinary organ"
+}, {
+  "code" : "431938005",
+  "parents" : [ "118972000", "699881004" ],
+  "term" : "Structure of urinary tract proper"
+}, {
+  "code" : "384763002",
+  "parents" : [ "119235005" ],
+  "term" : "Brain region"
+}, {
+  "code" : "76752008",
+  "parents" : [ "32655009", "113343008" ],
+  "term" : "Breast structure"
+}, {
+  "code" : "1340085003",
+  "parents" : [ "34707002" ],
+  "term" : "Extrahepatic biliary tract"
+}, {
+  "code" : "127882003",
+  "parents" : [ "53065001", "700037000" ],
+  "term" : "Female genital organ structure"
+}, {
+  "code" : "413344004",
+  "parents" : [ "53065001", "699884007" ],
+  "term" : "Female genital tract structure"
+}, {
+  "code" : "119214008",
+  "parents" : [ "14742008" ],
+  "term" : "Large intestine part"
+}, {
+  "code" : "44029006",
+  "parents" : [ "39607008", "40768004" ],
+  "term" : "Left lung structure"
+}, {
+  "code" : "58590008",
+  "parents" : [ "119235005" ],
+  "term" : "Limbic system structure"
+}, {
+  "code" : "19787009",
+  "parents" : [ "59183004", "431938005" ],
+  "term" : "Lower urinary tract structure"
+}, {
+  "code" : "127903009",
+  "parents" : [ "90264002", "700037000" ],
+  "term" : "Male genital organ structure"
+}, {
+  "code" : "127950000",
+  "parents" : [ "120577001" ],
+  "term" : "Region of hand"
+}, {
+  "code" : "3341006",
+  "parents" : [ "39607008", "51872008" ],
+  "term" : "Right lung structure"
+}, {
+  "code" : "1348248003",
+  "parents" : [ "609617007", "700037000" ],
+  "term" : "Structure of internal genitalia"
+}, {
+  "code" : "1052333006",
+  "parents" : [ "43174007", "61379005" ],
+  "term" : "Structure of left gonad"
+}, {
+  "code" : "297936001",
+  "parents" : [ "53851002", "699879001" ],
+  "term" : "Structure of lower female genital tract"
+}, {
+  "code" : "895475009",
+  "parents" : [ "85151006", "120577001" ],
+  "term" : "Structure of part of left hand"
+}, {
+  "code" : "895476005",
+  "parents" : [ "78791008", "120577001" ],
+  "term" : "Structure of part of right hand"
+}, {
+  "code" : "82568006",
+  "parents" : [ "310535003", "826984001" ],
+  "term" : "Structure of pelvic genital system"
+}, {
+  "code" : "1052334000",
+  "parents" : [ "39132006", "43174007" ],
+  "term" : "Structure of right gonad"
+}, {
+  "code" : "304582006",
+  "parents" : [ "45308003", "281901006", "819001005" ],
+  "term" : "Structure of upper urinary tract"
+}, {
+  "code" : "281904003",
+  "parents" : [ "281901006", "431938005", "826984001" ],
+  "term" : "Structure of urinary tract in pelvic cavity"
+}, {
+  "code" : "125685002",
+  "parents" : [ "82680008", "127950000" ],
+  "term" : "Digit of hand structure"
+}, {
+  "code" : "119223006",
+  "parents" : [ "91717005", "127882003" ],
+  "term" : "Female genital organ part"
+}, {
+  "code" : "28231008",
+  "parents" : [ "699602007", "1340085003" ],
+  "term" : "Gallbladder structure"
+}, {
+  "code" : "64033007",
+  "parents" : [ "82849001", "304582006", "699602007", "714321003" ],
+  "term" : "Kidney structure"
+}, {
+  "code" : "80248007",
+  "parents" : [ "40768004", "76752008" ],
+  "term" : "Left breast structure"
+}, {
+  "code" : "90418005",
+  "parents" : [ "67149001", "77142006", "127903009" ],
+  "term" : "Male external genitalia structure"
+}, {
+  "code" : "38242008",
+  "parents" : [ "127903009", "1348248003" ],
+  "term" : "Male internal genitalia structure"
+}, {
+  "code" : "245424001",
+  "parents" : [ "119214008" ],
+  "term" : "Region of large intestine"
+}, {
+  "code" : "73056007",
+  "parents" : [ "51872008", "76752008" ],
+  "term" : "Right breast structure"
+}, {
+  "code" : "297184006",
+  "parents" : [ "127903009" ],
+  "term" : "Scrotal and testis structures"
+}, {
+  "code" : "281906001",
+  "parents" : [ "82568006", "699879001" ],
+  "term" : "Structure of female genital system in pelvic cavity"
+}, {
+  "code" : "699886009",
+  "parents" : [ "127882003", "736982006", "1348248003" ],
+  "term" : "Structure of female internal genital organ"
+}, {
+  "code" : "303409005",
+  "parents" : [ "19787009" ],
+  "term" : "Structure of urinary bladder and outflow"
+}, {
+  "code" : "222036002",
+  "parents" : [ "384763002" ],
+  "term" : "Supratentorial brain"
+}, {
+  "code" : "1285733009",
+  "parents" : [ "245424001" ],
+  "term" : "Colorectal structure"
+}, {
+  "code" : "7569003",
+  "parents" : [ "125685002" ],
+  "term" : "Finger structure"
+}, {
+  "code" : "18639004",
+  "parents" : [ "61379005", "64033007" ],
+  "term" : "Left kidney structure"
+}, {
+  "code" : "18911002",
+  "parents" : [ "62816002", "90418005" ],
+  "term" : "Penile structure"
+}, {
+  "code" : "359989001",
+  "parents" : [ "38242008", "62816002" ],
+  "term" : "Prostate and vas deferens structures"
+}, {
+  "code" : "9846003",
+  "parents" : [ "39132006", "64033007" ],
+  "term" : "Right kidney structure"
+}, {
+  "code" : "722785006",
+  "parents" : [ "125685002", "895475009" ],
+  "term" : "Structure of digit of left hand"
+}, {
+  "code" : "722786007",
+  "parents" : [ "125685002", "895476005" ],
+  "term" : "Structure of digit of right hand"
+}, {
+  "code" : "281905002",
+  "parents" : [ "38242008", "82568006", "818972007" ],
+  "term" : "Structure of male pelvic genitalia"
+}, {
+  "code" : "23043003",
+  "parents" : [ "281906001", "297935002", "819001005" ],
+  "term" : "Structure of uterine adnexa"
+}, {
+  "code" : "119243000",
+  "parents" : [ "222036002" ],
+  "term" : "Supratentorial brain part"
+}, {
+  "code" : "40689003",
+  "parents" : [ "38242008", "43174007", "297184006" ],
+  "term" : "Testis structure"
+}, {
+  "code" : "89837001",
+  "parents" : [ "281904003", "303409005", "714321003", "818972007" ],
+  "term" : "Urinary bladder structure"
+}, {
+  "code" : "35039007",
+  "parents" : [ "281906001", "413344004", "699886009", "818972007" ],
+  "term" : "Uterine structure"
+}, {
+  "code" : "76784001",
+  "parents" : [ "297936001", "413344004", "699886009" ],
+  "term" : "Vaginal structure"
+}, {
+  "code" : "83678007",
+  "parents" : [ "119243000" ],
+  "term" : "Cerebrum"
+}, {
+  "code" : "71854001",
+  "parents" : [ "1285733009" ],
+  "term" : "Colon structure"
+}, {
+  "code" : "110635008",
+  "parents" : [ "23043003", "1204373005" ],
+  "term" : "Left uterine adnexa"
+}, {
+  "code" : "302696005",
+  "parents" : [ "23043003" ],
+  "term" : "Ovary and/or broad ligament structures"
+}, {
+  "code" : "306717007",
+  "parents" : [ "62816002", "281905002" ],
+  "term" : "Prostatic and/or seminal vesicle structures"
+}, {
+  "code" : "110634007",
+  "parents" : [ "23043003", "1204374004" ],
+  "term" : "Right uterine adnexa"
+}, {
+  "code" : "70327001",
+  "parents" : [ "7569003" ],
+  "term" : "Structure of all fingers"
+}, {
+  "code" : "719357006",
+  "parents" : [ "7569003", "722785006" ],
+  "term" : "Structure of finger of left hand"
+}, {
+  "code" : "719358001",
+  "parents" : [ "7569003", "722786007" ],
+  "term" : "Structure of finger of right hand"
+}, {
+  "code" : "119225004",
+  "parents" : [ "35039007", "119223006" ],
+  "term" : "Uterus part"
+}, {
+  "code" : "71252005",
+  "parents" : [ "119225004", "297936001" ],
+  "term" : "Cervix uteri structure"
+}, {
+  "code" : "15497006",
+  "parents" : [ "27436002", "43174007", "113331007", "302696005", "413344004", "699886009", "818972007" ],
+  "term" : "Ovarian structure"
+}, {
+  "code" : "41216001",
+  "parents" : [ "306717007", "359989001" ],
+  "term" : "Prostate"
+}, {
+  "code" : "786841006",
+  "parents" : [ "70327001", "719357006" ],
+  "term" : "Structure of all fingers of left hand"
+}, {
+  "code" : "786842004",
+  "parents" : [ "70327001", "719358001" ],
+  "term" : "Structure of all fingers of right hand"
+}, {
+  "code" : "87563008",
+  "parents" : [ "83678007" ],
+  "term" : "Structure of diencephalon"
+}, {
+  "code" : "119264001",
+  "parents" : [ "87563008" ],
+  "term" : "Diencephalon part"
+}, {
+  "code" : "43981004",
+  "parents" : [ "15497006", "110635008", "1052333006" ],
+  "term" : "Structure of left ovary"
+}, {
+  "code" : "20837000",
+  "parents" : [ "15497006", "110634007", "1052334000" ],
+  "term" : "Structure of right ovary"
+}, {
+  "code" : "67923007",
+  "parents" : [ "58590008", "119264001" ],
+  "term" : "Hypothalamic structure"
+}, {
+  "code" : "297260006",
+  "parents" : [ "119264001", "387910009" ],
+  "term" : "Pituitary and/or pineal structures"
+}, {
+  "code" : "56329008",
+  "parents" : [ "297260006" ],
+  "term" : "Pituitary structure"
+}, {
+  "code" : "181125003",
+  "parents" : [ "40818001", "56329008" ],
+  "term" : "Entire pituitary gland"
+} ]
