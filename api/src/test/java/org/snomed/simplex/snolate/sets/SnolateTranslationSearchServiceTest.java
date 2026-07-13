@@ -55,6 +55,17 @@ class SnolateTranslationSearchServiceTest {
 	}
 
 	@Test
+	void normalizeOptionalConceptCodeSearch_detectsWholeCodeOrRejectsInvalidNumeric() {
+		assertThat(SnolateTranslationSearchService.normalizeOptionalConceptCodeSearch(null)).isNull();
+		assertThat(SnolateTranslationSearchService.normalizeOptionalConceptCodeSearch("asthma")).isNull();
+		assertThat(SnolateTranslationSearchService.normalizeOptionalConceptCodeSearch("66379009x")).isNull();
+		assertThat(SnolateTranslationSearchService.normalizeOptionalConceptCodeSearch("1")).isEmpty();
+		assertThat(SnolateTranslationSearchService.normalizeOptionalConceptCodeSearch("66379009")).isEqualTo("66379009");
+		assertThat(SnolateTranslationSearchService.normalizeOptionalConceptCodeSearch(" 66379009 ")).isEqualTo("66379009");
+		assertThat(SnolateTranslationSearchService.normalizeOptionalConceptCodeSearch("1234567890123456789")).isEmpty();
+	}
+
+	@Test
 	void pageUnitsInSet_returnsEmptyPageWhenEnglishCodesFilterIsEmpty() throws ServiceExceptionWithStatusCode {
 		Pageable pageable = PageRequest.of(0, 25, Sort.by("statusSort", "order", "code"));
 

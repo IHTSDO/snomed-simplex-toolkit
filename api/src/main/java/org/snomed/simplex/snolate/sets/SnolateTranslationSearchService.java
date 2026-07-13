@@ -213,6 +213,8 @@ public class SnolateTranslationSearchService {
 
 	private static final int TERM_SEARCH_MIN_LENGTH = 2;
 
+	private static final int CONCEPT_CODE_MAX_LENGTH = 18;
+
 	public static String normalizeOptionalSearchTerm(String term) {
 		if (term == null) {
 			return null;
@@ -220,6 +222,27 @@ public class SnolateTranslationSearchService {
 		String trimmed = term.trim();
 		if (trimmed.length() < TERM_SEARCH_MIN_LENGTH) {
 			return null;
+		}
+		return trimmed;
+	}
+
+	/**
+	 * Detects English-search input that should filter by whole concept {@code code} (digits only).
+	 *
+	 * @return {@code null} when {@code term} is not an all-digit string (caller should use term search);
+	 *         empty string when digits-only but length is outside {@value #TERM_SEARCH_MIN_LENGTH}–{@value #CONCEPT_CODE_MAX_LENGTH}
+	 *         (caller should return empty results); otherwise the trimmed concept code
+	 */
+	public static String normalizeOptionalConceptCodeSearch(String term) {
+		if (term == null) {
+			return null;
+		}
+		String trimmed = term.trim();
+		if (!trimmed.matches("\\d+")) {
+			return null;
+		}
+		if (trimmed.length() < TERM_SEARCH_MIN_LENGTH || trimmed.length() > CONCEPT_CODE_MAX_LENGTH) {
+			return "";
 		}
 		return trimmed;
 	}

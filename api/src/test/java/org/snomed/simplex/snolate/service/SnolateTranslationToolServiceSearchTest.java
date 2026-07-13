@@ -106,6 +106,47 @@ class SnolateTranslationToolServiceSearchTest {
 	}
 
 	@Test
+	void getRows_withConceptCodeSearch_usesExactCodeNotTermScan() throws ServiceExceptionWithStatusCode {
+		when(translationSearchService.pageUnitsInSet(eq(translationSet.getCompositeSetCode()),
+				eq(translationSet.getLanguageCodeWithRefsetId()), any(Pageable.class), isNull(), eq(List.of("66379009")),
+				isNull()))
+				.thenReturn(pageOf(unit("66379009", List.of("asma"))));
+		when(translationSourceRepository.findAllById(List.of("66379009")))
+				.thenReturn(List.of(new TranslationSource("66379009", "Asthma", 0)));
+
+		TranslationUnitPage<TranslationUnitRow> result = service.getRows(translationSet, 0, 25, null, "66379009", null);
+
+		assertThat(result.results()).hasSize(1);
+		assertThat(result.results().get(0).getContext()).isEqualTo("66379009");
+		verify(translationSearchService, never()).findSourceCodesByTermSubstring(any());
+	}
+
+	@Test
+	void getRows_withInvalidConceptCodeLength_returnsEmptyWithoutSearch() throws ServiceExceptionWithStatusCode {
+		TranslationUnitPage<TranslationUnitRow> result = service.getRows(translationSet, 0, 25, null,
+				"1234567890123456789", null);
+
+		assertThat(result.count()).isZero();
+		assertThat(result.results()).isEmpty();
+		verify(translationSearchService, never()).findSourceCodesByTermSubstring(any());
+		verify(translationSearchService, never()).pageUnitsInSet(any(), any(), any(), any(), any(), any());
+	}
+
+	@Test
+	void getRows_withConceptCodeNoMatch_returnsEmpty() throws ServiceExceptionWithStatusCode {
+		when(translationSearchService.pageUnitsInSet(eq(translationSet.getCompositeSetCode()),
+				eq(translationSet.getLanguageCodeWithRefsetId()), any(Pageable.class), isNull(), eq(List.of("99999999")),
+				isNull()))
+				.thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 25), 0));
+
+		TranslationUnitPage<TranslationUnitRow> result = service.getRows(translationSet, 0, 25, null, "99999999", null);
+
+		assertThat(result.count()).isZero();
+		assertThat(result.results()).isEmpty();
+		verify(translationSearchService, never()).findSourceCodesByTermSubstring(any());
+	}
+
+	@Test
 	void getRows_withTargetAndStatusFiltersPassesBothToSearchService() throws ServiceExceptionWithStatusCode {
 		ArgumentCaptor<Collection<String>> englishCodesCaptor = ArgumentCaptor.forClass(Collection.class);
 		when(translationSearchService.pageUnitsInSet(eq(translationSet.getCompositeSetCode()),

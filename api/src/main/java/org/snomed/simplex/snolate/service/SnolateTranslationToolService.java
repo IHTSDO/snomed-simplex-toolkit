@@ -128,7 +128,15 @@ public class SnolateTranslationToolService {
 		Collection<String> englishConceptCodes = null;
 		String trimmedEnglish = SnolateTranslationSearchService.normalizeOptionalSearchTerm(englishSearch);
 		if (trimmedEnglish != null) {
-			englishConceptCodes = translationSearchService.findSourceCodesByTermSubstring(trimmedEnglish);
+			String conceptCode = SnolateTranslationSearchService.normalizeOptionalConceptCodeSearch(trimmedEnglish);
+			if (conceptCode != null) {
+				if (conceptCode.isEmpty()) {
+					return new TranslationUnitPage<TranslationUnitRow>(0, null, null, List.of()).withoutPagination();
+				}
+				englishConceptCodes = List.of(conceptCode);
+			} else {
+				englishConceptCodes = translationSearchService.findSourceCodesByTermSubstring(trimmedEnglish);
+			}
 		}
 		String trimmedTarget = SnolateTranslationSearchService.normalizeOptionalSearchTerm(targetSearch);
 		Page<TranslationUnit> pageResult = translationSearchService.pageUnitsInSet(setCode, lang,
