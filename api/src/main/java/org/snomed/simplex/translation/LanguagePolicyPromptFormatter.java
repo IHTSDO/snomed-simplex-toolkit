@@ -12,10 +12,12 @@ import org.snomed.simplex.snolate.service.LanguagePolicyQuestionnaireService;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Component
 public class LanguagePolicyPromptFormatter {
@@ -39,8 +41,12 @@ public class LanguagePolicyPromptFormatter {
 
 		List<String> lines = new ArrayList<>();
 		Map<String, String> items = policy.getPolicyItems();
+		Set<String> selectedRules = resolveSelectedRules(policy);
 		for (LanguagePolicySection section : questionnaire.sections()) {
 			for (LanguagePolicyQuestion question : section.questions()) {
+				if (!selectedRules.isEmpty() && !selectedRules.contains(question.id())) {
+					continue;
+				}
 				appendQuestionLines(lines, question, items);
 			}
 		}
@@ -48,6 +54,14 @@ public class LanguagePolicyPromptFormatter {
 			return "";
 		}
 		return "Language policy:\n" + String.join("\n", lines);
+	}
+
+	private Set<String> resolveSelectedRules(LanguageTranslationPolicy policy) {
+		List<String> selectedRules = policy.getSelectedRules();
+		if (selectedRules == null || selectedRules.isEmpty()) {
+			return Set.of();
+		}
+		return new HashSet<>(selectedRules);
 	}
 
 	private void appendQuestionLines(List<String> lines, LanguagePolicyQuestion question, Map<String, String> items) {

@@ -2,17 +2,18 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatRadioModule } from '@angular/material/radio';
-import { MatStepperModule } from '@angular/material/stepper';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import {
+	deriveSelectedRulesFromPolicyItems,
 	emptyLanguageTranslationPolicy,
 	initializeKeyValueTables,
-	isPolicyComplete,
+	isPolicyValid,
 	LanguagePolicyQuestion,
 	LanguagePolicyQuestionnaire,
 	LanguageTranslationPolicy,
@@ -29,10 +30,10 @@ import {
 		CommonModule,
 		FormsModule,
 		MatButtonModule,
+		MatCheckboxModule,
 		MatFormFieldModule,
 		MatInputModule,
 		MatRadioModule,
-		MatStepperModule,
 		MatProgressSpinnerModule,
 		MatSnackBarModule
 	],
@@ -52,6 +53,7 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 
 	questionnaire: LanguagePolicyQuestionnaire | null = null;
 	policy: LanguageTranslationPolicy = emptyLanguageTranslationPolicy('');
+	selectedRules = new Set<string>();
 	saving = false;
 	loading = false;
 
@@ -109,6 +111,23 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 		this.policy.policyItems = { ...this.policy.policyItems, ...loaded.policyItems };
 		if (this.questionnaire) {
 			initializeKeyValueTables(this.questionnaire, this.policy.policyItems);
+			this.selectedRules = new Set(
+				loaded.selectedRules?.length
+					? loaded.selectedRules
+					: deriveSelectedRulesFromPolicyItems(this.questionnaire, loaded.policyItems)
+			);
+		}
+	}
+
+	isRuleSelected(questionId: string): boolean {
+		return this.selectedRules.has(questionId);
+	}
+
+	setRuleSelected(questionId: string, selected: boolean): void {
+		if (selected) {
+			this.selectedRules.add(questionId);
+		} else {
+			this.selectedRules.delete(questionId);
 		}
 	}
 
@@ -117,11 +136,12 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 	}
 
 	onSave(): void {
-		if (!this.questionnaire || !this.isComplete()) {
-			this.snackBar.open('Please answer all required questions before saving.', 'Close', { duration: 4000 });
+		if (!this.questionnaire || !this.isValid()) {
+			this.snackBar.open('Answer each included rule before saving.', 'Close', { duration: 4000 });
 			return;
 		}
 		this.saving = true;
+		this.policy.selectedRules = [...this.selectedRules];
 		this.simplexService.saveLanguagePolicy(this.edition, this.refsetId, policyToRequest(this.policy)).subscribe({
 			next: (saved) => {
 				this.saving = false;
@@ -134,8 +154,10 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 		});
 	}
 
-	isComplete(): boolean {
-		return this.questionnaire ? isPolicyComplete(this.questionnaire, this.policy.policyItems) : false;
+	isValid(): boolean {
+		return this.questionnaire
+			? isPolicyValid(this.questionnaire, this.policy.policyItems, [...this.selectedRules])
+			: false;
 	}
 
 	getKeyValueTable(question: LanguagePolicyQuestion): Record<string, string> {

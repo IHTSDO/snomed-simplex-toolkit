@@ -57,7 +57,7 @@ public class LanguageTranslationPolicyService {
 		String version = Strings.isNullOrEmpty(request.questionnaireVersion())
 				? questionnaireService.getCurrentVersion()
 				: request.questionnaireVersion();
-		questionnaireService.validatePolicyItems(version, request.policyItems());
+		questionnaireService.validatePolicyItems(version, request.policyItems(), request.selectedRules());
 
 		RefsetMetadata metadata = resolveRefsetMetadata(codeSystem, refsetId);
 
@@ -74,6 +74,7 @@ public class LanguageTranslationPolicyService {
 		policy.setDisplayName(metadata.displayName());
 		policy.setQuestionnaireVersion(version);
 		policy.setPolicyItems(request.policyItems());
+		policy.setSelectedRules(request.selectedRules());
 		policy.setLastModified(now);
 		return policyRepository.save(policy);
 	}

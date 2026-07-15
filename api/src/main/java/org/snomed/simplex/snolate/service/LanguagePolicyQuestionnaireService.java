@@ -14,10 +14,12 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class LanguagePolicyQuestionnaireService {
@@ -49,29 +51,43 @@ public class LanguagePolicyQuestionnaireService {
 		return questionnaire.version();
 	}
 
-	public void validatePolicyItems(String version, Map<String, String> items) throws ServiceExceptionWithStatusCode {
+	public void validatePolicyItems(String version, Map<String, String> items, List<String> selectedRules)
+			throws ServiceExceptionWithStatusCode {
 		String resolvedVersion = Strings.isNullOrEmpty(version) ? getCurrentVersion() : version;
 		if (!getCurrentVersion().equals(resolvedVersion)) {
 			throw new ServiceExceptionWithStatusCode("Unsupported questionnaire version: " + resolvedVersion, HttpStatus.BAD_REQUEST);
+		}
+		if (selectedRules == null || selectedRules.isEmpty()) {
+			return;
 		}
 		if (items == null || items.isEmpty()) {
 			throw new ServiceExceptionWithStatusCode("Language policy items are required.", HttpStatus.BAD_REQUEST);
 		}
 
+		Set<String> validQuestionIds = new HashSet<>();
+		for (LanguagePolicyQuestion question : allQuestions()) {
+			validQuestionIds.add(question.id());
+		}
+		for (String selectedRule : selectedRules) {
+			if (!validQuestionIds.contains(selectedRule)) {
+				throw new ServiceExceptionWithStatusCode("Unknown selected rule: " + selectedRule, HttpStatus.BAD_REQUEST);
+			}
+		}
+
+		Set<String> selectedRuleSet = new HashSet<>(selectedRules);
 		for (LanguagePolicySection section : questionnaire.sections()) {
 			for (LanguagePolicyQuestion question : section.questions()) {
-				validateQuestion(question, items);
+				if (selectedRuleSet.contains(question.id())) {
+					validateQuestion(question, items);
+				}
 			}
 		}
 	}
 
 	private void validateQuestion(LanguagePolicyQuestion question, Map<String, String> items) throws ServiceExceptionWithStatusCode {
 		String answer = items.get(question.id());
-		if (question.required() && Strings.isNullOrEmpty(answer)) {
-			throw new ServiceExceptionWithStatusCode("Required question not answered: " + question.title(), HttpStatus.BAD_REQUEST);
-		}
 		if (Strings.isNullOrEmpty(answer)) {
-			return;
+			throw new ServiceExceptionWithStatusCode("Selected question not answered: " + question.title(), HttpStatus.BAD_REQUEST);
 		}
 
 		switch (question.type()) {

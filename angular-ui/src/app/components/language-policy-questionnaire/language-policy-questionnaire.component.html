@@ -7,88 +7,111 @@
 	<div *ngIf="!loading && questionnaire">
 		<p class="intro" *ngIf="dialectName">
 			Configure the SNOMED CT language translation policy for <strong>{{ dialectName }}</strong>.
+			Select the rules that apply to this dialect, then configure each one.
 		</p>
 
-		<mat-stepper linear="false" class="policy-stepper">
-			<mat-step *ngFor="let section of questionnaire.sections" [label]="section.label">
-				<div class="step-content">
-					<div *ngFor="let question of section.questions" class="question-block">
+		<div class="policy-sections">
+			<div *ngFor="let section of questionnaire.sections" class="policy-section">
+				<h2 class="section-label">{{ section.label }}</h2>
+
+				<div *ngFor="let question of section.questions"
+					class="question-block"
+					[class.question-block--included]="isRuleSelected(question.id)">
+					<mat-checkbox
+						class="question-toggle"
+						[checked]="isRuleSelected(question.id)"
+						(change)="setRuleSelected(question.id, $event.checked)">
+						Include this
+					</mat-checkbox>
+
+					<div class="question-content"
+						[class.question-content--muted]="!isRuleSelected(question.id)">
 						<h3>{{ question.title }}</h3>
-						<p *ngIf="question.hint">{{ question.hint }}</p>
 
-						<table *ngIf="question.exampleTable" class="example-table">
-							<thead>
-								<tr>
-									<th *ngFor="let header of question.exampleTable.headers">{{ header }}</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr *ngFor="let row of question.exampleTable.rows">
-									<td *ngFor="let cell of row">{{ cell }}</td>
-								</tr>
-							</tbody>
-						</table>
+						<div class="question-body">
+							<p *ngIf="question.hint">{{ question.hint }}</p>
 
-						<ng-container [ngSwitch]="question.type">
-							<mat-radio-group *ngSwitchCase="'choice'"
-								[(ngModel)]="policy.policyItems[question.id]"
-								[name]="question.id"
-								class="radio-group">
-								<mat-radio-button *ngFor="let option of question.options" [value]="option.value">
-									{{ option.label }}
-								</mat-radio-button>
-							</mat-radio-group>
-
-							<mat-radio-group *ngSwitchCase="'boolean'"
-								[(ngModel)]="policy.policyItems[question.id]"
-								[name]="question.id"
-								class="radio-group">
-								<mat-radio-button *ngFor="let option of question.options" [value]="option.value">
-									{{ option.label }}
-								</mat-radio-button>
-							</mat-radio-group>
-
-							<mat-form-field *ngSwitchCase="'text'" appearance="outline" class="full-width">
-								<mat-label>{{ question.title }}</mat-label>
-								<textarea matInput rows="3" [(ngModel)]="policy.policyItems[question.id]" [name]="question.id"></textarea>
-							</mat-form-field>
-
-							<table *ngSwitchCase="'keyValueTable'" class="lexical-table">
+							<table *ngIf="question.exampleTable" class="example-table">
 								<thead>
 									<tr>
-										<th>Source Word</th>
-										<th>Preferred Translation</th>
+										<th *ngFor="let header of question.exampleTable.headers">{{ header }}</th>
 									</tr>
 								</thead>
 								<tbody>
-									<tr *ngFor="let key of question.rowKeys">
-										<td>{{ key }}</td>
-										<td>
-											<input [ngModel]="getKeyValueTable(question)[key]"
-												(ngModelChange)="setKeyValueCell(question, key, $event)"
-												[name]="question.id + '-' + key"
-												placeholder="Preferred translation">
-										</td>
+									<tr *ngFor="let row of question.exampleTable.rows">
+										<td *ngFor="let cell of row">{{ cell }}</td>
 									</tr>
 								</tbody>
 							</table>
-						</ng-container>
 
-						<mat-form-field *ngIf="question.type === 'choice' && shouldShowFreeText(question)"
-							appearance="outline" class="full-width">
-							<mat-label>Other (please specify)</mat-label>
-							<textarea matInput rows="2"
-								[(ngModel)]="policy.policyItems[freeTextKey(question)]"
-								[name]="freeTextKey(question)"></textarea>
-						</mat-form-field>
+							<ng-container [ngSwitch]="question.type">
+								<mat-radio-group *ngSwitchCase="'choice'"
+									[(ngModel)]="policy.policyItems[question.id]"
+									[name]="question.id"
+									class="radio-group"
+									[disabled]="!isRuleSelected(question.id)">
+									<mat-radio-button *ngFor="let option of question.options" [value]="option.value">
+										{{ option.label }}
+									</mat-radio-button>
+								</mat-radio-group>
+
+								<mat-radio-group *ngSwitchCase="'boolean'"
+									[(ngModel)]="policy.policyItems[question.id]"
+									[name]="question.id"
+									class="radio-group"
+									[disabled]="!isRuleSelected(question.id)">
+									<mat-radio-button *ngFor="let option of question.options" [value]="option.value">
+										{{ option.label }}
+									</mat-radio-button>
+								</mat-radio-group>
+
+								<mat-form-field *ngSwitchCase="'text'" appearance="outline" class="full-width">
+									<mat-label>{{ question.title }}</mat-label>
+									<textarea matInput rows="3"
+										[(ngModel)]="policy.policyItems[question.id]"
+										[name]="question.id"
+										[disabled]="!isRuleSelected(question.id)"></textarea>
+								</mat-form-field>
+
+								<table *ngSwitchCase="'keyValueTable'" class="lexical-table">
+									<thead>
+										<tr>
+											<th>Source Word</th>
+											<th>Preferred Translation</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr *ngFor="let key of question.rowKeys">
+											<td>{{ key }}</td>
+											<td>
+												<input [ngModel]="getKeyValueTable(question)[key]"
+													(ngModelChange)="setKeyValueCell(question, key, $event)"
+													[name]="question.id + '-' + key"
+													placeholder="Preferred translation"
+													[disabled]="!isRuleSelected(question.id)">
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</ng-container>
+
+							<mat-form-field *ngIf="question.type === 'choice' && shouldShowFreeText(question)"
+								appearance="outline" class="full-width">
+								<mat-label>Other (please specify)</mat-label>
+								<textarea matInput rows="2"
+									[(ngModel)]="policy.policyItems[freeTextKey(question)]"
+									[name]="freeTextKey(question)"
+									[disabled]="!isRuleSelected(question.id)"></textarea>
+							</mat-form-field>
+						</div>
 					</div>
 				</div>
-			</mat-step>
-		</mat-stepper>
+			</div>
+		</div>
 
 		<div class="actions">
 			<button *ngIf="showCancel" mat-button type="button" (click)="onCancel()" [disabled]="saving">Cancel</button>
-			<button mat-raised-button color="primary" type="button" (click)="onSave()" [disabled]="saving || !isComplete()">
+			<button mat-raised-button color="primary" type="button" (click)="onSave()" [disabled]="saving || !isValid()">
 				<span *ngIf="saving" class="loading-content"><mat-spinner diameter="20"></mat-spinner> Saving...</span>
 				<span *ngIf="!saving">{{ submitLabel }}</span>
 			</button>

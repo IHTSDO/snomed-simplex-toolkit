@@ -5,8 +5,10 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Document(indexName = "#{@indexNameProvider.indexName('snolate-language-policy')}")
@@ -32,6 +34,9 @@ public class LanguageTranslationPolicy {
 
 	@Field(type = FieldType.Object)
 	private LinkedHashMap<String, String> policyItems;
+
+	@Field(type = FieldType.Keyword)
+	private List<String> selectedRules;
 
 	@Field(type = FieldType.Long)
 	private Date created;
@@ -101,6 +106,14 @@ public class LanguageTranslationPolicy {
 
 	public void setPolicyItems(Map<String, String> policyItems) {
 		this.policyItems = policyItems != null ? new LinkedHashMap<>(policyItems) : null;
+	}
+
+	public List<String> getSelectedRules() {
+		return selectedRules;
+	}
+
+	public void setSelectedRules(List<String> selectedRules) {
+		this.selectedRules = selectedRules != null ? new ArrayList<>(selectedRules) : null;
 	}
 
 	public Date getCreated() {

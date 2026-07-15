@@ -44,6 +44,7 @@ export interface LanguageTranslationPolicy {
 	displayName?: string;
 	questionnaireVersion: string;
 	policyItems: Record<string, string>;
+	selectedRules?: string[];
 	created?: string;
 	lastModified?: string;
 }
@@ -60,22 +61,44 @@ export interface LanguagePolicyRow {
 export function emptyLanguageTranslationPolicy(version: string): LanguageTranslationPolicy {
 	return {
 		questionnaireVersion: version,
-		policyItems: {}
+		policyItems: {},
+		selectedRules: []
 	};
 }
 
 export function policyFromApi(data: LanguageTranslationPolicy): LanguageTranslationPolicy {
 	return {
 		questionnaireVersion: data.questionnaireVersion || '',
-		policyItems: { ...(data.policyItems || {}) }
+		policyItems: { ...(data.policyItems || {}) },
+		selectedRules: data.selectedRules ? [...data.selectedRules] : []
 	};
 }
 
-export function policyToRequest(policy: LanguageTranslationPolicy): { questionnaireVersion: string; policyItems: Record<string, string> } {
+export function policyToRequest(policy: LanguageTranslationPolicy): {
+	questionnaireVersion: string;
+	policyItems: Record<string, string>;
+	selectedRules: string[];
+} {
 	return {
 		questionnaireVersion: policy.questionnaireVersion,
-		policyItems: policy.policyItems || {}
+		policyItems: policy.policyItems || {},
+		selectedRules: policy.selectedRules || []
 	};
+}
+
+export function deriveSelectedRulesFromPolicyItems(
+	questionnaire: LanguagePolicyQuestionnaire,
+	policyItems: Record<string, string>
+): string[] {
+	const selected: string[] = [];
+	for (const section of questionnaire.sections) {
+		for (const question of section.questions) {
+			if (isQuestionAnswered(question, policyItems)) {
+				selected.push(question.id);
+			}
+		}
+	}
+	return selected;
 }
 
 export function parseKeyValueTable(json: string | undefined): Record<string, string> {
@@ -110,10 +133,18 @@ export function isQuestionAnswered(question: LanguagePolicyQuestion, policyItems
 	return true;
 }
 
-export function isPolicyComplete(questionnaire: LanguagePolicyQuestionnaire, policyItems: Record<string, string>): boolean {
+export function isPolicyValid(
+	questionnaire: LanguagePolicyQuestionnaire,
+	policyItems: Record<string, string>,
+	selectedRules: string[]
+): boolean {
+	if (!selectedRules.length) {
+		return true;
+	}
+	const selectedSet = new Set(selectedRules);
 	for (const section of questionnaire.sections) {
 		for (const question of section.questions) {
-			if (question.required && !isQuestionAnswered(question, policyItems)) {
+			if (selectedSet.has(question.id) && !isQuestionAnswered(question, policyItems)) {
 				return false;
 			}
 		}
