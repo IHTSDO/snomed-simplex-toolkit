@@ -100,4 +100,35 @@ class TranslationLLMServiceTest {
 
 		verify(mockLLMService).chat(anyString(), eq(true), eq(new LlmCallContext("SNOMEDCT-DE", 1)));
 	}
+
+	@Test
+	void testSuggestBatchTranslations_mixedPromptAndSparseLineNumbers() {
+		when(mockTranslationSet.getCodesystem()).thenReturn("SNOMEDCT-ES");
+		when(mockTranslationSet.getRefset()).thenReturn("450828004");
+		when(mockTranslationSet.getLanguageCode()).thenReturn("es");
+		when(mockTranslationSet.getAiGoldenSet()).thenReturn(Map.of());
+		when(mockPolicyService.findByCodeSystemAndRefset("SNOMEDCT-ES", "450828004")).thenReturn(Optional.empty());
+		when(mockPolicyFormatter.format(null)).thenReturn("");
+
+		BatchTranslationPrompt prompt = BatchTranslationPrompt.builder()
+				.addContextLine("Asthma", "Asma")
+				.addContextLine("Diabetes mellitus", "Diabetes")
+				.addTranslateLine("Heart failure")
+				.addTranslateLine("Pneumonia")
+				.build();
+
+		when(mockLLMService.chat(anyString(), eq(false), any(LlmCallContext.class)))
+				.thenReturn("3|Insuficiencia cardíaca\n4|Neumonía");
+
+		Map<String, List<String>> result = translationLLMService.suggestBatchTranslations(mockTranslationSet, prompt);
+
+		assertEquals(List.of("Insuficiencia cardíaca"), result.get("Heart failure"));
+		assertEquals(List.of("Neumonía"), result.get("Pneumonia"));
+		verify(mockLLMService).chat(argThat(request ->
+				request.contains("1|Asthma → Asma") &&
+				request.contains("2|Diabetes mellitus → Diabetes") &&
+				request.contains("3|Heart failure") &&
+				request.contains("4|Pneumonia") &&
+				request.contains("do not return translations for those lines")), eq(false), eq(new LlmCallContext("SNOMEDCT-ES", 2)));
+	}
 }
