@@ -13,13 +13,15 @@ public class Branch {
 	public static final String LATEST_BUILD_METADATA_KEY = "latestBuild";
 	public static final String BUILD_STATUS_METADATA_KEY = "buildStatus";
 	public static final String SHOW_CUSTOM_CONCEPTS = "showCustomConcepts";
+	public static final String SHOW_US_ENGLISH_SYNONYMS = "showUsEnglishSynonyms";
+	public static final String SHOW_GB_ENGLISH_SYNONYMS = "showGbEnglishSynonyms";
 	public static final String DEFAULT_MODULE_ID_METADATA_KEY = "defaultModuleId";
 	public static final String EDITION_STATUS_METADATA_KEY = "editionStatus";
 	public static final String SIMPLEX_TRANSLATION_METADATA_KEY = "simplex.translation.";
 	public static final String SIMPLEX_TRANSLATION_SNOLATE_METADATA_KEY = "simplex.translation.snolate.";
 	public static final String BATCH_CHANGE = "batch-change";
 
-	/** When true, RVF case-significance resource assertion is skipped for this edition. */
+	/** When true, configured RVF case-significance assertions are skipped for this edition. */
 	public static final String SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY = "simplex.validation.ignoreCase";
 
 	/** When true, custom concept upload may create concepts with pre-assigned SCTIDs and skips spreadsheet freshness checks. */

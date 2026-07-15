@@ -150,6 +150,8 @@
                     <mat-select *ngIf="controlName === 'type'" formControlName="type">
                         <mat-option *ngIf="!showConceptsArtifact" value="concepts">Concepts</mat-option>
                         <mat-option *ngFor="let type of artifactTypes" [value]="type">{{type | titlecase}}</mat-option>
+                        <mat-option *ngIf="!showUsEnglishSynonymsArtifact" value="usEnglishSynonyms">US English synonyms</mat-option>
+                        <mat-option *ngIf="!showGbEnglishSynonymsArtifact" value="gbEnglishSynonyms">GB English synonyms</mat-option>
                     </mat-select>
 
                     <!-- Language Code Autocomplete -->

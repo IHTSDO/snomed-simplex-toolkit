@@ -23,6 +23,8 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   maps = [];
   private cancelOngoingRequests$ = new Subject<void>();
   showConceptsArtifact: boolean = false;
+  showUsEnglishSynonymsArtifact: boolean = false;
+  showGbEnglishSynonymsArtifact: boolean = false;
   conceptsArtifact: any = { 
     conceptId: 'concepts', 
     fsn: { term:'Simple extension concepts' },
@@ -102,7 +104,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   }
 
   toggleFormControls(typeValue: string) {
-    if (typeValue === 'concepts') {
+    if (typeValue === 'concepts' || typeValue === 'usEnglishSynonyms' || typeValue === 'gbEnglishSynonyms') {
         this.form.removeControl('preferredTerm');
         this.form.removeControl('languageCode');
     } else if (typeValue == 'translation') {
@@ -164,6 +166,8 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
         this.editionDetails = edition;
         this.uiService.setSelectedEdition(edition);
         this.showConceptsArtifact = edition?.showCustomConcepts;
+        this.showUsEnglishSynonymsArtifact = edition?.showUsEnglishSynonyms;
+        this.showGbEnglishSynonymsArtifact = edition?.showGbEnglishSynonyms;
         if (this.showConceptsArtifact) {
           lastValueFrom(this.simplexService.getConcepts(editionShortName,0,1)).then(
             (concepts) => {
@@ -322,12 +326,51 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
             (error) => {
               console.error(error);
               this.saving = false;
+              this.form.enable();
               this.snackBar.open('Failed to enable custom concepts', 'Dismiss', {
                 duration: 5000
               });
             }
           );
-          break;        
+          break;
+      case 'usEnglishSynonyms':
+          lastValueFrom(this.simplexService.showUsEnglishSynonyms(this.edition)).then(
+            () => {
+              this.saving = false;
+              this.form.reset();
+              this.form.enable();
+              this.newArtifactMode = false;
+              this.loadArtifacts(this.edition);
+            },
+            (error) => {
+              console.error(error);
+              this.saving = false;
+              this.form.enable();
+              this.snackBar.open('Failed to enable US English synonyms', 'Dismiss', {
+                duration: 5000
+              });
+            }
+          );
+          break;
+      case 'gbEnglishSynonyms':
+          lastValueFrom(this.simplexService.showGbEnglishSynonyms(this.edition)).then(
+            () => {
+              this.saving = false;
+              this.form.reset();
+              this.form.enable();
+              this.newArtifactMode = false;
+              this.loadArtifacts(this.edition);
+            },
+            (error) => {
+              console.error(error);
+              this.saving = false;
+              this.form.enable();
+              this.snackBar.open('Failed to enable GB English synonyms', 'Dismiss', {
+                duration: 5000
+              });
+            }
+          );
+          break;
       }
     }
   }

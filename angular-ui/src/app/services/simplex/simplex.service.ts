@@ -172,6 +172,24 @@ export class SimplexService {
       catchError(this.handleError.bind(this)));
   }
 
+  public showUsEnglishSynonyms(edition: string): Observable<any> {
+    return this.http.post(`api/${edition}/translations/us-english-synonyms/show`, {}).pipe(
+      tap(() => {
+        this.clearEditionDetailCache(edition);
+        this.clearTranslationsCache(edition);
+      }),
+      catchError(this.handleError.bind(this)));
+  }
+
+  public showGbEnglishSynonyms(edition: string): Observable<any> {
+    return this.http.post(`api/${edition}/translations/gb-english-synonyms/show`, {}).pipe(
+      tap(() => {
+        this.clearEditionDetailCache(edition);
+        this.clearTranslationsCache(edition);
+      }),
+      catchError(this.handleError.bind(this)));
+  }
+
   public hideCustomConcepts(edition: string): Observable<any> {
     return this.http.post(`api/${edition}/concepts/hide`, {}).pipe(
       tap(() => this.clearEditionDetailCache(edition)),

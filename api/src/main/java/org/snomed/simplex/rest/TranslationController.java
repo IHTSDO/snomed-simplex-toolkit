@@ -100,10 +100,29 @@ public class TranslationController {
 		);
 	}
 
+	@PostMapping("{codeSystem}/translations/us-english-synonyms/show")
+	@Operation(summary = "Enable US English synonyms artifact for this edition.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void showUsEnglishSynonyms(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		translationService.showUsEnglishSynonyms(theCodeSystem);
+	}
+
+	@PostMapping("{codeSystem}/translations/gb-english-synonyms/show")
+	@Operation(summary = "Enable GB English synonyms artifact for this edition.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void showGbEnglishSynonyms(@PathVariable String codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		translationService.showGbEnglishSynonyms(theCodeSystem);
+	}
+
 	@DeleteMapping("{codeSystem}/translations/{refsetId}")
 	@Operation(summary = "Delete all language refset members and refset concept.")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void deleteRefset(@PathVariable String codeSystem, @PathVariable String refsetId) throws ServiceException {
+		rejectFoundationEnglishLangRefset(refsetId);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
@@ -138,6 +157,7 @@ public class TranslationController {
 	public SnolateTranslationSet createSnolateSet(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestBody CreateSnolateTranslationSet createRequest) throws ServiceException {
 
+		rejectFoundationEnglishLangRefset(refsetId);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
@@ -299,6 +319,7 @@ public class TranslationController {
 	public AsyncJob synchroniseTranslationFromSnowstormToSnolate(@PathVariable String codeSystem, @PathVariable String refsetId)
 			throws ServiceException {
 
+		rejectFoundationEnglishLangRefset(refsetId);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
@@ -321,6 +342,7 @@ public class TranslationController {
 	public AsyncJob setupSnolateTranslation(@PathVariable String codeSystem, @PathVariable String refsetId)
 			throws ServiceException {
 
+		rejectFoundationEnglishLangRefset(refsetId);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
@@ -468,6 +490,13 @@ public class TranslationController {
 	@GetMapping(path = "language-codes")
 	public List<LanguageCode> getLanguageCodes() {
 		return translationService.getLanguageCodes();
+	}
+
+	private static void rejectFoundationEnglishLangRefset(String refsetId) throws ServiceExceptionWithStatusCode {
+		if (TranslationService.isFoundationEnglishLangRefset(refsetId)) {
+			throw new ServiceExceptionWithStatusCode(
+					"Foundation English synonym refsets cannot be modified through this operation.", HttpStatus.BAD_REQUEST);
+		}
 	}
 
 }

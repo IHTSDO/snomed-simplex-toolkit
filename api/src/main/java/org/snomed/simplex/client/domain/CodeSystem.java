@@ -27,6 +27,8 @@ public class CodeSystem {
 	private CodeSystemValidationStatus validationStatus;
 	private CodeSystemBuildStatus buildStatus;
 	private boolean showCustomConcepts;
+	private boolean showUsEnglishSynonyms;
+	private boolean showGbEnglishSynonyms;
 	/** From branch metadata {@link Branch#SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY}; default false. */
 	private boolean validationIgnoreCase;
 	/** From branch metadata {@link Branch#SIMPLEX_CONCEPTS_MAINTAINED_EXTERNALLY_METADATA_KEY}; default false. */
@@ -181,6 +183,22 @@ public class CodeSystem {
 
 	public void setShowCustomConcepts(boolean showCustomConcepts) {
 		this.showCustomConcepts = showCustomConcepts;
+	}
+
+	public boolean isShowUsEnglishSynonyms() {
+		return showUsEnglishSynonyms;
+	}
+
+	public void setShowUsEnglishSynonyms(boolean showUsEnglishSynonyms) {
+		this.showUsEnglishSynonyms = showUsEnglishSynonyms;
+	}
+
+	public boolean isShowGbEnglishSynonyms() {
+		return showGbEnglishSynonyms;
+	}
+
+	public void setShowGbEnglishSynonyms(boolean showGbEnglishSynonyms) {
+		this.showGbEnglishSynonyms = showGbEnglishSynonyms;
 	}
 
 	public boolean isValidationIgnoreCase() {

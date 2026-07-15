@@ -22,6 +22,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -32,6 +33,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.snomed.simplex.client.domain.Concepts.GB_LANG_REFSET;
 import static org.snomed.simplex.client.domain.Concepts.US_LANG_REFSET;
 import static org.snomed.simplex.client.domain.Description.CaseSignificance.*;
 
@@ -53,12 +55,18 @@ class TranslationServiceTest {
 	private SnowstormClient mockSnowstormClient;
 
 	private final String testLangRefset = "123000";
+	private final String testModule = "123000001";
 
 	@BeforeEach
 	void setup() throws ServiceException {
 		mockSnowstormClient = Mockito.mock(SnowstormClient.class);
 		Mockito.when(snowstormClientFactory.getClient()).thenReturn(mockSnowstormClient);
 		testCodeSystem.setTranslationLanguages(Map.of(testLangRefset, "vi"));
+		testCodeSystem.setDefaultModule(testModule);
+		testCodeSystem.setShowUsEnglishSynonyms(false);
+		testCodeSystem.setShowGbEnglishSynonyms(false);
+		service.clearLanguageRefsetCache(testCodeSystem.getShortName());
+		Mockito.when(mockSnowstormClient.countActiveRefsetMembers(anyString(), eq(testCodeSystem), eq(testModule))).thenReturn(0);
 	}
 
 	@Test
@@ -179,6 +187,9 @@ class TranslationServiceTest {
 		CodeSystem codeSystem = new CodeSystem();
 		codeSystem.setSimplexWorkingBranch("MAIN/SNOMEDCT-CZ");
 		codeSystem.setTranslationLanguages(Map.of(langRefset, "cs"));
+		codeSystem.setDefaultModule("110000001");
+
+		Mockito.when(mockSnowstormClient.countActiveRefsetMembers(eq(langRefset), eq(codeSystem), eq("110000001"))).thenReturn(0);
 
 		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.any(), Mockito.any())).thenReturn(
 			List.of(
@@ -222,16 +233,67 @@ class TranslationServiceTest {
 	void listTranslations_setsIsSnolateFromBranchMap() throws ServiceException {
 		ConceptMini refset = new ConceptMini(testLangRefset, new DescriptionMini("Test lang refset", "en"));
 		Mockito.when(mockSnowstormClient.getRefsets(anyString(), eq(testCodeSystem))).thenReturn(List.of(refset));
+		Mockito.when(mockSnowstormClient.countActiveRefsetMembers(eq(testLangRefset), eq(testCodeSystem), eq(testModule))).thenReturn(42);
 
 		testCodeSystem.setTranslationSnolateLanguages(Map.of(testLangRefset, "vi"));
 		var linked = service.listTranslations(testCodeSystem, mockSnowstormClient);
 		assertEquals(1, linked.size());
 		assertEquals(Boolean.TRUE, linked.get(0).getExtraFields().get("isSnolate"));
+		assertEquals(42L, linked.get(0).getActiveMemberCount());
 
 		testCodeSystem.setTranslationSnolateLanguages(Map.of());
 		var unlinked = service.listTranslations(testCodeSystem, mockSnowstormClient);
 		assertEquals(1, unlinked.size());
 		assertEquals(Boolean.FALSE, unlinked.get(0).getExtraFields().get("isSnolate"));
+	}
+
+	@Test
+	void listTranslations_appendsFoundationEnglishSynonymsWhenEnabled() throws ServiceException {
+		ConceptMini refset = new ConceptMini(testLangRefset, new DescriptionMini("Test lang refset", "en"));
+		Mockito.when(mockSnowstormClient.getRefsets(anyString(), eq(testCodeSystem))).thenReturn(List.of(refset));
+		Mockito.when(mockSnowstormClient.getConceptMini(eq(US_LANG_REFSET), eq(testCodeSystem)))
+				.thenReturn(new ConceptMini(US_LANG_REFSET, new DescriptionMini("US English", "en")));
+		Mockito.when(mockSnowstormClient.getConceptMini(eq(GB_LANG_REFSET), eq(testCodeSystem)))
+				.thenReturn(new ConceptMini(GB_LANG_REFSET, new DescriptionMini("GB English", "en")));
+		Mockito.when(mockSnowstormClient.countActiveRefsetMembers(eq(US_LANG_REFSET), eq(testCodeSystem), eq(testModule))).thenReturn(3);
+		Mockito.when(mockSnowstormClient.countActiveRefsetMembers(eq(GB_LANG_REFSET), eq(testCodeSystem), eq(testModule))).thenReturn(7);
+
+		testCodeSystem.setShowUsEnglishSynonyms(true);
+		testCodeSystem.setShowGbEnglishSynonyms(true);
+
+		var translations = service.listTranslations(testCodeSystem, mockSnowstormClient);
+
+		assertEquals(3, translations.size());
+		ConceptMini us = translations.get(1);
+		assertEquals(US_LANG_REFSET, us.getConceptId());
+		assertEquals("US English synonyms", us.getPt().getTerm());
+		assertEquals("en", us.getExtraFields().get("lang"));
+		assertEquals(Boolean.TRUE, us.getExtraFields().get("isFoundationEnglishSynonym"));
+		assertEquals(3L, us.getActiveMemberCount());
+
+		ConceptMini gb = translations.get(2);
+		assertEquals(GB_LANG_REFSET, gb.getConceptId());
+		assertEquals("GB English synonyms", gb.getPt().getTerm());
+		assertEquals(7L, gb.getActiveMemberCount());
+	}
+
+	@Test
+	void isFoundationEnglishLangRefset() {
+		assertTrue(TranslationService.isFoundationEnglishLangRefset(US_LANG_REFSET));
+		assertTrue(TranslationService.isFoundationEnglishLangRefset(GB_LANG_REFSET));
+		assertFalse(TranslationService.isFoundationEnglishLangRefset(testLangRefset));
+	}
+
+	@Test
+	void uploadTranslationCsv_resolvesEnglishLanguageCodeForFoundationRefset() throws ServiceException {
+		Mockito.when(mockSnowstormClient.countActiveRefsetMembers(eq(US_LANG_REFSET), eq(testCodeSystem), eq(testModule))).thenReturn(0);
+
+		ChangeSummary summary = service.uploadTranslationCsv(US_LANG_REFSET, testCodeSystem,
+				new ByteArrayInputStream("context,target\n".getBytes()),
+				mockSnowstormClient, new DummyProgressMonitor(), null);
+
+		assertEquals(0, summary.getAdded());
+		assertEquals(0, summary.getNewTotal());
 	}
 
 	@Test

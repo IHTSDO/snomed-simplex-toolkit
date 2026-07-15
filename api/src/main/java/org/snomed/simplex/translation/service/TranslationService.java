@@ -168,37 +168,98 @@ public class TranslationService {
 				.collect(Collectors.toCollection(ArrayList::new));
 		timer.checkpoint("ECL for lang refsets");
 
+		String defaultModule = codeSystem.getDefaultModuleOrThrow();
 		for (ConceptMini translationRefset : translationRefsets) {
-			String langRefsetId = translationRefset.getConceptId();
-			String languageCode = codeSystem.getTranslationLanguages().get(langRefsetId);
-			if (languageCode == null) {
-				// This should rarely happen
-				// Search for existing lang refset entries
-				Page<RefsetMember> firstMember = snowstormClient.getRefsetMembers(langRefsetId, codeSystem, true, 1, null);
-				timer.checkpoint(format("Load one lang refset member for %s.", translationRefset.getIdAndFsnTerm()));
-
-				if (!firstMember.getItems().isEmpty()) {
-					RefsetMember member = firstMember.getItems().iterator().next();
-					ReferencedComponent referencedComponent = member.getReferencedComponent();
-					languageCode = referencedComponent.getLang();
-				}
-				if (languageCode == null) {
-					languageCode = "en";
-					logger.warn("Setting language default language code {} for {}, {}",
-							languageCode, codeSystem.getShortName(), langRefsetId);
-				} else {
-					logger.info("Using existing lang refset entries to set language code {} for {}, {}",
-							languageCode, codeSystem.getShortName(), langRefsetId);
-				}
-				snowstormClient.addTranslationLanguage(langRefsetId, languageCode, codeSystem);
-			}
-
-			translationRefset.addExtraField("lang", languageCode);
-			Map<String, String> snolateLanguages = codeSystem.getTranslationSnolateLanguages();
-			translationRefset.addExtraField("isSnolate",
-					snolateLanguages != null && snolateLanguages.get(langRefsetId) != null);
+			enrichTranslationRefset(translationRefset, codeSystem, snowstormClient, timer);
+			translationRefset.setActiveMemberCount((long) countModuleFilteredRefsetMembers(
+					translationRefset.getConceptId(), codeSystem, snowstormClient, defaultModule));
 		}
+
+		appendFoundationEnglishSynonymRefsets(translationRefsets, codeSystem, snowstormClient, defaultModule);
 		return translationRefsets;
+	}
+
+	public void showUsEnglishSynonyms(CodeSystem codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(Branch.SHOW_US_ENGLISH_SYNONYMS, "true"));
+		codeSystem.setShowUsEnglishSynonyms(true);
+		clearLanguageRefsetCache(codeSystem.getShortName());
+	}
+
+	public void showGbEnglishSynonyms(CodeSystem codeSystem) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(Branch.SHOW_GB_ENGLISH_SYNONYMS, "true"));
+		codeSystem.setShowGbEnglishSynonyms(true);
+		clearLanguageRefsetCache(codeSystem.getShortName());
+	}
+
+	public static boolean isFoundationEnglishLangRefset(String refsetId) {
+		return Concepts.US_LANG_REFSET.equals(refsetId) || Concepts.GB_LANG_REFSET.equals(refsetId);
+	}
+
+	private void enrichTranslationRefset(ConceptMini translationRefset, CodeSystem codeSystem,
+			SnowstormClient snowstormClient, TimerUtil timer) throws ServiceException {
+
+		String langRefsetId = translationRefset.getConceptId();
+		String languageCode = codeSystem.getTranslationLanguages().get(langRefsetId);
+		if (languageCode == null) {
+			Page<RefsetMember> firstMember = snowstormClient.getRefsetMembers(langRefsetId, codeSystem, true, 1, null);
+			timer.checkpoint(format("Load one lang refset member for %s.", translationRefset.getIdAndFsnTerm()));
+
+			if (!firstMember.getItems().isEmpty()) {
+				RefsetMember member = firstMember.getItems().iterator().next();
+				ReferencedComponent referencedComponent = member.getReferencedComponent();
+				languageCode = referencedComponent.getLang();
+			}
+			if (languageCode == null) {
+				languageCode = "en";
+				logger.warn("Setting language default language code {} for {}, {}",
+						languageCode, codeSystem.getShortName(), langRefsetId);
+			} else {
+				logger.info("Using existing lang refset entries to set language code {} for {}, {}",
+						languageCode, codeSystem.getShortName(), langRefsetId);
+			}
+			snowstormClient.addTranslationLanguage(langRefsetId, languageCode, codeSystem);
+		}
+
+		translationRefset.addExtraField("lang", languageCode);
+		Map<String, String> snolateLanguages = codeSystem.getTranslationSnolateLanguages();
+		translationRefset.addExtraField("isSnolate",
+				snolateLanguages != null && snolateLanguages.get(langRefsetId) != null);
+	}
+
+	private void appendFoundationEnglishSynonymRefsets(List<ConceptMini> translationRefsets, CodeSystem codeSystem,
+			SnowstormClient snowstormClient, String defaultModule) throws ServiceException {
+
+		if (codeSystem.isShowUsEnglishSynonyms()) {
+			translationRefsets.add(buildFoundationEnglishSynonymRefset(
+					Concepts.US_LANG_REFSET, "US English synonyms", codeSystem, snowstormClient, defaultModule));
+		}
+		if (codeSystem.isShowGbEnglishSynonyms()) {
+			translationRefsets.add(buildFoundationEnglishSynonymRefset(
+					Concepts.GB_LANG_REFSET, "GB English synonyms", codeSystem, snowstormClient, defaultModule));
+		}
+	}
+
+	private ConceptMini buildFoundationEnglishSynonymRefset(String refsetId, String displayLabel, CodeSystem codeSystem,
+			SnowstormClient snowstormClient, String defaultModule) throws ServiceException {
+
+		ConceptMini loaded = snowstormClient.getConceptMini(refsetId, codeSystem);
+		ConceptMini refset = loaded != null ? new ConceptMini(loaded) : new ConceptMini(refsetId, new DescriptionMini(displayLabel, "en"));
+		DescriptionMini label = new DescriptionMini(displayLabel, "en");
+		refset.setPt(label);
+		refset.setFsn(label);
+		refset.addExtraField("lang", "en");
+		refset.addExtraField("isSnolate", false);
+		refset.addExtraField("isFoundationEnglishSynonym", true);
+		refset.setActiveMemberCount((long) countModuleFilteredRefsetMembers(refsetId, codeSystem, snowstormClient, defaultModule));
+		return refset;
+	}
+
+	private int countModuleFilteredRefsetMembers(String refsetId, CodeSystem codeSystem,
+			SnowstormClient snowstormClient, String defaultModule) throws ServiceException {
+
+		return snowstormClient.countActiveRefsetMembers(refsetId, codeSystem, defaultModule);
 	}
 
 	private List<ConceptMini> getLanguageRefsets(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
@@ -304,6 +365,9 @@ public class TranslationService {
 	}
 
 	private static String getLanguageCodeOrThrow(String languageRefsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		if (isFoundationEnglishLangRefset(languageRefsetId)) {
+			return "en";
+		}
 		String languageCode = codeSystem.getTranslationLanguages().get(languageRefsetId);
 		if (languageCode == null) {
 			throw new ServiceExceptionWithStatusCode("Language code not set for translation.", HttpStatus.CONFLICT, JobStatus.SYSTEM_ERROR);
@@ -349,12 +413,14 @@ public class TranslationService {
 
 		if (conceptDescriptions.isEmpty()) {
 			// No change
-			int activeRefsetMembers = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
+			int activeRefsetMembers = countModuleFilteredRefsetMembers(languageRefsetId, codeSystem, snowstormClient,
+					codeSystem.getDefaultModuleOrThrow());
 			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 
 		ChangeSummary changeSummary = doUpdates(codeSystem, conceptDescriptions, languageRefsetId, languageCode, snowstormClient, changeMonitor, progressMonitor, taskCreationCallable);
-		int newActiveCount = snowstormClient.countAllActiveRefsetMembers(languageRefsetId, codeSystem);
+		int newActiveCount = countModuleFilteredRefsetMembers(languageRefsetId, codeSystem, snowstormClient,
+				codeSystem.getDefaultModuleOrThrow());
 		updateCachedLanguageRefsetMemberCount(codeSystem, languageRefsetId, newActiveCount);
 		changeSummary.setNewTotal(newActiveCount);
 		logger.info("translation upload complete on {}: {}", codeSystem.getWorkingBranchPath(), changeSummary);
@@ -917,7 +983,8 @@ public class TranslationService {
 				snolateSubsetTranslationSource, snowstormTranslationSource, languageCode, refsetId);
 		if (!mergeResult.hasChanges()) {
 			logger.info("TranslationMerge {}-{} No translation changes found", languageCode, refsetId);
-			int activeRefsetMembers = snowstormClient.countAllActiveRefsetMembers(refsetId, codeSystem);
+			int activeRefsetMembers = countModuleFilteredRefsetMembers(refsetId, codeSystem, snowstormClient,
+					codeSystem.getDefaultModuleOrThrow());
 			return new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 		ChangeSummary changeSummary = uploadTranslationFromState(refsetId, codeSystem, mergeResult.snowstormUploadState(),

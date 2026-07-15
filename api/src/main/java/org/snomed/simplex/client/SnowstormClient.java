@@ -189,6 +189,8 @@ public class SnowstormClient {
 		codeSystem.setNamespace(branch.getMetadataValue(Branch.DEFAULT_NAMESPACE_METADATA_KEY));
 		codeSystem.setClassified("true".equals(branch.getMetadataValue(Branch.CLASSIFIED_METADATA_KEY)));
 		codeSystem.setShowCustomConcepts("true".equals(branch.getMetadataValue(Branch.SHOW_CUSTOM_CONCEPTS)));
+		codeSystem.setShowUsEnglishSynonyms("true".equals(branch.getMetadataValue(Branch.SHOW_US_ENGLISH_SYNONYMS)));
+		codeSystem.setShowGbEnglishSynonyms("true".equals(branch.getMetadataValue(Branch.SHOW_GB_ENGLISH_SYNONYMS)));
 		codeSystem.setValidationIgnoreCase("true".equalsIgnoreCase(branch.getMetadataValue(Branch.SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY)));
 		codeSystem.setConceptsMaintainedExternally("true".equalsIgnoreCase(branch.getMetadataValue(Branch.SIMPLEX_CONCEPTS_MAINTAINED_EXTERNALLY_METADATA_KEY)));
 		codeSystem.setDependencyPackage(branch.getMetadataValue(Branch.DEPENDENCY_PACKAGE_METADATA_KEY));
@@ -457,6 +459,28 @@ public class SnowstormClient {
 		Page<RefsetMember> page = response.getBody();
 		throwIfNull(page, "refset data");
 		return Math.toIntExact(page.getTotal());
+	}
+
+	public int countActiveRefsetMembers(String refsetId, CodeSystem codeSystem, String moduleId) throws ServiceExceptionWithStatusCode {
+		String moduleParam = moduleId != null ? format("&module=%s", moduleId) : "";
+		ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(
+				format("/%s/members?referenceSet=%s&active=true&limit=1%s", codeSystem.getWorkingBranchPath(), refsetId, moduleParam),
+				HttpMethod.GET, null, responseTypeRefsetPage);
+		Page<RefsetMember> page = response.getBody();
+		throwIfNull(page, "refset data");
+		return Math.toIntExact(page.getTotal());
+	}
+
+	public ConceptMini getConceptMini(String conceptId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		try {
+			ResponseEntity<ConceptMini> response = restTemplate.getForEntity(
+					format(CONCEPT_ENDPOINT, codeSystem.getWorkingBranchPath(), conceptId), ConceptMini.class);
+			return response.getBody();
+		} catch (HttpClientErrorException.NotFound e) {
+			throw new ServiceExceptionWithStatusCode("Concept not found: %s".formatted(conceptId), HttpStatus.NOT_FOUND);
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "fetch concept");
+		}
 	}
 
 	public void createUpdateRefsetMembers(List<RefsetMember> membersToCreateUpdate, CodeSystem codeSystem) throws ServiceException {

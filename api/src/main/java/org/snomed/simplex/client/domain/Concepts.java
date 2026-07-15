@@ -25,6 +25,9 @@ public class Concepts {
 	// 900000000000509007 |United States of America English language reference set (foundation metadata concept)|
 	public static final String US_LANG_REFSET = "900000000000509007";
 
+	// 900000000000508004 |Great Britain English language reference set (foundation metadata concept)|
+	public static final String GB_LANG_REFSET = "900000000000508004";
+
 	// 900000000000013009 |Synonym (core metadata concept)|
 	public static final String SYNONYM = "900000000000013009";
 

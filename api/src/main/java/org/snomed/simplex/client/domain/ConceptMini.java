@@ -89,6 +89,14 @@ public class ConceptMini {
 		return pt;
 	}
 
+	public void setPt(DescriptionMini pt) {
+		this.pt = pt;
+	}
+
+	public void setFsn(DescriptionMini fsn) {
+		this.fsn = fsn;
+	}
+
 	public String getModuleId() {
 		return moduleId;
 	}
