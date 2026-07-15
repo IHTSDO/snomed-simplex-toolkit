@@ -20,11 +20,17 @@
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 
     h4 {
         margin: 0;
     }
+}
+
+.translation-sets-intro {
+    margin: 0 0 1rem;
+    color: rgba(0, 0, 0, 0.6);
+    line-height: 1.5;
 }
 
 .translation-sets-toolbar-actions {
@@ -183,7 +189,6 @@
 }
 
 .members-table-scroll {
-    max-height: min(70vh, 900px);
     overflow: auto;
 }
 
