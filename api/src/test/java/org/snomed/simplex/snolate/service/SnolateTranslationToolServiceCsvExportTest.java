@@ -88,10 +88,9 @@ class SnolateTranslationToolServiceCsvExportTest {
 		service.writeTranslationSetCsv(translationSet, TranslationStatus.FOR_REVIEW, "Spanish", out);
 
 		String csv = out.toString(StandardCharsets.UTF_8);
-		assertThat(csv).startsWith(
-				"Concept Code,English Term,Spanish Preferred Term,Other Spanish Terms,Status,URL\n");
-		assertThat(csv).contains(
-				"100,Asthma,asma,asma crónica,Ready for review,https://snomed.info/id/100\n");
+		assertThat(csv)
+				.startsWith("Concept Code,English Term,Spanish Preferred Term,Other Spanish Terms,Status,URL\n")
+				.contains("100,Asthma,asma,asma crónica,Ready for review,https://snomed.info/id/100\n");
 	}
 
 	@Test

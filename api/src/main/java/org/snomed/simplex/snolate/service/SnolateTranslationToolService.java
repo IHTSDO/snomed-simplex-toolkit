@@ -41,6 +41,8 @@ public class SnolateTranslationToolService {
 
 	private static final int CSV_EXPORT_PAGE_SIZE = 2000;
 
+	private static final String DEFAULT_TRANSLATION_LABEL = "Translation";
+
 	private final SnolateTranslationUnitRepository translationUnitRepository;
 	private final SnolateTranslationSourceRepository translationSourceRepository;
 	private final SnolateTranslationSearchService translationSearchService;
@@ -236,11 +238,11 @@ public class SnolateTranslationToolService {
 	 */
 	public static String displayLanguageDialect(String refsetPreferredTerm) {
 		if (refsetPreferredTerm == null) {
-			return "Translation";
+			return DEFAULT_TRANSLATION_LABEL;
 		}
 		String s = refsetPreferredTerm.trim();
 		if (s.isEmpty()) {
-			return "Translation";
+			return DEFAULT_TRANSLATION_LABEL;
 		}
 		String lower = s.toLowerCase();
 		for (String suffix : List.of("language reference set", "language refset")) {
@@ -249,13 +251,13 @@ public class SnolateTranslationToolService {
 				break;
 			}
 		}
-		return s.isEmpty() ? "Translation" : s;
+		return s.isEmpty() ? DEFAULT_TRANSLATION_LABEL : s;
 	}
 
 	public void writeTranslationSetCsv(SnolateTranslationSet translationSet, TranslationStatus statusFilter,
 			String languageDisplayName, OutputStream out) throws ServiceException {
 		String dialect = languageDisplayName == null || languageDisplayName.isBlank()
-				? "Translation"
+				? DEFAULT_TRANSLATION_LABEL
 				: languageDisplayName.trim();
 		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
 			writeCsvLine(writer,
@@ -266,20 +268,20 @@ public class SnolateTranslationToolService {
 					"Status",
 					"URL");
 			int page = 0;
-			while (true) {
+			boolean hasMore = true;
+			while (hasMore) {
 				TranslationUnitPage<TranslationUnitRow> pageResult = getRows(translationSet, page, CSV_EXPORT_PAGE_SIZE,
 						statusFilter, null, null);
 				List<TranslationUnitRow> rows = pageResult.results();
 				if (rows == null || rows.isEmpty()) {
-					break;
+					hasMore = false;
+				} else {
+					for (TranslationUnitRow row : rows) {
+						writeCsvDataRow(writer, row);
+					}
+					hasMore = rows.size() >= CSV_EXPORT_PAGE_SIZE;
+					page++;
 				}
-				for (TranslationUnitRow row : rows) {
-					writeCsvDataRow(writer, row);
-				}
-				if (rows.size() < CSV_EXPORT_PAGE_SIZE) {
-					break;
-				}
-				page++;
 			}
 		} catch (IOException e) {
 			throw new ServiceException("Failed to write translation set CSV.", e);

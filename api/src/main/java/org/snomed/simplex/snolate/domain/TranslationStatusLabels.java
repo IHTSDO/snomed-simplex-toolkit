@@ -5,25 +5,27 @@ package org.snomed.simplex.snolate.domain;
  */
 public final class TranslationStatusLabels {
 
+	private static final String NOT_STARTED_LABEL = "Not started";
+
 	private TranslationStatusLabels() {
 	}
 
 	public static String radioLabel(TranslationStatus status) {
 		if (status == null) {
-			return "Not started";
+			return NOT_STARTED_LABEL;
 		}
 		return switch (status) {
 			case NEEDS_EDIT -> "Needs editing";
 			case FOR_REVIEW -> "Ready for review";
 			case APPROVED -> "Ready to push";
 			case COMPLETE -> "Pushed";
-			case NOT_STARTED -> "Not started";
+			case NOT_STARTED -> NOT_STARTED_LABEL;
 		};
 	}
 
 	public static String radioLabel(String statusName) {
 		if (statusName == null || statusName.isBlank()) {
-			return "Not started";
+			return NOT_STARTED_LABEL;
 		}
 		try {
 			return radioLabel(TranslationStatus.valueOf(statusName.trim()));

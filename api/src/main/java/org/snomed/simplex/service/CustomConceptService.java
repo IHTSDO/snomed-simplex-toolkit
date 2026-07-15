@@ -41,6 +41,8 @@ import static org.snomed.simplex.client.domain.Concepts.US_LANG_REFSET;
 @Service
 public class CustomConceptService {
 
+	private static final String CONCEPT_NOT_FOUND_MESSAGE = "Concept with code '%s' on row %s could not be found.";
+
 	private final TranslationService translationService;
 	private final SpreadsheetService spreadsheetService;
 	private final SnowstormClientFactory snowstormClientFactory;
@@ -133,29 +135,33 @@ public class CustomConceptService {
 		Concept concept;
 		String conceptCode = intent.getConceptCode();
 		Concept parentConcept = null;
-		if (!intent.isInactive()) {
-			parentConcept = getParentConceptOrThrow(intent, parentConceptMap, intent.getRowNumber());
-		}
-
 		boolean changed = false;
 		if (conceptCode != null) {
 			concept = existingConceptMap.get(conceptCode);
 			if (concept != null) {
+				if (!intent.isInactive()) {
+					parentConcept = getParentConceptOrThrow(intent, parentConceptMap, intent.getRowNumber());
+				}
 				changed = updateExistingConcept(intent, defaultModule, changeSummary, concept, conceptCode, changed, parentConcept);
 			} else if (intent.isInactive()) {
 				if (codeSystem.isConceptsMaintainedExternally()) {
 					asyncJob.incrementRecordsProcessed();
 					return;
 				}
-				throw new ServiceException(format("Concept with code '%s' on row %s could not be found.", conceptCode, intent.getRowNumber()));
+				throw conceptNotFound(conceptCode, intent.getRowNumber());
 			} else if (codeSystem.isConceptsMaintainedExternally()) {
+				parentConcept = getParentConceptOrThrow(intent, parentConceptMap, intent.getRowNumber());
 				concept = newPrimitiveConcept(defaultModule, parentConcept, conceptCode);
 				changeSummary.incrementAdded();
 				changed = true;
 			} else {
-				throw new ServiceException(format("Concept with code '%s' on row %s could not be found.", conceptCode, intent.getRowNumber()));
+				throw conceptNotFound(conceptCode, intent.getRowNumber());
 			}
+		} else if (intent.isInactive()) {
+			asyncJob.incrementRecordsProcessed();
+			return;
 		} else {
+			parentConcept = getParentConceptOrThrow(intent, parentConceptMap, intent.getRowNumber());
 			concept = newPrimitiveConcept(defaultModule, parentConcept, null);
 			changeSummary.incrementAdded();
 			changed = true;
@@ -171,9 +177,13 @@ public class CustomConceptService {
 		asyncJob.incrementRecordsProcessed();
 	}
 
+	private static ServiceException conceptNotFound(String conceptCode, int row) {
+		return new ServiceException(format(CONCEPT_NOT_FOUND_MESSAGE, conceptCode, row));
+	}
+
 	private boolean updateExistingConcept(ConceptIntent intent, String defaultModule, ChangeSummary changeSummary, Concept concept, String conceptCode, boolean changed, Concept parentConcept) throws ServiceException {
 		if (concept == null) {
-			throw new ServiceException(format("Concept with code '%s' on row %s could not be found.", conceptCode, intent.getRowNumber()));
+			throw conceptNotFound(conceptCode, intent.getRowNumber());
 		}
 		if (concept.getRelationships() == null) {
 			concept.setRelationships(new ArrayList<>());

@@ -111,47 +111,61 @@ public class SnolateTranslationSearchService {
 		List<Object> searchAfter = null;
 		boolean hasMore = true;
 		while (hasMore) {
-			NativeQueryBuilder builder = NativeQuery.builder()
-					.withQuery(query)
-					.withPageable(PageRequest.of(0, SOURCE_TERM_SEARCH_PAGE_SIZE, Sort.by(Sort.Order.asc("order"))))
-					.withTrackTotalHits(false);
-			if (searchAfter != null) {
-				builder.withSearchAfter(searchAfter);
-			}
-			SearchHits<TranslationSource> searchHits = elasticsearchOperations.search(builder.build(), TranslationSource.class);
+			SearchHits<TranslationSource> searchHits = searchTranslationSources(query, searchAfter);
 			List<SearchHit<TranslationSource>> hits = searchHits.getSearchHits();
 			if (hits.isEmpty()) {
 				hasMore = false;
 			} else {
-				for (int i = 0; i < hits.size(); i++) {
-					TranslationSource source = hits.get(i).getContent();
-					if (source != null && source.getCode() != null) {
-						codes.add(source.getCode());
-					}
-					if (codes.size() >= ENGLISH_SOURCE_SEARCH_MAX_RESULTS) {
-						boolean moreResultsExist = i < hits.size() - 1 || hits.size() >= SOURCE_TERM_SEARCH_PAGE_SIZE;
-						if (moreResultsExist) {
-							throw englishSearchTooBroadException();
-						}
-						hasMore = false;
-						break;
-					}
+				SourceCodeScanAction action = appendMatchingSourceCodes(hits, codes);
+				if (action == SourceCodeScanAction.TOO_BROAD) {
+					throw englishSearchTooBroadException();
 				}
-				if (!hasMore) {
-					continue;
-				}
-				if (hits.size() < SOURCE_TERM_SEARCH_PAGE_SIZE) {
+				if (action == SourceCodeScanAction.STOP || hits.size() < SOURCE_TERM_SEARCH_PAGE_SIZE) {
 					hasMore = false;
 				} else {
-					searchAfter = hits.get(hits.size() - 1).getSortValues();
-					if (searchAfter.isEmpty()) {
-						throw new IllegalStateException(
-								"Elasticsearch returned no sort values for search_after; cannot continue English term search.");
-					}
+					searchAfter = extractSearchAfter(hits);
 				}
 			}
 		}
 		return codes;
+	}
+
+	private SearchHits<TranslationSource> searchTranslationSources(Query query, List<Object> searchAfter) {
+		NativeQueryBuilder builder = NativeQuery.builder()
+				.withQuery(query)
+				.withPageable(PageRequest.of(0, SOURCE_TERM_SEARCH_PAGE_SIZE, Sort.by(Sort.Order.asc("order"))))
+				.withTrackTotalHits(false);
+		if (searchAfter != null) {
+			builder.withSearchAfter(searchAfter);
+		}
+		return elasticsearchOperations.search(builder.build(), TranslationSource.class);
+	}
+
+	private enum SourceCodeScanAction {
+		CONTINUE, STOP, TOO_BROAD
+	}
+
+	private static SourceCodeScanAction appendMatchingSourceCodes(List<SearchHit<TranslationSource>> hits, List<String> codes) {
+		for (int i = 0; i < hits.size(); i++) {
+			TranslationSource source = hits.get(i).getContent();
+			if (source.getCode() != null) {
+				codes.add(source.getCode());
+			}
+			if (codes.size() >= ENGLISH_SOURCE_SEARCH_MAX_RESULTS) {
+				boolean moreResultsExist = i < hits.size() - 1 || hits.size() >= SOURCE_TERM_SEARCH_PAGE_SIZE;
+				return moreResultsExist ? SourceCodeScanAction.TOO_BROAD : SourceCodeScanAction.STOP;
+			}
+		}
+		return SourceCodeScanAction.CONTINUE;
+	}
+
+	private static List<Object> extractSearchAfter(List<SearchHit<TranslationSource>> hits) {
+		List<Object> searchAfter = hits.get(hits.size() - 1).getSortValues();
+		if (searchAfter.isEmpty()) {
+			throw new IllegalStateException(
+					"Elasticsearch returned no sort values for search_after; cannot continue English term search.");
+		}
+		return searchAfter;
 	}
 
 	private static ServiceExceptionWithStatusCode englishSearchTooBroadException() {
