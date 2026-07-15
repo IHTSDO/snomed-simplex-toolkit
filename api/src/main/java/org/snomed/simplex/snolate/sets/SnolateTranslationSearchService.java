@@ -33,6 +33,9 @@ public class SnolateTranslationSearchService {
 
 	private static final int STREAM_PAGE_SIZE = 5_000;
 
+	/** Elasticsearch default {@code index.max_result_window}; offset pagination must stay within this. */
+	private static final int ELASTICSEARCH_MAX_RESULT_WINDOW = 10_000;
+
 	private static final int SOURCE_TERM_SEARCH_PAGE_SIZE = 5_000;
 
 	/**
@@ -80,14 +83,16 @@ public class SnolateTranslationSearchService {
 			return pageUnitsInSetWithCriteria(compositeSetCode, compositeLanguageCode, pageable, statusFilter);
 		}
 		Query query = buildUnitsInSetQuery(compositeSetCode, compositeLanguageCode, statusFilter, englishConceptCodes, trimmedTarget);
-		NativeQuery nativeQuery = NativeQuery.builder()
-				.withQuery(query)
-				.withPageable(pageable)
-				.withTrackTotalHits(true)
-				.build();
-		SearchHits<TranslationUnit> searchHits = elasticsearchOperations.search(nativeQuery, TranslationUnit.class);
-		List<TranslationUnit> content = searchHits.getSearchHits().stream().map(SearchHit::getContent).toList();
-		return new PageImpl<>(content, pageable, searchHits.getTotalHits());
+		return paginateSearch(pageable, (p, searchAfter, trackTotal) -> {
+			NativeQueryBuilder builder = NativeQuery.builder()
+					.withQuery(query)
+					.withPageable(p)
+					.withTrackTotalHits(trackTotal);
+			if (searchAfter != null) {
+				builder.withSearchAfter(searchAfter);
+			}
+			return elasticsearchOperations.search(builder.build(), TranslationUnit.class);
+		});
 	}
 
 	/**
@@ -163,11 +168,62 @@ public class SnolateTranslationSearchService {
 		if (statusFilter != null) {
 			c = c.and(new Criteria(TranslationUnit.Fields.STATUS).is(statusFilter.name()));
 		}
-		CriteriaQuery query = new CriteriaQuery(c);
-		query.setPageable(pageable);
-		// Elasticsearch defaults to a 10,000 hit cap on total unless track_total_hits is enabled.
-		query.setTrackTotalHits(true);
-		SearchHits<TranslationUnit> searchHits = elasticsearchOperations.search(query, TranslationUnit.class);
+		Criteria criteria = c;
+		return paginateSearch(pageable, (p, searchAfter, trackTotal) -> {
+			CriteriaQuery query = new CriteriaQuery(criteria);
+			query.setPageable(p);
+			query.setTrackTotalHits(trackTotal);
+			if (searchAfter != null) {
+				query.setSearchAfter(searchAfter);
+			}
+			return elasticsearchOperations.search(query, TranslationUnit.class);
+		});
+	}
+
+	@FunctionalInterface
+	private interface UnitSearchExecutor {
+		SearchHits<TranslationUnit> search(Pageable pageable, List<Object> searchAfter, boolean trackTotalHits);
+	}
+
+	/**
+	 * Offset pagination when within Elasticsearch's result window; otherwise skips to the requested offset
+	 * via {@code search_after} batches, then fetches the page.
+	 */
+	private Page<TranslationUnit> paginateSearch(Pageable pageable, UnitSearchExecutor executor) {
+		long offset = pageable.getOffset();
+		int pageSize = pageable.getPageSize();
+		Sort sort = pageable.getSort();
+
+		if (offset + pageSize <= ELASTICSEARCH_MAX_RESULT_WINDOW) {
+			SearchHits<TranslationUnit> searchHits = executor.search(pageable, null, true);
+			return toPage(searchHits, pageable);
+		}
+
+		List<Object> searchAfter = null;
+		long remaining = offset;
+		while (remaining > 0) {
+			int batchSize = (int) Math.min(remaining, STREAM_PAGE_SIZE);
+			SearchHits<TranslationUnit> skipHits = executor.search(PageRequest.of(0, batchSize, sort), searchAfter, false);
+			List<SearchHit<TranslationUnit>> hits = skipHits.getSearchHits();
+			if (hits.isEmpty()) {
+				return Page.empty(pageable);
+			}
+			remaining -= hits.size();
+			if (remaining > 0 && hits.size() < batchSize) {
+				return Page.empty(pageable);
+			}
+			searchAfter = hits.get(hits.size() - 1).getSortValues();
+			if (searchAfter.isEmpty()) {
+				throw new IllegalStateException(
+						"Elasticsearch returned no sort values for search_after; cannot continue deep pagination.");
+			}
+		}
+
+		SearchHits<TranslationUnit> searchHits = executor.search(PageRequest.of(0, pageSize, sort), searchAfter, true);
+		return toPage(searchHits, pageable);
+	}
+
+	private static Page<TranslationUnit> toPage(SearchHits<TranslationUnit> searchHits, Pageable pageable) {
 		List<TranslationUnit> content = searchHits.getSearchHits().stream().map(SearchHit::getContent).toList();
 		return new PageImpl<>(content, pageable, searchHits.getTotalHits());
 	}
