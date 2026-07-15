@@ -258,6 +258,12 @@
 				formControlName="primaryTerm"
 				autocomplete="off"
 			/>
+			<app-translation-ai-suggestions
+				*ngIf="hasVisibleAiSuggestions()"
+				[suggestions]="aiSuggestions"
+				[accepting]="acceptingSuggestion"
+				(acceptSuggestion)="acceptAiSuggestion($event)">
+			</app-translation-ai-suggestions>
 		</div>
 
 		<div class="synonyms-block">

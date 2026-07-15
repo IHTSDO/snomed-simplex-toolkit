@@ -39,6 +39,52 @@ public class TranslationLLMService {
 				englishTerm, multipleSuggestions, fast, new LlmCallContext(translationSet.getCodesystem(), englishTerm.size()));
 	}
 
+	public Map<String, List<String>> suggestBatchTranslations(SnolateTranslationSet translationSet, BatchTranslationPrompt prompt) {
+		LanguageTranslationPolicy policy = languageTranslationPolicyService
+				.findByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset())
+				.orElse(null);
+		String languagePolicyText = languagePolicyPromptFormatter.format(policy);
+		return suggestBatchTranslations(translationSet.getLanguageCode(), languagePolicyText, translationSet.getAiGoldenSet(),
+				prompt, new LlmCallContext(translationSet.getCodesystem(), prompt.translateLineNumbers().size()));
+	}
+
+	public Map<String, List<String>> suggestBatchTranslations(String languageCode, String languagePolicyText, Map<String, String> aiGoldenSet,
+			BatchTranslationPrompt prompt, LlmCallContext context) {
+		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(languageCode);
+		String languageAdviceFormatted = "";
+		if (Strings.isNotEmpty(languagePolicyText)) {
+			languageAdviceFormatted = "%s".formatted(languagePolicyText);
+		}
+		String responseFormat = """
+				For each line that needs translation, return the line number and the %s translation.
+				Lines that already show "English → translation" are completed examples; do not return translations for those lines.
+				Use the exact formatting below:
+				<line number>|<translation>""".formatted(languageCode);
+		String guidelines = getBatchGuidelines();
+
+		StringBuilder englishTerms = new StringBuilder();
+		for (String line : prompt.promptLines()) {
+			englishTerms.append(line).append("\n");
+		}
+		String response = llmService.chat((
+				"""
+					%s
+					%s
+					%s
+					%s
+					Examples:
+					%s
+					English terms:
+					%s
+					"""
+			).formatted(systemAdvice, responseFormat, guidelines, languageAdviceFormatted, formatGoldenExamples(aiGoldenSet), englishTerms),
+				false,
+				context
+		);
+
+		return processBatchResponse(prompt.translateLineNumbers(), response);
+	}
+
 	public Map<String, List<String>> suggestTranslations(String languageCode, String languagePolicyText, Map<String, String> aiGoldenSet,
 			List<String> englishTerm, boolean multipleSuggestions, boolean fast, LlmCallContext context) {
 		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(languageCode);
@@ -95,6 +141,44 @@ public class TranslationLLMService {
 			builder.append(lineNum++).append("|").append(key).append(" → ").append(entry.getValue()).append("\n");
 		}
 		return builder.toString();
+	}
+
+	private Map<String, List<String>> processBatchResponse(Map<Integer, String> translateLineNumbers, String response) {
+		Map<String, List<String>> allSuggestions = new LinkedHashMap<>();
+		for (String line : response.split("\n")) {
+			if (line.contains("|")) {
+				String[] split = line.split("\\|");
+				String termNum = split[0].trim();
+				if (!termNum.matches("\\d*")) {
+					logger.error("Invalid term number: {} in response:{}", termNum, response);
+					continue;
+				}
+				String english = translateLineNumbers.get(Integer.parseInt(termNum));
+				if (english == null) {
+					continue;
+				}
+				List<String> suggestions = new ArrayList<>();
+				for (int i = 1; i < split.length; i++) {
+					String trimmed = split[i].trim();
+					if (!trimmed.isEmpty()) {
+						suggestions.add(trimmed);
+					}
+				}
+				allSuggestions.put(english, suggestions);
+			}
+		}
+		return allSuggestions;
+	}
+
+	private static String getBatchGuidelines() {
+		return """
+				Guidelines:
+				- Return one translation only for lines that contain English text without an existing "→ translation".
+				- Do not return translations for lines that already show "English → translation".
+				- If a translation cannot be found output the line number and pipe but leave the translation blank.
+				- Preserve the original order of the lines; do not reorder, group, or summarize them.
+				- Preserve all modifiers, qualifiers, any body location descriptors.
+				- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.""";
 	}
 
 	private Map<String, List<String>> processResponse(List<String> englishTerm, String response) {

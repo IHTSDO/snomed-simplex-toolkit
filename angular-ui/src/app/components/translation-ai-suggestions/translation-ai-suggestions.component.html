@@ -1,0 +1,15 @@
+<div *ngIf="visibleSuggestions().length" class="translation-ai-suggestions" [class.translation-ai-suggestions--compact]="compact">
+	<span class="field-label field-label--emphasis">AI suggestion</span>
+	<div class="translation-ai-suggestions__list">
+		<button
+			*ngFor="let suggestion of visibleSuggestions()"
+			type="button"
+			class="translation-ai-suggestions__chip"
+			[disabled]="accepting"
+			(click)="onAccept(suggestion)">
+			<span class="translation-ai-suggestions__chip-text">{{ suggestion }}</span>
+			<mat-icon *ngIf="!accepting" class="translation-ai-suggestions__chip-icon" aria-hidden="true">check</mat-icon>
+			<mat-spinner *ngIf="accepting" class="translation-ai-suggestions__chip-spinner" diameter="14"></mat-spinner>
+		</button>
+	</div>
+</div>

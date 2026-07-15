@@ -73,6 +73,8 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 
 	loading = false;
 	saving = false;
+	acceptingSuggestion = false;
+	aiSuggestions: string[] = [];
 
 	readonly statusRadioOrder = TRANSLATION_STATUS_RADIO_ORDER;
 	readonly translationStatusRadioLabel = translationStatusRadioLabel;
@@ -654,6 +656,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	private applyRow(row: any): void {
 		this.sourceTerm = row.source?.[0] ?? '';
 		const target: string[] = Array.isArray(row.target) ? row.target : [];
+		this.aiSuggestions = Array.isArray(row.suggestions) ? [...row.suggestions] : [];
 		const primary = target[0] ?? '';
 		while (this.synonyms.length) {
 			this.synonyms.removeAt(0);
@@ -962,10 +965,45 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.saveUnit$().subscribe({
 			next: () => {
 				this.saving = false;
+				this.aiSuggestions = [];
 				this.snackBar.open('Saved.', 'Dismiss', { duration: 3000 });
 			},
 			error: () => {
 				this.saving = false;
+			}
+		});
+	}
+
+	hasVisibleAiSuggestions(): boolean {
+		return this.isTranslationEmpty() && this.aiSuggestions.length > 0;
+	}
+
+	acceptAiSuggestion(suggestion: string): void {
+		if (this.acceptingSuggestion || this.saving || this.loading) {
+			return;
+		}
+		this.form.patchValue({
+			primaryTerm: suggestion,
+			status: 'FOR_REVIEW'
+		});
+		this.syncStatusWithTranslationText();
+		this.acceptingSuggestion = true;
+		this.simplexService.updateTranslationUnit(
+			this.edition,
+			this.refset,
+			this.label,
+			this.conceptId,
+			{ terms: [suggestion], status: 'FOR_REVIEW' }
+		).subscribe({
+			next: () => {
+				this.loadedTargetTerms = normalizeTargetTerms([suggestion]);
+				this.aiSuggestions = [];
+				this.acceptingSuggestion = false;
+				this.snackBar.open('AI suggestion accepted.', 'Dismiss', { duration: 3000 });
+			},
+			error: () => {
+				this.acceptingSuggestion = false;
+				this.snackBar.open('Failed to accept AI suggestion.', 'Dismiss', { duration: 6000 });
 			}
 		});
 	}

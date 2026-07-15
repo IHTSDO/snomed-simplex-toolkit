@@ -13,6 +13,8 @@ public class TranslationUnitRow {
 	private String context;
 	/** {@link org.snomed.simplex.snolate.domain.TranslationStatus} name, or null if no unit exists yet. */
 	private String status;
+	/** Pending AI batch suggestions; not accepted until user applies them to {@link #target}. */
+	private List<String> suggestions;
 
 	public TranslationUnitRow() {
 	}
@@ -74,6 +76,14 @@ public class TranslationUnitRow {
 
 	public void setStatus(String status) {
 		this.status = status;
+	}
+
+	public List<String> getSuggestions() {
+		return suggestions;
+	}
+
+	public void setSuggestions(List<String> suggestions) {
+		this.suggestions = suggestions;
 	}
 
 	public void blankLabels() {

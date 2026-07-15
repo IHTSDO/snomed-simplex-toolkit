@@ -6,13 +6,14 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
+import org.snomed.simplex.snolate.domain.TranslationStatuses;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
+import org.snomed.simplex.translation.BatchTranslationPrompt;
 import org.snomed.simplex.translation.TranslationLLMService;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.snomed.simplex.snolate.sets.SnolateSetService.JOB_TYPE_BATCH_AI_TRANSLATE;
 import static org.snomed.simplex.snolate.sets.SnolateSetService.PERCENTAGE_PROCESSED_START;
@@ -44,21 +45,31 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		String lang = translationSet.getLanguageCodeWithRefsetId();
 		String setCode = translationSet.getCompositeSetCode();
 		int progressPercent = PERCENTAGE_PROCESSED_START;
-		int unitsProcessed = 0;
 
-		while (unitsProcessed < requestedTotal) {
+		List<TranslationUnit> orderedUnits = translationSearchService.listAllUnitsInSet(setCode, lang);
+		Map<String, TranslationSource> sourcesByCode = loadSourcesByCode(orderedUnits);
+		List<Integer> eligibleIndices = findEligibleIndices(orderedUnits);
+		int unitsProcessed = 0;
+		int eligibleOffset = 0;
+
+		while (unitsProcessed < requestedTotal && eligibleOffset < eligibleIndices.size()) {
 			int batchCap = Math.min(MAX_PAGE_SIZE, requestedTotal - unitsProcessed);
-			List<TranslationSource> batchSources = collectEmptySources(setCode, lang, batchCap);
-			if (batchSources.isEmpty()) {
-				logger.info("No more empty Snolate units in set {}", setCode);
+			int batchEnd = Math.min(eligibleOffset + batchCap, eligibleIndices.size());
+			List<Integer> batchIndices = eligibleIndices.subList(eligibleOffset, batchEnd);
+			BatchTranslationPrompt prompt = buildBatchPrompt(orderedUnits, batchIndices, sourcesByCode);
+			if (prompt.translateLineNumbers().isEmpty()) {
 				break;
 			}
-			List<String> englishTerms = batchSources.stream().map(TranslationSource::getTerm).toList();
-			Map<String, List<String>> suggestions = translationLLMService.suggestTranslations(translationSet, englishTerms, false, false);
+			Map<String, List<String>> suggestions = translationLLMService.suggestBatchTranslations(translationSet, prompt);
 			progressPercent = Math.min(99, progressPercent + 10);
 			setProgress(translationSet, progressPercent);
 
-			for (TranslationSource src : batchSources) {
+			for (int index : batchIndices) {
+				TranslationUnit unit = orderedUnits.get(index);
+				TranslationSource src = sourcesByCode.get(unit.getCode());
+				if (src == null) {
+					continue;
+				}
 				List<String> sug = suggestions.get(src.getTerm());
 				if (sug == null || sug.isEmpty()) {
 					continue;
@@ -67,39 +78,78 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 				Optional<TranslationUnit> opt = translationUnitRepository.findByCodeAndCompositeLanguageCode(src.getCode(), lang);
 				if (opt.isPresent()) {
 					TranslationUnit u = opt.get();
-					u.setTerms(new ArrayList<>(List.of(suggestion)));
-					u.setStatus(TranslationStatus.FOR_REVIEW);
+					u.setAiSuggestions(new ArrayList<>(List.of(suggestion)));
 					translationUnitRepository.save(u);
 				} else {
 					TranslationUnit u = new TranslationUnit(
 							new TranslationUnit.MembershipKey(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(), lang, src.getOrder()),
-							new ArrayList<>(List.of(suggestion)), TranslationStatus.FOR_REVIEW, new LinkedHashSet<>(List.of(setCode)));
+							new ArrayList<>(), TranslationStatus.NOT_STARTED, new LinkedHashSet<>(List.of(setCode)));
+					u.setAiSuggestions(new ArrayList<>(List.of(suggestion)));
 					translationUnitRepository.save(u);
 				}
 			}
-			unitsProcessed += batchSources.size();
+			unitsProcessed += batchIndices.size();
+			eligibleOffset = batchEnd;
+		}
+		if (unitsProcessed == 0) {
+			logger.info("No more empty Snolate units in set {}", setCode);
 		}
 		setProgressToComplete(translationSet);
 	}
 
-	private List<TranslationSource> collectEmptySources(String setCode, String lang, int batchCap) throws ServiceException {
-		List<TranslationSource> batchSources = new ArrayList<>();
-		int pageNumber = 0;
-		final int pageSize = 500;
-		while (batchSources.size() < batchCap) {
-			Page<TranslationUnit> page = translationSearchService.pageUnitsInSet(setCode, lang,
-					PageRequest.of(pageNumber++, pageSize, Sort.by("code")));
-			if (!page.isEmpty()) {
-				for (TranslationUnit u : page.getContent()) {
-					if (batchSources.size() < batchCap && !u.hasTermContent()) {
-						translationSourceRepository.findById(u.getCode()).ifPresent(batchSources::add);
-					}
-				}
-			}
-			if (page.isEmpty() || !page.hasNext()) {
-				break;
+	static List<Integer> findEligibleIndices(List<TranslationUnit> orderedUnits) {
+		List<Integer> eligible = new ArrayList<>();
+		for (int i = 0; i < orderedUnits.size(); i++) {
+			TranslationUnit unit = orderedUnits.get(i);
+			if (!unit.hasTermContent() && !unit.hasAiSuggestions()) {
+				eligible.add(i);
 			}
 		}
-		return batchSources;
+		return eligible;
+	}
+
+	static List<TranslationUnit> findContextUnits(List<TranslationUnit> ordered, int targetIndex) {
+		List<TranslationUnit> found = new ArrayList<>();
+		for (int j = targetIndex - 1; j >= 0 && found.size() < 2; j--) {
+			TranslationUnit candidate = ordered.get(j);
+			if (TranslationStatuses.isAcceptedContext(candidate)) {
+				found.add(candidate);
+			}
+		}
+		Collections.reverse(found);
+		return found;
+	}
+
+	static BatchTranslationPrompt buildBatchPrompt(List<TranslationUnit> orderedUnits, List<Integer> batchIndices,
+			Map<String, TranslationSource> sourcesByCode) {
+		BatchTranslationPrompt.Builder builder = BatchTranslationPrompt.builder();
+		Set<String> includedContextCodes = new HashSet<>();
+		for (int index : batchIndices) {
+			for (TranslationUnit contextUnit : findContextUnits(orderedUnits, index)) {
+				if (!includedContextCodes.add(contextUnit.getCode())) {
+					continue;
+				}
+				TranslationSource contextSource = sourcesByCode.get(contextUnit.getCode());
+				if (contextSource == null || contextUnit.getTerms().isEmpty()) {
+					continue;
+				}
+				builder.addContextLine(contextSource.getTerm(), contextUnit.getTerms().get(0));
+			}
+			TranslationUnit unit = orderedUnits.get(index);
+			TranslationSource source = sourcesByCode.get(unit.getCode());
+			if (source != null) {
+				builder.addTranslateLine(source.getTerm());
+			}
+		}
+		return builder.build();
+	}
+
+	private Map<String, TranslationSource> loadSourcesByCode(List<TranslationUnit> orderedUnits) {
+		List<String> codes = orderedUnits.stream().map(TranslationUnit::getCode).distinct().toList();
+		if (codes.isEmpty()) {
+			return Map.of();
+		}
+		return StreamSupport.stream(translationSourceRepository.findAllById(codes).spliterator(), false)
+				.collect(Collectors.toMap(TranslationSource::getCode, s -> s, (a, b) -> a));
 	}
 }

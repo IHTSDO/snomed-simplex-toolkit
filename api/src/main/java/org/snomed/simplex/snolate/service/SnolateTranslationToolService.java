@@ -164,7 +164,9 @@ public class SnolateTranslationToolService {
 			String english = src != null ? src.getTerm() : "";
 			List<String> target = copyTerms(Optional.of(u));
 			String statusName = u.getStatus() != null ? u.getStatus().name() : null;
-			rows.add(new TranslationUnitRow(List.of(english), target, u.getCode(), statusName));
+			TranslationUnitRow row = new TranslationUnitRow(List.of(english), target, u.getCode(), statusName);
+			row.setSuggestions(copyAiSuggestions(Optional.of(u)));
+			rows.add(row);
 		}
 		return new TranslationUnitPage<>((int) pageResult.getTotalElements(), null, null, rows).withoutPagination();
 	}
@@ -182,6 +184,7 @@ public class SnolateTranslationToolService {
 		List<String> target = copyTerms(Optional.of(tu));
 		String statusName = tu.getStatus() != null ? tu.getStatus().name() : null;
 		TranslationUnitRow row = new TranslationUnitRow(List.of(src.getTerm()), target, conceptId, statusName);
+		row.setSuggestions(copyAiSuggestions(Optional.of(tu)));
 		row.blankLabels();
 		return row;
 	}
@@ -215,6 +218,7 @@ public class SnolateTranslationToolService {
 		}
 		unit.setTerms(terms);
 		unit.setStatus(status);
+		unit.setAiSuggestions(new ArrayList<>());
 		translationUnitRepository.save(unit);
 	}
 
@@ -231,6 +235,12 @@ public class SnolateTranslationToolService {
 
 	private static List<String> copyTerms(Optional<TranslationUnit> tu) {
 		return tu.map(u -> new ArrayList<>(u.getTerms())).orElseGet(ArrayList::new);
+	}
+
+	private static List<String> copyAiSuggestions(Optional<TranslationUnit> tu) {
+		return tu.filter(TranslationUnit::hasAiSuggestions)
+				.map(u -> new ArrayList<>(u.getAiSuggestions()))
+				.orElseGet(ArrayList::new);
 	}
 
 	/**

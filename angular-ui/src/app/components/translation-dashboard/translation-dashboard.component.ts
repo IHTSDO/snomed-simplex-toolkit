@@ -41,6 +41,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     selectedTranslation: any;
     selectedLabelSet: any;
     selectedLabelSetMembers: any[] = [];
+    acceptingSuggestionContext: string | null = null;
     labelSetMembersTotalCount = 0;
     labelSetMembersPageIndex = 0;
     labelSetMembersPageSize = 25;
@@ -961,6 +962,42 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             return '';
         }
         return terms.join(', ');
+    }
+
+    hasVisibleAiSuggestions(unit: { target?: string[]; suggestions?: string[] }): boolean {
+        return !unit?.target?.length && (unit?.suggestions?.length ?? 0) > 0;
+    }
+
+    isAcceptingAiSuggestion(unit: { context?: string }): boolean {
+        return this.acceptingSuggestionContext === unit?.context;
+    }
+
+    acceptAiSuggestion(unit: any, suggestion: string): void {
+        if (!this.selectedEdition?.shortName || !this.selectedLabelSet || !unit?.context || this.acceptingSuggestionContext) {
+            return;
+        }
+        this.acceptingSuggestionContext = unit.context;
+        this.simplexService.updateTranslationUnit(
+            this.selectedEdition.shortName,
+            this.selectedLabelSet.refset,
+            this.selectedLabelSet.label,
+            unit.context,
+            { terms: [suggestion], status: 'FOR_REVIEW' }
+        ).subscribe({
+            next: () => {
+                unit.suggestions = [];
+                if (!unit.target) {
+                    unit.target = [];
+                }
+                unit.target[0] = suggestion;
+                unit.status = 'FOR_REVIEW';
+                this.acceptingSuggestionContext = null;
+            },
+            error: () => {
+                this.acceptingSuggestionContext = null;
+                this.snackBar.open('Failed to accept AI suggestion.', 'Dismiss', { duration: 6000 });
+            }
+        });
     }
 
     /** Snolate {@code TranslationStatus} name from API, or empty when no unit row exists. */

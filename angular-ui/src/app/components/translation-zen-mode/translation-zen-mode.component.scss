@@ -101,6 +101,16 @@ $readonly-bg: #f7f7f8;
 	height: 2rem;
 }
 
+.zen-paging__btn--accept-all {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.zen-paging__btn-spinner {
+	flex-shrink: 0;
+}
+
 .zen-units {
 	display: flex;
 	flex-direction: column;

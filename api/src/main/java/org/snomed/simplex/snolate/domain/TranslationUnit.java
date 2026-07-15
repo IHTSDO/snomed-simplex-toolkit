@@ -56,6 +56,9 @@ public class TranslationUnit {
 	@Field(type = FieldType.Keyword)
 	private List<String> memberOf = new ArrayList<>();
 
+	@Field(type = FieldType.Keyword)
+	private List<String> aiSuggestions = new ArrayList<>();
+
 	public record MembershipKey(String code, String refsetId, String languageCode, String compositeLanguageCode, int order) {
 	}
 
@@ -195,5 +198,17 @@ public class TranslationUnit {
 
 	public void setHasTerms(boolean hasTerms) {
 		this.hasTerms = hasTerms;
+	}
+
+	public List<String> getAiSuggestions() {
+		return aiSuggestions;
+	}
+
+	public void setAiSuggestions(List<String> aiSuggestions) {
+		this.aiSuggestions = aiSuggestions != null ? new ArrayList<>(aiSuggestions) : new ArrayList<>();
+	}
+
+	public boolean hasAiSuggestions() {
+		return aiSuggestions != null && !aiSuggestions.isEmpty();
 	}
 }

@@ -68,6 +68,12 @@
 						<mat-icon>add</mat-icon>
 					</button>
 				</div>
+				<app-translation-ai-suggestions
+					*ngIf="hasVisibleAiSuggestions(unit)"
+					[suggestions]="unit.suggestions"
+					[accepting]="unit.acceptingSuggestion"
+					(acceptSuggestion)="acceptAiSuggestion(unit, $event)">
+				</app-translation-ai-suggestions>
 			</div>
 
 			<div class="synonyms-block" *ngIf="unitSynonymControls(unit).length > 0">
@@ -137,12 +143,22 @@
 		</span>
 		<div class="zen-paging__buttons">
 			<button
+				*ngIf="hasPageAiSuggestions() || acceptingAllSuggestions"
+				mat-stroked-button
+				type="button"
+				class="zen-paging__btn zen-paging__btn--accept-all"
+				(click)="acceptAllAiSuggestions()"
+				[disabled]="loading || acceptingAllSuggestions || !hasPageAiSuggestions()">
+				<mat-spinner *ngIf="acceptingAllSuggestions" class="zen-paging__btn-spinner" diameter="18"></mat-spinner>
+				Accept all suggestions
+			</button>
+			<button
 				*ngIf="hasStatusFilter()"
 				mat-stroked-button
 				type="button"
 				class="zen-paging__btn"
 				(click)="clearStatusFilter()"
-				[disabled]="loading">
+				[disabled]="loading || acceptingAllSuggestions">
 				Clear filter
 			</button>
 			<button
@@ -150,7 +166,7 @@
 				type="button"
 				class="zen-paging__btn"
 				(click)="goPrevPage()"
-				[disabled]="!canGoPrev() || loading">
+				[disabled]="!canGoPrev() || loading || acceptingAllSuggestions">
 				<mat-icon>chevron_left</mat-icon>
 				Previous
 			</button>
@@ -159,7 +175,7 @@
 				type="button"
 				class="zen-paging__btn"
 				(click)="goNextPage()"
-				[disabled]="!canGoNext() || loading">
+				[disabled]="!canGoNext() || loading || acceptingAllSuggestions">
 				Next
 				<mat-icon>chevron_right</mat-icon>
 			</button>

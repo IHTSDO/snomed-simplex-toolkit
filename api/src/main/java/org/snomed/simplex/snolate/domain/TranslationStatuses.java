@@ -26,4 +26,13 @@ public final class TranslationStatuses {
 			unit.setStatusSort(sortOrdinal(unit.getStatus()));
 		}
 	}
+
+	/** Whether a unit may be used as an inline batch-translation context example. */
+	public static boolean isAcceptedContext(TranslationUnit unit) {
+		if (unit == null || !unit.hasTermContent()) {
+			return false;
+		}
+		TranslationStatus status = unit.getStatus();
+		return status == TranslationStatus.APPROVED || status == TranslationStatus.COMPLETE;
+	}
 }

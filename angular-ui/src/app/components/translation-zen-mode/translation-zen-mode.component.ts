@@ -20,6 +20,8 @@ export interface ZenUnitState {
 	form: FormGroup;
 	loadedTargetTerms: string[];
 	loadedStatus: string;
+	suggestions: string[];
+	acceptingSuggestion: boolean;
 	saving: boolean;
 	saveError: string | null;
 	savedFlash: boolean;
@@ -46,6 +48,7 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 	targetSearch: string | null = null;
 
 	loading = false;
+	acceptingAllSuggestions = false;
 	units: ZenUnitState[] = [];
 
 	private snowstormBranchQuery: string | null = null;
@@ -176,6 +179,80 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 		this.syncUnitStatus(unit);
 	}
 
+	hasVisibleAiSuggestions(unit: ZenUnitState): boolean {
+		const primary = (unit.form.get('primaryTerm')?.value as string) ?? '';
+		const synonyms = this.synonymValues(unit);
+		const empty = !primary.trim() && !synonyms.some((s) => s.trim().length > 0);
+		return empty && unit.suggestions.length > 0;
+	}
+
+	hasPageAiSuggestions(): boolean {
+		return this.units.some((unit) => this.hasVisibleAiSuggestions(unit));
+	}
+
+	async acceptAllAiSuggestions(): Promise<void> {
+		if (this.acceptingAllSuggestions || this.loading) {
+			return;
+		}
+		const unitsToAccept = this.units.filter(
+			(unit) => this.hasVisibleAiSuggestions(unit) && !unit.acceptingSuggestion && !unit.saving
+		);
+		if (unitsToAccept.length === 0) {
+			return;
+		}
+		this.acceptingAllSuggestions = true;
+		this.cdr.detectChanges();
+		let failed = 0;
+		for (const unit of unitsToAccept) {
+			const suggestion = unit.suggestions.find((s) => (s ?? '').trim().length > 0);
+			if (!suggestion) {
+				continue;
+			}
+			unit.form.patchValue({
+				primaryTerm: suggestion,
+				status: 'FOR_REVIEW'
+			});
+			this.syncUnitStatus(unit);
+			unit.acceptingSuggestion = true;
+			this.cdr.detectChanges();
+			await this.performSave(unit, { terms: [suggestion], status: 'FOR_REVIEW' });
+			if (!unit.saveError) {
+				unit.suggestions = [];
+			} else {
+				failed++;
+			}
+			unit.acceptingSuggestion = false;
+			this.cdr.detectChanges();
+		}
+		this.acceptingAllSuggestions = false;
+		this.cdr.detectChanges();
+		if (failed > 0) {
+			this.snackBar.open(`Failed to accept ${failed} suggestion(s).`, 'Dismiss', { duration: 6000 });
+		} else {
+			this.snackBar.open(`Accepted ${unitsToAccept.length} suggestion(s).`, 'Dismiss', { duration: 3000 });
+		}
+	}
+
+	acceptAiSuggestion(unit: ZenUnitState, suggestion: string): void {
+		if (unit.acceptingSuggestion || unit.saving) {
+			return;
+		}
+		unit.form.patchValue({
+			primaryTerm: suggestion,
+			status: 'FOR_REVIEW'
+		});
+		this.syncUnitStatus(unit);
+		unit.acceptingSuggestion = true;
+		this.cdr.detectChanges();
+		void this.performSave(unit, { terms: [suggestion], status: 'FOR_REVIEW' }).then(() => {
+			if (!unit.saveError) {
+				unit.suggestions = [];
+			}
+			unit.acceptingSuggestion = false;
+			this.cdr.detectChanges();
+		});
+	}
+
 	private applyRouteParams(): void {
 		const params = this.route.snapshot.paramMap;
 		this.edition = params.get('edition') ?? '';
@@ -246,6 +323,8 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 			form,
 			loadedTargetTerms: normalizeTargetTerms(target),
 			loadedStatus: status,
+			suggestions: Array.isArray(row.suggestions) ? [...row.suggestions] : [],
+			acceptingSuggestion: false,
 			saving: false,
 			saveError: null,
 			savedFlash: false
@@ -334,6 +413,9 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 			);
 			unit.loadedTargetTerms = [...body.terms];
 			unit.loadedStatus = body.status;
+			if (body.terms.length > 0) {
+				unit.suggestions = [];
+			}
 			unit.savedFlash = true;
 			this.cdr.detectChanges();
 			setTimeout(() => {

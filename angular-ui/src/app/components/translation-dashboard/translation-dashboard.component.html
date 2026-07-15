@@ -388,7 +388,17 @@
                                 <ng-container matColumnDef="dialect">
                                     <th mat-header-cell *matHeaderCellDef>{{ translatedTermsDialectColumnHeader }}</th>
                                     <td mat-cell *matCellDef="let unit">
-                                        {{ formatMemberTermList(unit.target) }}
+                                        <ng-container *ngIf="hasVisibleAiSuggestions(unit); else dialectTerms">
+                                            <app-translation-ai-suggestions
+                                                [suggestions]="unit.suggestions"
+                                                [accepting]="isAcceptingAiSuggestion(unit)"
+                                                [compact]="true"
+                                                (acceptSuggestion)="acceptAiSuggestion(unit, $event)">
+                                            </app-translation-ai-suggestions>
+                                        </ng-container>
+                                        <ng-template #dialectTerms>
+                                            {{ formatMemberTermList(unit.target) }}
+                                        </ng-template>
                                     </td>
                                 </ng-container>
 
