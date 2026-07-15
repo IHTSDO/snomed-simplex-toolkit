@@ -288,6 +288,27 @@ export class SimplexService {
     );
   }
 
+  public uploadTranslationSetCsv(
+    edition: string,
+    refsetId: string,
+    label: string,
+    file: File,
+    conceptColumn: string,
+    termColumns: string[],
+    status: string
+  ): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    formData.append('conceptColumn', conceptColumn);
+    formData.append('termColumns', termColumns.join(','));
+    formData.append('status', status);
+    const apiUrl = `api/${edition}/translations/${refsetId}/snolate-set/${label}/csv`;
+    return this.http.put(apiUrl, formData).pipe(
+      tap(() => this.clearTranslationsCache(edition)),
+      catchError(this.handleError.bind(this))
+    );
+  }
+
   // Method to trigger file download in the browser
   public triggerDownload(file: Blob, filename: string): void {
     const url = window.URL.createObjectURL(file);

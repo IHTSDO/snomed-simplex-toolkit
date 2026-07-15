@@ -101,7 +101,7 @@ export class DownloadTranslationSetDialogComponent {
 					console.error('Error downloading translation set CSV:', error);
 					this.loading = false;
 
-					let errorMessage = 'Failed to download translation set CSV';
+					let errorMessage = 'Failed to export translation set CSV';
 					if (error.error?.message) {
 						errorMessage = `${errorMessage}: ${error.error.message}`;
 					}

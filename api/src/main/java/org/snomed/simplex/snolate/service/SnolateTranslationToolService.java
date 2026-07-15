@@ -16,13 +16,20 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.snomed.simplex.service.job.ChangeSummary;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -39,9 +47,16 @@ import java.util.stream.StreamSupport;
 @Service
 public class SnolateTranslationToolService {
 
+	private static final Logger logger = LoggerFactory.getLogger(SnolateTranslationToolService.class);
+
 	private static final int CSV_EXPORT_PAGE_SIZE = 2000;
 
 	private static final String DEFAULT_TRANSLATION_LABEL = "Translation";
+
+	private static final Set<TranslationStatus> ALLOWED_IMPORT_STATUSES = Set.of(
+			TranslationStatus.NEEDS_EDIT,
+			TranslationStatus.FOR_REVIEW,
+			TranslationStatus.APPROVED);
 
 	private final SnolateTranslationUnitRepository translationUnitRepository;
 	private final SnolateTranslationSourceRepository translationSourceRepository;
@@ -264,6 +279,76 @@ public class SnolateTranslationToolService {
 		return s.isEmpty() ? DEFAULT_TRANSLATION_LABEL : s;
 	}
 
+	public ChangeSummary importTranslationSetCsv(SnolateTranslationSet translationSet, InputStream inputStream,
+			String conceptColumn, List<String> termColumns, TranslationStatus status) throws ServiceException {
+		if (status == null || !ALLOWED_IMPORT_STATUSES.contains(status)) {
+			throw new ServiceExceptionWithStatusCode(
+					"Import status must be NEEDS_EDIT, FOR_REVIEW, or APPROVED.", HttpStatus.BAD_REQUEST);
+		}
+		if (conceptColumn == null || conceptColumn.isBlank()) {
+			throw new ServiceExceptionWithStatusCode("Concept column is required.", HttpStatus.BAD_REQUEST);
+		}
+		if (termColumns == null || termColumns.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("At least one term column is required.", HttpStatus.BAD_REQUEST);
+		}
+
+		String setCode = translationSet.getCompositeSetCode();
+		String lang = translationSet.getLanguageCodeWithRefsetId();
+		ChangeSummary changeSummary = new ChangeSummary();
+
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+			List<String> headerFields = readCsvRow(reader);
+			if (headerFields.isEmpty()) {
+				throw new ServiceExceptionWithStatusCode("CSV file has no header row.", HttpStatus.BAD_REQUEST);
+			}
+			Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
+			int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), "Concept column");
+			List<Integer> termColumnIndices = new ArrayList<>();
+			for (String column : termColumns) {
+				String trimmed = column.trim();
+				if (!trimmed.isEmpty()) {
+					termColumnIndices.add(resolveColumnIndex(headerIndex, trimmed, "Term column"));
+				}
+			}
+			if (termColumnIndices.isEmpty()) {
+				throw new ServiceExceptionWithStatusCode("At least one term column is required.", HttpStatus.BAD_REQUEST);
+			}
+
+			List<String> rowFields;
+			int skipped = 0;
+			while ((rowFields = readCsvRow(reader)) != null) {
+				if (rowFields.isEmpty() || rowFields.stream().allMatch(String::isBlank)) {
+					continue;
+				}
+				String conceptCode = getField(rowFields, conceptIndex).trim();
+				if (conceptCode.isEmpty()) {
+					continue;
+				}
+				List<String> terms = buildTermsFromRow(rowFields, termColumnIndices);
+				if (terms.isEmpty()) {
+					skipped++;
+					continue;
+				}
+				Optional<TranslationUnit> tuOpt = translationUnitRepository.findByCodeAndCompositeLanguageCode(conceptCode, lang);
+				if (tuOpt.isEmpty() || !tuOpt.get().getMemberOf().contains(setCode)) {
+					skipped++;
+					logger.debug("Skipping concept {} not found in translation set {}", conceptCode, setCode);
+					continue;
+				}
+				updateTranslationUnit(translationSet, conceptCode, terms, status);
+				changeSummary.incrementUpdated();
+			}
+			if (skipped > 0) {
+				logger.info("Translation set CSV import skipped {} row(s) with empty terms or unknown concepts.", skipped);
+			}
+		} catch (IOException e) {
+			throw new ServiceException("Failed to read translation set CSV.", e);
+		} catch (ServiceExceptionWithStatusCode e) {
+			throw e;
+		}
+		return changeSummary;
+	}
+
 	public void writeTranslationSetCsv(SnolateTranslationSet translationSet, TranslationStatus statusFilter,
 			String languageDisplayName, OutputStream out) throws ServiceException {
 		String dialect = languageDisplayName == null || languageDisplayName.isBlank()
@@ -333,5 +418,130 @@ public class SnolateTranslationToolService {
 			return value;
 		}
 		return "\"" + value.replace("\"", "\"\"") + "\"";
+	}
+
+	static List<String> parseCsvLine(String line) {
+		List<String> fields = new ArrayList<>();
+		if (line == null) {
+			return fields;
+		}
+		StringBuilder field = new StringBuilder();
+		boolean inQuotes = false;
+		for (int i = 0; i < line.length(); i++) {
+			char c = line.charAt(i);
+			if (inQuotes) {
+				if (c == '"') {
+					if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+						field.append('"');
+						i++;
+					} else {
+						inQuotes = false;
+					}
+				} else {
+					field.append(c);
+				}
+			} else if (c == '"') {
+				inQuotes = true;
+			} else if (c == ',') {
+				fields.add(field.toString());
+				field.setLength(0);
+			} else {
+				field.append(c);
+			}
+		}
+		fields.add(field.toString());
+		return fields;
+	}
+
+	static List<String> readCsvRow(Reader reader) throws IOException {
+		List<String> fields = new ArrayList<>();
+		StringBuilder field = new StringBuilder();
+		boolean inQuotes = false;
+		int ch;
+		while ((ch = reader.read()) != -1) {
+			char c = (char) ch;
+			if (inQuotes) {
+				if (c == '"') {
+					reader.mark(1);
+					int next = reader.read();
+					if (next == '"') {
+						field.append('"');
+					} else {
+						inQuotes = false;
+						if (next != -1) {
+							reader.reset();
+						}
+					}
+				} else {
+					field.append(c);
+				}
+			} else if (c == '"') {
+				inQuotes = true;
+			} else if (c == ',') {
+				fields.add(field.toString());
+				field.setLength(0);
+			} else if (c == '\r') {
+				reader.mark(1);
+				int next = reader.read();
+				if (next != '\n' && next != -1) {
+					reader.reset();
+				}
+				fields.add(field.toString());
+				return fields;
+			} else if (c == '\n') {
+				fields.add(field.toString());
+				return fields;
+			} else {
+				field.append(c);
+			}
+		}
+		if (field.length() > 0 || !fields.isEmpty()) {
+			fields.add(field.toString());
+			return fields;
+		}
+		return null;
+	}
+
+	private static Map<String, Integer> buildHeaderIndex(List<String> headerFields) {
+		Map<String, Integer> headerIndex = new LinkedHashMap<>();
+		for (int i = 0; i < headerFields.size(); i++) {
+			headerIndex.put(headerFields.get(i).trim(), i);
+		}
+		return headerIndex;
+	}
+
+	private static int resolveColumnIndex(Map<String, Integer> headerIndex, String columnName, String columnLabel)
+			throws ServiceExceptionWithStatusCode {
+		Integer index = headerIndex.get(columnName);
+		if (index == null) {
+			throw new ServiceExceptionWithStatusCode(
+					columnLabel + " '" + columnName + "' was not found in the CSV header.", HttpStatus.BAD_REQUEST);
+		}
+		return index;
+	}
+
+	private static String getField(List<String> row, int index) {
+		if (index < 0 || index >= row.size()) {
+			return "";
+		}
+		String value = row.get(index);
+		return value != null ? value : "";
+	}
+
+	private static List<String> buildTermsFromRow(List<String> row, List<Integer> termColumnIndices) {
+		List<String> terms = new ArrayList<>();
+		for (int index : termColumnIndices) {
+			String cell = getField(row, index);
+			if (cell.isBlank()) {
+				continue;
+			}
+			for (String part : cell.split("\\R")) {
+				String trimmed = part.trim();
+				if (!trimmed.isEmpty()) {
+					terms.add(trimmed);
+				}
+			}
+		}
+		return terms;
 	}
 }

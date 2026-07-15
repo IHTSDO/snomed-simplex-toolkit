@@ -270,6 +270,54 @@ public class TranslationController {
 				response.getOutputStream());
 	}
 
+	@PutMapping(path = "{codeSystem}/translations/{refsetId}/snolate-set/{label}/csv", consumes = "multipart/form-data")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob uploadSnolateSetCsv(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@PathVariable String label, @RequestParam MultipartFile file,
+			@RequestParam String conceptColumn, @RequestParam String termColumns, @RequestParam String status)
+			throws ServiceException, IOException {
+
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		if (translationSet.getStatus() != TranslationSetStatus.READY) {
+			throw new ServiceExceptionWithStatusCode(
+					"Translation set CSV import is only available when set status is READY.",
+					HttpStatus.BAD_REQUEST);
+		}
+		TranslationStatus importStatus = parseImportTranslationStatus(status);
+		List<String> termColumnList = java.util.Arrays.stream(termColumns.split(","))
+				.map(String::trim)
+				.filter(column -> !column.isEmpty())
+				.toList();
+		if (termColumnList.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("At least one term column is required.", HttpStatus.BAD_REQUEST);
+		}
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
+		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation set import", refsetId)
+				.addUpload(file.getInputStream(), file.getOriginalFilename());
+		return jobService.queueContentJob(contentJob, refsetId, activity,
+				job -> snolateTranslationToolService.importTranslationSetCsv(
+						translationSet, job.getInputStream(), conceptColumn, termColumnList, importStatus));
+	}
+
+	private static TranslationStatus parseImportTranslationStatus(String status) throws ServiceExceptionWithStatusCode {
+		if (status == null || status.isBlank()) {
+			throw new ServiceExceptionWithStatusCode("Import status is required.", HttpStatus.BAD_REQUEST);
+		}
+		try {
+			TranslationStatus parsed = TranslationStatus.valueOf(status.trim());
+			if (parsed == TranslationStatus.NOT_STARTED || parsed == TranslationStatus.COMPLETE) {
+				throw new IllegalArgumentException("Status not allowed for import");
+			}
+			return parsed;
+		} catch (IllegalArgumentException e) {
+			throw new ServiceExceptionWithStatusCode(
+					"Import status must be NEEDS_EDIT, FOR_REVIEW, or APPROVED.", HttpStatus.BAD_REQUEST, e);
+		}
+	}
+
 	private static TranslationStatus parseOptionalTranslationStatus(String status) throws ServiceExceptionWithStatusCode {
 		if (status == null || status.isBlank()) {
 			return null;

@@ -16,6 +16,7 @@ import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialo
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
 import { EditTranslationSetDialogComponent } from '../edit-translation-set-dialog/edit-translation-set-dialog.component';
 import { DownloadTranslationSetDialogComponent } from '../download-translation-set-dialog/download-translation-set-dialog.component';
+import { UploadTranslationSetDialogComponent } from '../upload-translation-set-dialog/upload-translation-set-dialog.component';
 import { LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
 import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, effectiveTranslationTermSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
@@ -483,7 +484,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             return;
         }
         if (target.status !== 'READY') {
-            this.snackBar.open('File download is only available when the set status is READY.', 'Close', {
+            this.snackBar.open('File export is only available when the set status is READY.', 'Close', {
                 duration: 5000
             });
             return;
@@ -499,6 +500,42 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 languageDialect: this.displayTranslationLanguageDialect(target.translationName),
                 statusCounts: target.statusCounts,
                 totalSize: target.size
+            }
+        });
+    }
+
+    uploadTranslationSet(labelSet?: any): void {
+        const target = labelSet ?? this.selectedLabelSet;
+        if (!target) {
+            this.snackBar.open('Please select a translation set first.', 'Close', {
+                duration: 3000
+            });
+            return;
+        }
+        if (target.status !== 'READY') {
+            this.snackBar.open('File import is only available when the set status is READY.', 'Close', {
+                duration: 5000
+            });
+            return;
+        }
+
+        const dialogRef = this.dialog.open(UploadTranslationSetDialogComponent, {
+            width: '480px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                refsetId: target.refset ?? target.translationId,
+                label: target.label,
+                setName: target.name,
+                languageDialect: this.displayTranslationLanguageDialect(target.translationName)
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result?.action === 'import_started') {
+                this.snackBar.open('Import job created', 'Close', {
+                    duration: 5000
+                });
+                this.getTranslationSets();
             }
         });
     }

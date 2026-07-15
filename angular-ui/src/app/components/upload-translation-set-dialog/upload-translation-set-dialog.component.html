@@ -1,0 +1,62 @@
+<h2 mat-dialog-title>File import</h2>
+<mat-dialog-content>
+    <div class="dialog-content">
+        <p class="set-hint">
+            Import concepts into <strong>{{ data.setName }}</strong> from CSV.
+        </p>
+        <p class="language-hint" *ngIf="data.languageDialect">
+            Language/dialect: <strong>{{ data.languageDialect }}</strong>
+        </p>
+
+        <input #fileInput type="file" accept=".csv,text/csv" hidden (change)="onFileSelected($event)">
+
+        <div class="file-picker">
+            <button mat-stroked-button type="button" (click)="chooseFile()" [disabled]="loading || parsingHeaders">
+                Choose file
+            </button>
+            <span class="file-name" *ngIf="selectedFileName">{{ selectedFileName }}</span>
+            <mat-spinner *ngIf="parsingHeaders" diameter="20"></mat-spinner>
+        </div>
+
+        <div class="mapping-section" *ngIf="headers.length > 0">
+            <mat-form-field appearance="outline" class="mapping-field">
+                <mat-label>Concept code column</mat-label>
+                <mat-select [(ngModel)]="conceptColumn" [disabled]="loading">
+                    <mat-option *ngFor="let header of headers" [value]="header">{{ header }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="mapping-field">
+                <mat-label>Term column(s)</mat-label>
+                <mat-select [(ngModel)]="termColumns" multiple [disabled]="loading">
+                    <mat-option *ngFor="let header of headers" [value]="header">{{ header }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+            <p class="mapping-hint">The first selected term column is treated as the preferred term.</p>
+        </div>
+
+        <mat-radio-group
+            class="status-options"
+            [(ngModel)]="selectedStatus"
+            [disabled]="loading">
+            <p class="section-label">Status for imported rows</p>
+            <mat-radio-button
+                class="status-option"
+                *ngFor="let option of statusOptions"
+                [value]="option.value">
+                {{ option.label }}
+            </mat-radio-button>
+        </mat-radio-group>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()" [disabled]="loading">Cancel</button>
+    <button mat-raised-button color="primary" [disabled]="!canImport" (click)="onImport()">
+        <span *ngIf="loading" class="loading-content">
+            <mat-spinner diameter="20"></mat-spinner>
+            Importing...
+        </span>
+        <span *ngIf="!loading">Import</span>
+    </button>
+</mat-dialog-actions>

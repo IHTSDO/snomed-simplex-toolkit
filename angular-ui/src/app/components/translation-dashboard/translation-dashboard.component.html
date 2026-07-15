@@ -217,7 +217,12 @@
                                     <button mat-menu-item (click)="downloadTranslationSet()"
                                             [disabled]="selectedLabelSet.status !== 'READY'">
                                         <mat-icon class="large-icon">file_download</mat-icon>
-                                        File download
+                                        File export
+                                    </button>
+                                    <button mat-menu-item (click)="uploadTranslationSet()"
+                                            [disabled]="selectedLabelSet.status !== 'READY'">
+                                        <mat-icon class="large-icon">file_upload</mat-icon>
+                                        File import
                                     </button>
                                     <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
                                         <mat-icon class="large-icon">cancel</mat-icon>

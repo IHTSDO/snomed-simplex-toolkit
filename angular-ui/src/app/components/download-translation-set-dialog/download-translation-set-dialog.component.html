@@ -1,8 +1,8 @@
-<h2 mat-dialog-title>File download</h2>
+<h2 mat-dialog-title>File export</h2>
 <mat-dialog-content>
     <div class="dialog-content">
         <p class="set-hint">
-            Download concepts from <strong>{{ data.setName }}</strong> as CSV.
+            Export concepts from <strong>{{ data.setName }}</strong> as CSV.
         </p>
         <p class="language-hint" *ngIf="data.languageDialect">
             Language/dialect: <strong>{{ data.languageDialect }}</strong>
@@ -28,8 +28,8 @@
     <button mat-raised-button color="primary" [disabled]="loading" (click)="onDownload()">
         <span *ngIf="loading" class="loading-content">
             <mat-spinner diameter="20"></mat-spinner>
-            Downloading...
+            Exporting...
         </span>
-        <span *ngIf="!loading">Download</span>
+        <span *ngIf="!loading">Export</span>
     </button>
 </mat-dialog-actions>
