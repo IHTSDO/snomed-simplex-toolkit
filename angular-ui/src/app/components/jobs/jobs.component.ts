@@ -1,4 +1,4 @@
-import {ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, ViewChild} from '@angular/core';
+import {ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, ViewChild} from '@angular/core';
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {Router} from '@angular/router';
@@ -57,6 +57,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   selectedFile: File = null;
   selectedFileType: string = null;
+  private fileInputElement: HTMLInputElement | null = null;
   fileTypes = [
     {
       value: 'refsetSpreadsheet',
@@ -121,13 +122,27 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     }
   }
 
-  ngOnChanges() {
-    this.hasTranslationStudioActivity = false;
-    this.hasTranslationStudioActivityFailed = false;
-    this.loadJobs(true);
-    this.loadActivities(true);
-    this.selectedFileType = null;
-    this.filterFileTypes();
+  ngOnChanges(changes: SimpleChanges) {
+    const refsetChanged = !!changes['refsetId'] &&
+      changes['refsetId'].currentValue !== changes['refsetId'].previousValue;
+    const editionChanged = !!changes['edition'] &&
+      changes['edition'].currentValue !== changes['edition'].previousValue;
+    const artifactIdChanged = !!changes['artifact'] && (
+      !changes['artifact'].previousValue ||
+      changes['artifact'].previousValue?.conceptId !== changes['artifact'].currentValue?.conceptId
+    );
+
+    if (refsetChanged || editionChanged || artifactIdChanged) {
+      this.hasTranslationStudioActivity = false;
+      this.hasTranslationStudioActivityFailed = false;
+      this.selectedFileType = null;
+      this.clearSelectedFile();
+      this.loadJobs(true);
+      this.loadActivities(true);
+      this.filterFileTypes();
+    } else if (changes['artifact'] && !changes['artifact'].firstChange) {
+      this.loadActivities(false);
+    }
   }
 
   ngOnDestroy() {
@@ -155,7 +170,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   public loadJobs(clear: boolean) {
     if (clear) {
       this.jobs = [];
-      this.selectedFile = null;
+      this.clearSelectedFile();
       this.loading = true;
     }
     this.subscription = this.simplexService
@@ -300,10 +315,25 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
+    this.fileInputElement = input;
     if (input.files && input.files.length) {
       this.selectedFile = input.files[0];
     } else {
       this.selectedFile = null;
+    }
+  }
+
+  private clearSelectedFile(): void {
+    this.selectedFile = null;
+    this.clearFileInput();
+  }
+
+  private clearFileInput(): void {
+    if (this.fileInputElement) {
+      this.fileInputElement.value = '';
+    }
+    if (this.fileInput?.nativeElement) {
+      this.fileInput.nativeElement.value = '';
     }
   }
 
@@ -380,7 +410,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
               this.selectedFile
             )
           );
-          this.selectedFile = null;
+          this.clearSelectedFile();
           this.loadJobs(false);
           this.alert('File import job created');
         } else if (
@@ -394,7 +424,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
               this.selectedFile
             )
           );
-          this.selectedFile = null;
+          this.clearSelectedFile();
           this.loadJobs(false);
           this.alert('File import job created');
         } else if (
@@ -408,7 +438,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
               this.selectedFile
             )
           );
-          this.selectedFile = null;
+          this.clearSelectedFile();
           this.loadJobs(false);
           this.alert('File import job created');
         } else if (
@@ -422,7 +452,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
               this.selectedFile
             )
           );
-          this.selectedFile = null;
+          this.clearSelectedFile();
           this.loadJobs(false);
           this.alert('File import job created');
         } else if (componentType === 'map' && fileType === 'mapSpreadsheet') {
@@ -433,7 +463,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
               this.selectedFile
             )
           );
-          this.selectedFile = null;
+          this.clearSelectedFile();
           this.loadJobs(false);
           this.alert('File import job created');
         } else if (
@@ -446,21 +476,19 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
               this.selectedFile
             )
           );
-          this.selectedFile = null;
+          this.clearSelectedFile();
           this.loadJobs(false);
           this.alert('File import job created');
         } else {
           console.error(
             'File upload failed: Invalid componentType or fileType'
           );
+          this.alert('File upload failed: please re-select the upload type and file');
         }
       } catch (error) {
         console.error('File upload failed:', error);
       } finally {
-        this.selectedFile = null;
-        if (this.fileInput) {
-          this.fileInput.nativeElement.value = '';
-        }
+        this.clearSelectedFile();
       }
     }
   }
@@ -494,19 +522,16 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   // Handle changes in selected file type
   onSelectedFileTypeChange(event: MatRadioChange): void {
     this.selectedFileType = event.value;
-    this.selectedFile = null;
+    this.clearSelectedFile();
     this.eclForm.reset({ ecl: '' });
     this.eclSelection?.resetSelection();
   }
 
   resetEditPanel() {
     this.selectedFileType = null;
-    this.selectedFile = null;
+    this.clearSelectedFile();
     this.eclForm.reset({ ecl: '' });
     this.eclSelection?.resetSelection();
-    if (this.fileInput) {
-      this.fileInput.nativeElement.value = '';
-    }
   }
 
   populateSubsetViaEcl() {
