@@ -37,7 +37,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import static org.snomed.simplex.client.SnowstormClient.ExportType.DELTA;
@@ -48,16 +50,15 @@ public class ValidationServiceClient {
 	private static final String RVF_TS = "RVF_TS";
 	private static final String VALIDATION_RESPONSE_QUEUE = "termserver-release-validation.response";
 
-	/** RVF resource assertion UUID for the case-significance procedure (excluded when validation ignore-case is enabled on the edition). */
-	private static final String RVF_CASE_SIGNIFICANCE_RESOURCE_ASSERTION_ID = "458cde1f-224a-49d7-a6ca-2fc666d96e7d";
-
 	private final RestTemplate restTemplate;
 	private final String queuePrefix;
 	private final SpreadsheetService spreadsheetService;
+	private final List<String> validationIgnoreCaseAssertionExclusionList;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public ValidationServiceClient(@Value("${rvf.url}") String rvfUrl, @Value("${jms.queue.prefix}") String queuePrefix,
+								   @Value("${rvf.validation.ignore-case.assertion-exclusion-list}") String validationIgnoreCaseAssertionExclusionList,
 								   @Autowired SpreadsheetService spreadsheetService) {
 		this.restTemplate = new RestTemplateBuilder()
 				.rootUri(rvfUrl)
@@ -72,6 +73,10 @@ public class ValidationServiceClient {
 				.build();
 		this.queuePrefix = queuePrefix;
 		this.spreadsheetService = spreadsheetService;
+		this.validationIgnoreCaseAssertionExclusionList = Arrays.stream(validationIgnoreCaseAssertionExclusionList.split(","))
+				.map(String::trim)
+				.filter(s -> !s.isEmpty())
+				.toList();
 	}
 
 	private String getAuthenticationToken() {
@@ -175,7 +180,9 @@ public class ValidationServiceClient {
 		body.add("storageLocation", storageLocation);
 
 		if (codeSystem.isValidationIgnoreCase()) {
-			body.add("assertionExclusionList", RVF_CASE_SIGNIFICANCE_RESOURCE_ASSERTION_ID);
+			for (String assertionId : validationIgnoreCaseAssertionExclusionList) {
+				body.add("assertionExclusionList", assertionId);
+			}
 		}
 
 		HttpHeaders headers = new HttpHeaders();
