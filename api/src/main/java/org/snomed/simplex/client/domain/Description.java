@@ -93,7 +93,7 @@ public class Description extends Component {
 	}
 
 	public Description(Type type, String lang, String term, CaseSignificance caseSignificance, String langRefset, Acceptability acceptability) {
-		this(type, lang, term, caseSignificance, Map.of(langRefset, acceptability));
+		this(type, lang, term, caseSignificance, new HashMap<>(Map.of(langRefset, acceptability)));
 	}
 
 	public Description(Type type, String lang, String term, CaseSignificance caseSignificance, Map<String, Acceptability> acceptabilityMap) {
@@ -101,7 +101,7 @@ public class Description extends Component {
 		this.lang = lang;
 		this.term = term;
 		this.caseSignificance = caseSignificance;
-		this.acceptabilityMap = acceptabilityMap;
+		this.acceptabilityMap = acceptabilityMap != null ? new HashMap<>(acceptabilityMap) : new HashMap<>();
 	}
 
 	public boolean isUsPreferredTerm() {
@@ -115,6 +115,9 @@ public class Description extends Component {
 	}
 
 	public Description addAcceptability(String langRefsetId, Acceptability acceptability) {
+		if (acceptabilityMap == null) {
+			acceptabilityMap = new HashMap<>();
+		}
 		acceptabilityMap.put(langRefsetId, acceptability);
 		return this;
 	}
@@ -175,7 +178,7 @@ public class Description extends Component {
 	}
 
 	public void setAcceptabilityMap(Map<String, Acceptability> acceptabilityMap) {
-		this.acceptabilityMap = acceptabilityMap;
+		this.acceptabilityMap = acceptabilityMap != null ? new HashMap<>(acceptabilityMap) : new HashMap<>();
 	}
 
 	public String getInactivationIndicator() {
