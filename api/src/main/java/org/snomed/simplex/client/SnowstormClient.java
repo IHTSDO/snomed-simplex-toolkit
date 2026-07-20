@@ -53,6 +53,7 @@ public class SnowstormClient {
 	public static final String CODESYSTEMS_VERSIONS_ENDPOINT = "/codesystems/%s/versions";
 	public static final String BRANCH_X_ENDPOINT = "/branches/%s";
 	public static final String ROOT_CODESYSTEM = "SNOMEDCT";
+	public static final String REFSET_DATA = "refset data";
 
 	/** Read timeout for POST /exports and GET …/exports/{id}/archive (large ZIP stream). Other Snowstorm calls use {@link #restTemplate} defaults. */
 	private static final Duration RF2_EXPORT_READ_TIMEOUT = Duration.ofMinutes(10);
@@ -394,7 +395,7 @@ public class SnowstormClient {
 		try {
 			ResponseEntity<RefsetAggregationPage> response = restTemplate.exchange(url, HttpMethod.GET, null, RefsetAggregationPage.class);
 			RefsetAggregationPage body = response.getBody();
-			throwIfNull(body, "refset data");
+			throwIfNull(body, REFSET_DATA);
 			List<ConceptMini> refsetsWithActiveMemberCount = body.getRefsetsWithActiveMemberCount();
 			for (ConceptMini refset : refsetsWithActiveMemberCount) {
 				if (refsetConceptMap.containsKey(refset.getConceptId())) {
@@ -457,7 +458,7 @@ public class SnowstormClient {
 		ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&active=true&limit=1", codeSystem.getWorkingBranchPath(), refsetId),
 				HttpMethod.GET,null, responseTypeRefsetPage);
 		Page<RefsetMember> page = response.getBody();
-		throwIfNull(page, "refset data");
+		throwIfNull(page, REFSET_DATA);
 		return Math.toIntExact(page.getTotal());
 	}
 
@@ -467,7 +468,7 @@ public class SnowstormClient {
 				format("/%s/members?referenceSet=%s&active=true&limit=1%s", codeSystem.getWorkingBranchPath(), refsetId, moduleParam),
 				HttpMethod.GET, null, responseTypeRefsetPage);
 		Page<RefsetMember> page = response.getBody();
-		throwIfNull(page, "refset data");
+		throwIfNull(page, REFSET_DATA);
 		return Math.toIntExact(page.getTotal());
 	}
 

@@ -71,7 +71,7 @@ class SnolateTranslationToolServiceCsvImportTest {
 				.containsExactly("Concept Code", "Other Spanish Terms");
 		assertThat(SnolateTranslationToolService.readCsvRow(reader))
 				.containsExactly("100", "line1\nline2");
-		assertThat(SnolateTranslationToolService.readCsvRow(reader)).isNull();
+		assertThat(SnolateTranslationToolService.readCsvRow(reader)).isEmpty();
 	}
 
 	@Test

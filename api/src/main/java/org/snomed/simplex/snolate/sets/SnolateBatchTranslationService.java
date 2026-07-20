@@ -39,7 +39,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		queueJob(translationSet, JOB_TYPE_BATCH_AI_TRANSLATE, request);
 	}
 
-	public void doRunAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) throws ServiceException {
+	public void doRunAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) {
 		setProgress(translationSet, PERCENTAGE_PROCESSED_START);
 		int requestedTotal = request.size();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
@@ -64,30 +64,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 			progressPercent = Math.min(99, progressPercent + 10);
 			setProgress(translationSet, progressPercent);
 
-			for (int index : batchIndices) {
-				TranslationUnit unit = orderedUnits.get(index);
-				TranslationSource src = sourcesByCode.get(unit.getCode());
-				if (src == null) {
-					continue;
-				}
-				List<String> sug = suggestions.get(src.getTerm());
-				if (sug == null || sug.isEmpty()) {
-					continue;
-				}
-				String suggestion = sug.get(0);
-				Optional<TranslationUnit> opt = translationUnitRepository.findByCodeAndCompositeLanguageCode(src.getCode(), lang);
-				if (opt.isPresent()) {
-					TranslationUnit u = opt.get();
-					u.setAiSuggestions(new ArrayList<>(List.of(suggestion)));
-					translationUnitRepository.save(u);
-				} else {
-					TranslationUnit u = new TranslationUnit(
-							new TranslationUnit.MembershipKey(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(), lang, src.getOrder()),
-							new ArrayList<>(), TranslationStatus.NOT_STARTED, new LinkedHashSet<>(List.of(setCode)));
-					u.setAiSuggestions(new ArrayList<>(List.of(suggestion)));
-					translationUnitRepository.save(u);
-				}
-			}
+			persistSuggestions(translationSet, batchIndices, orderedUnits, sourcesByCode, suggestions, lang, setCode);
 			unitsProcessed += batchIndices.size();
 			eligibleOffset = batchEnd;
 		}
@@ -95,6 +72,33 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 			logger.info("No more empty Snolate units in set {}", setCode);
 		}
 		setProgressToComplete(translationSet);
+	}
+
+	private void persistSuggestions(SnolateTranslationSet translationSet, List<Integer> batchIndices, List<TranslationUnit> orderedUnits, Map<String, TranslationSource> sourcesByCode, Map<String, List<String>> suggestions, String lang, String setCode) {
+		for (int index : batchIndices) {
+			TranslationUnit unit = orderedUnits.get(index);
+			TranslationSource src = sourcesByCode.get(unit.getCode());
+			if (src == null) {
+				continue;
+			}
+			List<String> sug = suggestions.get(src.getTerm());
+			if (sug == null || sug.isEmpty()) {
+				continue;
+			}
+			String suggestion = sug.get(0);
+			Optional<TranslationUnit> opt = translationUnitRepository.findByCodeAndCompositeLanguageCode(src.getCode(), lang);
+			if (opt.isPresent()) {
+				TranslationUnit u = opt.get();
+				u.setAiSuggestions(new ArrayList<>(List.of(suggestion)));
+				translationUnitRepository.save(u);
+			} else {
+				TranslationUnit u = new TranslationUnit(
+						new TranslationUnit.MembershipKey(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(), lang, src.getOrder()),
+						new ArrayList<>(), TranslationStatus.NOT_STARTED, new LinkedHashSet<>(List.of(setCode)));
+				u.setAiSuggestions(new ArrayList<>(List.of(suggestion)));
+				translationUnitRepository.save(u);
+			}
+		}
 	}
 
 	static List<Integer> findEligibleIndices(List<TranslationUnit> orderedUnits) {

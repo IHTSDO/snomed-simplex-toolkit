@@ -18,6 +18,15 @@ import java.util.Map;
 @Service
 public class TranslationLLMService {
 
+	public static final String BATCH_GUIDELINES = """
+		Guidelines:
+		- Return one translation only for lines that contain English text without an existing "→ translation".
+		- Do not return translations for lines that already show "English → translation".
+		- If a translation cannot be found output the line number and pipe but leave the translation blank.
+		- Preserve the original order of the lines; do not reorder, group, or summarize them.
+		- Preserve all modifiers, qualifiers, any body location descriptors.
+		- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.""";
+
 	private final LLMService llmService;
 	private final LanguageTranslationPolicyService languageTranslationPolicyService;
 	private final LanguagePolicyPromptFormatter languagePolicyPromptFormatter;
@@ -60,7 +69,6 @@ public class TranslationLLMService {
 				Lines that already show "English → translation" are completed examples; do not return translations for those lines.
 				Use the exact formatting below:
 				<line number>|<translation>""".formatted(languageCode);
-		String guidelines = getBatchGuidelines();
 
 		StringBuilder englishTerms = new StringBuilder();
 		for (String line : prompt.promptLines()) {
@@ -77,7 +85,7 @@ public class TranslationLLMService {
 					English terms:
 					%s
 					"""
-			).formatted(systemAdvice, responseFormat, guidelines, languageAdviceFormatted, formatGoldenExamples(aiGoldenSet), englishTerms),
+			).formatted(systemAdvice, responseFormat, BATCH_GUIDELINES, languageAdviceFormatted, formatGoldenExamples(aiGoldenSet), englishTerms),
 				false,
 				context
 		);
@@ -168,17 +176,6 @@ public class TranslationLLMService {
 			}
 		}
 		return allSuggestions;
-	}
-
-	private static String getBatchGuidelines() {
-		return """
-				Guidelines:
-				- Return one translation only for lines that contain English text without an existing "→ translation".
-				- Do not return translations for lines that already show "English → translation".
-				- If a translation cannot be found output the line number and pipe but leave the translation blank.
-				- Preserve the original order of the lines; do not reorder, group, or summarize them.
-				- Preserve all modifiers, qualifiers, any body location descriptors.
-				- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.""";
 	}
 
 	private Map<String, List<String>> processResponse(List<String> englishTerm, String response) {
