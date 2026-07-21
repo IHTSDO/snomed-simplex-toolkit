@@ -3,12 +3,22 @@
 app-modal {
     /* modals are hidden by default */
     display: none;
-    //overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 900;
 
     div.modal-dialog {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         z-index: 1000;
         max-width: 420px;
-        margin: 2rem auto;
+        margin: 0;
+        width: calc(100% - 2rem);
 
         &.modal-xxl {
             max-width: 90vw;
