@@ -4,10 +4,8 @@
     <!-- Integrated options for translation artifacts -->
     <div *ngIf="artifact?.type === 'translation' && !shouldDisableEditing() && !loadingActivities">
         <h5 *ngIf="!isTranslationStudioLinked()">
-            <a href="javascript:void(0)" (click)="navigateToTranslationStudio()">Open Translation Studio</a>
-            for authoring, upload content below, or
-            <a href="javascript:void(0)" (click)="linkToTranslationStudio()" [class.disabled]="shouldDisableTranslationStudioLinking()">link this language to Translation Studio</a>
-            (sync from Snowstorm and mark as linked).
+            Upload content below, or
+            <a href="javascript:void(0)" (click)="linkToTranslationStudio()" [class.disabled]="shouldDisableTranslationStudioLinking()">add this language to Translation Studio</a>
             <mat-icon *ngIf="hasTranslationStudioActivityFailed"
                      [matTooltip]="getTranslationStudioActivityErrorMessage()"
                      class="error-icon">error</mat-icon>
@@ -371,10 +369,9 @@
 <p *ngIf="!loading && jobs.length == 0 && refsetId == 'external'" class="no-imports">There are no recent tasks for this edition</p>
 
 <app-modal id="translation-studio-link-modal" size="medium">
-    <div header><h4 class="m-0">Link language to Translation Studio</h4></div>
+    <div header><h4 class="m-0">Add language to Translation Studio</h4></div>
     <div body>
-        <p>This will copy the current language reference set content from Snowstorm into Translation Studio and mark the language as linked for this edition. You can continue authoring in Translation Studio afterwards.</p>
-        <p>Continue?</p>
+        <p>This will add your translation to the Translation Studio, allowing editing there. This process will take a few minutes.</p>
     </div>
     <div footer>
         <button mat-button type="button" (click)="closeTranslationStudioLinkConfirmation()">Cancel</button>

@@ -150,6 +150,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   }
 
   refreshArtifacts() {
+    this.simplexService.invalidateTranslationsCache(this.edition);
     this.loadArtifacts(this.edition);
   }
 

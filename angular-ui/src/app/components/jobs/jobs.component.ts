@@ -243,29 +243,41 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
         })
       )
       .subscribe((data) => {
+        const previousInProgressSetupActivities = this.activities.filter(
+          (activity: any) =>
+            this.isTranslationStudioSetupActivity(activity) && !activity.endDate
+        );
         console.log('Activities loaded:', data); // Debug: see what activities are returned
         this.activities = data.items || data; // Handle both response format and direct array
         this.loadingActivities = false;
         this.checkTranslationStudioActivities();
+        previousInProgressSetupActivities.forEach((prevActivity) => {
+          const updatedActivity = this.activities.find(
+            (activity: any) => activity.id === prevActivity.id
+          );
+          if (updatedActivity?.endDate && !updatedActivity.error) {
+            this.jobCompleted.emit(updatedActivity);
+          }
+        });
         this.manageActivitiesPolling();
         this.changeDetectorRef.detectChanges();
       });
   }
 
+  private isTranslationStudioSetupActivity(activity: any): boolean {
+    return (
+      activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
+      activity.componentType === 'TRANSLATION' &&
+      activity.componentId === this.artifact?.conceptId
+    );
+  }
+
   private checkTranslationStudioActivities(): void {
     this.hasTranslationStudioActivity = this.activities.some(
-      (activity: any) =>
-        activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
-        activity.componentType === 'TRANSLATION' &&
-        activity.componentId === this.artifact?.conceptId &&
-        !activity.endDate
+      (activity: any) => this.isTranslationStudioSetupActivity(activity) && !activity.endDate
     );
     this.hasTranslationStudioActivityFailed = this.activities.some(
-      (activity: any) =>
-        activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
-        activity.componentType === 'TRANSLATION' &&
-        activity.componentId === this.artifact?.conceptId &&
-        activity.error === true
+      (activity: any) => this.isTranslationStudioSetupActivity(activity) && activity.error === true
     );
   }
 
@@ -285,11 +297,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   private manageActivitiesPolling(): void {
     const hasProcessingActivities = this.activities.some(
-      (activity: any) =>
-        activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
-        activity.componentType === 'TRANSLATION' &&
-        activity.componentId === this.artifact?.conceptId &&
-        !activity.endDate
+      (activity: any) => this.isTranslationStudioSetupActivity(activity) && !activity.endDate
     );
     if (hasProcessingActivities && !this.isPollingActivities) {
       this.startActivitiesPolling();
@@ -596,13 +604,12 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       this.simplexService
         .linkTranslationToTranslationStudio(this.edition, this.artifact.conceptId)
         .subscribe({
-          next: (response) => {
+          next: () => {
             this.snackBar.open('Translation Studio setup job created', 'Dismiss', {
               duration: 5000,
             });
             this.loadJobs(false);
             this.loadActivities(false);
-            this.jobCompleted.emit(response);
             this.saving = false;
           },
           error: () => {
