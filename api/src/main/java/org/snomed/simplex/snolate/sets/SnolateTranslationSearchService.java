@@ -31,6 +31,13 @@ public class SnolateTranslationSearchService {
 			Sort.Order.asc(TranslationUnit.Fields.ORDER),
 			Sort.Order.asc(TranslationUnit.Fields.CODE));
 
+	private static final Sort TRANSLATION_SOURCE_ORDER_STREAM_SORT = Sort.by(
+			Sort.Order.asc(TranslationSource.Fields.ORDER),
+			Sort.Order.asc(TranslationSource.Fields.CODE));
+
+	private static final Sort TRANSLATION_SOURCE_CODE_STREAM_SORT = Sort.by(
+			Sort.Order.asc(TranslationSource.Fields.CODE));
+
 	private static final int STREAM_PAGE_SIZE = 5_000;
 
 	/** Elasticsearch default {@code index.max_result_window}; offset pagination must stay within this. */
@@ -380,6 +387,72 @@ public class SnolateTranslationSearchService {
 		List<TranslationUnit> all = new ArrayList<>();
 		forEachUnitInSet(compositeSetCode, compositeLanguageCode, all::add);
 		return all;
+	}
+
+	/**
+	 * Returns every translation source concept id in hierarchy order using {@code search_after} paging.
+	 */
+	public List<Long> listAllSourceCodesByOrder() {
+		List<Long> codes = new ArrayList<>();
+		forEachTranslationSourceByOrder(source -> codes.add(Long.parseLong(source.getCode())));
+		return codes;
+	}
+
+	/**
+	 * Returns every translation source keyed by concept id using {@code search_after} paging.
+	 */
+	public Map<String, TranslationSource> mapAllTranslationSourcesByCode() {
+		Map<String, TranslationSource> map = new HashMap<>();
+		forEachTranslationSourceByCode(source -> map.put(source.getCode(), source));
+		return map;
+	}
+
+	/**
+	 * Visits every translation source in hierarchy order using {@code search_after} paging.
+	 */
+	public void forEachTranslationSourceByOrder(Consumer<TranslationSource> consumer) {
+		forEachTranslationSource(new Criteria(), TRANSLATION_SOURCE_ORDER_STREAM_SORT,
+				"cannot continue streaming translation sources by order", consumer);
+	}
+
+	/**
+	 * Visits every translation source ordered by concept id using {@code search_after} paging.
+	 */
+	public void forEachTranslationSourceByCode(Consumer<TranslationSource> consumer) {
+		forEachTranslationSource(new Criteria(), TRANSLATION_SOURCE_CODE_STREAM_SORT,
+				"cannot continue streaming translation sources by code", consumer);
+	}
+
+	private void forEachTranslationSource(Criteria criteria, Sort sort, String searchAfterFailureMessage,
+			Consumer<TranslationSource> consumer) {
+		List<Object> searchAfter = null;
+		boolean hasMore = true;
+		while (hasMore) {
+			CriteriaQuery query = new CriteriaQuery(criteria);
+			query.setPageable(PageRequest.of(0, STREAM_PAGE_SIZE, sort));
+			query.setTrackTotalHits(false);
+			if (searchAfter != null) {
+				query.setSearchAfter(searchAfter);
+			}
+			SearchHits<TranslationSource> searchHits = elasticsearchOperations.search(query, TranslationSource.class);
+			List<SearchHit<TranslationSource>> hits = searchHits.getSearchHits();
+			if (hits.isEmpty()) {
+				hasMore = false;
+			} else {
+				for (SearchHit<TranslationSource> hit : hits) {
+					consumer.accept(hit.getContent());
+				}
+				if (hits.size() < STREAM_PAGE_SIZE) {
+					hasMore = false;
+				} else {
+					searchAfter = hits.get(hits.size() - 1).getSortValues();
+					if (searchAfter.isEmpty()) {
+						throw new IllegalStateException(
+								"Elasticsearch returned no sort values for search_after; " + searchAfterFailureMessage + ".");
+					}
+				}
+			}
+		}
 	}
 
 	public Map<String, Map<String, Long>> countStatusInSubsetBatch(String compositeLanguageCode, Collection<String> compositeSetCodes) {

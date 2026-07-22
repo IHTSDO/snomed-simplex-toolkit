@@ -29,6 +29,7 @@ import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.rf2.RF2LoadingComponentFactoryWithPT;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.util.FileUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,9 +42,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 public class SnolateSnomedUpgradeService {
@@ -57,6 +55,7 @@ public class SnolateSnomedUpgradeService {
 	public final Logger logger = LoggerFactory.getLogger(SnolateSnomedUpgradeService.class);
 
 	private final SnolateTranslationSourceRepository translationSourceRepository;
+	private final SnolateTranslationSearchService translationSearchService;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final CodeSystemService codeSystemService;
 	private final ContentProcessingJobService jobService;
@@ -64,10 +63,12 @@ public class SnolateSnomedUpgradeService {
 	@Value("${snolate.snomed.upgrade.enabled:false}")
 	private boolean upgradeEnabled;
 
-	public SnolateSnomedUpgradeService(SnolateTranslationSourceRepository translationSourceRepository, SnowstormClientFactory snowstormClientFactory,
+	public SnolateSnomedUpgradeService(SnolateTranslationSourceRepository translationSourceRepository,
+			SnolateTranslationSearchService translationSearchService, SnowstormClientFactory snowstormClientFactory,
 			CodeSystemService codeSystemService, ContentProcessingJobService jobService) {
 
 		this.translationSourceRepository = translationSourceRepository;
+		this.translationSearchService = translationSearchService;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.codeSystemService = codeSystemService;
 		this.jobService = jobService;
@@ -164,15 +165,11 @@ public class SnolateSnomedUpgradeService {
 	}
 
 	private List<Long> getCurrentConceptListFromPersistence() {
-		return new LongArrayList(translationSourceRepository.findAllByOrderByOrderAsc().stream()
-				.map(TranslationSource::getCode)
-				.map(Long::parseLong)
-				.toList());
+		return new LongArrayList(translationSearchService.listAllSourceCodesByOrder());
 	}
 
 	private void persistTranslationSources(List<Long> workingList, Map<Long, String> newRows) throws ServiceExceptionWithStatusCode {
-		Map<String, TranslationSource> existingByCode = StreamSupport.stream(translationSourceRepository.findAll().spliterator(), false)
-				.collect(Collectors.toMap(TranslationSource::getCode, Function.identity()));
+		Map<String, TranslationSource> existingByCode = translationSearchService.mapAllTranslationSourcesByCode();
 		List<TranslationSource> toSave = new ArrayList<>();
 		int order = 0;
 		for (Long code : workingList) {

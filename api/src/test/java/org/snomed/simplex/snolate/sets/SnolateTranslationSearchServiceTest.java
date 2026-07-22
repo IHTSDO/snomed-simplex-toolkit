@@ -133,6 +133,48 @@ class SnolateTranslationSearchServiceTest {
 
 	@Test
 	@SuppressWarnings("unchecked")
+	void listAllSourceCodesByOrder_usesSearchAfterForMultiplePages() {
+		AtomicInteger callCount = new AtomicInteger();
+		when(elasticsearchOperations.search(any(Query.class), eq(TranslationSource.class))).thenAnswer(invocation -> {
+			Query query = invocation.getArgument(0);
+			int call = callCount.getAndIncrement();
+			if (call == 0) {
+				return mockTranslationSourceSearchHits(sourceOrderHits(5_000, 0));
+			}
+			assertThat(((CriteriaQuery) query).getSearchAfter()).isNotNull();
+			return mockTranslationSourceSearchHits(sourceOrderHits(2, 5_000));
+		});
+
+		List<Long> codes = service.listAllSourceCodesByOrder();
+
+		assertThat(codes).hasSize(5_002);
+		assertThat(codes.get(0)).isZero();
+		assertThat(codes.get(5_000)).isEqualTo(5_000L);
+		verify(elasticsearchOperations, times(2)).search(any(Query.class), eq(TranslationSource.class));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void mapAllTranslationSourcesByCode_usesSearchAfterForMultiplePages() {
+		AtomicInteger callCount = new AtomicInteger();
+		when(elasticsearchOperations.search(any(Query.class), eq(TranslationSource.class))).thenAnswer(invocation -> {
+			int call = callCount.getAndIncrement();
+			if (call == 0) {
+				return mockTranslationSourceSearchHits(sourceCodeHits(5_000));
+			}
+			return mockTranslationSourceSearchHits(sourceCodeHits(1, "9999"));
+		});
+
+		var map = service.mapAllTranslationSourcesByCode();
+
+		assertThat(map).hasSize(5_001);
+		assertThat(map.get("0").getTerm()).isEqualTo("term-0");
+		assertThat(map.get("9999").getTerm()).isEqualTo("term-9999");
+		verify(elasticsearchOperations, times(2)).search(any(Query.class), eq(TranslationSource.class));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
 	void pageUnitsInSet_usesOffsetPaginationWithinResultWindow() throws ServiceExceptionWithStatusCode {
 		Pageable pageable = PageRequest.of(0, 25, ROWS_SORT);
 		SearchHits<TranslationUnit> searchHits = mockPageSearchHits(List.of(mockHit("100", List.of(1, 0, "100"))), 1);
@@ -286,5 +328,44 @@ class SnolateTranslationSearchServiceTest {
 			hits.add(mockHit(codePrefix + "-" + i, List.of(i, 0, codePrefix + "-" + i)));
 		}
 		return hits;
+	}
+
+	@SuppressWarnings("unchecked")
+	private SearchHits<TranslationSource> mockTranslationSourceSearchHits(List<SearchHit<TranslationSource>> hits) {
+		SearchHits<TranslationSource> searchHits = mock(SearchHits.class);
+		when(searchHits.getSearchHits()).thenReturn(hits);
+		return searchHits;
+	}
+
+	private List<SearchHit<TranslationSource>> sourceOrderHits(int count, int orderOffset) {
+		List<SearchHit<TranslationSource>> hits = new java.util.ArrayList<>(count);
+		for (int i = 0; i < count; i++) {
+			int order = orderOffset + i;
+			List<Object> sortValues = i == count - 1 ? List.of(order, String.valueOf(order)) : List.of();
+			hits.add(mockSourceHit(String.valueOf(order), "term-" + order, order, sortValues));
+		}
+		return hits;
+	}
+
+	private List<SearchHit<TranslationSource>> sourceCodeHits(int count) {
+		return sourceCodeHits(count, "0");
+	}
+
+	private List<SearchHit<TranslationSource>> sourceCodeHits(int count, String codePrefix) {
+		List<SearchHit<TranslationSource>> hits = new java.util.ArrayList<>(count);
+		for (int i = 0; i < count; i++) {
+			String code = codePrefix.equals("0") ? String.valueOf(i) : codePrefix;
+			List<Object> sortValues = i == count - 1 ? List.of(code) : List.of();
+			hits.add(mockSourceHit(code, "term-" + code, i, sortValues));
+		}
+		return hits;
+	}
+
+	@SuppressWarnings("unchecked")
+	private SearchHit<TranslationSource> mockSourceHit(String code, String term, int order, List<Object> sortValues) {
+		SearchHit<TranslationSource> hit = mock(SearchHit.class);
+		when(hit.getContent()).thenReturn(new TranslationSource(code, term, order));
+		lenient().when(hit.getSortValues()).thenReturn(sortValues);
+		return hit;
 	}
 }

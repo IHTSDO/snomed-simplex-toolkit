@@ -8,6 +8,13 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 @Document(indexName = "#{@indexNameProvider.indexName('snolate-translation-source')}")
 public class TranslationSource {
 
+	public static final class Fields {
+		private Fields() {}
+		public static final String CODE = "code";
+		public static final String ORDER = "order";
+		public static final String TERM = "term";
+	}
+
 	@Id
 	private String code;
 
