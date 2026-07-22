@@ -23,7 +23,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -120,7 +119,7 @@ class LanguageTranslationPolicyServiceTest {
 		codeSystem.setTranslationLanguages(Map.of(REFSET_ID, languageCode));
 		when(snowstormClientFactory.getClient()).thenReturn(snowstormClient);
 		when(snowstormClient.getCodeSystemOrThrow(CODE_SYSTEM)).thenReturn(codeSystem);
-		when(snowstormClient.getRefsetOrThrow(eq(REFSET_ID), eq(codeSystem))).thenReturn(mock(ConceptMini.class));
+		when(snowstormClient.getRefsetOrThrow(REFSET_ID, codeSystem)).thenReturn(mock(ConceptMini.class));
 		when(translationService.listTranslations(codeSystem, snowstormClient)).thenReturn(List.of());
 	}
 }
