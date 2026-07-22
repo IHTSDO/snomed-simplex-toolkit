@@ -474,7 +474,7 @@ public class TranslationController {
 	@PostMapping("{codeSystem}/translations/{refsetId}/snolate-set/{label}/ai-suggestion")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public Map<String, List<String>> aiGoldenSetSuggestion(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,
-			@RequestBody List<String> englishTerm) throws ServiceExceptionWithStatusCode {
+			@RequestBody List<String> englishTerm) throws ServiceException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		return translationLLMService.suggestTranslations(translationSet, englishTerm, true, true);

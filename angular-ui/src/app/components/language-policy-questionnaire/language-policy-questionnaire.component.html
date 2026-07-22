@@ -5,10 +5,15 @@
 	</div>
 
 	<div *ngIf="!loading && questionnaire">
-		<p class="intro" *ngIf="dialectName">
-			Configure the SNOMED CT language translation policy for <strong>{{ dialectName }}</strong>.
-			Select the rules that apply to this dialect, then configure each one.
+		<p class="intro">
+			Configure the SNOMED CT language translation policy. Select the rules that apply to this dialect, then configure each one.
 		</p>
+
+		<mat-form-field appearance="outline" class="full-width dialect-name-field">
+			<mat-label>Language / dialect name</mat-label>
+			<input matInput [(ngModel)]="policy.languageDialectName" name="languageDialectName" required>
+			<mat-hint>Used in AI translation instructions (e.g. "Spanish (Latin America)")</mat-hint>
+		</mat-form-field>
 
 		<div class="policy-sections">
 			<div *ngFor="let section of questionnaire.sections" class="policy-section">

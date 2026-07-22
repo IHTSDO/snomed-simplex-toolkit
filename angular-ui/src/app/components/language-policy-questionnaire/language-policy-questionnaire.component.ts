@@ -11,8 +11,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import {
 	deriveSelectedRulesFromPolicyItems,
+	defaultLanguageDialectName,
 	emptyLanguageTranslationPolicy,
 	initializeKeyValueTables,
+	isLanguageDialectNameValid,
 	isPolicyValid,
 	LanguagePolicyQuestion,
 	LanguagePolicyQuestionnaire,
@@ -72,6 +74,7 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 			next: (questionnaire) => {
 				this.questionnaire = questionnaire;
 				this.policy = emptyLanguageTranslationPolicy(questionnaire.version);
+				this.policy.languageDialectName = defaultLanguageDialectName(undefined, this.dialectName, this.refsetId);
 				initializeKeyValueTables(questionnaire, this.policy.policyItems);
 
 				if (this.initialPolicy) {
@@ -107,6 +110,7 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 
 	private applyPolicy(data: LanguageTranslationPolicy): void {
 		const loaded = policyFromApi(data);
+		this.policy.languageDialectName = defaultLanguageDialectName(loaded.languageDialectName, this.dialectName, this.refsetId);
 		this.policy.questionnaireVersion = loaded.questionnaireVersion || this.questionnaire!.version;
 		this.policy.policyItems = { ...this.policy.policyItems, ...loaded.policyItems };
 		if (this.questionnaire) {
@@ -137,7 +141,10 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 
 	onSave(): void {
 		if (!this.questionnaire || !this.isValid()) {
-			this.snackBar.open('Answer each included rule before saving.', 'Close', { duration: 4000 });
+			const message = !isLanguageDialectNameValid(this.policy.languageDialectName)
+				? 'Language / dialect name is required before saving.'
+				: 'Answer each included rule before saving.';
+			this.snackBar.open(message, 'Close', { duration: 4000 });
 			return;
 		}
 		this.saving = true;
@@ -156,7 +163,7 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 
 	isValid(): boolean {
 		return this.questionnaire
-			? isPolicyValid(this.questionnaire, this.policy.policyItems, [...this.selectedRules])
+			? isPolicyValid(this.questionnaire, this.policy.policyItems, [...this.selectedRules], this.policy.languageDialectName)
 			: false;
 	}
 

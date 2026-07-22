@@ -41,7 +41,7 @@ export interface LanguageTranslationPolicy {
 	codesystem?: string;
 	refset?: string;
 	languageCode?: string;
-	displayName?: string;
+	languageDialectName?: string;
 	questionnaireVersion: string;
 	policyItems: Record<string, string>;
 	selectedRules?: string[];
@@ -51,7 +51,7 @@ export interface LanguageTranslationPolicy {
 
 export interface LanguagePolicyRow {
 	refsetId: string;
-	displayName: string;
+	languageDialectName: string;
 	languageCode?: string;
 	configured: boolean;
 	policy?: LanguageTranslationPolicy;
@@ -68,6 +68,7 @@ export function emptyLanguageTranslationPolicy(version: string): LanguageTransla
 
 export function policyFromApi(data: LanguageTranslationPolicy): LanguageTranslationPolicy {
 	return {
+		languageDialectName: data.languageDialectName || '',
 		questionnaireVersion: data.questionnaireVersion || '',
 		policyItems: { ...(data.policyItems || {}) },
 		selectedRules: data.selectedRules ? [...data.selectedRules] : []
@@ -76,14 +77,54 @@ export function policyFromApi(data: LanguageTranslationPolicy): LanguageTranslat
 
 export function policyToRequest(policy: LanguageTranslationPolicy): {
 	questionnaireVersion: string;
+	languageDialectName: string;
 	policyItems: Record<string, string>;
 	selectedRules: string[];
 } {
 	return {
 		questionnaireVersion: policy.questionnaireVersion,
+		languageDialectName: policy.languageDialectName?.trim() || '',
 		policyItems: policy.policyItems || {},
 		selectedRules: policy.selectedRules || []
 	};
+}
+
+export function isLanguageDialectNameValid(languageDialectName?: string): boolean {
+	return !!languageDialectName?.trim();
+}
+
+/**
+ * Plain-text language/dialect label; strips trailing SNOMED-style refset name suffixes.
+ * Matches backend {@code SnolateTranslationToolService.displayLanguageDialect}.
+ */
+export function displayLanguageDialect(raw: string | null | undefined): string {
+	if (raw == null) {
+		return '';
+	}
+	let s = raw.trim();
+	if (!s) {
+		return '';
+	}
+	const lower = s.toLowerCase();
+	for (const suffix of ['language reference set', 'language refset']) {
+		if (lower.endsWith(suffix)) {
+			s = s.slice(0, s.length - suffix.length).trim();
+			break;
+		}
+	}
+	return s;
+}
+
+export function defaultLanguageDialectName(
+	savedLanguageDialectName?: string,
+	dialectHint?: string,
+	refsetFallback?: string
+): string {
+	return displayLanguageDialect(savedLanguageDialectName)
+		|| displayLanguageDialect(dialectHint)
+		|| displayLanguageDialect(refsetFallback)
+		|| refsetFallback?.trim()
+		|| '';
 }
 
 export function deriveSelectedRulesFromPolicyItems(
@@ -136,8 +177,12 @@ export function isQuestionAnswered(question: LanguagePolicyQuestion, policyItems
 export function isPolicyValid(
 	questionnaire: LanguagePolicyQuestionnaire,
 	policyItems: Record<string, string>,
-	selectedRules: string[]
+	selectedRules: string[],
+	languageDialectName?: string
 ): boolean {
+	if (!isLanguageDialectNameValid(languageDialectName)) {
+		return false;
+	}
 	if (!selectedRules.length) {
 		return true;
 	}

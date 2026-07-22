@@ -5,9 +5,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.ai.LLMService;
 import org.snomed.simplex.ai.LlmCallContext;
+import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.LanguageTranslationPolicy;
 import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
+import org.snomed.simplex.snolate.service.SnolateTranslationToolService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -27,6 +31,9 @@ public class TranslationLLMService {
 		- Preserve all modifiers, qualifiers, any body location descriptors.
 		- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.""";
 
+	private static final String POLICY_REQUIRED_MESSAGE =
+			"Language translation policy with dialect name is required before running AI translation.";
+
 	private final LLMService llmService;
 	private final LanguageTranslationPolicyService languageTranslationPolicyService;
 	private final LanguagePolicyPromptFormatter languagePolicyPromptFormatter;
@@ -39,27 +46,29 @@ public class TranslationLLMService {
 		this.languagePolicyPromptFormatter = languagePolicyPromptFormatter;
 	}
 
-	public Map<String, List<String>> suggestTranslations(SnolateTranslationSet translationSet, List<String> englishTerm, boolean multipleSuggestions, boolean fast) {
+	public Map<String, List<String>> suggestTranslations(SnolateTranslationSet translationSet, List<String> englishTerm, boolean multipleSuggestions, boolean fast) throws ServiceException {
 		LanguageTranslationPolicy policy = languageTranslationPolicyService
 				.findByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset())
 				.orElse(null);
+		String targetLanguageLabel = resolveTargetLanguageLabel(policy);
 		String languagePolicyText = languagePolicyPromptFormatter.format(policy);
-		return suggestTranslations(translationSet.getLanguageCode(), languagePolicyText, translationSet.getAiGoldenSet(),
+		return suggestTranslations(targetLanguageLabel, languagePolicyText, translationSet.getAiGoldenSet(),
 				englishTerm, multipleSuggestions, fast, new LlmCallContext(translationSet.getCodesystem(), englishTerm.size()));
 	}
 
-	public Map<String, List<String>> suggestBatchTranslations(SnolateTranslationSet translationSet, BatchTranslationPrompt prompt) {
+	public Map<String, List<String>> suggestBatchTranslations(SnolateTranslationSet translationSet, BatchTranslationPrompt prompt) throws ServiceException {
 		LanguageTranslationPolicy policy = languageTranslationPolicyService
 				.findByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset())
 				.orElse(null);
+		String targetLanguageLabel = resolveTargetLanguageLabel(policy);
 		String languagePolicyText = languagePolicyPromptFormatter.format(policy);
-		return suggestBatchTranslations(translationSet.getLanguageCode(), languagePolicyText, translationSet.getAiGoldenSet(),
+		return suggestBatchTranslations(targetLanguageLabel, languagePolicyText, translationSet.getAiGoldenSet(),
 				prompt, new LlmCallContext(translationSet.getCodesystem(), prompt.translateLineNumbers().size()));
 	}
 
-	public Map<String, List<String>> suggestBatchTranslations(String languageCode, String languagePolicyText, Map<String, String> aiGoldenSet,
+	public Map<String, List<String>> suggestBatchTranslations(String targetLanguageLabel, String languagePolicyText, Map<String, String> aiGoldenSet,
 			BatchTranslationPrompt prompt, LlmCallContext context) {
-		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(languageCode);
+		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(targetLanguageLabel);
 		String languageAdviceFormatted = "";
 		if (Strings.isNotEmpty(languagePolicyText)) {
 			languageAdviceFormatted = "%s".formatted(languagePolicyText);
@@ -68,7 +77,7 @@ public class TranslationLLMService {
 				For each line that needs translation, return the line number and the %s translation.
 				Lines that already show "English → translation" are completed examples; do not return translations for those lines.
 				Use the exact formatting below:
-				<line number>|<translation>""".formatted(languageCode);
+				<line number>|<translation>""".formatted(targetLanguageLabel);
 
 		StringBuilder englishTerms = new StringBuilder();
 		for (String line : prompt.promptLines()) {
@@ -93,18 +102,18 @@ public class TranslationLLMService {
 		return processBatchResponse(prompt.translateLineNumbers(), response);
 	}
 
-	public Map<String, List<String>> suggestTranslations(String languageCode, String languagePolicyText, Map<String, String> aiGoldenSet,
+	public Map<String, List<String>> suggestTranslations(String targetLanguageLabel, String languagePolicyText, Map<String, String> aiGoldenSet,
 			List<String> englishTerm, boolean multipleSuggestions, boolean fast, LlmCallContext context) {
-		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(languageCode);
+		String systemAdvice = "Translate the following clinical terminology terms from English to %s.".formatted(targetLanguageLabel);
 		String languageAdviceFormatted = "";
 		if (Strings.isNotEmpty(languagePolicyText)) {
 			languageAdviceFormatted = "%s".formatted(languagePolicyText);
 		}
-		String responseFormat = "For each term provided, return the term number and the %s translation.\n".formatted(languageCode) +
+		String responseFormat = "For each term provided, return the term number and the %s translation.\n".formatted(targetLanguageLabel) +
 				"Use the exact formatting below:\n" +
 				"<term number>|<translation>";
 		if (multipleSuggestions) {
-			responseFormat = "For each term provided, return the term number and the top two %s translations.\n".formatted(languageCode) +
+			responseFormat = "For each term provided, return the term number and the top two %s translations.\n".formatted(targetLanguageLabel) +
 					"Use the exact formatting below:\n" +
 					"<term number>|<translation1>|<translation2>";
 		}
@@ -132,6 +141,17 @@ public class TranslationLLMService {
 		);
 
 		return processResponse(englishTerm, response);
+	}
+
+	private String resolveTargetLanguageLabel(LanguageTranslationPolicy policy) throws ServiceException {
+		if (policy == null || policy.getLanguageDialectName() == null) {
+			throw new ServiceExceptionWithStatusCode(POLICY_REQUIRED_MESSAGE, HttpStatus.BAD_REQUEST);
+		}
+		String rawLanguageDialectName = policy.getLanguageDialectName().trim();
+		if (rawLanguageDialectName.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode(POLICY_REQUIRED_MESSAGE, HttpStatus.BAD_REQUEST);
+		}
+		return SnolateTranslationToolService.displayLanguageDialect(rawLanguageDialectName);
 	}
 
 	private String formatGoldenExamples(Map<String, String> aiGoldenSet) {

@@ -17,7 +17,7 @@ import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dia
 import { EditTranslationSetDialogComponent } from '../edit-translation-set-dialog/edit-translation-set-dialog.component';
 import { DownloadTranslationSetDialogComponent } from '../download-translation-set-dialog/download-translation-set-dialog.component';
 import { UploadTranslationSetDialogComponent } from '../upload-translation-set-dialog/upload-translation-set-dialog.component';
-import { LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
+import { defaultLanguageDialectName, displayLanguageDialect, LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
 import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, effectiveTranslationTermSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
 
@@ -773,21 +773,22 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.languagePolicyRows = snolateTranslations.map((translation: any) => {
             const refsetId = translation.conceptId || translation.id;
             const policy = policyByRefset.get(refsetId);
-            const displayName = translation.pt?.term || translation.fsn?.term || refsetId;
+            const rawRefsetName = translation.pt?.term || translation.fsn?.term || refsetId;
+            const languageDialectName = defaultLanguageDialectName(policy?.languageDialectName, undefined, rawRefsetName);
             return {
                 refsetId,
-                displayName,
+                languageDialectName,
                 languageCode: translation.extraFields?.lang || translation.lang,
                 configured: !!policy,
                 policy,
                 lastModified: policy?.lastModified
             };
-        }).sort((a, b) => a.displayName.localeCompare(b.displayName));
+        }).sort((a, b) => a.languageDialectName.localeCompare(b.languageDialectName));
     }
 
     editLanguagePolicy(row?: LanguagePolicyRow): void {
         const refsetId = row?.refsetId;
-        const dialectName = row?.displayName;
+        const dialectName = displayLanguageDialect(row?.languageDialectName) || row?.languageDialectName;
         if (!refsetId || !this.selectedEdition?.shortName) {
             return;
         }
@@ -970,21 +971,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
      * Plain-text label for Language/Dialect column; strips trailing SNOMED-style set name suffixes.
      */
     displayTranslationLanguageDialect(raw: string | null | undefined): string {
-        if (raw == null) {
-            return '';
-        }
-        let s = raw.trim();
-        if (!s) {
-            return '';
-        }
-        const lower = s.toLowerCase();
-        for (const suffix of ['language reference set', 'language refset']) {
-            if (lower.endsWith(suffix)) {
-                s = s.slice(0, s.length - suffix.length).trim();
-                break;
-            }
-        }
-        return s;
+        return displayLanguageDialect(raw);
     }
 
     readonly translatedTermsMemberColumns = ['concept', 'english', 'dialect', 'status', 'actions'] as const;

@@ -600,7 +600,7 @@
                     <table mat-table [dataSource]="languagePolicyRows" class="translation-sets-table language-policies-table">
                         <ng-container matColumnDef="languageDialect">
                             <th mat-header-cell *matHeaderCellDef>Language/Dialect</th>
-                            <td mat-cell *matCellDef="let row">{{ row.displayName }}</td>
+                            <td mat-cell *matCellDef="let row">{{ row.languageDialectName }}</td>
                         </ng-container>
 
                         <ng-container matColumnDef="status">

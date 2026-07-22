@@ -39,7 +39,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 		queueJob(translationSet, JOB_TYPE_BATCH_AI_TRANSLATE, request);
 	}
 
-	public void doRunAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) {
+	public void doRunAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) throws ServiceException {
 		setProgress(translationSet, PERCENTAGE_PROCESSED_START);
 		int requestedTotal = request.size();
 		String lang = translationSet.getLanguageCodeWithRefsetId();

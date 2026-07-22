@@ -27,7 +27,7 @@ public class LanguageTranslationPolicy {
 	private String languageCode;
 
 	@Field(type = FieldType.Keyword)
-	private String displayName;
+	private String languageDialectName;
 
 	@Field(type = FieldType.Keyword)
 	private String questionnaireVersion;
@@ -84,12 +84,12 @@ public class LanguageTranslationPolicy {
 		this.languageCode = languageCode;
 	}
 
-	public String getDisplayName() {
-		return displayName;
+	public String getLanguageDialectName() {
+		return languageDialectName;
 	}
 
-	public void setDisplayName(String displayName) {
-		this.displayName = displayName;
+	public void setLanguageDialectName(String languageDialectName) {
+		this.languageDialectName = languageDialectName;
 	}
 
 	public String getQuestionnaireVersion() {

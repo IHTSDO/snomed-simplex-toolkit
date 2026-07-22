@@ -36,7 +36,7 @@ public class LanguageTranslationPolicyService {
 	}
 
 	public List<LanguageTranslationPolicy> findByCodeSystem(String codeSystem) {
-		return policyRepository.findByCodesystemOrderByDisplayName(codeSystem);
+		return policyRepository.findByCodesystemOrderByLanguageDialectName(codeSystem);
 	}
 
 	public Optional<LanguageTranslationPolicy> findByCodeSystemAndRefset(String codeSystem, String refsetId) {
@@ -53,6 +53,9 @@ public class LanguageTranslationPolicyService {
 
 		if (request.policyItems() == null) {
 			throw new ServiceExceptionWithStatusCode("Language policy items are required.", HttpStatus.BAD_REQUEST);
+		}
+		if (request.languageDialectName() == null || request.languageDialectName().trim().isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("Language/dialect name is required.", HttpStatus.BAD_REQUEST);
 		}
 		String version = Strings.isNullOrEmpty(request.questionnaireVersion())
 				? questionnaireService.getCurrentVersion()
@@ -71,7 +74,7 @@ public class LanguageTranslationPolicyService {
 		policy.setCodesystem(codeSystem);
 		policy.setRefset(refsetId);
 		policy.setLanguageCode(metadata.languageCode());
-		policy.setDisplayName(metadata.displayName());
+		policy.setLanguageDialectName(SnolateTranslationToolService.displayLanguageDialect(request.languageDialectName().trim()));
 		policy.setQuestionnaireVersion(version);
 		policy.setPolicyItems(request.policyItems());
 		policy.setSelectedRules(request.selectedRules());

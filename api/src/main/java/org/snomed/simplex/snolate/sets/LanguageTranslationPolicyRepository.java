@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface LanguageTranslationPolicyRepository extends ElasticsearchRepository<LanguageTranslationPolicy, String> {
 
-	List<LanguageTranslationPolicy> findByCodesystemOrderByDisplayName(String codesystem);
+	List<LanguageTranslationPolicy> findByCodesystemOrderByLanguageDialectName(String codesystem);
 
 	Optional<LanguageTranslationPolicy> findByCodesystemAndRefset(String codesystem, String refset);
 }
