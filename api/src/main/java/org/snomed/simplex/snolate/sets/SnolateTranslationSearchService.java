@@ -33,12 +33,13 @@ public class SnolateTranslationSearchService {
 
 	private static final Sort TRANSLATION_SOURCE_ORDER_STREAM_SORT = Sort.by(
 			Sort.Order.asc(TranslationSource.Fields.ORDER),
-			Sort.Order.asc(TranslationSource.Fields.CODE));
+			Sort.Order.asc("_doc"));
 
-	private static final Sort TRANSLATION_SOURCE_CODE_STREAM_SORT = Sort.by(
-			Sort.Order.asc(TranslationSource.Fields.CODE));
+	private static final Sort DEFAULT_STREAM_SORT = Sort.by(
+			Sort.Order.asc("_doc"));
 
 	private static final int STREAM_PAGE_SIZE = 5_000;
+
 
 	/** Elasticsearch default {@code index.max_result_window}; offset pagination must stay within this. */
 	private static final int ELASTICSEARCH_MAX_RESULT_WINDOW = 10_000;
@@ -419,7 +420,7 @@ public class SnolateTranslationSearchService {
 	 * Visits every translation source ordered by concept id using {@code search_after} paging.
 	 */
 	public void forEachTranslationSourceByCode(Consumer<TranslationSource> consumer) {
-		forEachTranslationSource(new Criteria(), TRANSLATION_SOURCE_CODE_STREAM_SORT,
+		forEachTranslationSource(new Criteria(), DEFAULT_STREAM_SORT,
 				"cannot continue streaming translation sources by code", consumer);
 	}
 
