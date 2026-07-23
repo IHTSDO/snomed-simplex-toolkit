@@ -31,7 +31,6 @@ import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.service.TranslationService;
-import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -139,6 +138,14 @@ public class TranslationController {
 		sets.forEach(snolateTranslationService::applyDashboardMetadata);
 		snolateTranslationService.applyCounts(sets);
 		return sets;
+	}
+
+	@PostMapping("{codeSystem}/translations/snolate-set/refresh-after-upgrade")
+	@Operation(summary = "Queue refresh for all translation sets after a CodeSystem International Edition upgrade.",
+			description = "Use when the edition upgrade was performed outside Simplex. Sets are queued for refresh using upgrade-specific statuses.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public RefreshTranslationSetsAfterUpgradeResponse refreshSnolateSetsAfterUpgrade(@PathVariable String codeSystem) throws ServiceException {
+		return snolateSetService.refreshAllSetsAfterUpgrade(codeSystem);
 	}
 
 	@GetMapping("{codeSystem}/translations/{refsetId}/snolate-set")
@@ -251,7 +258,7 @@ public class TranslationController {
 			throws ServiceException, IOException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		if (translationSet.getStatus() != TranslationSetStatus.READY) {
+		if (!translationSet.getStatus().isEditable()) {
 			throw new ServiceExceptionWithStatusCode(
 					"Translation set CSV export is only available when set status is READY.",
 					HttpStatus.BAD_REQUEST);
@@ -278,7 +285,7 @@ public class TranslationController {
 			throws ServiceException, IOException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		if (translationSet.getStatus() != TranslationSetStatus.READY) {
+		if (!translationSet.getStatus().isEditable()) {
 			throw new ServiceExceptionWithStatusCode(
 					"Translation set CSV import is only available when set status is READY.",
 					HttpStatus.BAD_REQUEST);

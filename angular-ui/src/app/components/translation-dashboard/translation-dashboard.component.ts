@@ -19,6 +19,7 @@ import { DownloadTranslationSetDialogComponent } from '../download-translation-s
 import { UploadTranslationSetDialogComponent } from '../upload-translation-set-dialog/upload-translation-set-dialog.component';
 import { defaultLanguageDialectName, displayLanguageDialect, LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
+import { isTranslationSetBusy, isTranslationSetEditable, isTranslationSetInProgress, translationSetLifecycleStatusLabel } from 'src/app/utils/translation-set-status';
 import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, effectiveTranslationTermSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
 
 @Component({
@@ -420,7 +421,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 	private applyLabelSetSelection(labelSet: any): void {
 		this.selectedLabelSet = labelSet;
 		this.syncTranslationConceptFiltersFromRoute(true);
-		if (labelSet.status === 'READY') {
+		if (isTranslationSetEditable(labelSet.status)) {
 			// List GET (.../translations/snolate-set) already returns full SnolateTranslationSet rows
 			// with the same applyCounts / dashboard metadata as the per-set GET — avoid redundant fetch.
 			this.finalizeLabelSetFromListAndLoadMembers(labelSet);
@@ -483,7 +484,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             });
             return;
         }
-        if (target.status !== 'READY') {
+        if (!isTranslationSetEditable(target.status)) {
             this.snackBar.open('File export is only available when the set status is READY.', 'Close', {
                 duration: 5000
             });
@@ -512,7 +513,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             });
             return;
         }
-        if (target.status !== 'READY') {
+        if (!isTranslationSetEditable(target.status)) {
             this.snackBar.open('File import is only available when the set status is READY.', 'Close', {
                 duration: 5000
             });
@@ -852,11 +853,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     }
 
     private managePolling() {
-        const hasProcessingSets = this.labelSets.some((set: any) => set.status === 'PROCESSING');
+        const hasBusySets = this.labelSets.some((set: any) => isTranslationSetBusy(set.status));
 
-        if (hasProcessingSets && !this.isPolling) {
+        if (hasBusySets && !this.isPolling) {
             this.startPolling();
-        } else if (!hasProcessingSets && this.isPolling) {
+        } else if (!hasBusySets && this.isPolling) {
             this.stopPolling();
         }
     }
@@ -916,7 +917,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     }
 
     onWorkflowStatusCardClick(status: string): void {
-        if (this.selectedLabelSet?.status !== 'READY' || this.loadingLabelSetDetails) {
+        if (!isTranslationSetEditable(this.selectedLabelSet?.status) || this.loadingLabelSetDetails) {
             return;
         }
         this.onTranslationConceptStatusFilterChange(
@@ -1029,6 +1030,22 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         return translationStatusLabel(status);
     }
 
+    isTranslationSetEditable(status: string | null | undefined): boolean {
+        return isTranslationSetEditable(status);
+    }
+
+    isTranslationSetBusy(status: string | null | undefined): boolean {
+        return isTranslationSetBusy(status);
+    }
+
+    isTranslationSetInProgress(status: string | null | undefined): boolean {
+        return isTranslationSetInProgress(status);
+    }
+
+    translationSetLifecycleStatusLabel(status: string | null | undefined): string {
+        return translationSetLifecycleStatusLabel(status);
+    }
+
     openTranslationUnitEdit(unit: { context: string }): void {
         if (!this.selectedEdition?.shortName || !this.selectedLabelSet || !unit?.context) {
             return;
@@ -1139,12 +1156,12 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 const preservedLabelSets = updatedLabelSets;
 
                 // Check if any sets have finished processing (changed from PROCESSING to READY)
-                const previouslyProcessingSets = this.labelSets.filter((set: any) => set.status === 'PROCESSING');
+                const previouslyBusySets = this.labelSets.filter((set: any) => isTranslationSetBusy(set.status));
                 const nowReadySets = preservedLabelSets.filter((set: any) => set.status === 'READY');
 
-                // Find sets that were processing and are now ready
+                // Find sets that were busy and are now ready
                 const finishedProcessingSets = nowReadySets.filter((nowReadySet: any) =>
-                    previouslyProcessingSets.some((prevSet: any) =>
+                    previouslyBusySets.some((prevSet: any) =>
                         prevSet.id === nowReadySet.id &&
                         prevSet.translationId === nowReadySet.translationId &&
                         prevSet.label === nowReadySet.label
@@ -1282,7 +1299,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         if (skipRefetch || (!statusChanged && !englishChanged && !targetChanged)) {
             return;
         }
-        if (this.selectedLabelSet.status === 'READY') {
+        if (isTranslationSetEditable(this.selectedLabelSet.status)) {
             this.getLabelSetMembers(this.selectedLabelSet, true);
         }
     }

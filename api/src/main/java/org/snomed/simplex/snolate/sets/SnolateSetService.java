@@ -9,6 +9,7 @@ import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
+import org.snomed.simplex.rest.pojos.RefreshTranslationSetsAfterUpgradeResponse;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
@@ -21,6 +22,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +104,35 @@ public class SnolateSetService {
 		creationService.refreshSet(translationSet);
 		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
 		return translationSet;
+	}
+
+	public RefreshTranslationSetsAfterUpgradeResponse refreshAllSetsAfterUpgrade(String codeSystem) throws ServiceException {
+		CodeSystem theCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		int currentDependantVersion = theCodeSystem.getDependantVersionEffectiveTime();
+
+		List<SnolateTranslationSet> queuedSets = new ArrayList<>();
+		int skipped = 0;
+
+		for (SnolateTranslationSet translationSet : findByCodeSystem(codeSystem)) {
+			if (translationSet.getStatus().isBusy()) {
+				skipped++;
+				continue;
+			}
+			if (translationSet.getStatus() == TranslationSetStatus.READY
+					&& translationSet.getInternationalEffectiveTime() != null
+					&& translationSet.getInternationalEffectiveTime() == currentDependantVersion) {
+				skipped++;
+				continue;
+			}
+
+			creationService.refreshSetForUpgrade(translationSet);
+			snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
+			queuedSets.add(translationSet);
+		}
+
+		logger.info("Queued {} translation sets for upgrade refresh on {}, skipped {}",
+				queuedSets.size(), codeSystem, skipped);
+		return new RefreshTranslationSetsAfterUpgradeResponse(queuedSets.size(), skipped, queuedSets);
 	}
 
 	public void updateSet(SnolateTranslationSet translationSet) {

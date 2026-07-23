@@ -11,9 +11,11 @@ import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
+import org.snomed.simplex.rest.pojos.RefreshTranslationSetsAfterUpgradeResponse;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -27,16 +29,19 @@ import static org.snomed.simplex.service.CodeSystemService.setEditionStatus;
 public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgradeRequest> {
 
 	private final SnowstormClientFactory snowstormClientFactory;
+	private final SnolateSetService snolateSetService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public UpgradeJobService(
 			SupportRegister supportRegister,
 			ActivityService activityService,
-			SnowstormClientFactory snowstormClientFactory) {
+			SnowstormClientFactory snowstormClientFactory,
+			SnolateSetService snolateSetService) {
 
 		super(supportRegister, activityService);
 		this.snowstormClientFactory = snowstormClientFactory;
+		this.snolateSetService = snolateSetService;
 	}
 
 	@Override
@@ -80,6 +85,10 @@ public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgr
 				snowstormClient.updateCodeSystem(codeSystem);
 				setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
 				logger.info("Upgrade complete. Codesystem:{}", codeSystem.getShortName());
+				RefreshTranslationSetsAfterUpgradeResponse refreshResult =
+						snolateSetService.refreshAllSetsAfterUpgrade(codeSystem.getShortName());
+				logger.info("Upgrade refresh queued {} translation sets on {}, skipped {}",
+						refreshResult.queued(), codeSystem.getShortName(), refreshResult.skipped());
 				job.setStatus(JobStatus.COMPLETE);
 				upgradeComplete = true;
 			} else if (status == SnowstormUpgradeJob.Status.FAILED) {

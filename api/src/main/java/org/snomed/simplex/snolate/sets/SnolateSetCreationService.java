@@ -78,14 +78,26 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 	}
 
 	public void refreshSet(SnolateTranslationSet translationSet) throws ServiceException {
-		if (translationSet.getStatus() == TranslationSetStatus.DELETING) {
-			throw new ServiceExceptionWithStatusCode("Cannot refresh a translation set that is being deleted.", HttpStatus.CONFLICT);
+		if (translationSet.getStatus().isBusy()) {
+			throw new ServiceExceptionWithStatusCode("Cannot refresh a translation set while it is being processed.", HttpStatus.CONFLICT);
 		}
 
+		queueRefresh(translationSet, TranslationSetStatus.INITIALISING);
+	}
+
+	public void refreshSetForUpgrade(SnolateTranslationSet translationSet) throws ServiceException {
+		if (translationSet.getStatus().isBusy()) {
+			throw new ServiceExceptionWithStatusCode("Cannot refresh a translation set while it is being processed.", HttpStatus.CONFLICT);
+		}
+
+		queueRefresh(translationSet, TranslationSetStatus.QUEUED_FOR_UPGRADE);
+	}
+
+	private void queueRefresh(SnolateTranslationSet translationSet, TranslationSetStatus queuedStatus) throws ServiceException {
 		CodeSystem codeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(translationSet.getCodesystem());
 		translationSet.setInternationalEffectiveTime(codeSystem.getDependantVersionEffectiveTime());
 
-		translationSet.setStatus(TranslationSetStatus.INITIALISING);
+		translationSet.setStatus(queuedStatus);
 		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
 
 		logger.info("Queueing Snolate translation set for refresh {}/{}/{}",
@@ -116,7 +128,10 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		String compositeSetCode = translationSet.getCompositeSetCode();
 		TimerUtil timerUtil = new TimerUtil("Refreshing Snolate set %s".formatted(compositeSetCode));
 
-		translationSet.setStatus(TranslationSetStatus.PROCESSING);
+		TranslationSetStatus inProgressStatus = translationSet.getStatus() == TranslationSetStatus.QUEUED_FOR_UPGRADE
+				? TranslationSetStatus.UPGRADING
+				: TranslationSetStatus.PROCESSING;
+		translationSet.setStatus(inProgressStatus);
 		snolateSetRepository.save(translationSet);
 
 		Set<String> currentConceptIds = new HashSet<>();
