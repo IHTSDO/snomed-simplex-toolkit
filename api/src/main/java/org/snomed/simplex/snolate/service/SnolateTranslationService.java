@@ -30,9 +30,9 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 @Service
-public class SnolateTranslationToolService {
+public class SnolateTranslationService {
 
-	private static final Logger logger = LoggerFactory.getLogger(SnolateTranslationToolService.class);
+	private static final Logger logger = LoggerFactory.getLogger(SnolateTranslationService.class);
 
 	private static final int CSV_EXPORT_PAGE_SIZE = 2000;
 
@@ -47,7 +47,7 @@ public class SnolateTranslationToolService {
 	private final SnolateTranslationSourceRepository translationSourceRepository;
 	private final SnolateTranslationSearchService translationSearchService;
 
-	public SnolateTranslationToolService(SnolateTranslationUnitRepository translationUnitRepository,
+	public SnolateTranslationService(SnolateTranslationUnitRepository translationUnitRepository,
 			SnolateTranslationSourceRepository translationSourceRepository, SnolateTranslationSearchService translationSearchService) {
 		this.translationUnitRepository = translationUnitRepository;
 		this.translationSourceRepository = translationSourceRepository;

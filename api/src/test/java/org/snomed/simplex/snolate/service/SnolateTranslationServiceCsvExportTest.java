@@ -11,8 +11,8 @@ import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationStatusLabels;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
-import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.data.domain.Page;
@@ -25,14 +25,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SnolateTranslationToolServiceCsvExportTest {
+class SnolateTranslationServiceCsvExportTest {
 
 	private static final String LANG = "es";
 	private static final String REFSET = "1000123";
@@ -44,12 +42,12 @@ class SnolateTranslationToolServiceCsvExportTest {
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
 
-	private SnolateTranslationToolService service;
+	private SnolateTranslationService service;
 	private SnolateTranslationSet translationSet;
 
 	@BeforeEach
 	void setUp() {
-		service = new SnolateTranslationToolService(translationUnitRepository, translationSourceRepository,
+		service = new SnolateTranslationService(translationUnitRepository, translationSourceRepository,
 				translationSearchService);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
@@ -58,20 +56,20 @@ class SnolateTranslationToolServiceCsvExportTest {
 
 	@Test
 	void displayLanguageDialect_stripsLanguageRefsetSuffix() {
-		assertThat(SnolateTranslationToolService.displayLanguageDialect("Spanish language reference set"))
+		assertThat(SnolateTranslationService.displayLanguageDialect("Spanish language reference set"))
 				.isEqualTo("Spanish");
-		assertThat(SnolateTranslationToolService.displayLanguageDialect("French language refset"))
+		assertThat(SnolateTranslationService.displayLanguageDialect("French language refset"))
 				.isEqualTo("French");
-		assertThat(SnolateTranslationToolService.displayLanguageDialect("  "))
+		assertThat(SnolateTranslationService.displayLanguageDialect("  "))
 				.isEqualTo("Translation");
 	}
 
 	@Test
 	void escapeCsvField_quotesFieldsWithSpecialCharacters() {
-		assertThat(SnolateTranslationToolService.escapeCsvField("plain")).isEqualTo("plain");
-		assertThat(SnolateTranslationToolService.escapeCsvField("a,b")).isEqualTo("\"a,b\"");
-		assertThat(SnolateTranslationToolService.escapeCsvField("say \"hi\"")).isEqualTo("\"say \"\"hi\"\"\"");
-		assertThat(SnolateTranslationToolService.escapeCsvField("line1\nline2")).isEqualTo("\"line1\nline2\"");
+		assertThat(SnolateTranslationService.escapeCsvField("plain")).isEqualTo("plain");
+		assertThat(SnolateTranslationService.escapeCsvField("a,b")).isEqualTo("\"a,b\"");
+		assertThat(SnolateTranslationService.escapeCsvField("say \"hi\"")).isEqualTo("\"say \"\"hi\"\"\"");
+		assertThat(SnolateTranslationService.escapeCsvField("line1\nline2")).isEqualTo("\"line1\nline2\"");
 	}
 
 	@Test

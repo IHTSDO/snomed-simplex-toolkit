@@ -74,7 +74,7 @@ public class LanguageTranslationPolicyService {
 		policy.setCodesystem(codeSystem);
 		policy.setRefset(refsetId);
 		policy.setLanguageCode(metadata.languageCode());
-		policy.setLanguageDialectName(SnolateTranslationToolService.displayLanguageDialect(request.languageDialectName().trim()));
+		policy.setLanguageDialectName(SnolateTranslationService.displayLanguageDialect(request.languageDialectName().trim()));
 		policy.setQuestionnaireVersion(version);
 		policy.setPolicyItems(request.policyItems());
 		policy.setSelectedRules(request.selectedRules());

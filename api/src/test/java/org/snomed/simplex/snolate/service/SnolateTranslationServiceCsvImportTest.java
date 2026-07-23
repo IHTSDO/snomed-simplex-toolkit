@@ -10,8 +10,8 @@ import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
-import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 
@@ -25,12 +25,11 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SnolateTranslationToolServiceCsvImportTest {
+class SnolateTranslationServiceCsvImportTest {
 
 	private static final String LANG = "es";
 	private static final String REFSET = "1000123";
@@ -43,12 +42,12 @@ class SnolateTranslationToolServiceCsvImportTest {
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
 
-	private SnolateTranslationToolService service;
+	private SnolateTranslationService service;
 	private SnolateTranslationSet translationSet;
 
 	@BeforeEach
 	void setUp() {
-		service = new SnolateTranslationToolService(translationUnitRepository, translationSourceRepository,
+		service = new SnolateTranslationService(translationUnitRepository, translationSourceRepository,
 				translationSearchService);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
@@ -57,9 +56,9 @@ class SnolateTranslationToolServiceCsvImportTest {
 
 	@Test
 	void parseCsvLine_handlesQuotedCommasAndEscapes() {
-		assertThat(SnolateTranslationToolService.parseCsvLine("a,b,c")).containsExactly("a", "b", "c");
-		assertThat(SnolateTranslationToolService.parseCsvLine("\"a,b\",c")).containsExactly("a,b", "c");
-		assertThat(SnolateTranslationToolService.parseCsvLine("\"say \"\"hi\"\"\",plain"))
+		assertThat(SnolateTranslationService.parseCsvLine("a,b,c")).containsExactly("a", "b", "c");
+		assertThat(SnolateTranslationService.parseCsvLine("\"a,b\",c")).containsExactly("a,b", "c");
+		assertThat(SnolateTranslationService.parseCsvLine("\"say \"\"hi\"\"\",plain"))
 				.containsExactly("say \"hi\"", "plain");
 	}
 
@@ -67,11 +66,11 @@ class SnolateTranslationToolServiceCsvImportTest {
 	void readCsvRow_handlesNewlinesInsideQuotedField() throws Exception {
 		String csv = "Concept Code,Other Spanish Terms\n100,\"line1\nline2\"\n";
 		StringReader reader = new StringReader(csv);
-		assertThat(SnolateTranslationToolService.readCsvRow(reader))
+		assertThat(SnolateTranslationService.readCsvRow(reader))
 				.containsExactly("Concept Code", "Other Spanish Terms");
-		assertThat(SnolateTranslationToolService.readCsvRow(reader))
+		assertThat(SnolateTranslationService.readCsvRow(reader))
 				.containsExactly("100", "line1\nline2");
-		assertThat(SnolateTranslationToolService.readCsvRow(reader)).isEmpty();
+		assertThat(SnolateTranslationService.readCsvRow(reader)).isEmpty();
 	}
 
 	@Test

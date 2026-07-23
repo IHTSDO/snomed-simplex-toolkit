@@ -22,6 +22,7 @@ public final class SnolateTranslationSet {
 	@Field(type = FieldType.Keyword)
 	private String codesystem;
 
+	// The language reference set
 	@Field(type = FieldType.Keyword)
 	private String refset;
 

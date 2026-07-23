@@ -9,8 +9,8 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
-import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SnolateTranslationToolServiceCompleteStatusTest {
+class SnolateTranslationServiceCompleteStatusTest {
 
 	private static final String LANG = "en";
 	private static final String REFSET = "1000123";
@@ -38,12 +38,12 @@ class SnolateTranslationToolServiceCompleteStatusTest {
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
 
-	private SnolateTranslationToolService service;
+	private SnolateTranslationService service;
 	private SnolateTranslationSet translationSet;
 
 	@BeforeEach
 	void setUp() {
-		service = new SnolateTranslationToolService(translationUnitRepository, translationSourceRepository,
+		service = new SnolateTranslationService(translationUnitRepository, translationSourceRepository,
 				translationSearchService);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");

@@ -9,7 +9,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.LanguageTranslationPolicy;
 import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
-import org.snomed.simplex.snolate.service.SnolateTranslationToolService;
+import org.snomed.simplex.snolate.service.SnolateTranslationService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -151,7 +151,7 @@ public class TranslationLLMService {
 		if (rawLanguageDialectName.isEmpty()) {
 			throw new ServiceExceptionWithStatusCode(POLICY_REQUIRED_MESSAGE, HttpStatus.BAD_REQUEST);
 		}
-		return SnolateTranslationToolService.displayLanguageDialect(rawLanguageDialectName);
+		return SnolateTranslationService.displayLanguageDialect(rawLanguageDialectName);
 	}
 
 	private String formatGoldenExamples(Map<String, String> aiGoldenSet) {

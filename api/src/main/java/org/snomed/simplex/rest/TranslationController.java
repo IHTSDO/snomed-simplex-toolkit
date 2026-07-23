@@ -2,6 +2,7 @@ package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.authoringservices.APTask;
@@ -25,18 +26,17 @@ import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationStatusLabels;
 import org.snomed.simplex.snolate.service.LanguagePolicyQuestionnaireService;
 import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
-import org.snomed.simplex.snolate.service.SnolateTranslationToolService;
+import org.snomed.simplex.snolate.service.SnolateTranslationService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
-import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.service.TranslationService;
+import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
@@ -54,14 +54,14 @@ public class TranslationController {
 	private final ContentProcessingJobService jobService;
 	private final ActivityService activityService;
 	private final SnolateSetService snolateSetService;
-	private final SnolateTranslationToolService snolateTranslationToolService;
+	private final SnolateTranslationService snolateTranslationService;
 	private final TranslationLLMService translationLLMService;
 	private final LanguageTranslationPolicyService languageTranslationPolicyService;
 	private final LanguagePolicyQuestionnaireService languagePolicyQuestionnaireService;
 
 	public TranslationController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService,
 			ContentProcessingJobService jobService, ActivityService activityService, SnolateSetService snolateSetService,
-			SnolateTranslationToolService snolateTranslationToolService, TranslationLLMService translationLLMService,
+			SnolateTranslationService snolateTranslationService, TranslationLLMService translationLLMService,
 			LanguageTranslationPolicyService languageTranslationPolicyService,
 			LanguagePolicyQuestionnaireService languagePolicyQuestionnaireService) {
 
@@ -70,7 +70,7 @@ public class TranslationController {
 		this.jobService = jobService;
 		this.activityService = activityService;
 		this.snolateSetService = snolateSetService;
-		this.snolateTranslationToolService = snolateTranslationToolService;
+		this.snolateTranslationService = snolateTranslationService;
 		this.translationLLMService = translationLLMService;
 		this.languageTranslationPolicyService = languageTranslationPolicyService;
 		this.languagePolicyQuestionnaireService = languagePolicyQuestionnaireService;
@@ -136,8 +136,8 @@ public class TranslationController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<SnolateTranslationSet> listAllSnolateSets(@PathVariable String codeSystem) {
 		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystem(codeSystem);
-		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
-		snolateTranslationToolService.applyCounts(sets);
+		sets.forEach(snolateTranslationService::applyDashboardMetadata);
+		snolateTranslationService.applyCounts(sets);
 		return sets;
 	}
 
@@ -145,8 +145,8 @@ public class TranslationController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<SnolateTranslationSet> listSnolateSets(@PathVariable String codeSystem, @PathVariable String refsetId) {
 		List<SnolateTranslationSet> sets = snolateSetService.findByCodeSystemAndRefset(codeSystem, refsetId);
-		sets.forEach(snolateTranslationToolService::applyDashboardMetadata);
-		snolateTranslationToolService.applyCounts(sets);
+		sets.forEach(snolateTranslationService::applyDashboardMetadata);
+		snolateTranslationService.applyCounts(sets);
 		return sets;
 	}
 
@@ -196,8 +196,8 @@ public class TranslationController {
 		translationSet.setName(updateRequest.getName().trim());
 		translationSet.setDescription(normaliseDescription(updateRequest.getDescription()));
 		snolateSetService.updateSet(translationSet);
-		snolateTranslationToolService.applyCounts(translationSet);
-		snolateTranslationToolService.applyDashboardMetadata(translationSet);
+		snolateTranslationService.applyCounts(translationSet);
+		snolateTranslationService.applyDashboardMetadata(translationSet);
 		return translationSet;
 	}
 
@@ -220,8 +220,8 @@ public class TranslationController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public SnolateTranslationSet getSnolateSet(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label) throws ServiceException {
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		snolateTranslationToolService.applyCounts(translationSet);
-		snolateTranslationToolService.applyDashboardMetadata(translationSet);
+		snolateTranslationService.applyCounts(translationSet);
+		snolateTranslationService.applyDashboardMetadata(translationSet);
 		return translationSet;
 	}
 
@@ -238,7 +238,7 @@ public class TranslationController {
 		int safePage = Math.max(0, page);
 		int safeSize = Math.min(2000, Math.max(1, size));
 		TranslationStatus statusFilter = parseOptionalTranslationStatus(status);
-		TranslationUnitPage<TranslationUnitRow> result = snolateTranslationToolService.getRows(translationSet, safePage, safeSize,
+		TranslationUnitPage<TranslationUnitRow> result = snolateTranslationService.getRows(translationSet, safePage, safeSize,
 				statusFilter, english, target);
 		result.results().forEach(TranslationUnitRow::blankLabels);
 		return result;
@@ -261,12 +261,12 @@ public class TranslationController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		ConceptMini refset = snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
-		String languageDisplayName = SnolateTranslationToolService.displayLanguageDialect(refset.getPt().getTerm());
+		String languageDisplayName = SnolateTranslationService.displayLanguageDialect(refset.getPt().getTerm());
 
 		String filename = ControllerHelper.normaliseFilename(translationSet.getName()) + "-"
 				+ TranslationStatusLabels.exportFilenameSlug(statusFilter) + ".csv";
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-		snolateTranslationToolService.writeTranslationSetCsv(translationSet, statusFilter, languageDisplayName,
+		snolateTranslationService.writeTranslationSetCsv(translationSet, statusFilter, languageDisplayName,
 				response.getOutputStream());
 	}
 
@@ -298,7 +298,7 @@ public class TranslationController {
 		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation set import", refsetId)
 				.addUpload(file.getInputStream(), file.getOriginalFilename());
 		return jobService.queueContentJob(contentJob, refsetId, activity,
-				job -> snolateTranslationToolService.importTranslationSetCsv(
+				job -> snolateTranslationService.importTranslationSetCsv(
 						translationSet, job.getInputStream(), conceptColumn, termColumnList, importStatus));
 	}
 
@@ -335,7 +335,7 @@ public class TranslationController {
 			@PathVariable String conceptId) throws ServiceException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		TranslationUnitRow row = snolateTranslationToolService.getSampleRow(translationSet, conceptId);
+		TranslationUnitRow row = snolateTranslationService.getSampleRow(translationSet, conceptId);
 		if (row != null) {
 			row.blankLabels();
 		}
@@ -358,7 +358,7 @@ public class TranslationController {
 			throw new ServiceExceptionWithStatusCode("Invalid translation status.", HttpStatus.BAD_REQUEST, e);
 		}
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		snolateTranslationToolService.updateTranslationUnit(translationSet, conceptId, request.terms(), status);
+		snolateTranslationService.updateTranslationUnit(translationSet, conceptId, request.terms(), status);
 	}
 
 	@PostMapping("{codeSystem}/translations/{refsetId}/snolate/sync-from-snowstorm")

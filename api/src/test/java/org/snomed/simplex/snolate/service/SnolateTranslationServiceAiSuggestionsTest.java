@@ -12,8 +12,8 @@ import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
-import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.data.domain.PageImpl;
@@ -26,14 +26,12 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SnolateTranslationToolServiceAiSuggestionsTest {
+class SnolateTranslationServiceAiSuggestionsTest {
 
 	private static final String LANG = "es";
 	private static final String REFSET = "1000123";
@@ -46,12 +44,12 @@ class SnolateTranslationToolServiceAiSuggestionsTest {
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
 
-	private SnolateTranslationToolService service;
+	private SnolateTranslationService service;
 	private SnolateTranslationSet translationSet;
 
 	@BeforeEach
 	void setUp() {
-		service = new SnolateTranslationToolService(translationUnitRepository, translationSourceRepository,
+		service = new SnolateTranslationService(translationUnitRepository, translationSourceRepository,
 				translationSearchService);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
