@@ -2,6 +2,7 @@ package org.snomed.simplex.snolate.sets;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClientFactory;
@@ -10,6 +11,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
 import org.snomed.simplex.rest.pojos.RefreshTranslationSetsAfterUpgradeResponse;
+import org.snomed.simplex.rest.pojos.RepairTranslationSetSizesResponse;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
@@ -47,6 +49,7 @@ public class SnolateSetService {
 	private final SupportRegister supportRegister;
 	private final SnolateSetCreationService creationService;
 	private final SnolateBatchTranslationService batchTranslationService;
+	private final SnolateTranslationSearchService translationSearchService;
 	private final ObjectMapper objectMapper;
 
 	private final Map<String, SecurityContext> userIdToContextMap;
@@ -73,6 +76,7 @@ public class SnolateSetService {
 				queueName, objectMapper);
 		creationService = new SnolateSetCreationService(processingContext, labelBatchSize);
 		batchTranslationService = new SnolateBatchTranslationService(processingContext);
+		this.translationSearchService = translationSearchService;
 	}
 
 	public List<SnolateTranslationSet> findByCodeSystem(String codeSystem) {
@@ -149,6 +153,52 @@ public class SnolateSetService {
 
 	public void runAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) throws ServiceException {
 		batchTranslationService.runAiBatchTranslate(translationSet, request);
+	}
+
+	public RepairTranslationSetSizesResponse repairSetSizes(@Nullable String codeSystem) {
+		List<SnolateTranslationSet> sets = codeSystem != null && !codeSystem.isBlank()
+				? findByCodeSystem(codeSystem)
+				: (List<SnolateTranslationSet>) snolateSetRepository.findAll();
+
+		int repaired = 0;
+		int unchanged = 0;
+		int skipped = 0;
+		List<RepairTranslationSetSizesResponse.RepairTranslationSetSizeChange> changes = new ArrayList<>();
+
+		for (SnolateTranslationSet translationSet : sets) {
+			if (translationSet.getStatus().isBusy()) {
+				skipped++;
+				logger.info("Skipping size repair for busy set {}/{}/{}",
+						translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
+				continue;
+			}
+
+			long actualSize = translationSearchService.countUnitsInSet(
+					translationSet.getCompositeSetCode(), translationSet.getLanguageCodeWithRefsetId());
+			int storedSize = translationSet.getSize();
+			if (actualSize == storedSize) {
+				unchanged++;
+				continue;
+			}
+
+			translationSet.setSize((int) actualSize);
+			snolateSetRepository.save(translationSet);
+			snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
+			repaired++;
+			changes.add(new RepairTranslationSetSizesResponse.RepairTranslationSetSizeChange(
+					translationSet.getId(),
+					translationSet.getCodesystem(),
+					translationSet.getRefset(),
+					translationSet.getLabel(),
+					storedSize,
+					(int) actualSize));
+			logger.info("Repaired size for set {}/{}/{}: {} -> {}",
+					translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel(), storedSize, actualSize);
+		}
+
+		logger.info("Translation set size repair complete: repaired {}, unchanged {}, skipped {}",
+				repaired, unchanged, skipped);
+		return new RepairTranslationSetSizesResponse(repaired, unchanged, skipped, changes);
 	}
 
 	@JmsListener(destination = "${jms.queue.prefix}.snolate-translation-set.processing", concurrency = "1")

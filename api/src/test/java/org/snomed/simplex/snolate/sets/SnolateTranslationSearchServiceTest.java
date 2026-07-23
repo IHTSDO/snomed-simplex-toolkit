@@ -174,6 +174,18 @@ class SnolateTranslationSearchServiceTest {
 	}
 
 	@Test
+	void countUnitsInSet_queriesMemberOfAndCompositeLanguageCode() {
+		when(elasticsearchOperations.count(any(CriteriaQuery.class), eq(TranslationUnit.class))).thenReturn(42L);
+
+		long count = service.countUnitsInSet("XS_100_my-label", "en-100");
+
+		assertThat(count).isEqualTo(42L);
+		ArgumentCaptor<CriteriaQuery> captor = ArgumentCaptor.forClass(CriteriaQuery.class);
+		verify(elasticsearchOperations).count(captor.capture(), eq(TranslationUnit.class));
+		assertThat(captor.getValue()).isNotNull();
+	}
+
+	@Test
 	@SuppressWarnings("unchecked")
 	void pageUnitsInSet_usesOffsetPaginationWithinResultWindow() throws ServiceExceptionWithStatusCode {
 		Pageable pageable = PageRequest.of(0, 25, ROWS_SORT);

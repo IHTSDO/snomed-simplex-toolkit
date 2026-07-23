@@ -325,6 +325,12 @@ public class SnolateTranslationSearchService {
 		return trimmed;
 	}
 
+	public long countUnitsInSet(String compositeSetCode, String compositeLanguageCode) {
+		return elasticsearchOperations.count(
+				new CriteriaQuery(unitsInSetCriteria(compositeSetCode, compositeLanguageCode)),
+				TranslationUnit.class);
+	}
+
 	public Map<String, Long> countTranslatedInSubsetBatch(String compositeLanguageCode, Collection<String> compositeSetCodes) {
 		Map<String, Long> map = new HashMap<>();
 		for (String setCode : compositeSetCodes) {

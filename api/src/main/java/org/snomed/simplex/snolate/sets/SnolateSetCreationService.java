@@ -153,7 +153,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 			logger.info("Snolate refresh: {} concepts were not in translation_source and were skipped when adding set membership.", skippedAdds);
 		}
 
-		translationSet.setSize(newConceptIds.size());
+		translationSet.setSize(countUnitsInSet(compositeSetCode, translationSet.getLanguageCodeWithRefsetId()));
 		setProgressToComplete(translationSet);
 		timerUtil.finish();
 	}
@@ -189,8 +189,12 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		}
 		timerUtil.finish();
 
-		translationSet.setSize(idSource.getTotal());
+		translationSet.setSize(countUnitsInSet(compositeSetCode, translationSet.getLanguageCodeWithRefsetId()));
 		setProgressToComplete(translationSet);
+	}
+
+	private int countUnitsInSet(String compositeSetCode, String compositeLanguageCode) {
+		return (int) translationSearchService.countUnitsInSet(compositeSetCode, compositeLanguageCode);
 	}
 
 	/** Collect all concept IDs from ECL into memory (same behavior as Weblate refresh). */
@@ -275,7 +279,6 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 			total++;
 		}
 		translationSet.setPercentageProcessed((int) (((float) done / (float) total) * 100));
-		translationSet.setSize(total);
 		snolateSetRepository.save(translationSet);
 	}
 
