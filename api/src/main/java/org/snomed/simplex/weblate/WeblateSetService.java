@@ -11,6 +11,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.AssignWorkRequest;
 import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
+import org.snomed.simplex.rest.pojos.RefreshTranslationSetsAfterUpgradeResponse;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
@@ -147,6 +148,32 @@ public class WeblateSetService {
 	public WeblateTranslationSet refreshSet(WeblateTranslationSet translationSet) throws ServiceException {
 		creationService.refreshSet(translationSet);
 		return translationSet;
+	}
+
+	public RefreshTranslationSetsAfterUpgradeResponse refreshAllSetsAfterUpgrade(String codeSystem) throws ServiceException {
+		CodeSystem theCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		Integer currentDependantVersion = theCodeSystem.getDependantVersionEffectiveTime();
+
+		List<WeblateTranslationSet> queued = new ArrayList<>();
+		int skipped = 0;
+
+		for (WeblateTranslationSet set : weblateSetRepository.findByCodesystemOrderByName(codeSystem)) {
+			if (set.getStatus().isBusy()) {
+				skipped++;
+				continue;
+			}
+			if (set.getStatus() == TranslationSetStatus.READY
+					&& Objects.equals(currentDependantVersion, set.getInternationalEffectiveTime())) {
+				skipped++;
+				continue;
+			}
+			creationService.refreshSetForUpgrade(set);
+			queued.add(set);
+		}
+
+		logger.info("Queued {} translation sets for upgrade refresh on {}, skipped {}",
+				queued.size(), codeSystem, skipped);
+		return new RefreshTranslationSetsAfterUpgradeResponse(queued.size(), skipped, queued);
 	}
 
 	public WeblatePage<WeblateUnit> getSampleRows(WeblateTranslationSet translationSet, int pageSize) throws ServiceExceptionWithStatusCode {

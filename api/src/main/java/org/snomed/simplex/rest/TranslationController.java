@@ -152,6 +152,15 @@ public class TranslationController {
 		return translationSets;
 	}
 
+	@PostMapping("{codeSystem}/translations/weblate-set/refresh-after-upgrade")
+	@Operation(summary = "Refresh all translation sets after a CodeSystem International Edition upgrade.",
+			description = "Queues refresh for all translation sets that need updating after the CodeSystem has been upgraded to a new International Edition version. " +
+				"Use this when the upgrade was performed outside Simplex. Sets already refreshed for the current dependant version are skipped.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public RefreshTranslationSetsAfterUpgradeResponse refreshWeblateSetsAfterUpgrade(@PathVariable String codeSystem) throws ServiceException {
+		return weblateSetService.refreshAllSetsAfterUpgrade(codeSystem);
+	}
+
 	@GetMapping("{codeSystem}/translations/{refsetId}/weblate-set")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public List<WeblateTranslationSet> listWeblateSets(@PathVariable String codeSystem, @PathVariable String refsetId) {

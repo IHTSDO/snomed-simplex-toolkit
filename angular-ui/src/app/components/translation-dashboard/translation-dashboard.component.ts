@@ -11,6 +11,13 @@ import { AssignWorkDialogComponent } from '../assign-work-dialog/assign-work-dia
 import { SetupAiTranslationDialogComponent } from '../setup-ai-translation-dialog/setup-ai-translation-dialog.component';
 import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialog/ai-batch-translation-dialog.component';
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
+import {
+    isTranslationSetBusy,
+    isTranslationSetEditable,
+    isTranslationSetInProgress,
+    isTranslationSetPolling,
+    translationSetLifecycleStatusLabel
+} from 'src/app/utils/translation-set-status';
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -480,7 +487,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
     }
 
     private managePolling() {
-        const hasProcessingSets = this.labelSets.some((set: any) => set.status === 'PROCESSING');
+        const hasProcessingSets = this.labelSets.some((set: any) => isTranslationSetPolling(set.status));
 
         if (hasProcessingSets && !this.isPolling) {
             this.startPolling();
@@ -488,6 +495,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
             this.stopPolling();
         }
     }
+
+    isTranslationSetEditable = isTranslationSetEditable;
+    isTranslationSetBusy = isTranslationSetBusy;
+    isTranslationSetInProgress = isTranslationSetInProgress;
+    translationSetLifecycleStatusLabel = translationSetLifecycleStatusLabel;
 
     /**
      * Preserves detailed information (translated, changedSinceCreatedOrLastPulled) from existing data
@@ -564,8 +576,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
                 // if they were previously loaded via the detailed API
                 const preservedLabelSets = this.preserveDetailedInformation(updatedLabelSets);
 
-                // Check if any sets have finished processing (changed from PROCESSING to READY)
-                const previouslyProcessingSets = this.labelSets.filter((set: any) => set.status === 'PROCESSING');
+                // Check if any sets have finished processing (changed from in-progress to READY)
+                const previouslyProcessingSets = this.labelSets.filter((set: any) => isTranslationSetInProgress(set.status));
                 const nowReadySets = preservedLabelSets.filter((set: any) => set.status === 'READY');
 
                 // Find sets that were processing and are now ready
@@ -664,7 +676,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy {
         this.selectedLabelSet = labelSet;
 
         // Only load translation-set members if status is READY
-        if (labelSet.status === 'READY') {
+        if (isTranslationSetEditable(labelSet.status)) {
             this.loadLabelSetDetails(labelSet);
         } else {
             // Clear members if status is not READY

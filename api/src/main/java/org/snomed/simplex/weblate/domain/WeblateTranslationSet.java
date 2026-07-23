@@ -61,6 +61,9 @@ public final class WeblateTranslationSet {
 	@Field(type = FieldType.Long)
 	private Date lastPulled;
 
+	@Field(type = FieldType.Integer)
+	private Integer internationalEffectiveTime;
+
 	@Transient
 	private String weblateLabelUrl;
 
@@ -226,6 +229,14 @@ public final class WeblateTranslationSet {
 
 	public void setLastPulled(Date lastPulled) {
 		this.lastPulled = lastPulled;
+	}
+
+	public Integer getInternationalEffectiveTime() {
+		return internationalEffectiveTime;
+	}
+
+	public void setInternationalEffectiveTime(Integer internationalEffectiveTime) {
+		this.internationalEffectiveTime = internationalEffectiveTime;
 	}
 
 	public int getChangedSinceCreatedOrLastPulled() {

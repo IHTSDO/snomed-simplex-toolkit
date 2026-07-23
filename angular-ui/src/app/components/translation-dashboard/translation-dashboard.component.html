@@ -31,15 +31,19 @@
                     [ngClass]="{ 'selected': set.id === selectedLabelSet?.id }">
                         {{ set.name }}
                         <span class="pill pill-blue">{{ set.translationName }}</span>
-                        <mat-icon *ngIf="set.status === 'PROCESSING'"
-                                 matTooltip="Status: {{ set.status }}&#10;{{ set.percentageProcessed }}% complete"
+                        <mat-icon *ngIf="isTranslationSetInProgress(set.status)"
+                                 matTooltip="Status: {{ translationSetLifecycleStatusLabel(set.status) }}&#10;{{ set.percentageProcessed }}% complete"
+                                 matTooltipClass="multiline-tooltip"
+                                 class="processing-icon">schedule</mat-icon>
+                        <mat-icon *ngIf="set.status === 'QUEUED_FOR_UPGRADE' || set.status === 'INITIALISING'"
+                                 matTooltip="Status: {{ translationSetLifecycleStatusLabel(set.status) }}"
                                  matTooltipClass="multiline-tooltip"
                                  class="processing-icon">schedule</mat-icon>
                         <mat-icon *ngIf="set.status === 'FAILED'"
-                                matTooltip="Status: {{ set.status }}"
+                                matTooltip="Status: {{ translationSetLifecycleStatusLabel(set.status) }}"
                                 class="processing-icon">error</mat-icon>
                         <span *ngIf="set.size" class="artifact-info">{{ set.size }} concepts</span>
-                        <mat-progress-bar *ngIf="set.status === 'PROCESSING' && set.percentageProcessed !== undefined"
+                        <mat-progress-bar *ngIf="isTranslationSetInProgress(set.status) && set.percentageProcessed !== undefined"
                                          [value]="set.percentageProcessed"
                                          class="processing-progress-bar"></mat-progress-bar>
                     </mat-list-item>
@@ -64,12 +68,12 @@
 
                 <br><br>
                 <div>
-                    <div class="component-row" *ngIf="selectedLabelSet.status !== 'READY'">
+                    <div class="component-row" *ngIf="!isTranslationSetEditable(selectedLabelSet.status)">
                         <div class="component-col align-right">
                             <span class="details-field-name">Status</span>
                         </div>
                         <div class="component-col">
-                            <span class="details-field-value">{{ selectedLabelSet.status }}</span>
+                            <span class="details-field-value">{{ translationSetLifecycleStatusLabel(selectedLabelSet.status) }}</span>
                         </div>
                     </div>
                     <div class="component-row">
@@ -123,13 +127,13 @@
                 </div>
                 <br><br>
                 <div>
-                    <button mat-flat-button color="primary" *ngIf="selectedLabelSet.status === 'READY'"
+                    <button mat-flat-button color="primary" *ngIf="isTranslationSetEditable(selectedLabelSet.status)"
                             (click)="openWeblateUrl(selectedLabelSet.weblateLabelUrl)">
                         <mat-icon class="large-icon">translate</mat-icon>
                         Open in Translation Tool
                     </button>
 
-                    <button mat-stroked-button [matMenuTriggerFor]="actionsMenu" [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                    <button mat-stroked-button [matMenuTriggerFor]="actionsMenu" [disabled]="isTranslationSetBusy(selectedLabelSet.status)"
                         style="margin-left: 10px;">
                         <mat-icon class="large-icon">more_vert</mat-icon>
                         Manage
@@ -140,30 +144,30 @@
                             <mat-icon class="large-icon">people</mat-icon>
                             Assign Work
                         </button> -->
-                        <button mat-menu-item (click)="setupAiTranslation()" [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                        <button mat-menu-item (click)="setupAiTranslation()" [disabled]="isTranslationSetBusy(selectedLabelSet.status)"
                                 *ngIf="selectedLabelSet.status !== 'FAILED'">
                             <mat-icon class="large-icon">flash_on</mat-icon>
                             Setup AI Translation
                         </button>
                         <button mat-menu-item (click)="runAiBatchTranslation()"
-                                [disabled]="selectedLabelSet.status === 'PROCESSING'"
+                                [disabled]="isTranslationSetBusy(selectedLabelSet.status)"
                                 *ngIf="selectedLabelSet.status !== 'FAILED' && selectedLabelSet.aiSetupComplete">
                             <mat-icon class="large-icon">flash_on</mat-icon>
                             Run AI Translation
                         </button>
                         @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
-                            <button mat-menu-item (click)="pullFromWeblate()" [disabled]="selectedLabelSet.status === 'PROCESSING'">
+                            <button mat-menu-item (click)="pullFromWeblate()" [disabled]="isTranslationSetBusy(selectedLabelSet.status)">
                                 <mat-icon class="large-icon">cloud_download</mat-icon>
                                 Pull new translations from Translation Tool
                             </button>
                         }
-                        <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || refreshingSet"
+                        <button mat-menu-item (click)="refreshTranslationSet()" [disabled]="isTranslationSetBusy(selectedLabelSet.status) || refreshingSet"
                                 *ngIf="selectedLabelSet.status === 'READY' || selectedLabelSet.status === 'FAILED'">
                             <mat-icon class="large-icon">refresh</mat-icon>
                             Refresh Concept Selection in Translation Tool
                             <mat-spinner *ngIf="refreshingSet" [diameter]="16" class="button-spinner"></mat-spinner>
                         </button>
-                        <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="selectedLabelSet.status === 'PROCESSING' || deleting">
+                        <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="isTranslationSetBusy(selectedLabelSet.status) || deleting">
                             <mat-icon class="large-icon">cancel</mat-icon>
                             <span>Delete Set</span>
                             <mat-spinner *ngIf="deleting" [diameter]="16" class="button-spinner"></mat-spinner>
@@ -178,11 +182,11 @@
                 </div>
                 <br><br>
                 <h3>Translation Set Members</h3>
-                <div *ngIf="selectedLabelSet.status !== 'READY'" class="status-message">
+                <div *ngIf="!isTranslationSetEditable(selectedLabelSet.status)" class="status-message">
                     <p>Translation set members are only available when the set status is READY.</p>
-                    <p>Current status: <strong>{{ selectedLabelSet.status }}</strong></p>
+                    <p>Current status: <strong>{{ translationSetLifecycleStatusLabel(selectedLabelSet.status) }}</strong></p>
                 </div>
-                <mat-list id="members-list" class="sk-width" *ngIf="selectedLabelSet.status === 'READY'">
+                <mat-list id="members-list" class="sk-width" *ngIf="isTranslationSetEditable(selectedLabelSet.status)">
                     <div *ngIf="loadingLabelSetMembers">
                         <!-- Repeat this block for as many skeleton items as you want -->
                         <div class="skeleton-loader">

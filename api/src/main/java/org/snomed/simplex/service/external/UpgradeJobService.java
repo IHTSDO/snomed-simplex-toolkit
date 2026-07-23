@@ -14,6 +14,7 @@ import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ExternalServiceJob;
+import org.snomed.simplex.weblate.WeblateSetService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -27,16 +28,19 @@ import static org.snomed.simplex.service.CodeSystemService.setEditionStatus;
 public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgradeRequest> {
 
 	private final SnowstormClientFactory snowstormClientFactory;
+	private final WeblateSetService weblateSetService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public UpgradeJobService(
 			SupportRegister supportRegister,
 			ActivityService activityService,
-			SnowstormClientFactory snowstormClientFactory) {
+			SnowstormClientFactory snowstormClientFactory,
+			WeblateSetService weblateSetService) {
 
 		super(supportRegister, activityService);
 		this.snowstormClientFactory = snowstormClientFactory;
+		this.weblateSetService = weblateSetService;
 	}
 
 	@Override
@@ -80,6 +84,9 @@ public class UpgradeJobService extends ExternalFunctionJobService<CodeSystemUpgr
 				snowstormClient.updateCodeSystem(codeSystem);
 				setEditionStatus(codeSystem, EditionStatus.AUTHORING, snowstormClient);
 				logger.info("Upgrade complete. Codesystem:{}", codeSystem.getShortName());
+				var refreshResult = weblateSetService.refreshAllSetsAfterUpgrade(codeSystem.getShortName());
+				logger.info("Post-upgrade translation set refresh for {}: queued {}, skipped {}",
+						codeSystem.getShortName(), refreshResult.queued(), refreshResult.skipped());
 				job.setStatus(JobStatus.COMPLETE);
 				upgradeComplete = true;
 			} else if (status == SnowstormUpgradeJob.Status.FAILED) {

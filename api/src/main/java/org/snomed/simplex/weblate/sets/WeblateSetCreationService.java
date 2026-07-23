@@ -59,6 +59,7 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 			throw new ServiceExceptionWithStatusCode("Language code not found for refset: " + refsetId, HttpStatus.NOT_FOUND);
 		}
 		translationSet.setLanguageCode(languageCode);
+		translationSet.setInternationalEffectiveTime(codeSystem.getDependantVersionEffectiveTime());
 
 		WeblateAdminClient weblateAdminClient = weblateClientFactory.getAdminClient();
 		if (!weblateAdminClient.isTranslationExistsSearchByLanguageRefset(translationSet.getLanguageCodeWithRefsetId())) {
@@ -76,9 +77,12 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 	}
 
 	public void refreshSet(WeblateTranslationSet translationSet) throws ServiceException {
-		if (translationSet.getStatus() == TranslationSetStatus.DELETING) {
-			throw new ServiceExceptionWithStatusCode("Cannot refresh a translation set that is being deleted.", HttpStatus.CONFLICT);
+		if (translationSet.getStatus().isBusy()) {
+			throw new ServiceExceptionWithStatusCode("Cannot refresh a translation set that is being processed.", HttpStatus.CONFLICT);
 		}
+
+		CodeSystem codeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(translationSet.getCodesystem());
+		translationSet.setInternationalEffectiveTime(codeSystem.getDependantVersionEffectiveTime());
 
 		translationSet.setStatus(TranslationSetStatus.INITIALISING);
 		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
@@ -89,10 +93,31 @@ public class WeblateSetCreationService extends AbstractWeblateSetProcessingServi
 		queueJob(translationSet, JOB_TYPE_REFRESH);
 	}
 
+	public void refreshSetForUpgrade(WeblateTranslationSet translationSet) throws ServiceException {
+		if (translationSet.getStatus().isBusy()) {
+			throw new ServiceExceptionWithStatusCode("Cannot refresh a translation set that is being processed.", HttpStatus.CONFLICT);
+		}
+
+		CodeSystem codeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(translationSet.getCodesystem());
+		translationSet.setInternationalEffectiveTime(codeSystem.getDependantVersionEffectiveTime());
+
+		translationSet.setStatus(TranslationSetStatus.QUEUED_FOR_UPGRADE);
+		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
+
+		logger.info("Queueing Translation Tool Translation Set for upgrade refresh {}/{}/{}",
+				translationSet.getCodesystem(), translationSet.getRefset(), translationSet.getLabel());
+		weblateSetRepository.save(translationSet);
+
+		queueJob(translationSet, JOB_TYPE_REFRESH);
+	}
+
 	public void doRefreshSet(WeblateTranslationSet translationSet, WeblateAdminClient weblateAdminClient, SnowstormClientFactory snowstormClientFactory) throws ServiceExceptionWithStatusCode {
 		TimerUtil timerUtil = new TimerUtil("Refreshing label %s".formatted(translationSet.getLabel()));
 
-		translationSet.setStatus(TranslationSetStatus.PROCESSING);
+		TranslationSetStatus inProgressStatus = translationSet.getStatus() == TranslationSetStatus.QUEUED_FOR_UPGRADE
+				? TranslationSetStatus.UPGRADING
+				: TranslationSetStatus.PROCESSING;
+		translationSet.setStatus(inProgressStatus);
 		weblateSetRepository.save(translationSet);
 
 		// Fetch current concept IDs that have this label in Weblate using a CSV download for performance
