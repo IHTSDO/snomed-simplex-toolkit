@@ -21,7 +21,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -85,7 +84,7 @@ class SnolateSetServiceTest {
 		SnolateTranslationSet wrongSize = createSet("wrong", TranslationSetStatus.READY, 20240101);
 		wrongSize.setSize(100);
 		when(snolateSetRepository.findByCodesystemOrderByName("SNOMEDCT-TEST")).thenReturn(List.of(wrongSize));
-		when(translationSearchService.countUnitsInSet(eq("TEST_100_wrong"), eq("en-100"))).thenReturn(42L);
+		when(translationSearchService.countUnitsInSet("TEST_100_wrong", "en-100")).thenReturn(42L);
 
 		RepairTranslationSetSizesResponse response = snolateSetService.repairSetSizes("SNOMEDCT-TEST");
 
@@ -107,7 +106,7 @@ class SnolateSetServiceTest {
 		SnolateTranslationSet correct = createSet("correct", TranslationSetStatus.READY, 20240101);
 		correct.setSize(5);
 		when(snolateSetRepository.findByCodesystemOrderByName("SNOMEDCT-TEST")).thenReturn(List.of(busy, correct));
-		when(translationSearchService.countUnitsInSet(eq("TEST_100_correct"), eq("en-100"))).thenReturn(5L);
+		when(translationSearchService.countUnitsInSet("TEST_100_correct", "en-100")).thenReturn(5L);
 
 		RepairTranslationSetSizesResponse response = snolateSetService.repairSetSizes("SNOMEDCT-TEST");
 
@@ -117,7 +116,7 @@ class SnolateSetServiceTest {
 		assertThat(response.changes()).isEmpty();
 		verify(snolateSetRepository, never()).save(busy);
 		verify(snolateSetRepository, never()).save(correct);
-		verify(snolateSetRefsetCache, never()).evictByCodeSystemAndRefset(eq("SNOMEDCT-TEST"), eq("100"));
+		verify(snolateSetRefsetCache, never()).evictByCodeSystemAndRefset("SNOMEDCT-TEST", "100");
 	}
 
 	private static SnolateTranslationSet createSet(String label, TranslationSetStatus status, Integer internationalEffectiveTime) {

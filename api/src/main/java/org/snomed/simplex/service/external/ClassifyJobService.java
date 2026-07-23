@@ -68,6 +68,7 @@ public class ClassifyJobService extends ExternalFunctionJobService<Void> {
 				}
 			} else if (status == SnowstormClassificationJob.Status.SAVED) {
 				logger.info("Classification saved. Branch:{}, classificationId:{}, jobId:{}", branch, classificationId, job.getId());
+				snowstormClient.invalidateCodeSystemCache(job.getCodeSystem());
 				job.setStatus(JobStatus.COMPLETE);
 				classificationComplete = true;
 			} else if (status == SnowstormClassificationJob.Status.FAILED) {
@@ -90,28 +91,21 @@ public class ClassifyJobService extends ExternalFunctionJobService<Void> {
 	}
 
 	public void addClassificationStatus(CodeSystem theCodeSystem) {
-		CodeSystemClassificationStatus status;
 		if (theCodeSystem.isClassified()) {
-			status = CodeSystemClassificationStatus.COMPLETE;
-		} else {
-			status = CodeSystemClassificationStatus.TODO;
+			theCodeSystem.setClassificationStatus(CodeSystemClassificationStatus.COMPLETE);
+			return;
+		}
 
-			AsyncJob latestJobOfType = getLatestJob(theCodeSystem.getShortName());
-			if (latestJobOfType != null) {
-				switch (latestJobOfType.getStatus()) {
-					case QUEUED, IN_PROGRESS ->
-							status = CodeSystemClassificationStatus.IN_PROGRESS;
-					case SYSTEM_ERROR ->
-							status = CodeSystemClassificationStatus.SYSTEM_ERROR;
-					case TECHNICAL_CONTENT_ISSUE ->
-							status = CodeSystemClassificationStatus.EQUIVALENT_CONCEPTS;
-					case USER_CONTENT_ERROR, USER_CONTENT_WARNING ->
-						// Not expected
-							status = CodeSystemClassificationStatus.SYSTEM_ERROR;
-					case COMPLETE ->
-							status = CodeSystemClassificationStatus.COMPLETE;
-				}
-			}
+		CodeSystemClassificationStatus status = CodeSystemClassificationStatus.TODO;
+		AsyncJob latestJobOfType = getLatestJob(theCodeSystem.getShortName());
+		if (latestJobOfType != null) {
+			status = switch (latestJobOfType.getStatus()) {
+				case QUEUED, IN_PROGRESS -> CodeSystemClassificationStatus.IN_PROGRESS;
+				case SYSTEM_ERROR -> CodeSystemClassificationStatus.SYSTEM_ERROR;
+				case TECHNICAL_CONTENT_ISSUE -> CodeSystemClassificationStatus.EQUIVALENT_CONCEPTS;
+				case USER_CONTENT_ERROR, USER_CONTENT_WARNING -> CodeSystemClassificationStatus.SYSTEM_ERROR;
+				case COMPLETE -> CodeSystemClassificationStatus.TODO;
+			};
 		}
 		theCodeSystem.setClassificationStatus(status);
 	}

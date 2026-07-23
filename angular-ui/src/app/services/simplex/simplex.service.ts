@@ -330,8 +330,8 @@ export class SimplexService {
     return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public startClassification(edition: string): Observable<any> {
-    return this.http.post(`api/codesystems/${edition}/classify`, null).pipe(catchError(this.handleError.bind(this)));
+  public startValidation(edition: string): Observable<any> {
+    return this.http.post(`api/codesystems/${edition}/validate`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getJobs(edition: string, filter?: string): Observable<any> {
@@ -364,10 +364,6 @@ export class SimplexService {
 
   public getRoles(): Observable<any> {
     return this.http.get('api/auth').pipe(catchError(this.handleError.bind(this)));
-  }
-
-  public startValidation(edition: string): Observable<any> {
-    return this.http.post(`api/codesystems/${edition}/validate`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getValidationResultSpreadsheet(edition: string): Observable<any> {

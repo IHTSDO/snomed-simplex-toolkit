@@ -3,12 +3,17 @@ package org.snomed.simplex.service;
 import org.junit.jupiter.api.Test;
 import org.snomed.simplex.TestConcepts;
 import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
+import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.domain.Concepts;
+import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.domain.RefsetMember;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
@@ -16,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
@@ -129,5 +135,51 @@ class CodeSystemServiceTest {
 		return new RefsetMember(Concepts.MODULE_DEPENDENCY_REFERENCE_SET, TestConcepts.MODULE, targetModule)
 			.setAdditionalField(CodeSystemService.SOURCE_EFFECTIVE_TIME, sourceDate)
 			.setAdditionalField(CodeSystemService.TARGET_EFFECTIVE_TIME, targetDate);
+	}
+
+	@Test
+	void startReleasePrep_rejectsWhenNotClassified() {
+		CodeSystem codeSystem = releaseReadyCodeSystem();
+		codeSystem.setClassified(false);
+		codeSystem.setClassificationStatus(CodeSystemClassificationStatus.TODO);
+
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> codeSystemService.startReleasePrep(codeSystem));
+
+		assertEquals(HttpStatus.CONFLICT.value(), exception.getStatusCode());
+		assertEquals("Content is not classified. Reopen editing and run validation.", exception.getMessage());
+	}
+
+	@Test
+	void startReleasePrep_rejectsWhenValidationNotClean() {
+		CodeSystem codeSystem = releaseReadyCodeSystem();
+		codeSystem.setValidationStatus(CodeSystemValidationStatus.STALE);
+
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> codeSystemService.startReleasePrep(codeSystem));
+
+		assertEquals("Validation is stale.", exception.getMessage());
+	}
+
+	@Test
+	void approveContentForRelease_rejectsWhenNotClassified() {
+		CodeSystem codeSystem = releaseReadyCodeSystem();
+		codeSystem.setEditionStatus(EditionStatus.PREPARING_RELEASE);
+		codeSystem.setClassified(false);
+		codeSystem.setClassificationStatus(CodeSystemClassificationStatus.IN_PROGRESS);
+
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> codeSystemService.approveContentForRelease(codeSystem));
+
+		assertEquals("Content is not classified. Reopen editing and run validation.", exception.getMessage());
+	}
+
+	private static CodeSystem releaseReadyCodeSystem() {
+		CodeSystem codeSystem = new CodeSystem("Test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setEditionStatus(EditionStatus.AUTHORING);
+		codeSystem.setClassified(true);
+		codeSystem.setClassificationStatus(CodeSystemClassificationStatus.COMPLETE);
+		codeSystem.setValidationStatus(CodeSystemValidationStatus.COMPLETE);
+		return codeSystem;
 	}
 }

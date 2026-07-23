@@ -59,12 +59,14 @@ public class CodeSystemController {
 	private final ValidationServiceClient validationServiceClient;
 	private final UpgradeJobService upgradeJobService;
 	private final ActivityService activityService;
+	private final ValidationWorkflowService validationWorkflowService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService,
 			ValidationService validationService, ValidateJobService validateJobService, ValidationServiceClient validationServiceClient,
-			UpgradeJobService upgradeJobService, ActivityService activityService) {
+			UpgradeJobService upgradeJobService, ActivityService activityService,
+			ValidationWorkflowService validationWorkflowService) {
 
 		this.clientFactory = clientFactory;
 		this.codeSystemService = codeSystemService;
@@ -73,6 +75,7 @@ public class CodeSystemController {
 		this.validationServiceClient = validationServiceClient;
 		this.upgradeJobService = upgradeJobService;
 		this.activityService = activityService;
+		this.validationWorkflowService = validationWorkflowService;
 	}
 
 	@GetMapping
@@ -125,6 +128,7 @@ public class CodeSystemController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob createClassificationJob(@PathVariable String codeSystem) throws ServiceException {
 		SnowstormClient snowstormClient = getSnowstormClient();
+		snowstormClient.invalidateCodeSystemCache(codeSystem);
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		codeSystemService.addClassificationStatus(theCodeSystem);
 		if (theCodeSystem.isClassified()) {
@@ -140,9 +144,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/validate")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob startValidation(@PathVariable String codeSystem) throws ServiceException {
-		SnowstormClient snowstormClient = getSnowstormClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		return activityService.startExternalServiceActivity(theCodeSystem, CODE_SYSTEM, ActivityType.VALIDATE, validateJobService, null);
+		return validationWorkflowService.startValidation(codeSystem);
 	}
 
 	@PostMapping("{codeSystem}/validate/run-automatic-fixes")
@@ -293,7 +295,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/start-release-prep")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void startReleasePrep(@PathVariable String codeSystem) throws ServiceException {
-		CodeSystem theCodeSystem = getSnowstormClient().getCodeSystemOrThrow(codeSystem);
+		CodeSystem theCodeSystem = getCodeSystemDetails(codeSystem);
 		activityService.runActivity(codeSystem, CODE_SYSTEM, START_RELEASE_PREP, () -> {
 			codeSystemService.startReleasePrep(theCodeSystem);
 			return null;

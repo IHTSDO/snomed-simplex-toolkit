@@ -153,7 +153,7 @@ class SnolateSetCreationServiceTest {
 			return out;
 		});
 		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(any(), any())).thenReturn(List.of());
-		when(translationSearchService.countUnitsInSet(eq("XS_100_my-label"), eq("en-100"))).thenReturn(2L);
+		when(translationSearchService.countUnitsInSet("XS_100_my-label", "en-100")).thenReturn(2L);
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-XS", "100", "Subset", "my-label", "<<404684003", TranslationSubsetType.ECL, "SNOMEDCT-XS");
 		set.setLanguageCode("en");
@@ -213,7 +213,7 @@ class SnolateSetCreationServiceTest {
 		when(translationSourceRepository.findAllById(any())).thenReturn(List.of());
 		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("1", lang)).thenReturn(Optional.of(hadOnly));
 		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("2", lang)).thenReturn(Optional.of(stays));
-		when(translationSearchService.countUnitsInSet(eq(composite), eq(lang))).thenReturn(1L);
+		when(translationSearchService.countUnitsInSet(composite, lang)).thenReturn(1L);
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-ZS", "200", "Z", "z", "*", TranslationSubsetType.ECL, "SNOMEDCT-ZS");
 		set.setLanguageCode("en");
@@ -288,7 +288,7 @@ class SnolateSetCreationServiceTest {
 		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("1", lang)).thenReturn(Optional.of(hadOnly));
 		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("2", lang)).thenReturn(Optional.of(stays));
 		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(eq(lang), any())).thenReturn(List.of());
-		when(translationSearchService.countUnitsInSet(eq(composite), eq(lang))).thenReturn(2L);
+		when(translationSearchService.countUnitsInSet(composite, lang)).thenReturn(2L);
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-ZS", "200", "Z", "z", "*", TranslationSubsetType.ECL, "SNOMEDCT-ZS");
 		set.setLanguageCode("en");
@@ -386,7 +386,7 @@ class SnolateSetCreationServiceTest {
 		};
 
 		doAnswer(invocation -> null).when(translationSearchService).forEachUnitInSet(eq(composite), eq(lang), any());
-		when(translationSearchService.countUnitsInSet(eq(composite), eq(lang))).thenReturn(0L);
+		when(translationSearchService.countUnitsInSet(composite, lang)).thenReturn(0L);
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-ZS", "200", "Z", "z", "*", TranslationSubsetType.ECL, "SNOMEDCT-ZS");
 		set.setLanguageCode("en");

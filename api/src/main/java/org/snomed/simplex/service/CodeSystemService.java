@@ -254,6 +254,7 @@ public class CodeSystemService {
 	}
 
 	public void startReleasePrep(CodeSystem codeSystem) throws ServiceException {
+		ensureValidationAndClassificationReady(codeSystem);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		publishingStatusCheck(codeSystem);
 		clearBuildStatus(codeSystem, snowstormClient);
@@ -273,8 +274,18 @@ public class CodeSystemService {
 		if (codeSystem.getEditionStatus() != EditionStatus.PREPARING_RELEASE) {
 			throw new ServiceExceptionWithStatusCode("CodeSystem must be in 'Preparing Release' status first before approving content for release.", HttpStatus.CONFLICT);
 		}
+		ensureValidationAndClassificationReady(codeSystem);
+		clearBuildStatus(codeSystem, snowstormClient);
+		setEditionStatus(codeSystem, EditionStatus.RELEASE, snowstormClient);
+	}
+
+	private static void ensureValidationAndClassificationReady(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
 		if (!codeSystem.isClassified()) {
-			throw new ServiceExceptionWithStatusCode("Content is not classified.", HttpStatus.CONFLICT);
+			throw new ServiceExceptionWithStatusCode("Content is not classified. Reopen editing and run validation.", HttpStatus.CONFLICT);
+		}
+		CodeSystemClassificationStatus classificationStatus = codeSystem.getClassificationStatus();
+		if (classificationStatus != CodeSystemClassificationStatus.COMPLETE) {
+			throw new ServiceExceptionWithStatusCode("Content is not classified. Reopen editing and run validation.", HttpStatus.CONFLICT);
 		}
 		CodeSystemValidationStatus validationStatus = codeSystem.getValidationStatus();
 		if (validationStatus == CodeSystemValidationStatus.STALE) {
@@ -283,8 +294,6 @@ public class CodeSystemService {
 		if (!Set.of(CodeSystemValidationStatus.COMPLETE, CodeSystemValidationStatus.CONTENT_WARNING).contains(validationStatus)) {
 			throw new ServiceExceptionWithStatusCode("Validation is not clean.", HttpStatus.CONFLICT);
 		}
-		clearBuildStatus(codeSystem, snowstormClient);
-		setEditionStatus(codeSystem, EditionStatus.RELEASE, snowstormClient);
 	}
 
 	public void startAuthoring(CodeSystem codeSystem) throws ServiceException {

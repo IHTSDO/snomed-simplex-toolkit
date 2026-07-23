@@ -58,23 +58,17 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     this.subscriptions.unsubscribe();
   }
 
-  async runClassification() {
-    this.alert('Requesting classification');
-    this.edition.classificationStatus = 'IN_PROGRESS';
-    const response = await lastValueFrom(
-      this.simplexService.startClassification(this.edition.shortName)
-    );
-    this.alert('Classification requested');
-    this.refreshEdition();
-    if (this.jobComponent) {
-      this.jobComponent.loadJobs(true);
-    }
-  }
-
   async runValidation() {
+    if (this.edition.validationStatus === 'COMPLETE' && this.edition.classificationStatus === 'COMPLETE') {
+      this.alert('Validation is already up to date');
+      return;
+    }
+    if (this.isValidationWorkflowInProgress()) {
+      this.alert('Validation is already in progress');
+      return;
+    }
     this.alert('Requesting validation');
-    this.edition.validationStatus = 'IN_PROGRESS';
-    const response = await lastValueFrom(
+    await lastValueFrom(
       this.simplexService.startValidation(this.edition.shortName)
     );
     this.alert('Validation requested');
@@ -84,25 +78,59 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     }
   }
 
-  async runClassificationAndValidation() {
-    if (this.edition.classificationStatus === 'COMPLETE' && this.edition.validationStatus === 'COMPLETE') {
-      this.alert('Classification and validation already completed');
-      return;
+  isValidationWorkflowInProgress(): boolean {
+    return this.edition?.validationStatus === 'IN_PROGRESS'
+      || this.edition?.classificationStatus === 'IN_PROGRESS';
+  }
+
+  canCloseEditing(): boolean {
+    if (!this.edition || this.edition.editionStatus !== 'AUTHORING') {
+      return false;
     }
-    if (this.edition.classificationStatus === 'IN_PROGRESS' || this.edition.validationStatus === 'IN_PROGRESS') {
-      this.alert('Classification and validation already in progress');
-      return;
+    if (this.isValidationWorkflowInProgress()) {
+      return false;
     }
-    if (this.edition.classificationStatus === 'STALE' || this.edition.classificationStatus === 'TODO') {
-      await this.runClassification();
+    const validationOk = this.edition.validationStatus === 'COMPLETE'
+      || this.edition.validationStatus === 'CONTENT_WARNING';
+    return validationOk && this.edition.classificationStatus === 'COMPLETE';
+  }
+
+  getCloseEditingBlockReason(): string {
+    if (this.isValidationWorkflowInProgress()) {
+      return 'Validation running...';
     }
-    if (
-      this.edition.validationStatus === 'STALE' ||
-      this.edition.validationStatus === 'TODO' ||
-      this.edition.validationStatus === 'SYSTEM_ERROR'
-    ) {
-      await this.runValidation();
+    if (this.edition.validationStatus === 'CONTENT_ERROR') {
+      return 'Fix errors to close editing';
     }
+    if (this.edition.validationStatus === 'TODO' || this.edition.validationStatus === 'STALE') {
+      return 'Run validation to progress';
+    }
+    if (this.edition.classificationStatus !== 'COMPLETE') {
+      return 'Waiting for classification to complete';
+    }
+    if (this.edition.validationStatus !== 'COMPLETE' && this.edition.validationStatus !== 'CONTENT_WARNING') {
+      return 'Run validation to progress';
+    }
+    return 'Run validation to progress';
+  }
+
+  getApproveBlockReason(): string {
+    if (this.edition.classificationStatus !== 'COMPLETE') {
+      return 'Content is not classified — reopen editing and run validation';
+    }
+    if (this.edition.validationStatus === 'STALE') {
+      return 'Validation is stale — reopen editing and run validation again';
+    }
+    if (this.edition.validationStatus !== 'COMPLETE' && this.edition.validationStatus !== 'CONTENT_WARNING') {
+      return 'Clean validation results to approve content';
+    }
+    return 'Clean validation results to approve content';
+  }
+
+  canApproveContent(): boolean {
+    return this.edition?.editionStatus === 'PREPARING_RELEASE'
+      && (this.edition.validationStatus === 'COMPLETE' || this.edition.validationStatus === 'CONTENT_WARNING')
+      && this.edition.classificationStatus === 'COMPLETE';
   }
 
   private alert(message: string) {
@@ -141,7 +169,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       },
       error => {
         console.error('Starting release preparation failed:', error);
-        this.alert('Starting release preparation failed');
+        const message = error?.error?.message || 'Starting release preparation failed';
+        this.alert(message);
         this.refreshEdition();
       }
     );
@@ -173,7 +202,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       },
       error => {
         console.error('Approving edition content failed:', error);
-        this.alert('Approving edition content failed');
+        const message = error?.error?.message || 'Approving edition content failed';
+        this.alert(message);
         this.refreshEdition();
       }
     );
@@ -297,11 +327,11 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
 
   getClassificationStatusInfo(status: string): string {
     const statusMessages: { [key: string]: string } = {
-      TODO: "Needs to be run",
+      TODO: "Classification has not run yet — run validation to classify content",
       IN_PROGRESS: "Classification is currently running",
       EQUIVALENT_CONCEPTS: "There are equivalent concepts. Please contact support",
       SYSTEM_ERROR: "System error occurred. Please contact support",
-      COMPLETE: "Classification completed successfully without any issues"
+      COMPLETE: "Classification is up to date"
     };
 
     return statusMessages[status] || "Unknown classification status";
