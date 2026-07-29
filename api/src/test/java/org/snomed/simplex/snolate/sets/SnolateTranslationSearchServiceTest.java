@@ -321,6 +321,35 @@ class SnolateTranslationSearchServiceTest {
 		assertThat(captor.getAllValues().get(3)).isInstanceOf(NativeQuery.class);
 	}
 
+	@Test
+	@SuppressWarnings("unchecked")
+	void forEachUnitInSet_withStatusFilter_usesSearchAfterWithExportSort() {
+		AtomicInteger callCount = new AtomicInteger();
+		List<TranslationUnit> collected = new java.util.ArrayList<>();
+		when(elasticsearchOperations.search(any(CriteriaQuery.class), eq(TranslationUnit.class))).thenAnswer(invocation -> {
+			CriteriaQuery query = invocation.getArgument(0);
+			int call = callCount.getAndIncrement();
+			if (call == 0) {
+				assertThat(query.getSearchAfter()).isNull();
+				assertThat(query.getPageable().getPageSize()).isEqualTo(5_000);
+				assertThat(query.getPageable().getSort()).isEqualTo(SnolateTranslationSearchService.UNITS_IN_SET_EXPORT_SORT);
+				return mockSkipSearchHits(contentHits(5_000, "batch1"));
+			}
+			assertThat(query.getSearchAfter()).isNotNull();
+			return mockSkipSearchHits(contentHits(1, "batch2"));
+		});
+
+		service.forEachUnitInSet("set", "en-123", TranslationStatus.APPROVED,
+				SnolateTranslationSearchService.UNITS_IN_SET_EXPORT_SORT, collected::add);
+
+		assertThat(collected).hasSize(5_001);
+		ArgumentCaptor<CriteriaQuery> captor = ArgumentCaptor.forClass(CriteriaQuery.class);
+		verify(elasticsearchOperations, times(2)).search(captor.capture(), eq(TranslationUnit.class));
+		List<CriteriaQuery> queries = captor.getAllValues();
+		assertThat(queries.get(0).getSearchAfter()).isNull();
+		assertThat(queries.get(1).getSearchAfter()).isNotNull();
+	}
+
 	@SuppressWarnings("unchecked")
 	private SearchHit<TranslationUnit> mockUnitHit(TranslationUnit unit, List<Object> sortValues) {
 		SearchHit<TranslationUnit> hit = mock(SearchHit.class);

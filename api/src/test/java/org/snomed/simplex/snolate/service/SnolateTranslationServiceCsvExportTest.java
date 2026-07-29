@@ -15,19 +15,17 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SnolateTranslationServiceCsvExportTest {
@@ -75,10 +73,7 @@ class SnolateTranslationServiceCsvExportTest {
 	@Test
 	void writeTranslationSetCsv_writesHeaderAndMappedRows() throws Exception {
 		TranslationUnit unit = unit("100", List.of("asma", "asma crónica"), TranslationStatus.FOR_REVIEW);
-		when(translationSearchService.pageUnitsInSet(eq(translationSet.getCompositeSetCode()),
-				eq(translationSet.getLanguageCodeWithRefsetId()), any(Pageable.class), eq(TranslationStatus.FOR_REVIEW),
-				isNull(), isNull()))
-				.thenReturn(pageOf(unit));
+		stubUnitStream(List.of(unit));
 		when(translationSourceRepository.findAllById(List.of("100")))
 				.thenReturn(List.of(new TranslationSource("100", "Asthma", 0)));
 
@@ -92,20 +87,41 @@ class SnolateTranslationServiceCsvExportTest {
 	}
 
 	@Test
-	void writeTranslationSetCsv_passesStatusFilterToGetRows() throws Exception {
-		when(translationSearchService.pageUnitsInSet(eq(translationSet.getCompositeSetCode()),
-				eq(translationSet.getLanguageCodeWithRefsetId()), any(Pageable.class), eq(TranslationStatus.APPROVED),
-				isNull(), isNull()))
-				.thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 2000), 0));
+	void writeTranslationSetCsv_passesStatusFilterToStream() throws Exception {
+		stubUnitStream(List.of());
 
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		service.writeTranslationSetCsv(translationSet, TranslationStatus.APPROVED, "Spanish", out);
 
-		ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-		verify(translationSearchService).pageUnitsInSet(eq(translationSet.getCompositeSetCode()),
-				eq(translationSet.getLanguageCodeWithRefsetId()), pageableCaptor.capture(),
-				eq(TranslationStatus.APPROVED), isNull(), isNull());
-		assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(2000);
+		ArgumentCaptor<Sort> sortCaptor = ArgumentCaptor.forClass(Sort.class);
+		verify(translationSearchService).forEachUnitInSet(eq(translationSet.getCompositeSetCode()),
+				eq(translationSet.getLanguageCodeWithRefsetId()), eq(TranslationStatus.APPROVED),
+				sortCaptor.capture(), any());
+		assertThat(sortCaptor.getValue()).isEqualTo(SnolateTranslationSearchService.UNITS_IN_SET_EXPORT_SORT);
+		verify(translationSearchService, never()).pageUnitsInSet(any(), any(), any(), any(), any(), any());
+	}
+
+	@Test
+	void writeTranslationSetCsv_batchesSourceLookupsInChunks() throws Exception {
+		List<TranslationUnit> units = new ArrayList<>();
+		for (int i = 0; i < 2_500; i++) {
+			units.add(unit(String.valueOf(i), List.of("term-" + i), TranslationStatus.APPROVED));
+		}
+		stubUnitStream(units);
+		when(translationSourceRepository.findAllById(any())).thenAnswer(invocation -> {
+			List<String> codes = invocation.getArgument(0);
+			return codes.stream().map(code -> new TranslationSource(code, "English-" + code, 0)).toList();
+		});
+
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		service.writeTranslationSetCsv(translationSet, TranslationStatus.APPROVED, "Spanish", out);
+
+		ArgumentCaptor<List<String>> codesCaptor = ArgumentCaptor.forClass(List.class);
+		verify(translationSourceRepository, times(3)).findAllById(codesCaptor.capture());
+		assertThat(codesCaptor.getAllValues().get(0)).hasSize(1_000);
+		assertThat(codesCaptor.getAllValues().get(1)).hasSize(1_000);
+		assertThat(codesCaptor.getAllValues().get(2)).hasSize(500);
+		assertThat(out.toString(StandardCharsets.UTF_8).lines().count()).isEqualTo(2_501L);
 	}
 
 	@Test
@@ -119,11 +135,17 @@ class SnolateTranslationServiceCsvExportTest {
 		assertThat(TranslationStatusLabels.exportFilenameSlug(null)).isEqualTo("all-concepts");
 	}
 
-	private static TranslationUnit unit(String code, List<String> terms, TranslationStatus status) {
-		return new TranslationUnit(code, LANG + "-" + REFSET, terms, status);
+	private void stubUnitStream(List<TranslationUnit> units) {
+		doAnswer(invocation -> {
+			Consumer<TranslationUnit> consumer = invocation.getArgument(4);
+			for (TranslationUnit unit : units) {
+				consumer.accept(unit);
+			}
+			return null;
+		}).when(translationSearchService).forEachUnitInSet(any(), any(), any(), any(Sort.class), any());
 	}
 
-	private static Page<TranslationUnit> pageOf(TranslationUnit unit) {
-		return new PageImpl<>(List.of(unit), PageRequest.of(0, 2000), 1);
+	private static TranslationUnit unit(String code, List<String> terms, TranslationStatus status) {
+		return new TranslationUnit(code, LANG + "-" + REFSET, terms, status);
 	}
 }

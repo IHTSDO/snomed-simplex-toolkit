@@ -34,7 +34,9 @@ public class SnolateTranslationService {
 
 	private static final Logger logger = LoggerFactory.getLogger(SnolateTranslationService.class);
 
-	private static final int CSV_EXPORT_PAGE_SIZE = 2000;
+	private static final int ELASTIC_IO_CHUNK_SIZE = 1_000;
+
+	private static final int CSV_EXPORT_BATCH_SIZE = 5_000;
 
 	private static final String DEFAULT_TRANSLATION_LABEL = "Translation";
 
@@ -373,6 +375,8 @@ public class SnolateTranslationService {
 		String dialect = languageDisplayName == null || languageDisplayName.isBlank()
 				? DEFAULT_TRANSLATION_LABEL
 				: languageDisplayName.trim();
+		String setCode = translationSet.getCompositeSetCode();
+		String lang = translationSet.getLanguageCodeWithRefsetId();
 		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
 			writeCsvLine(writer,
 					"Concept Code",
@@ -381,40 +385,61 @@ public class SnolateTranslationService {
 					"Other " + dialect + " Terms",
 					"Status",
 					"URL");
-			int page = 0;
-			boolean hasMore = true;
-			while (hasMore) {
-				TranslationUnitPage<TranslationUnitRow> pageResult = getRows(translationSet, page, CSV_EXPORT_PAGE_SIZE,
-						statusFilter, null, null);
-				List<TranslationUnitRow> rows = pageResult.results();
-				if (rows == null || rows.isEmpty()) {
-					hasMore = false;
-				} else {
-					for (TranslationUnitRow row : rows) {
-						writeCsvDataRow(writer, row);
-					}
-					hasMore = rows.size() >= CSV_EXPORT_PAGE_SIZE;
-					page++;
-				}
+			List<TranslationUnit> batch = new ArrayList<>(CSV_EXPORT_BATCH_SIZE);
+			translationSearchService.forEachUnitInSet(setCode, lang, statusFilter,
+					SnolateTranslationSearchService.UNITS_IN_SET_EXPORT_SORT, unit -> {
+						batch.add(unit);
+						if (batch.size() >= CSV_EXPORT_BATCH_SIZE) {
+							try {
+								flushExportBatch(batch, writer);
+							} catch (IOException e) {
+								throw new UncheckedIOException(e);
+							}
+						}
+					});
+			if (!batch.isEmpty()) {
+				flushExportBatch(batch, writer);
 			}
+		} catch (UncheckedIOException e) {
+			throw new ServiceException("Failed to write translation set CSV.", e.getCause());
 		} catch (IOException e) {
 			throw new ServiceException("Failed to write translation set CSV.", e);
 		}
 	}
 
-	private static void writeCsvDataRow(BufferedWriter writer, TranslationUnitRow row) throws IOException {
-		String conceptCode = row.getContext() != null ? row.getContext() : "";
-		String englishTerm = firstTerm(row.getSource());
-		List<String> targetTerms = row.getTarget() != null ? row.getTarget() : List.of();
-		String preferredTerm = targetTerms.isEmpty() ? "" : targetTerms.get(0);
-		String otherTerms = targetTerms.size() <= 1 ? "" : String.join("\n", targetTerms.subList(1, targetTerms.size()));
-		String statusLabel = TranslationStatusLabels.radioLabel(row.getStatus());
-		String url = conceptCode.isEmpty() ? "" : "https://snomed.info/id/" + conceptCode;
-		writeCsvLine(writer, conceptCode, englishTerm, preferredTerm, otherTerms, statusLabel, url);
+	private void flushExportBatch(List<TranslationUnit> batch, BufferedWriter writer) throws IOException {
+		List<String> codes = batch.stream().map(TranslationUnit::getCode).toList();
+		Map<String, TranslationSource> sourceByCode = loadSourcesByCodes(codes);
+		for (TranslationUnit unit : batch) {
+			TranslationSource source = sourceByCode.get(unit.getCode());
+			String englishTerm = source != null ? source.getTerm() : "";
+			writeCsvDataRow(writer, unit, englishTerm);
+		}
+		batch.clear();
 	}
 
-	private static String firstTerm(List<String> terms) {
-		return terms != null && !terms.isEmpty() ? terms.get(0) : "";
+	private Map<String, TranslationSource> loadSourcesByCodes(Collection<String> codes) {
+		if (codes.isEmpty()) {
+			return Map.of();
+		}
+		List<String> codeList = codes instanceof List<String> list ? list : new ArrayList<>(codes);
+		Map<String, TranslationSource> sourcesByCode = new HashMap<>();
+		for (int i = 0; i < codeList.size(); i += ELASTIC_IO_CHUNK_SIZE) {
+			int end = Math.min(i + ELASTIC_IO_CHUNK_SIZE, codeList.size());
+			StreamSupport.stream(translationSourceRepository.findAllById(codeList.subList(i, end)).spliterator(), false)
+					.forEach(source -> sourcesByCode.put(source.getCode(), source));
+		}
+		return sourcesByCode;
+	}
+
+	private static void writeCsvDataRow(BufferedWriter writer, TranslationUnit unit, String englishTerm) throws IOException {
+		String conceptCode = unit.getCode() != null ? unit.getCode() : "";
+		List<String> targetTerms = unit.getTerms() != null ? unit.getTerms() : List.of();
+		String preferredTerm = targetTerms.isEmpty() ? "" : targetTerms.get(0);
+		String otherTerms = targetTerms.size() <= 1 ? "" : String.join("\n", targetTerms.subList(1, targetTerms.size()));
+		String statusLabel = TranslationStatusLabels.radioLabel(unit.getStatus());
+		String url = conceptCode.isEmpty() ? "" : "https://snomed.info/id/" + conceptCode;
+		writeCsvLine(writer, conceptCode, englishTerm, preferredTerm, otherTerms, statusLabel, url);
 	}
 
 	private static void writeCsvLine(BufferedWriter writer, String... fields) throws IOException {

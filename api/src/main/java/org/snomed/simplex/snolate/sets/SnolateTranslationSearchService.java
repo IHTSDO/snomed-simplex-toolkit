@@ -31,6 +31,11 @@ public class SnolateTranslationSearchService {
 			Sort.Order.asc(TranslationUnit.Fields.ORDER),
 			Sort.Order.asc(TranslationUnit.Fields.CODE));
 
+	public static final Sort UNITS_IN_SET_EXPORT_SORT = Sort.by(
+			Sort.Order.asc("statusSort"),
+			Sort.Order.asc(TranslationUnit.Fields.ORDER),
+			Sort.Order.asc(TranslationUnit.Fields.CODE));
+
 	private static final Sort TRANSLATION_SOURCE_ORDER_STREAM_SORT = Sort.by(
 			Sort.Order.asc(TranslationSource.Fields.ORDER),
 			Sort.Order.asc("_doc"));
@@ -399,8 +404,20 @@ public class SnolateTranslationSearchService {
 	 * Visits every translation unit in the set using {@code search_after} paging (no {@code from} offsets beyond ES's result window).
 	 */
 	public void forEachUnitInSet(String compositeSetCode, String compositeLanguageCode, Consumer<TranslationUnit> consumer) {
-		forEachMatching(unitsInSetCriteria(compositeSetCode, compositeLanguageCode),
-				"cannot continue streaming units in set", consumer);
+		forEachUnitInSet(compositeSetCode, compositeLanguageCode, null, UNITS_IN_SET_STREAM_SORT, consumer);
+	}
+
+	/**
+	 * Visits every translation unit in the set matching optional {@code statusFilter}, in {@code sort} order,
+	 * using {@code search_after} paging.
+	 */
+	public void forEachUnitInSet(String compositeSetCode, String compositeLanguageCode, TranslationStatus statusFilter,
+			Sort sort, Consumer<TranslationUnit> consumer) {
+		Criteria criteria = unitsInSetCriteria(compositeSetCode, compositeLanguageCode);
+		if (statusFilter != null) {
+			criteria = criteria.and(new Criteria(TranslationUnit.Fields.STATUS).is(statusFilter.name()));
+		}
+		forEachMatching(criteria, sort, "cannot continue streaming units in set", consumer);
 	}
 
 	/**
@@ -408,15 +425,17 @@ public class SnolateTranslationSearchService {
 	 */
 	public void forEachUnitByCompositeLanguageCode(String compositeLanguageCode, Consumer<TranslationUnit> consumer) {
 		Criteria criteria = new Criteria(TranslationUnit.Fields.COMPOSITE_LANGUAGE_CODE).is(compositeLanguageCode);
-		forEachMatching(criteria, "cannot continue streaming units by composite language code", consumer);
+		forEachMatching(criteria, UNITS_IN_SET_STREAM_SORT,
+				"cannot continue streaming units by composite language code", consumer);
 	}
 
-	private void forEachMatching(Criteria criteria, String searchAfterFailureMessage, Consumer<TranslationUnit> consumer) {
+	private void forEachMatching(Criteria criteria, Sort sort, String searchAfterFailureMessage,
+			Consumer<TranslationUnit> consumer) {
 		List<Object> searchAfter = null;
 		boolean hasMore = true;
 		while (hasMore) {
 			CriteriaQuery query = new CriteriaQuery(criteria);
-			query.setPageable(PageRequest.of(0, STREAM_PAGE_SIZE, UNITS_IN_SET_STREAM_SORT));
+			query.setPageable(PageRequest.of(0, STREAM_PAGE_SIZE, sort));
 			query.setTrackTotalHits(false);
 			if (searchAfter != null) {
 				query.setSearchAfter(searchAfter);
