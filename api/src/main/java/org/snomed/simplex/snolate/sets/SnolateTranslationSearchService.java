@@ -56,6 +56,10 @@ public class SnolateTranslationSearchService {
 
 	private static final String TRANSLATION_UNIT_TERMS_FIELD = "terms";
 
+	private static final String AI_SUGGESTIONS_FIELD = "aiSuggestions";
+
+	private static final Sort ACCEPTED_CONTEXT_SORT_DESC = Sort.by(Sort.Order.desc(TranslationUnit.Fields.ORDER));
+
 	private final ElasticsearchOperations elasticsearchOperations;
 
 	public SnolateTranslationSearchService(ElasticsearchOperations elasticsearchOperations) {
@@ -65,6 +69,54 @@ public class SnolateTranslationSearchService {
 	private static Criteria unitsInSetCriteria(String compositeSetCode, String compositeLanguageCode) {
 		return new Criteria(TranslationUnit.Fields.MEMBER_OF).is(compositeSetCode)
 				.and(new Criteria(TranslationUnit.Fields.COMPOSITE_LANGUAGE_CODE).is(compositeLanguageCode));
+	}
+
+	private static Criteria eligibleForBatchTranslateCriteria(String compositeSetCode, String compositeLanguageCode) {
+		return unitsInSetCriteria(compositeSetCode, compositeLanguageCode)
+				.and(new Criteria(TranslationUnit.Fields.HAS_TERMS).is(false))
+				.and(new Criteria(AI_SUGGESTIONS_FIELD).exists().not());
+	}
+
+	private static Criteria acceptedContextBeforeOrderCriteria(String compositeSetCode, String compositeLanguageCode,
+			int beforeOrder) {
+		return unitsInSetCriteria(compositeSetCode, compositeLanguageCode)
+				.and(new Criteria(TranslationUnit.Fields.HAS_TERMS).is(true))
+				.and(new Criteria(TranslationUnit.Fields.STATUS).in(
+						TranslationStatus.APPROVED.name(), TranslationStatus.COMPLETE.name()))
+				.and(new Criteria(TranslationUnit.Fields.ORDER).lessThan(beforeOrder));
+	}
+
+	/**
+	 * Returns the first {@code limit} units in set order that have no target term and no AI suggestions.
+	 */
+	public List<TranslationUnit> listEligibleUnitsForBatchTranslate(String compositeSetCode, String compositeLanguageCode,
+			int limit) {
+		if (limit <= 0) {
+			return List.of();
+		}
+		int pageSize = Math.min(limit, ELASTICSEARCH_MAX_RESULT_WINDOW);
+		CriteriaQuery query = new CriteriaQuery(eligibleForBatchTranslateCriteria(compositeSetCode, compositeLanguageCode));
+		query.setPageable(PageRequest.of(0, pageSize, UNITS_IN_SET_STREAM_SORT));
+		query.setTrackTotalHits(false);
+		SearchHits<TranslationUnit> searchHits = elasticsearchOperations.search(query, TranslationUnit.class);
+		return searchHits.getSearchHits().stream().map(SearchHit::getContent).toList();
+	}
+
+	/**
+	 * Returns up to two accepted translations immediately before {@code beforeOrder} in hierarchy order.
+	 */
+	public List<TranslationUnit> findAcceptedContextUnitsBeforeOrder(String compositeSetCode, String compositeLanguageCode,
+			int beforeOrder) {
+		if (beforeOrder <= 0) {
+			return List.of();
+		}
+		CriteriaQuery query = new CriteriaQuery(acceptedContextBeforeOrderCriteria(compositeSetCode, compositeLanguageCode, beforeOrder));
+		query.setPageable(PageRequest.of(0, 2, ACCEPTED_CONTEXT_SORT_DESC));
+		query.setTrackTotalHits(false);
+		SearchHits<TranslationUnit> searchHits = elasticsearchOperations.search(query, TranslationUnit.class);
+		List<TranslationUnit> contextUnits = new ArrayList<>(searchHits.getSearchHits().stream().map(SearchHit::getContent).toList());
+		Collections.reverse(contextUnits);
+		return contextUnits;
 	}
 
 	public Page<TranslationUnit> pageUnitsInSet(String compositeSetCode, String compositeLanguageCode, Pageable pageable)

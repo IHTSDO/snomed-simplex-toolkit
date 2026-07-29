@@ -17,17 +17,21 @@ import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.jms.core.JmsTemplate;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -75,7 +79,9 @@ class SnolateBatchTranslationServiceTest {
 	void doRunAiBatchTranslate_storesSuggestionsNotTerms() throws Exception {
 		String setCode = translationSet.getCompositeSetCode();
 		TranslationUnit emptyUnit = shellUnit("100", 0, setCode);
-		when(translationSearchService.listAllUnitsInSet(setCode, COMPOSITE)).thenReturn(List.of(emptyUnit));
+		mockEligibleUnits(setCode, List.of(emptyUnit), 1);
+		when(translationSearchService.findAcceptedContextUnitsBeforeOrder(setCode, COMPOSITE, 0))
+				.thenReturn(List.of());
 		when(translationSourceRepository.findAllById(List.of("100")))
 				.thenReturn(List.of(new TranslationSource("100", "Asthma", 0)));
 		when(translationLLMService.suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class)))
@@ -96,9 +102,8 @@ class SnolateBatchTranslationServiceTest {
 	@Test
 	void doRunAiBatchTranslate_skipsUnitsWithExistingSuggestions() throws Exception {
 		String setCode = translationSet.getCompositeSetCode();
-		TranslationUnit suggestedUnit = shellUnit("100", 0, setCode);
-		suggestedUnit.setAiSuggestions(List.of("Asma existente"));
-		when(translationSearchService.listAllUnitsInSet(setCode, COMPOSITE)).thenReturn(List.of(suggestedUnit));
+		when(translationSearchService.listEligibleUnitsForBatchTranslate(setCode, COMPOSITE, 1))
+				.thenReturn(List.of());
 
 		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(1));
 
@@ -112,13 +117,14 @@ class SnolateBatchTranslationServiceTest {
 		TranslationUnit contextA = unit("100", 0, setCode, TranslationStatus.APPROVED, List.of("Asma"));
 		TranslationUnit contextB = unit("200", 1, setCode, TranslationStatus.COMPLETE, List.of("Diabetes"));
 		TranslationUnit emptyUnit = shellUnit("300", 2, setCode);
-		List<TranslationUnit> ordered = List.of(contextA, contextB, emptyUnit);
 		Map<String, TranslationSource> sources = Map.of(
 				"100", new TranslationSource("100", "Asthma", 0),
 				"200", new TranslationSource("200", "Diabetes mellitus", 1),
 				"300", new TranslationSource("300", "Heart failure", 2));
 
-		when(translationSearchService.listAllUnitsInSet(setCode, COMPOSITE)).thenReturn(ordered);
+		mockEligibleUnits(setCode, List.of(emptyUnit), 1);
+		when(translationSearchService.findAcceptedContextUnitsBeforeOrder(setCode, COMPOSITE, 2))
+				.thenReturn(List.of(contextA, contextB));
 		when(translationSourceRepository.findAllById(any())).thenAnswer(inv -> {
 			@SuppressWarnings("unchecked")
 			List<String> codes = (List<String>) inv.getArgument(0);
@@ -144,16 +150,14 @@ class SnolateBatchTranslationServiceTest {
 	void doRunAiBatchTranslate_walksBackWhenImmediatePredecessorNotAccepted() throws Exception {
 		String setCode = translationSet.getCompositeSetCode();
 		TranslationUnit contextA = unit("100", 0, setCode, TranslationStatus.APPROVED, List.of("Asma"));
-		TranslationUnit notStarted = shellUnit("200", 1, setCode);
-		notStarted.setAiSuggestions(List.of("pending"));
 		TranslationUnit emptyUnit = shellUnit("300", 2, setCode);
-		List<TranslationUnit> ordered = List.of(contextA, notStarted, emptyUnit);
 		Map<String, TranslationSource> sources = Map.of(
 				"100", new TranslationSource("100", "Asthma", 0),
-				"200", new TranslationSource("200", "Bronchitis", 1),
 				"300", new TranslationSource("300", "Heart failure", 2));
 
-		when(translationSearchService.listAllUnitsInSet(setCode, COMPOSITE)).thenReturn(ordered);
+		mockEligibleUnits(setCode, List.of(emptyUnit), 1);
+		when(translationSearchService.findAcceptedContextUnitsBeforeOrder(setCode, COMPOSITE, 2))
+				.thenReturn(List.of(contextA));
 		when(translationSourceRepository.findAllById(any())).thenAnswer(inv -> {
 			@SuppressWarnings("unchecked")
 			List<String> codes = (List<String>) inv.getArgument(0);
@@ -176,14 +180,13 @@ class SnolateBatchTranslationServiceTest {
 	@Test
 	void doRunAiBatchTranslate_excludesForReviewFromContext() throws Exception {
 		String setCode = translationSet.getCompositeSetCode();
-		TranslationUnit forReview = unit("100", 0, setCode, TranslationStatus.FOR_REVIEW, List.of("Asma provisional"));
 		TranslationUnit emptyUnit = shellUnit("200", 1, setCode);
-		List<TranslationUnit> ordered = List.of(forReview, emptyUnit);
 		Map<String, TranslationSource> sources = Map.of(
-				"100", new TranslationSource("100", "Asthma", 0),
 				"200", new TranslationSource("200", "Heart failure", 1));
 
-		when(translationSearchService.listAllUnitsInSet(setCode, COMPOSITE)).thenReturn(ordered);
+		mockEligibleUnits(setCode, List.of(emptyUnit), 1);
+		when(translationSearchService.findAcceptedContextUnitsBeforeOrder(setCode, COMPOSITE, 1))
+				.thenReturn(List.of());
 		when(translationSourceRepository.findAllById(any())).thenAnswer(inv -> {
 			@SuppressWarnings("unchecked")
 			List<String> codes = (List<String>) inv.getArgument(0);
@@ -202,24 +205,111 @@ class SnolateBatchTranslationServiceTest {
 	}
 
 	@Test
+	void doRunAiBatchTranslate_loadsOnlyBatchSources() throws Exception {
+		String setCode = translationSet.getCompositeSetCode();
+		TranslationUnit eligibleUnit = shellUnit("0", 0, setCode);
+		when(translationSearchService.listEligibleUnitsForBatchTranslate(setCode, COMPOSITE, 1))
+				.thenReturn(List.of(eligibleUnit));
+		when(translationSearchService.findAcceptedContextUnitsBeforeOrder(setCode, COMPOSITE, 0))
+				.thenReturn(List.of());
+		when(translationSourceRepository.findAllById(any())).thenAnswer(inv -> {
+			@SuppressWarnings("unchecked")
+			Iterable<String> idIterable = (Iterable<String>) inv.getArgument(0);
+			List<TranslationSource> sources = new ArrayList<>();
+			for (String code : idIterable) {
+				sources.add(new TranslationSource(code, "Term " + code, Integer.parseInt(code)));
+			}
+			return sources;
+		});
+		when(translationLLMService.suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class)))
+				.thenReturn(Map.of("Term 0", List.of("Término 0")));
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("0", COMPOSITE))
+				.thenReturn(Optional.of(eligibleUnit));
+
+		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(1));
+
+		verify(translationSearchService).listEligibleUnitsForBatchTranslate(setCode, COMPOSITE, 1);
+		ArgumentCaptor<Iterable<String>> captor = ArgumentCaptor.forClass(Iterable.class);
+		verify(translationSourceRepository, times(1)).findAllById(captor.capture());
+		int loadedCodes = 0;
+		for (String ignored : captor.getValue()) {
+			loadedCodes++;
+		}
+		assertThat(loadedCodes).isEqualTo(1);
+		verify(translationLLMService).suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class));
+	}
+
+	@Test
+	void doRunAiBatchTranslate_reQueriesFirstEligiblePageAfterEachBatch() throws Exception {
+		String setCode = translationSet.getCompositeSetCode();
+		TranslationUnit unitA = shellUnit("0", 0, setCode);
+		TranslationUnit unitB = shellUnit("1", 1, setCode);
+		AtomicInteger queryCount = new AtomicInteger();
+
+		when(translationSearchService.listEligibleUnitsForBatchTranslate(eq(setCode), eq(COMPOSITE), anyInt()))
+				.thenAnswer(invocation -> {
+					int call = queryCount.incrementAndGet();
+					if (call == 1) {
+						assertThat(invocation.getArgument(2, Integer.class)).isEqualTo(2);
+						return List.of(unitA);
+					}
+					if (call == 2) {
+						assertThat(invocation.getArgument(2, Integer.class)).isEqualTo(1);
+						return List.of(unitB);
+					}
+					return List.of();
+				});
+		when(translationSearchService.findAcceptedContextUnitsBeforeOrder(any(), any(), anyInt()))
+				.thenReturn(List.of());
+		when(translationSourceRepository.findAllById(any())).thenAnswer(inv -> {
+			@SuppressWarnings("unchecked")
+			Iterable<String> idIterable = (Iterable<String>) inv.getArgument(0);
+			List<TranslationSource> sources = new ArrayList<>();
+			for (String code : idIterable) {
+				sources.add(new TranslationSource(code, "Term " + code, Integer.parseInt(code)));
+			}
+			return sources;
+		});
+		when(translationLLMService.suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class)))
+				.thenReturn(Map.of("Term 0", List.of("Término 0")))
+				.thenReturn(Map.of("Term 1", List.of("Término 1")));
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("0", COMPOSITE))
+				.thenReturn(Optional.of(unitA));
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("1", COMPOSITE))
+				.thenReturn(Optional.of(unitB));
+
+		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(2));
+
+		verify(translationSearchService, times(2)).listEligibleUnitsForBatchTranslate(eq(setCode), eq(COMPOSITE), anyInt());
+		verify(translationUnitRepository, times(2)).save(any());
+	}
+
+	@Test
 	void buildBatchPrompt_deduplicatesSharedContextAcrossBatch() {
 		String setCode = "test-set";
 		TranslationUnit contextA = unit("100", 0, setCode, TranslationStatus.APPROVED, List.of("Asma"));
 		TranslationUnit emptyB = shellUnit("200", 1, setCode);
 		TranslationUnit emptyC = shellUnit("300", 2, setCode);
-		List<TranslationUnit> ordered = List.of(contextA, emptyB, emptyC);
 		Map<String, TranslationSource> sources = Map.of(
 				"100", new TranslationSource("100", "Asthma", 0),
 				"200", new TranslationSource("200", "Bronchitis", 1),
 				"300", new TranslationSource("300", "Heart failure", 2));
+		Map<String, List<TranslationUnit>> contextByCode = Map.of(
+				"200", List.of(contextA),
+				"300", List.of(contextA));
 
 		BatchTranslationPrompt prompt = SnolateBatchTranslationService.buildBatchPrompt(
-				ordered, List.of(1, 2), sources);
+				List.of(emptyB, emptyC), sources, contextByCode);
 
 		assertThat(prompt.promptLines()).containsExactly(
 				"1|Asthma → Asma",
 				"2|Bronchitis",
 				"3|Heart failure");
+	}
+
+	private void mockEligibleUnits(String setCode, List<TranslationUnit> eligibleUnits, int limit) {
+		when(translationSearchService.listEligibleUnitsForBatchTranslate(setCode, COMPOSITE, limit))
+				.thenReturn(eligibleUnits);
 	}
 
 	private static TranslationUnit shellUnit(String code, int order, String setCode) {

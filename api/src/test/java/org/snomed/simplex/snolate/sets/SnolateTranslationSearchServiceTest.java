@@ -115,6 +115,48 @@ class SnolateTranslationSearchServiceTest {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
+	void listEligibleUnitsForBatchTranslate_returnsMatchingUnits() {
+		TranslationUnit emptyA = unitWithoutTerms("200", 1);
+		TranslationUnit emptyB = unitWithoutTerms("300", 2);
+		SearchHits<TranslationUnit> searchHits = mockSkipSearchHits(List.of(
+				mockUnitHit(emptyA, List.of(1, 0, "200")),
+				mockUnitHit(emptyB, List.of(2, 0, "300"))));
+
+		when(elasticsearchOperations.search(any(CriteriaQuery.class), eq(TranslationUnit.class))).thenReturn(searchHits);
+
+		List<TranslationUnit> eligible = service.listEligibleUnitsForBatchTranslate("set", "en-123", 2);
+
+		assertThat(eligible).extracting(TranslationUnit::getCode).containsExactly("200", "300");
+		ArgumentCaptor<CriteriaQuery> captor = ArgumentCaptor.forClass(CriteriaQuery.class);
+		verify(elasticsearchOperations).search(captor.capture(), eq(TranslationUnit.class));
+		assertThat(captor.getValue().getPageable().getPageSize()).isEqualTo(2);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void findAcceptedContextUnitsBeforeOrder_returnsTwoMostRecentAccepted() {
+		TranslationUnit contextA = unitWithTerms("100", 0);
+		contextA.setStatus(TranslationStatus.APPROVED);
+		TranslationUnit contextB = unitWithTerms("200", 1);
+		contextB.setStatus(TranslationStatus.COMPLETE);
+		SearchHits<TranslationUnit> searchHits = mockSkipSearchHits(List.of(
+				mockUnitHit(contextB, List.of(1, 0, "200")),
+				mockUnitHit(contextA, List.of(0, 0, "100"))));
+
+		when(elasticsearchOperations.search(any(CriteriaQuery.class), eq(TranslationUnit.class))).thenReturn(searchHits);
+
+		List<TranslationUnit> context = service.findAcceptedContextUnitsBeforeOrder("set", "en-123", 5);
+
+		assertThat(context).extracting(TranslationUnit::getCode).containsExactly("100", "200");
+		ArgumentCaptor<CriteriaQuery> captor = ArgumentCaptor.forClass(CriteriaQuery.class);
+		verify(elasticsearchOperations).search(captor.capture(), eq(TranslationUnit.class));
+		assertThat(captor.getValue().getPageable().getPageSize()).isEqualTo(2);
+		assertThat(captor.getValue().getPageable().getSort().getOrderFor(TranslationUnit.Fields.ORDER).getDirection())
+				.isEqualTo(Sort.Direction.DESC);
+	}
+
+	@Test
 	void pageUnitsInSet_throwsWhenEnglishCodesExceedSoftLimit() {
 		Pageable pageable = PageRequest.of(0, 25, Sort.by("statusSort", "order", "code"));
 		List<String> tooMany = java.util.stream.IntStream.range(0, SnolateTranslationSearchService.ENGLISH_SOURCE_SEARCH_MAX_RESULTS + 1)
@@ -277,6 +319,32 @@ class SnolateTranslationSearchServiceTest {
 		verify(elasticsearchOperations, times(4)).search(captor.capture(), eq(TranslationUnit.class));
 		assertThat(captor.getAllValues().get(0)).isInstanceOf(NativeQuery.class);
 		assertThat(captor.getAllValues().get(3)).isInstanceOf(NativeQuery.class);
+	}
+
+	@SuppressWarnings("unchecked")
+	private SearchHit<TranslationUnit> mockUnitHit(TranslationUnit unit, List<Object> sortValues) {
+		SearchHit<TranslationUnit> hit = mock(SearchHit.class);
+		when(hit.getContent()).thenReturn(unit);
+		lenient().when(hit.getSortValues()).thenReturn(sortValues);
+		return hit;
+	}
+
+	private TranslationUnit unitWithTerms(String code, int order) {
+		TranslationUnit unit = new TranslationUnit();
+		unit.setCode(code);
+		unit.setOrder(order);
+		unit.setTerms(List.of("translated-" + code));
+		unit.setStatus(TranslationStatus.APPROVED);
+		return unit;
+	}
+
+	private TranslationUnit unitWithoutTerms(String code, int order) {
+		TranslationUnit unit = new TranslationUnit();
+		unit.setCode(code);
+		unit.setOrder(order);
+		unit.setTerms(List.of());
+		unit.setStatus(TranslationStatus.NOT_STARTED);
+		return unit;
 	}
 
 	@SuppressWarnings("unchecked")
