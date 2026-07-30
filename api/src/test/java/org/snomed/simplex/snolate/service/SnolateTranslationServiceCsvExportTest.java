@@ -65,9 +65,10 @@ class SnolateTranslationServiceCsvExportTest {
 	@Test
 	void escapeCsvField_quotesFieldsWithSpecialCharacters() {
 		assertThat(SnolateTranslationService.escapeCsvField("plain")).isEqualTo("plain");
-		assertThat(SnolateTranslationService.escapeCsvField("a,b")).isEqualTo("\"a,b\"");
+		assertThat(SnolateTranslationService.escapeCsvField("a,b")).isEqualTo("a,b");
 		assertThat(SnolateTranslationService.escapeCsvField("say \"hi\"")).isEqualTo("\"say \"\"hi\"\"\"");
 		assertThat(SnolateTranslationService.escapeCsvField("line1\nline2")).isEqualTo("\"line1\nline2\"");
+		assertThat(SnolateTranslationService.escapeCsvField("a\tb")).isEqualTo("\"a\tb\"");
 	}
 
 	@Test
@@ -82,8 +83,8 @@ class SnolateTranslationServiceCsvExportTest {
 
 		String csv = out.toString(StandardCharsets.UTF_8);
 		assertThat(csv)
-				.startsWith("Concept Code,English Term,Spanish Preferred Term,Other Spanish Terms,Status,URL\n")
-				.contains("100,Asthma,asma,asma crónica,Ready for review,https://snomed.info/id/100\n");
+				.startsWith("Concept Code\tEnglish Term\tSpanish Preferred Term\tOther Spanish Terms\tStatus\tURL\n")
+				.contains("100\tAsthma\tasma\tasma crónica\tReady for review\thttps://snomed.info/id/100\n");
 	}
 
 	@Test

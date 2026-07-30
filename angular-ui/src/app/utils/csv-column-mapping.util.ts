@@ -3,7 +3,90 @@ export interface CsvColumnMapping {
 	termColumns: string[];
 }
 
-export function parseCsvLine(line: string): string[] {
+export const COMMON_CSV_DELIMITERS = [',', '\t', ';', '|'] as const;
+
+export type CsvDelimiter = (typeof COMMON_CSV_DELIMITERS)[number];
+
+export function detectCsvDelimiter(headerLine: string): CsvDelimiter {
+	const line = stripUtf8Bom(headerLine);
+	if (!line.trim()) {
+		return ',';
+	}
+	let bestDelimiter: CsvDelimiter = ',';
+	let bestFieldCount = 0;
+	let bestOccurrenceCount = -1;
+	for (const delimiter of COMMON_CSV_DELIMITERS) {
+		const fieldCount = parseCsvLine(line, delimiter).length;
+		const occurrenceCount = countDelimiterOccurrencesOutsideQuotes(line, delimiter);
+		if (
+			fieldCount > bestFieldCount ||
+			(fieldCount === bestFieldCount &&
+				fieldCount >= 2 &&
+				isPreferredDelimiter(delimiter, occurrenceCount, bestDelimiter, bestOccurrenceCount))
+		) {
+			bestFieldCount = fieldCount;
+			bestDelimiter = delimiter;
+			bestOccurrenceCount = occurrenceCount;
+		}
+	}
+	return bestFieldCount >= 2 ? bestDelimiter : ',';
+}
+
+function stripUtf8Bom(line: string): string {
+	if (line.charCodeAt(0) === 0xfeff) {
+		return line.slice(1);
+	}
+	return line;
+}
+
+function delimiterPreference(delimiter: CsvDelimiter): number {
+	switch (delimiter) {
+		case ',':
+			return 0;
+		case '\t':
+			return 1;
+		case ';':
+			return 2;
+		case '|':
+			return 3;
+	}
+}
+
+function isPreferredDelimiter(
+	candidate: CsvDelimiter,
+	candidateOccurrences: number,
+	currentBest: CsvDelimiter,
+	currentBestOccurrences: number
+): boolean {
+	if (candidateOccurrences !== currentBestOccurrences) {
+		return candidateOccurrences > currentBestOccurrences;
+	}
+	return delimiterPreference(candidate) < delimiterPreference(currentBest);
+}
+
+function countDelimiterOccurrencesOutsideQuotes(line: string, delimiter: string): number {
+	let count = 0;
+	let inQuotes = false;
+	for (let i = 0; i < line.length; i++) {
+		const c = line.charAt(i);
+		if (inQuotes) {
+			if (c === '"') {
+				if (i + 1 < line.length && line.charAt(i + 1) === '"') {
+					i++;
+				} else {
+					inQuotes = false;
+				}
+			}
+		} else if (c === '"') {
+			inQuotes = true;
+		} else if (c === delimiter) {
+			count++;
+		}
+	}
+	return count;
+}
+
+export function parseCsvLine(line: string, delimiter: string = ','): string[] {
 	const fields: string[] = [];
 	if (!line) {
 		return fields;
@@ -25,7 +108,7 @@ export function parseCsvLine(line: string): string[] {
 			}
 		} else if (c === '"') {
 			inQuotes = true;
-		} else if (c === ',') {
+		} else if (c === delimiter) {
 			fields.push(field);
 			field = '';
 		} else {
@@ -36,7 +119,7 @@ export function parseCsvLine(line: string): string[] {
 	return fields;
 }
 
-export function parseFirstCsvRow(text: string): string[] {
+export function parseFirstCsvRow(text: string, delimiter: string = ','): string[] {
 	const fields: string[] = [];
 	let field = '';
 	let inQuotes = false;
@@ -55,7 +138,7 @@ export function parseFirstCsvRow(text: string): string[] {
 			}
 		} else if (c === '"') {
 			inQuotes = true;
-		} else if (c === ',') {
+		} else if (c === delimiter) {
 			fields.push(field);
 			field = '';
 		} else if (c === '\r') {
@@ -77,9 +160,27 @@ export function parseFirstCsvRow(text: string): string[] {
 	return fields;
 }
 
+function readFirstLine(text: string): string {
+	for (let i = 0; i < text.length; i++) {
+		const c = text.charAt(i);
+		if (c === '\r') {
+			if (i + 1 < text.length && text.charAt(i + 1) === '\n') {
+				return text.slice(0, i);
+			}
+			return text.slice(0, i);
+		}
+		if (c === '\n') {
+			return text.slice(0, i);
+		}
+	}
+	return text;
+}
+
 export async function readCsvHeaders(file: File): Promise<string[]> {
 	const chunk = await file.slice(0, 65536).text();
-	const headers = parseFirstCsvRow(chunk).map((header) => header.trim());
+	const headerLine = readFirstLine(chunk);
+	const delimiter = detectCsvDelimiter(headerLine);
+	const headers = parseFirstCsvRow(headerLine, delimiter).map((header) => header.trim());
 	return headers.filter((header) => header.length > 0);
 }
 

@@ -13,6 +13,7 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.util.CsvParser;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 
 import java.io.ByteArrayInputStream;
@@ -56,9 +57,9 @@ class SnolateTranslationServiceCsvImportTest {
 
 	@Test
 	void parseCsvLine_handlesQuotedCommasAndEscapes() {
-		assertThat(SnolateTranslationService.parseCsvLine("a,b,c")).containsExactly("a", "b", "c");
-		assertThat(SnolateTranslationService.parseCsvLine("\"a,b\",c")).containsExactly("a,b", "c");
-		assertThat(SnolateTranslationService.parseCsvLine("\"say \"\"hi\"\"\",plain"))
+		assertThat(CsvParser.parseLine("a,b,c", CsvParser.DELIMITER_COMMA)).containsExactly("a", "b", "c");
+		assertThat(CsvParser.parseLine("\"a,b\",c", CsvParser.DELIMITER_COMMA)).containsExactly("a,b", "c");
+		assertThat(CsvParser.parseLine("\"say \"\"hi\"\"\",plain", CsvParser.DELIMITER_COMMA))
 				.containsExactly("say \"hi\"", "plain");
 	}
 
@@ -66,11 +67,11 @@ class SnolateTranslationServiceCsvImportTest {
 	void readCsvRow_handlesNewlinesInsideQuotedField() throws Exception {
 		String csv = "Concept Code,Other Spanish Terms\n100,\"line1\nline2\"\n";
 		StringReader reader = new StringReader(csv);
-		assertThat(SnolateTranslationService.readCsvRow(reader))
+		assertThat(CsvParser.readRow(reader, CsvParser.DELIMITER_COMMA))
 				.containsExactly("Concept Code", "Other Spanish Terms");
-		assertThat(SnolateTranslationService.readCsvRow(reader))
+		assertThat(CsvParser.readRow(reader, CsvParser.DELIMITER_COMMA))
 				.containsExactly("100", "line1\nline2");
-		assertThat(SnolateTranslationService.readCsvRow(reader)).isEmpty();
+		assertThat(CsvParser.readRow(reader, CsvParser.DELIMITER_COMMA)).isEmpty();
 	}
 
 	@Test
@@ -116,6 +117,45 @@ class SnolateTranslationServiceCsvImportTest {
 		assertThat(summary.getUpdated()).isEqualTo(1);
 		assertThat(unit.getTerms()).containsExactly("asma");
 		assertThat(unit.getStatus()).isEqualTo(TranslationStatus.APPROVED);
+	}
+
+	@Test
+	void importTranslationSetCsv_importsTabSeparatedLegacyFormat() throws Exception {
+		TranslationUnit unit = unit("200", List.of(), TranslationStatus.NOT_STARTED);
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("200", COMPOSITE))
+				.thenReturn(Optional.of(unit));
+
+		String csv = "context\ttarget\n200\tasma\n";
+		ChangeSummary summary = service.importTranslationSetCsv(
+				translationSet,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				"context",
+				List.of("target"),
+				TranslationStatus.APPROVED);
+
+		assertThat(summary.getUpdated()).isEqualTo(1);
+		assertThat(unit.getTerms()).containsExactly("asma");
+	}
+
+	@Test
+	void importTranslationSetCsv_importsSemicolonSeparatedTranslationStudioFormat() throws Exception {
+		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
+				.thenReturn(Optional.of(unit));
+
+		String csv = """
+				Concept Code;English Term;Spanish Preferred Term;Other Spanish Terms;Status;URL
+				100;Asthma;asma;asma crónica;Ready for review;https://snomed.info/id/100
+				""";
+		ChangeSummary summary = service.importTranslationSetCsv(
+				translationSet,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				"Concept Code",
+				List.of("Spanish Preferred Term", "Other Spanish Terms"),
+				TranslationStatus.FOR_REVIEW);
+
+		assertThat(summary.getUpdated()).isEqualTo(1);
+		assertThat(unit.getTerms()).containsExactly("asma", "asma crónica");
 	}
 
 	@Test

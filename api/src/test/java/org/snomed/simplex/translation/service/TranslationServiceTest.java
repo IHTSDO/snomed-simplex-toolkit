@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -137,6 +138,45 @@ class TranslationServiceTest {
 		assertEquals("674814021000119106", concept.getConceptId());
 		assertEquals("[Description{lang='vi', term='hội chứng suy hô hấp cấp tính gây ra bởi coronavirus 2 gây hội chứng hô hấp cấp tính nặng', " +
 				"caseSignificance='CASE_INSENSITIVE', acceptabilityMap={123000=PREFERRED}}]", Arrays.toString(concept.getDescriptions().toArray()));
+	}
+
+	@Test
+	void uploadTranslationCsv_importsTabSeparatedMinimumFormat() throws ServiceException {
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.any(), Mockito.any())).thenReturn(
+				List.of(new Concept("").setConceptId("880529761000119102")));
+		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
+
+		String csv = """
+				context\ttarget
+				880529761000119102\tnhiễm trùng đường hô hấp dưới do SARS-CoV-2
+				""";
+		service.uploadTranslationCsv(testLangRefset, testCodeSystem,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				snowstormClientFactory.getClient(), new DummyProgressMonitor(), null);
+
+		List<Concept> updatedConcepts = conceptsSentToUpdate.getValue();
+		assertEquals(1, updatedConcepts.size());
+		assertEquals("880529761000119102", updatedConcepts.get(0).getConceptId());
+	}
+
+	@Test
+	void uploadTranslationCsv_importsSemicolonSeparatedStandardFormat() throws ServiceException {
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.any(), Mockito.any())).thenReturn(
+				List.of(new Concept("").setConceptId("880529761000119102")));
+		Mockito.doNothing().when(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptsSentToUpdate.capture(), Mockito.any());
+
+		String csv = """
+				source;target;context;developer_comments
+				Infection;translation;880529761000119102;comment
+				""";
+		service.uploadTranslationCsv(testLangRefset, testCodeSystem,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				snowstormClientFactory.getClient(), new DummyProgressMonitor(), null);
+
+		List<Concept> updatedConcepts = conceptsSentToUpdate.getValue();
+		assertEquals(1, updatedConcepts.size());
+		assertEquals("880529761000119102", updatedConcepts.get(0).getConceptId());
+		assertEquals("translation", updatedConcepts.get(0).getDescriptions().get(0).getTerm());
 	}
 
 	@Test

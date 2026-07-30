@@ -21,6 +21,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.snomed.simplex.util.CsvParser;
+import org.snomed.simplex.util.FileUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -305,14 +307,20 @@ public class SnolateTranslationService {
 	private static ImportColumnIndices readImportColumnIndices(BufferedReader reader, String conceptColumn,
 			List<String> termColumns) throws IOException, ServiceExceptionWithStatusCode {
 
-		List<String> headerFields = readCsvRow(reader);
+		String headerLine = reader.readLine();
+		if (headerLine == null || headerLine.isBlank()) {
+			throw new ServiceExceptionWithStatusCode("CSV file has no header row.", HttpStatus.BAD_REQUEST);
+		}
+		headerLine = FileUtils.removeUTF8BOM(headerLine);
+		char delimiter = CsvParser.detectDelimiter(headerLine);
+		List<String> headerFields = CsvParser.parseLine(headerLine, delimiter);
 		if (headerFields.isEmpty()) {
 			throw new ServiceExceptionWithStatusCode("CSV file has no header row.", HttpStatus.BAD_REQUEST);
 		}
 		Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
 		int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), "Concept column");
 		List<Integer> termColumnIndices = resolveTermColumnIndices(headerIndex, termColumns);
-		return new ImportColumnIndices(conceptIndex, termColumnIndices);
+		return new ImportColumnIndices(conceptIndex, termColumnIndices, delimiter);
 	}
 
 	private static List<Integer> resolveTermColumnIndices(Map<String, Integer> headerIndex, List<String> termColumns)
@@ -335,7 +343,7 @@ public class SnolateTranslationService {
 			throws IOException, ServiceExceptionWithStatusCode {
 		int skipped = 0;
 		List<String> rowFields;
-		while (!(rowFields = readCsvRow(reader)).isEmpty()) {
+		while (!(rowFields = CsvParser.readRow(reader, columns.delimiter())).isEmpty()) {
 			if (isBlankCsvRow(rowFields)) {
 				continue;
 			}
@@ -368,7 +376,7 @@ public class SnolateTranslationService {
 		return rowFields.isEmpty() || rowFields.stream().allMatch(String::isBlank);
 	}
 
-	private record ImportColumnIndices(int conceptIndex, List<Integer> termColumnIndices) {}
+	private record ImportColumnIndices(int conceptIndex, List<Integer> termColumnIndices, char delimiter) {}
 
 	public void writeTranslationSetCsv(SnolateTranslationSet translationSet, TranslationStatus statusFilter,
 			String languageDisplayName, OutputStream out) throws ServiceException {
@@ -445,7 +453,7 @@ public class SnolateTranslationService {
 	private static void writeCsvLine(BufferedWriter writer, String... fields) throws IOException {
 		for (int i = 0; i < fields.length; i++) {
 			if (i > 0) {
-				writer.write(',');
+				writer.write('\t');
 			}
 			writer.write(escapeCsvField(fields[i]));
 		}
@@ -456,96 +464,12 @@ public class SnolateTranslationService {
 		if (value == null) {
 			return "";
 		}
-		boolean needsQuotes = value.indexOf(',') >= 0 || value.indexOf('"') >= 0 || value.indexOf('\n') >= 0
+		boolean needsQuotes = value.indexOf('\t') >= 0 || value.indexOf('"') >= 0 || value.indexOf('\n') >= 0
 				|| value.indexOf('\r') >= 0;
 		if (!needsQuotes) {
 			return value;
 		}
 		return "\"" + value.replace("\"", "\"\"") + "\"";
-	}
-
-	static List<String> parseCsvLine(String line) {
-		List<String> fields = new ArrayList<>();
-		if (line == null) {
-			return fields;
-		}
-		StringBuilder field = new StringBuilder();
-		boolean inQuotes = false;
-		int index = 0;
-		while (index < line.length()) {
-			char c = line.charAt(index);
-			if (inQuotes) {
-				if (c == '"') {
-					if (index + 1 < line.length() && line.charAt(index + 1) == '"') {
-						field.append('"');
-						index += 2;
-						continue;
-					}
-					inQuotes = false;
-				} else {
-					field.append(c);
-				}
-			} else if (c == '"') {
-				inQuotes = true;
-			} else if (c == ',') {
-				fields.add(field.toString());
-				field.setLength(0);
-			} else {
-				field.append(c);
-			}
-			index++;
-		}
-		fields.add(field.toString());
-		return fields;
-	}
-
-	static List<String> readCsvRow(Reader reader) throws IOException {
-		List<String> fields = new ArrayList<>();
-		StringBuilder field = new StringBuilder();
-		boolean inQuotes = false;
-		int ch;
-		while ((ch = reader.read()) != -1) {
-			char c = (char) ch;
-			if (inQuotes) {
-				if (c == '"') {
-					reader.mark(1);
-					int next = reader.read();
-					if (next == '"') {
-						field.append('"');
-					} else {
-						inQuotes = false;
-						if (next != -1) {
-							reader.reset();
-						}
-					}
-				} else {
-					field.append(c);
-				}
-			} else if (c == '"') {
-				inQuotes = true;
-			} else if (c == ',') {
-				fields.add(field.toString());
-				field.setLength(0);
-			} else if (c == '\r') {
-				reader.mark(1);
-				int next = reader.read();
-				if (next != '\n' && next != -1) {
-					reader.reset();
-				}
-				fields.add(field.toString());
-				return fields;
-			} else if (c == '\n') {
-				fields.add(field.toString());
-				return fields;
-			} else {
-				field.append(c);
-			}
-		}
-		if (!field.isEmpty() || !fields.isEmpty()) {
-			fields.add(field.toString());
-			return fields;
-		}
-		return Collections.emptyList();
 	}
 
 	private static Map<String, Integer> buildHeaderIndex(List<String> headerFields) {

@@ -38,6 +38,7 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.importer.TranslationCsvFormat;
+import org.snomed.simplex.util.CsvParser;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
 import org.springframework.beans.factory.annotation.Value;
@@ -825,18 +826,18 @@ public class TranslationService {
 	private Map<Long, List<Description>> readTranslationsFromTranslationCsv(InputStream inputStream, String languageCode, String languageRefsetId) throws ServiceException {
 
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-			TranslationCsvFormat csvFormat = getTranslationCsvFormat(reader);
+			TranslationCsvImportContext csvContext = getTranslationCsvImportContext(reader);
 			logger.info("Confirmed translation CSV format");
 
 			Map<Long, List<Description>> conceptDescriptions = new Long2ObjectOpenHashMap<>();
-			String line;
+			List<String> rowFields;
 			int lineNumber = 1;
 			Set<Long> conceptsCovered = new LongOpenHashSet();
-			while ((line = reader.readLine()) != null) {
+			while (!(rowFields = CsvParser.readRow(reader, csvContext.delimiter())).isEmpty()) {
 				lineNumber++;
-				String[] conceptAndTerm = parseConceptAndTermFromCsvLine(csvFormat, line);
+				String[] conceptAndTerm = parseConceptAndTermFromCsvRow(csvContext, rowFields);
 				if (conceptAndTerm.length == 0) {
-					logger.warn("Line {} has the wrong number of columns, skipping: '{}'", lineNumber, line);
+					logger.warn("Line {} has the wrong number of columns, skipping: '{}'", lineNumber, rowFields);
 					continue;
 				}
 				addDescriptionFromCsvRow(conceptDescriptions, conceptsCovered, conceptAndTerm[0], conceptAndTerm[1],
@@ -845,43 +846,57 @@ public class TranslationService {
 			return conceptDescriptions;
 		} catch (IOException e) {
 			throw new ServiceException("Failed to read translation CSV.", e);
+		} catch (ServiceExceptionWithStatusCode e) {
+			throw new ServiceException(e.getMessage(), e);
 		}
 	}
 
-	private static String[] parseConceptAndTermFromCsvLine(TranslationCsvFormat csvFormat, String line) {
-		if (csvFormat == TranslationCsvFormat.STANDARD) {
-			return parseStandardConceptAndTerm(line);
+	private record TranslationCsvImportContext(
+			TranslationCsvFormat format,
+			char delimiter,
+			int conceptIndex,
+			int termIndex,
+			int contextIndex,
+			int developerCommentsIndex) {}
+
+	private static String[] parseConceptAndTermFromCsvRow(TranslationCsvImportContext csvContext, List<String> fields) {
+		if (csvContext.format() == TranslationCsvFormat.STANDARD) {
+			return parseStandardConceptAndTerm(csvContext, fields);
 		}
-		return parseMinimumConceptAndTerm(line);
+		return parseMinimumConceptAndTerm(csvContext, fields);
 	}
 
-	private static String[] parseStandardConceptAndTerm(String line) {
-		String[] columns = line.split("\",\"");
-		if (columns.length != 4) {
+	private static String[] parseStandardConceptAndTerm(TranslationCsvImportContext csvContext, List<String> fields) {
+		if (fields.size() < 4) {
 			return new String[0];
 		}
-		if (columns[2].isBlank() && columns[3].equals("\"")) {
-			// Strange case - some CSV exports use "concept id", "term" for synonyms
-			return new String[] {columns[0], columns[1]};
+		String context = getCsvField(fields, csvContext.contextIndex());
+		String developerComments = getCsvField(fields, csvContext.developerCommentsIndex());
+		if (context.isBlank() && developerComments.isEmpty()) {
+			// Some CSV exports use "concept id", "term" for synonyms
+			return new String[] {getCsvField(fields, 0), getCsvField(fields, 1)};
 		}
-		// source	target	context	developer_comments
-		return new String[] {columns[2], columns[1]};
+		return new String[] {context, getCsvField(fields, csvContext.termIndex())};
 	}
 
-	private static String[] parseMinimumConceptAndTerm(String line) {
-		String[] columns = line.split(",", 2);
-		if (columns.length != 2) {
+	private static String[] parseMinimumConceptAndTerm(TranslationCsvImportContext csvContext, List<String> fields) {
+		if (fields.size() < 2) {
 			return new String[0];
 		}
-		// context	target
-		return new String[] {columns[0], columns[1]};
+		return new String[] {getCsvField(fields, csvContext.conceptIndex()), getCsvField(fields, csvContext.termIndex())};
+	}
+
+	private static String getCsvField(List<String> fields, int index) {
+		if (index < 0 || index >= fields.size()) {
+			return "";
+		}
+		String value = fields.get(index);
+		return value != null ? value.trim() : "";
 	}
 
 	private static void addDescriptionFromCsvRow(Map<Long, List<Description>> conceptDescriptions, Set<Long> conceptsCovered,
 			String conceptString, String translatedTerm, String languageCode, String languageRefsetId) {
 
-		translatedTerm = translatedTerm.replace("\"", "");
-		conceptString = conceptString.replace("\"", "");
 		if (translatedTerm.isEmpty() || !conceptString.matches("\\d+")) {
 			return;
 		}
@@ -893,22 +908,42 @@ public class TranslationService {
 				.add(new Description(SYNONYM, languageCode, translatedTerm, null, languageRefsetId, acceptability));
 	}
 
-	private static @NonNull TranslationCsvFormat getTranslationCsvFormat(BufferedReader reader) throws IOException, ServiceExceptionWithStatusCode {
-		String header = reader.readLine();
-		if (header == null) {
-			header = "";
+	private static @NonNull TranslationCsvImportContext getTranslationCsvImportContext(BufferedReader reader)
+			throws IOException, ServiceExceptionWithStatusCode {
+		String headerLine = reader.readLine();
+		if (headerLine == null) {
+			headerLine = "";
 		}
-		header = FileUtils.removeUTF8BOM(header);
-		header = header.replace("\"", "");
-		TranslationCsvFormat csvFormat;
-		if (header.equals("source,target,context,developer_comments")) {
-			csvFormat = TranslationCsvFormat.STANDARD;
-		} else if (header.equals("context,target")) {
-			csvFormat = TranslationCsvFormat.MINIMUM;
-		} else {
-			throw new ServiceExceptionWithStatusCode(format("Unrecognised CSV header '%s'", header), HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
+		headerLine = FileUtils.removeUTF8BOM(headerLine);
+		char delimiter = CsvParser.detectDelimiter(headerLine);
+		List<String> headerFields = CsvParser.parseLine(headerLine, delimiter).stream()
+				.map(field -> field.trim())
+				.toList();
+		if (isStandardTranslationCsvHeader(headerFields)) {
+			return new TranslationCsvImportContext(
+					TranslationCsvFormat.STANDARD, delimiter, 2, 1, 2, 3);
 		}
-		return csvFormat;
+		if (isMinimumTranslationCsvHeader(headerFields)) {
+			return new TranslationCsvImportContext(
+					TranslationCsvFormat.MINIMUM, delimiter, 0, 1, 0, -1);
+		}
+		throw new ServiceExceptionWithStatusCode(
+				format("Unrecognised CSV header '%s'", String.join(String.valueOf(delimiter), headerFields)),
+				HttpStatus.BAD_REQUEST, JobStatus.USER_CONTENT_ERROR);
+	}
+
+	private static boolean isStandardTranslationCsvHeader(List<String> headerFields) {
+		return headerFields.size() == 4
+				&& "source".equals(headerFields.get(0))
+				&& "target".equals(headerFields.get(1))
+				&& "context".equals(headerFields.get(2))
+				&& "developer_comments".equals(headerFields.get(3));
+	}
+
+	private static boolean isMinimumTranslationCsvHeader(List<String> headerFields) {
+		return headerFields.size() == 2
+				&& "context".equals(headerFields.get(0))
+				&& "target".equals(headerFields.get(1));
 	}
 
 	protected Description.CaseSignificance guessCaseSignificance(String term, boolean titleCaseUsed, List<Description> otherDescriptions) {

@@ -1,5 +1,6 @@
 import {
 	detectCsvColumnMapping,
+	detectCsvDelimiter,
 	parseCsvLine,
 	parseFirstCsvRow,
 	readCsvHeaders
@@ -9,6 +10,18 @@ describe('csv-column-mapping.util', () => {
 	it('parseCsvLine handles quoted commas', () => {
 		expect(parseCsvLine('a,b,c')).toEqual(['a', 'b', 'c']);
 		expect(parseCsvLine('"a,b",c')).toEqual(['a,b', 'c']);
+	});
+
+	it('detectCsvDelimiter recognises common separators', () => {
+		expect(detectCsvDelimiter('context,target')).toBe(',');
+		expect(detectCsvDelimiter('context\ttarget')).toBe('\t');
+		expect(detectCsvDelimiter('context;target')).toBe(';');
+		expect(detectCsvDelimiter('context|target')).toBe('|');
+	});
+
+	it('parseCsvLine handles tab and semicolon delimiters', () => {
+		expect(parseCsvLine('context\ttarget', '\t')).toEqual(['context', 'target']);
+		expect(parseCsvLine('context;target', ';')).toEqual(['context', 'target']);
 	});
 
 	it('parseFirstCsvRow handles newline inside quoted field', () => {
@@ -51,5 +64,21 @@ describe('csv-column-mapping.util', () => {
 	it('readCsvHeaders reads the first row from a file', async () => {
 		const file = new File(['context,target\n100,asma\n'], 'import.csv', { type: 'text/csv' });
 		await expect(readCsvHeaders(file)).resolves.toEqual(['context', 'target']);
+	});
+
+	it('readCsvHeaders detects tab-separated headers', async () => {
+		const file = new File(['context\ttarget\n100\tasma\n'], 'import.tsv', { type: 'text/csv' });
+		await expect(readCsvHeaders(file)).resolves.toEqual(['context', 'target']);
+	});
+
+	it('readCsvHeaders detects semicolon-separated headers', async () => {
+		const file = new File(['Concept Code;English Term;Spanish Preferred Term\n'], 'import.csv', {
+			type: 'text/csv'
+		});
+		await expect(readCsvHeaders(file)).resolves.toEqual([
+			'Concept Code',
+			'English Term',
+			'Spanish Preferred Term'
+		]);
 	});
 });
