@@ -3,8 +3,11 @@
   <p *ngIf="editionDetailsSignal()?.validationStatus === 'SYSTEM_ERROR'" class="aligned-p">
     The last validation run failed due to a system error. Issues were not loaded. Use Run validation again or Retry validation above to try again.
   </p>
+  <p *ngIf="editionDetailsSignal()?.validationStatus === 'UNAVAILABLE'" class="aligned-p">
+    The validation service is not currently available. Please wait and try again later.
+  </p>
   <!-- Skeleton Loader -->
-  <div *ngIf="editionDetailsSignal()?.validationStatus !== 'SYSTEM_ERROR' && (loadingValidationResults() || !localIssues())" class="skeleton-loader">
+  <div *ngIf="editionDetailsSignal()?.validationStatus !== 'SYSTEM_ERROR' && editionDetailsSignal()?.validationStatus !== 'UNAVAILABLE' && (loadingValidationResults() || !localIssues())" class="skeleton-loader">
     <div class="skeleton-header">
       <div class="skeleton-item"></div>
       <div class="skeleton-item"></div>

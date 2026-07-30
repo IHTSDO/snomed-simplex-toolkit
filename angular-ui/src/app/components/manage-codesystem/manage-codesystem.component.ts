@@ -99,6 +99,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     if (this.isValidationWorkflowInProgress()) {
       return 'Validation running...';
     }
+    if (this.edition.validationStatus === 'UNAVAILABLE') {
+      return this.getValidationStatusInfo('UNAVAILABLE');
+    }
     if (this.edition.validationStatus === 'CONTENT_ERROR') {
       return 'Fix errors to close editing';
     }
@@ -117,6 +120,9 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   getApproveBlockReason(): string {
     if (this.edition.classificationStatus !== 'COMPLETE') {
       return 'Content is not classified — reopen editing and run validation';
+    }
+    if (this.edition.validationStatus === 'UNAVAILABLE') {
+      return this.getValidationStatusInfo('UNAVAILABLE');
     }
     if (this.edition.validationStatus === 'STALE') {
       return 'Validation is stale — reopen editing and run validation again';
@@ -261,17 +267,20 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
 
   async refreshEdition() {
     this.loadingReleaseStatus = true;
-    const response = await lastValueFrom(
-      this.simplexService.getEdition(this.edition.shortName)
-    );
-    this.edition = response;
-    this.refreshIssues();
-    this.activitiesComponent.loadActivities(false);
-    if (this.jobComponent) {
-      this.jobComponent.loadJobs(true);
+    try {
+      const response = await lastValueFrom(
+        this.simplexService.getEdition(this.edition.shortName)
+      );
+      this.edition = response;
+      await this.refreshIssues();
+      this.activitiesComponent.loadActivities(false);
+      if (this.jobComponent) {
+        this.jobComponent.loadJobs(true);
+      }
+    } finally {
+      this.loadingReleaseStatus = false;
+      this.changeDetectorRef.detectChanges();
     }
-    this.loadingReleaseStatus = false;
-    this.changeDetectorRef.detectChanges();
   }
 
   async refreshIssues() {
@@ -279,7 +288,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       this.issuesReport = { errorCount: 0, warningCount: 0, fixes: [] };
       return;
     }
-    if (this.edition.validationStatus === 'SYSTEM_ERROR') {
+    if (this.edition.validationStatus === 'SYSTEM_ERROR' || this.edition.validationStatus === 'UNAVAILABLE') {
       this.issuesReport = null;
       this.loadingIssues = false;
       this.changeDetectorRef.detectChanges();
@@ -318,6 +327,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       CONTENT_ERROR: "There are content errors, please review and fix",
       CONTENT_WARNING: "There are content warnings, please review",
       SYSTEM_ERROR: "System error has occurred, please contact support",
+      UNAVAILABLE: "The validation service is not currently available. Please wait and try again later.",
       COMPLETE: "Validation has completed successfully without any issues",
       STALE: "The content has changed and the results are outdated",
     };

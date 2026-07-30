@@ -179,9 +179,15 @@ public class CodeSystemController {
 		validationServiceClient.downloadLatestValidationAsSpreadsheet(validationReport, response.getOutputStream());
 	}
 
+	private static final String VALIDATION_SERVICE_UNAVAILABLE_MESSAGE =
+			"The validation service is not currently available. Please wait and try again later.";
+
 	private ValidationReport getCompletedValidationReportOrThrow(CodeSystem theCodeSystem) throws ServiceException {
 		validateJobService.addValidationStatus(theCodeSystem);
 		CodeSystemValidationStatus validationStatus = theCodeSystem.getValidationStatus();
+		if (validationStatus == CodeSystemValidationStatus.UNAVAILABLE) {
+			throw new ServiceExceptionWithStatusCode(VALIDATION_SERVICE_UNAVAILABLE_MESSAGE, HttpStatus.SERVICE_UNAVAILABLE);
+		}
 		if (Set.of(CodeSystemValidationStatus.TODO, CodeSystemValidationStatus.IN_PROGRESS, CodeSystemValidationStatus.SYSTEM_ERROR).contains(validationStatus)) {
 					throw new ServiceExceptionWithStatusCode("The latest validation report is not available.", HttpStatus.CONFLICT);
 		}

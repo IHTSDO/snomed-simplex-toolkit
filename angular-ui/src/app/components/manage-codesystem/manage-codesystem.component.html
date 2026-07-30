@@ -41,13 +41,16 @@
                     <div class="sub-stage">
                         <div><b>Validation</b></div>
                         <div class="sub-stage-text">
-                            <div *ngIf="edition.editionStatus == 'AUTHORING' && edition.validationStatus">
+                            <div *ngIf="edition.editionStatus == 'AUTHORING' && edition.validationStatus == 'UNAVAILABLE'" class="validation-unavailable">
+                                {{ getValidationStatusInfo(edition.validationStatus) }}
+                            </div>
+                            <div *ngIf="edition.editionStatus == 'AUTHORING' && edition.validationStatus && edition.validationStatus != 'UNAVAILABLE'">
                                 <span *ngIf="edition.validationStatus == 'TODO'; else notTodoTemplate">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runValidation()">Run validation</a></span>
                                 <ng-template #notTodoTemplate>
-                                    <span *ngIf="(edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'">
+                                    <span *ngIf="edition.validationStatus != 'UNAVAILABLE' && (edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'">
                                         Validation has completed and is up to date
                                     </span>
-                                    <span *ngIf="(edition.validationStatus == 'STALE' || edition.validationStatus == 'SYSTEM_ERROR' || edition.classificationStatus != 'COMPLETE') && edition.validationStatus != 'IN_PROGRESS' && !isValidationWorkflowInProgress()">
+                                    <span *ngIf="edition.validationStatus != 'UNAVAILABLE' && (edition.validationStatus == 'STALE' || edition.validationStatus == 'SYSTEM_ERROR' || edition.classificationStatus != 'COMPLETE') && edition.validationStatus != 'IN_PROGRESS' && !isValidationWorkflowInProgress()">
                                         {{ getValidationStatusInfo(edition.validationStatus) }} →&nbsp;
                                         <a href="javascript:void(0)" (click)="runValidation()">Run validation again</a>
                                     </span>
@@ -108,7 +111,10 @@
                         <button mat-flat-button disabled *ngIf="edition.editionStatus == 'MAINTENANCE'">
                             Mainteance mode
                         </button>
-                        <button mat-flat-button disabled *ngIf="edition.editionStatus == 'AUTHORING' && !canCloseEditing() && !isValidationWorkflowInProgress() && edition.validationStatus != 'CONTENT_ERROR' && edition.validationStatus != 'SYSTEM_ERROR'">
+                        <button mat-flat-button disabled *ngIf="edition.editionStatus == 'AUTHORING' && !canCloseEditing() && !isValidationWorkflowInProgress() && edition.validationStatus == 'UNAVAILABLE'">
+                            {{ getCloseEditingBlockReason() }}
+                        </button>
+                        <button mat-flat-button disabled *ngIf="edition.editionStatus == 'AUTHORING' && !canCloseEditing() && !isValidationWorkflowInProgress() && edition.validationStatus != 'CONTENT_ERROR' && edition.validationStatus != 'SYSTEM_ERROR' && edition.validationStatus != 'UNAVAILABLE'">
                             {{ getCloseEditingBlockReason() }}
                         </button>
                     </div>
@@ -130,7 +136,8 @@
                     <div class="sub-stage sub-stage-text">
                         <div><b>Validation</b></div>
                         <div *ngIf="edition.editionStatus == 'PREPARING_RELEASE'">
-                            <div *ngIf="edition.validationStatus != 'CONTENT_WARNING' && edition.validationStatus != 'COMPLETE'">Status error ({{ edition.validationStatus }}), reopen editing and run validation again</div>
+                            <div *ngIf="edition.validationStatus == 'UNAVAILABLE'">{{ getValidationStatusInfo(edition.validationStatus) }}</div>
+                            <div *ngIf="edition.validationStatus != 'UNAVAILABLE' && edition.validationStatus != 'CONTENT_WARNING' && edition.validationStatus != 'COMPLETE'">Status error ({{ edition.validationStatus }}), reopen editing and run validation again</div>
                             <div *ngIf="edition.validationStatus == 'CONTENT_WARNING'" class="warnings">{{ getValidationStatusInfo(edition.validationStatus) }}</div>
                             <div *ngIf="edition.validationStatus == 'COMPLETE'">Validation is up to date and there are no errors or warnings</div>
                         </div>

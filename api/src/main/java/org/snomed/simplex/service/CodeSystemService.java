@@ -288,6 +288,11 @@ public class CodeSystemService {
 			throw new ServiceExceptionWithStatusCode("Content is not classified. Reopen editing and run validation.", HttpStatus.CONFLICT);
 		}
 		CodeSystemValidationStatus validationStatus = codeSystem.getValidationStatus();
+		if (validationStatus == CodeSystemValidationStatus.UNAVAILABLE) {
+			throw new ServiceExceptionWithStatusCode(
+					"The validation service is not currently available. Please wait and try again later.",
+					HttpStatus.CONFLICT);
+		}
 		if (validationStatus == CodeSystemValidationStatus.STALE) {
 			throw new ServiceExceptionWithStatusCode("Validation is stale.", HttpStatus.CONFLICT);
 		}

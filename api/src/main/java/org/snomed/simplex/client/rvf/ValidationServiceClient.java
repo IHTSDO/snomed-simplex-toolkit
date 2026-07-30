@@ -49,6 +49,8 @@ public class ValidationServiceClient {
 
 	private static final String RVF_TS = "RVF_TS";
 	private static final String VALIDATION_RESPONSE_QUEUE = "termserver-release-validation.response";
+	private static final String VALIDATION_SERVICE_UNAVAILABLE_MESSAGE =
+			"The validation service is not currently available. Please wait and try again later.";
 
 	private final RestTemplate restTemplate;
 	private final String queuePrefix;
@@ -113,6 +115,8 @@ public class ValidationServiceClient {
 				// Send to RVF
 				HttpEntity<MultiValueMap<String, Object>> request = buildValidationRequest(codeSystem, branchPath, headTimestamp, tempFile, effectiveTime);
 				return restTemplate.postForLocation("/run-post", request);
+			} catch (RestClientException e) {
+				throw new ServiceExceptionWithStatusCode(VALIDATION_SERVICE_UNAVAILABLE_MESSAGE, HttpStatus.SERVICE_UNAVAILABLE, e);
 			} catch (IOException e) {
 				throw new ServiceException("Failed to build validation request.", e);
 			}

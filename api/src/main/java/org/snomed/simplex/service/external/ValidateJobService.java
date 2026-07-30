@@ -116,7 +116,13 @@ public class ValidateJobService extends ExternalFunctionJobService<Void> {
 	}
 
 	private CodeSystemValidationStatus getStatusFromRVFReport(CodeSystem codeSystem, CodeSystemValidationStatus status) throws ServiceException {
-		ValidationReport validationReport = validationServiceClient.getValidation(codeSystem.getLatestValidationReport());
+		ValidationReport validationReport;
+		try {
+			validationReport = validationServiceClient.getValidation(codeSystem.getLatestValidationReport());
+		} catch (ServiceException e) {
+			logger.warn("Failed to fetch RVF validation report from {}.", codeSystem.getLatestValidationReport(), e);
+			return CodeSystemValidationStatus.UNAVAILABLE;
+		}
 		if (validationReport.status() == ValidationReport.State.FAILED) {
 			return CodeSystemValidationStatus.SYSTEM_ERROR;
 		}

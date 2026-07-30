@@ -85,7 +85,7 @@ export class ValidationResultsComponent implements OnChanges {
 
   public refreshIssues() {
     const validationStatus = this.editionDetailsSignal()?.validationStatus;
-    if (validationStatus === 'SYSTEM_ERROR') {
+    if (validationStatus === 'SYSTEM_ERROR' || validationStatus === 'UNAVAILABLE') {
       this.localIssues.set(null);
       this.loadingValidationResults.set(false);
       return;

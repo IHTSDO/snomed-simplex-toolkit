@@ -162,6 +162,31 @@ class CodeSystemServiceTest {
 	}
 
 	@Test
+	void startReleasePrep_rejectsWhenValidationUnavailable() {
+		CodeSystem codeSystem = releaseReadyCodeSystem();
+		codeSystem.setValidationStatus(CodeSystemValidationStatus.UNAVAILABLE);
+
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> codeSystemService.startReleasePrep(codeSystem));
+
+		assertEquals("The validation service is not currently available. Please wait and try again later.",
+				exception.getMessage());
+	}
+
+	@Test
+	void approveContentForRelease_rejectsWhenValidationUnavailable() {
+		CodeSystem codeSystem = releaseReadyCodeSystem();
+		codeSystem.setEditionStatus(EditionStatus.PREPARING_RELEASE);
+		codeSystem.setValidationStatus(CodeSystemValidationStatus.UNAVAILABLE);
+
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> codeSystemService.approveContentForRelease(codeSystem));
+
+		assertEquals("The validation service is not currently available. Please wait and try again later.",
+				exception.getMessage());
+	}
+
+	@Test
 	void approveContentForRelease_rejectsWhenNotClassified() {
 		CodeSystem codeSystem = releaseReadyCodeSystem();
 		codeSystem.setEditionStatus(EditionStatus.PREPARING_RELEASE);
