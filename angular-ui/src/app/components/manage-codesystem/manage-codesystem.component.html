@@ -6,10 +6,11 @@
 </div>
 <div class="component-row" *ngIf="edition">
     <div class="component-col">
-        <div class="header-container">
-            <h4>Manage Current Editing Cycle:</h4>
+        <div class="page-heading-row">
+            <h3>Manage Current Editing Cycle:</h3>
             <mat-spinner *ngIf="loadingReleaseStatus" [diameter]="17"></mat-spinner>
         </div>
+        <br><br>
         <div class="left-container">
             <div class="maintenance" *ngIf="edition.editionStatus == 'MAINTENANCE'">
                 The edition is in Mainteance Mode.<br>Editing and release preparation will resume once the maintenance jobs are finished.

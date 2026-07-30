@@ -198,3 +198,57 @@ select {
 .cdk-overlay-container {
     z-index: 1030;
 }
+
+// Page shell layout (Edition Info pattern)
+.component-row {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-left: 16px;
+}
+
+.component-col {
+    flex: 1;
+    margin: 0 10px;
+}
+
+.component-row--split {
+    margin-top: 0;
+    gap: 20px;
+    max-height: calc(100vh - 190px);
+    align-items: flex-start;
+}
+
+.component-col-left {
+    flex: 0 0 calc(50% - 10px);
+    max-width: calc(50% - 10px);
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.component-col-right {
+    flex: 0 0 calc(50% - 10px);
+    max-width: calc(50% - 10px);
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding-bottom: 20px;
+}
+
+.page-heading-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.waiting {
+    padding: 2rem;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: center;
+    justify-content: flex-start;
+}

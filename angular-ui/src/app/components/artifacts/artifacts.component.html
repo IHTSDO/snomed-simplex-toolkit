@@ -1,186 +1,178 @@
-<div class="component-row">
-    <div class="component-col-left">
-        <div class="header-container">
-            <h4 data-cy="artifacts-title">Edition artifacts</h4>
+<div *ngIf="!edition">
+    <div class="waiting">
+        Waiting for edition information
+        <mat-spinner [diameter]="20"></mat-spinner>
+    </div>
+</div>
+<div class="component-row" *ngIf="edition">
+    <div class="component-col">
+        <div class="page-heading-row">
+            <h3 data-cy="artifacts-title">Edition artifacts</h3>
             <span class="status-message" *ngIf="editionDetails">(Release cycle status: {{editionDetails.editionStatus}})</span>
         </div>
-        <div *ngIf="!edition">
-            <div class="waiting">
-                Waiting for edition information
-                <mat-spinner [diameter]="20"></mat-spinner>
-            </div>
-        </div>
-        <div *ngIf="edition">
-            <mat-list id="components-list">
-                <div *ngIf="updatingEdition && (loadingTranslations || loadingSubsets || loadingMaps)">
-                    <!-- Repeat this block for as many skeleton items as you want -->
-                    <div class="skeleton-loader">
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text"></div>
-                        <!-- <div class="skeleton-button"></div> -->
+        <br><br>
+        <div class="component-row component-row--split">
+            <div class="component-col-left">
+                <mat-list id="components-list">
+                    <div *ngIf="updatingEdition && (loadingTranslations || loadingSubsets || loadingMaps)">
+                        <div class="skeleton-loader">
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                            <div class="skeleton-text"></div>
+                        </div>
                     </div>
-                </div>
-            
-                <!-- Actual List Items -->
-                <ng-container *ngIf="(!updatingEdition)">
-                    <!-- Repeat your mat-list-item here -->
-                    <mat-list-item *ngIf="showConceptsArtifact" (click)="onClick(conceptsArtifact, 'concepts')" class="hoverable-item" matRipple
-                    [ngClass]="{ 'selected': conceptsArtifact.conceptId === selectedArtifact?.conceptId }">
-                        {{ conceptsArtifact.pt.term }} 
-                        <span class="pill pill-purple">Concepts</span>
-                        <span class="artifact-info">{{conceptsArtifact.count}} records</span>
-                    </mat-list-item>
-                    <mat-list-item *ngFor="let item of translations" (click)="onClick(item, 'translation')" class="hoverable-item" matRipple
-                    [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                        {{ item.pt.term }} 
-                        <span class="pill pill-blue">Translation</span>
-                        <span class="pill pill-green" *ngIf="item.isSnolate">Translation Studio linked</span>
-                        <span class="artifact-info">{{item.activeMemberCount}} records</span>
-                    </mat-list-item>
-                    <mat-list-item *ngFor="let item of maps" (click)="onClick(item, 'map')" class="hoverable-item" matRipple
-                    [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                        {{ item.pt.term }} 
-                        <span class="pill pill-yellow">Map</span>
-                        <span class="artifact-info">{{item.activeMemberCount}} records</span>
-                    </mat-list-item>
-                    <mat-list-item *ngFor="let item of subsets" (click)="onClick(item, 'subset')" class="hoverable-item" matRipple
-                    [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
-                        {{ item.pt.term }}
-                        <span class="pill pill-green">Subset</span>
-                        <span class="artifact-info">{{item.activeMemberCount}} records</span>
-                    </mat-list-item>
-                <!-- <mat-list-item *ngIf="loadingTranslations || loadingSubsets || loadingMaps"><mat-spinner [diameter]="20"></mat-spinner></mat-list-item> -->
-                </ng-container>
-            </mat-list>
-            <button mat-flat-button color="primary" (click)="newArtifactMode = true"
-                [disabled]="loadingTranslations || loadingSubsets || loadingMaps || saving || editionDetails.editionStatus != 'AUTHORING'">
-                New Artifact
-            </button>
-            <p class="edit-blocked-message" *ngIf="editionDetails && editionDetails.editionStatus != 'AUTHORING'">Creation of artifacts is disabled during release preparation</p>
-        </div>
-    </div>
-    <div class="component-col-right">
-        <!-- <h4 *ngIf="!selectedArtifact && !(loadingTranslations || loadingSubsets || loadingMaps) && ((translations.length || subsets.length ||maps.length))" class="home-message">
-            Select an artifact to view details
-        </h4> -->
-        <div *ngIf="!selectedArtifact && !newArtifactMode" class="waiting-panel">
-            <img src="assets/artifact.png">
-        </div>
-        <div *ngIf="!newArtifactMode && selectedArtifact">
-            <div class="title-container">
-                <div class="title-left-column">
-                    <h4>
-                        {{ selectedArtifact?.pt.term }}
-                        <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">
-                            {{ selectedArtifact?.type | titlecase }}
-                        </span>
-                    </h4>
-                </div>
-                <div class="title-right-column">
-                    <a href="javascript:void(0);" (click)="browseToConcept(selectedArtifact)" 
-                    id="open-artifact-in-tab" *ngIf="selectedArtifact?.type != 'concepts'">
-                        Open in Browser <mat-icon>open_in_new</mat-icon>
-                    </a>
-                </div>
-            </div>
-              
-            <br><br>
-            <div *ngIf="selectedArtifact?.type != 'concepts'">
-                <div class="component-row">
-                    <div class="component-col align-right">
-                        <span class="details-field-name">Fully specified name</span>
-                    </div>
-                    <div class="component-col">
-                        <span class="details-field-value">{{ selectedArtifact.fsn.term }}</span>
-                    </div>
-                </div>
-                <div class="component-row">
-                    <div class="component-col align-right">
-                        <span class="details-field-name">{{ selectedArtifact.type | titlecase }} identifier</span>
-                    </div>
-                    <div class="component-col">
-                        <span class="details-field-value">{{ selectedArtifact.conceptId }}</span>
-                    </div>
-                </div>
-                <div class="component-row" *ngIf="selectedArtifact?.type == 'translation'">
-                    <div class="component-col align-right">
-                        <span class="details-field-name">Language Code</span>
-                    </div>
-                    <div class="component-col">
-                        <span class="details-field-value">{{ selectedArtifact.lang }}</span>
-                    </div>
-                </div>
-                <div class="component-row">
-                    <div class="component-col align-right">
-                        <span class="details-field-name">Active member count</span>
-                    </div>
-                    <div class="component-col">
-                        <span class="details-field-value">{{ selectedArtifact.activeMemberCount }}</span>
-                    </div>
-                </div>
-            </div>
 
-            <app-concepts-list #conceptsList *ngIf="selectedArtifact.type === 'concepts'" [edition]="edition"></app-concepts-list>
-            <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition" [editionDetails]="editionDetails" (jobCompleted)="refreshArtifacts()"
-            *ngIf="editionDetails?.editionStatus == 'AUTHORING'">
-            </app-jobs>
-            <p class="edit-blocked-message" *ngIf="editionDetails && editionDetails?.editionStatus != 'AUTHORING'">Content editing is frozen for release preparation.</p>
-
-        </div>
-        <div *ngIf="newArtifactMode">
-            <h4>New Artifact</h4>
-            <br><br>
-            <form [formGroup]="form" (keydown.enter)="$event.preventDefault(); submit()">
-                <mat-form-field *ngFor="let controlName of formKeys">
-                    <mat-label>{{controlName | camelToTitle}}</mat-label>
-
-                    <!-- Input for other controls -->
-                    <input matInput formControlName="{{controlName}}" *ngIf="controlName !== 'type' && controlName !== 'languageCode'">
-                    <button *ngIf="form.controls[controlName]['value'] && controlName !== 'type' && controlName !== 'languageCode'" matSuffix 
-                        mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
-                        [disabled]= "form.get(controlName).disabled">
-                        <mat-icon>close</mat-icon>
-                    </button>
-
-                    <!-- Mat Select for 'type' control -->
-                    <mat-select *ngIf="controlName === 'type'" formControlName="type">
-                        <mat-option *ngIf="!showConceptsArtifact" value="concepts">Concepts</mat-option>
-                        <mat-option *ngFor="let type of artifactTypes" [value]="type">{{type | titlecase}}</mat-option>
-                        <mat-option *ngIf="!showUsEnglishSynonymsArtifact" value="usEnglishSynonyms">US English synonyms</mat-option>
-                        <mat-option *ngIf="!showGbEnglishSynonymsArtifact" value="gbEnglishSynonyms">GB English synonyms</mat-option>
-                    </mat-select>
-
-                    <!-- Language Code Autocomplete -->
-                    <ng-container *ngIf="controlName === 'languageCode'">
-                        <input matInput formControlName="languageCode" 
-                            [matAutocomplete]="languageCodeAuto" 
-                            placeholder="Search by language name or code">
-                        <mat-autocomplete #languageCodeAuto="matAutocomplete" 
-                            [displayWith]="displayLanguageCode"
-                            (optionSelected)="form.get('languageCode')?.setValue($event.option.value.code)">
-                            <mat-option *ngFor="let languageCode of filteredLanguageCodes | async" [value]="languageCode">
-                                {{languageCode.code}} - {{languageCode.name}}
-                            </mat-option>
-                        </mat-autocomplete>
+                    <ng-container *ngIf="(!updatingEdition)">
+                        <mat-list-item *ngIf="showConceptsArtifact" (click)="onClick(conceptsArtifact, 'concepts')" class="hoverable-item" matRipple
+                        [ngClass]="{ 'selected': conceptsArtifact.conceptId === selectedArtifact?.conceptId }">
+                            {{ conceptsArtifact.pt.term }}
+                            <span class="pill pill-purple">Concepts</span>
+                            <span class="artifact-info">{{conceptsArtifact.count}} records</span>
+                        </mat-list-item>
+                        <mat-list-item *ngFor="let item of translations" (click)="onClick(item, 'translation')" class="hoverable-item" matRipple
+                        [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
+                            {{ item.pt.term }}
+                            <span class="pill pill-blue">Translation</span>
+                            <span class="pill pill-green" *ngIf="item.isSnolate">Translation Studio linked</span>
+                            <span class="artifact-info">{{item.activeMemberCount}} records</span>
+                        </mat-list-item>
+                        <mat-list-item *ngFor="let item of maps" (click)="onClick(item, 'map')" class="hoverable-item" matRipple
+                        [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
+                            {{ item.pt.term }}
+                            <span class="pill pill-yellow">Map</span>
+                            <span class="artifact-info">{{item.activeMemberCount}} records</span>
+                        </mat-list-item>
+                        <mat-list-item *ngFor="let item of subsets" (click)="onClick(item, 'subset')" class="hoverable-item" matRipple
+                        [ngClass]="{ 'selected': item.conceptId === selectedArtifact?.conceptId }">
+                            {{ item.pt.term }}
+                            <span class="pill pill-green">Subset</span>
+                            <span class="artifact-info">{{item.activeMemberCount}} records</span>
+                        </mat-list-item>
                     </ng-container>
-                    <button *ngIf="controlName === 'languageCode' && form.controls[controlName]['value']" matSuffix 
-                        mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
-                        [disabled]="form.get(controlName).disabled">
-                        <mat-icon>close</mat-icon>
-                    </button>
-        
+                </mat-list>
+                <button mat-flat-button color="primary" (click)="newArtifactMode = true"
+                    [disabled]="loadingTranslations || loadingSubsets || loadingMaps || saving || editionDetails.editionStatus != 'AUTHORING'">
+                    New Artifact
+                </button>
+                <p class="edit-blocked-message" *ngIf="editionDetails && editionDetails.editionStatus != 'AUTHORING'">Creation of artifacts is disabled during release preparation</p>
+            </div>
+            <div class="component-col-right">
+                <div *ngIf="!selectedArtifact && !newArtifactMode" class="waiting-panel">
+                    <img src="assets/artifact.png">
+                </div>
+                <div *ngIf="!newArtifactMode && selectedArtifact">
+                    <div class="title-container">
+                        <div class="title-left-column">
+                            <h4>
+                                {{ selectedArtifact?.pt.term }}
+                                <span class="pill" [ngClass]="getArtifactClass(selectedArtifact?.type)">
+                                    {{ selectedArtifact?.type | titlecase }}
+                                </span>
+                            </h4>
+                        </div>
+                        <div class="title-right-column">
+                            <a href="javascript:void(0);" (click)="browseToConcept(selectedArtifact)"
+                            id="open-artifact-in-tab" *ngIf="selectedArtifact?.type != 'concepts'">
+                                Open in Browser <mat-icon>open_in_new</mat-icon>
+                            </a>
+                        </div>
+                    </div>
 
-                    <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
-                </mat-form-field>
-            </form>
-            <div>
-                <button mat-flat-button (click)="newArtifactMode = false" *ngIf="!saving">Cancel</button>
-                <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="form.invalid">Create</button>
-                <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating artifact...</p>
+                    <br><br>
+                    <div *ngIf="selectedArtifact?.type != 'concepts'">
+                        <div class="component-row">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">Fully specified name</span>
+                            </div>
+                            <div class="component-col">
+                                <span class="details-field-value">{{ selectedArtifact.fsn.term }}</span>
+                            </div>
+                        </div>
+                        <div class="component-row">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">{{ selectedArtifact.type | titlecase }} identifier</span>
+                            </div>
+                            <div class="component-col">
+                                <span class="details-field-value">{{ selectedArtifact.conceptId }}</span>
+                            </div>
+                        </div>
+                        <div class="component-row" *ngIf="selectedArtifact?.type == 'translation'">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">Language Code</span>
+                            </div>
+                            <div class="component-col">
+                                <span class="details-field-value">{{ selectedArtifact.lang }}</span>
+                            </div>
+                        </div>
+                        <div class="component-row">
+                            <div class="component-col align-right">
+                                <span class="details-field-name">Active member count</span>
+                            </div>
+                            <div class="component-col">
+                                <span class="details-field-value">{{ selectedArtifact.activeMemberCount }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <app-concepts-list #conceptsList *ngIf="selectedArtifact.type === 'concepts'" [edition]="edition"></app-concepts-list>
+                    <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition" [editionDetails]="editionDetails" (jobCompleted)="refreshArtifacts()"
+                    *ngIf="editionDetails?.editionStatus == 'AUTHORING'">
+                    </app-jobs>
+                    <p class="edit-blocked-message" *ngIf="editionDetails && editionDetails?.editionStatus != 'AUTHORING'">Content editing is frozen for release preparation.</p>
+
+                </div>
+                <div *ngIf="newArtifactMode">
+                    <h4>New Artifact</h4>
+                    <br><br>
+                    <form [formGroup]="form" (keydown.enter)="$event.preventDefault(); submit()">
+                        <mat-form-field *ngFor="let controlName of formKeys">
+                            <mat-label>{{controlName | camelToTitle}}</mat-label>
+
+                            <input matInput formControlName="{{controlName}}" *ngIf="controlName !== 'type' && controlName !== 'languageCode'">
+                            <button *ngIf="form.controls[controlName]['value'] && controlName !== 'type' && controlName !== 'languageCode'" matSuffix
+                                mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
+                                [disabled]= "form.get(controlName).disabled">
+                                <mat-icon>close</mat-icon>
+                            </button>
+
+                            <mat-select *ngIf="controlName === 'type'" formControlName="type">
+                                <mat-option *ngIf="!showConceptsArtifact" value="concepts">Concepts</mat-option>
+                                <mat-option *ngFor="let type of artifactTypes" [value]="type">{{type | titlecase}}</mat-option>
+                                <mat-option *ngIf="!showUsEnglishSynonymsArtifact" value="usEnglishSynonyms">US English synonyms</mat-option>
+                                <mat-option *ngIf="!showGbEnglishSynonymsArtifact" value="gbEnglishSynonyms">GB English synonyms</mat-option>
+                            </mat-select>
+
+                            <ng-container *ngIf="controlName === 'languageCode'">
+                                <input matInput formControlName="languageCode"
+                                    [matAutocomplete]="languageCodeAuto"
+                                    placeholder="Search by language name or code">
+                                <mat-autocomplete #languageCodeAuto="matAutocomplete"
+                                    [displayWith]="displayLanguageCode"
+                                    (optionSelected)="form.get('languageCode')?.setValue($event.option.value.code)">
+                                    <mat-option *ngFor="let languageCode of filteredLanguageCodes | async" [value]="languageCode">
+                                        {{languageCode.code}} - {{languageCode.name}}
+                                    </mat-option>
+                                </mat-autocomplete>
+                            </ng-container>
+                            <button *ngIf="controlName === 'languageCode' && form.controls[controlName]['value']" matSuffix
+                                mat-icon-button aria-label="Clear" (click)="form.controls[controlName].setValue('')"
+                                [disabled]="form.get(controlName).disabled">
+                                <mat-icon>close</mat-icon>
+                            </button>
+
+
+                            <mat-error *ngIf="form.controls[controlName]['hasError']('required')">{{controlName}} is required</mat-error>
+                        </mat-form-field>
+                    </form>
+                    <div>
+                        <button mat-flat-button (click)="newArtifactMode = false" *ngIf="!saving">Cancel</button>
+                        <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="form.invalid">Create</button>
+                        <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating artifact...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

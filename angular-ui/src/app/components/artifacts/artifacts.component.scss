@@ -1,35 +1,6 @@
 .hoverable-item:hover {
-  background-color: rgba(0, 0, 0, 0.1); /* Light gray background on hover */
+  background-color: rgba(0, 0, 0, 0.1);
   cursor: pointer;
-}
-
-.component-row {
-display: flex;
-flex-direction: row;
-align-items: flex-start;
-max-height: calc(100vh - 190px);
-gap: 20px;
-}
-
-.component-col {
-flex: 1;
-margin: 4px 10px;
-}
-
-.component-col-left {
-  flex: 0 0 calc(50% - 10px);
-  max-width: calc(50% - 10px);
-  min-width: 0;
-  box-sizing: border-box;
-  margin: 0;
-}
-.component-col-right {
-  flex: 0 0 calc(50% - 10px);
-  max-width: calc(50% - 10px);
-  min-width: 0;
-  box-sizing: border-box;
-  margin: 0;
-  padding-bottom: 20px;
 }
 
 .selected {
@@ -133,7 +104,7 @@ mat-form-field {
 }
 
 h4 {
-  margin-top: 2rem;
+  margin-top: 0;
 }
 
 mat-list-item:not(:last-child) {
@@ -207,28 +178,6 @@ mat-list-item:not(:last-child) {
   background-color: #e0e0e0;
   animation: pulse 1.5s infinite ease-in-out;
   margin: 10px 0;
-}
-
-.waiting {
-  padding: 2rem;
-  display: flex;
-  flex-direction: row;
-  gap: 1rem;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.header-container {
-  display: flex;
-  align-items: center; /* Aligns items vertically in the center */
-  justify-content: left; /* Centers the content horizontally */
-  gap: 8px; /* Adjusts the space between the text and spinner */
-  margin-top: 2rem;
-  margin-left: 4rem;
-}
-
-.header-container h4 {
-  margin: 0; /* Removes default margin to allow for better centering */
 }
 
 .status-message {

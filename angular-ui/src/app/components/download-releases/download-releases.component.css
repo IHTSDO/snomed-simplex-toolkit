@@ -1,12 +1,3 @@
-h4 {
-    margin-top: 0.5rem;
-    margin-left: 4rem;
-    margin-bottom: 2rem;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-}
-
 .refresh-icon {
     color: gray;
 }
@@ -38,7 +29,7 @@ h4 {
 }
 
 :host ::ng-deep .mat-paginator {
-  font-size: 12px; /* Adjust the font size as needed */
+  font-size: 12px;
 }
 
 :host ::ng-deep .mat-paginator .mat-paginator-range-label,
@@ -48,29 +39,11 @@ h4 {
   font-size: 12px;
 }
 
-.component-row {
-  margin-top: 2rem;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.component-col {
-  flex: 1;
-  margin: 0 10px;
-}
-
 .help-p {
   margin-bottom: 3rem;
   color: rgb(73, 71, 71);
 }
 
-.waiting {
-  padding: 2rem;
-  display: flex;
-  flex-direction: row;
-  gap: 1rem;
-  align-items: center;
-  justify-content: flex-start;
+h4 {
+  margin-top: 0.5rem;
 }
