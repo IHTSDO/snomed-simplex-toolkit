@@ -118,7 +118,9 @@ export class AutocompleteBindingComponent implements OnInit, OnChanges, ControlV
                       const items = r.items ?? [];
                       return items.map((item: any) => ({
                         code: item.conceptId,
-                        display: item.fsn?.term || `Concept ${item.conceptId}`
+                        display: item.fsn?.term || item.pt?.term || `Concept ${item.conceptId}`,
+                        pt: item.pt?.term,
+                        fsn: item.fsn?.term
                       }));
                     }),
                     finalize(() => (this.loading = false))              // turn spinner off
@@ -151,7 +153,12 @@ export class AutocompleteBindingComponent implements OnInit, OnChanges, ControlV
   change(event: any) {
     const item = event?.option?.value;
     if (item) {
-      this.optionSelected({ code: item.code, display: item.display });
+      this.optionSelected({
+        code: item.code,
+        display: item.display,
+        pt: item.pt,
+        fsn: item.fsn
+      });
       this.formControl.setValue(item.display); // Set the form control's value to the selected option's display
     }
   }

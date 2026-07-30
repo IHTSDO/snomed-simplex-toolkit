@@ -1382,6 +1382,21 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             // Reset cache flags to allow fresh data loading
             this.refsetsLoaded = false;
             this.derivativesLoaded = false;
+            this.maybePreselectTranslation();
+        }
+    }
+
+    private maybePreselectTranslation(): void {
+        if (this.mode !== 'create' || this.translations.length !== 1) {
+            return;
+        }
+        if (this.translations.some((translation: any) => translation.isSnolate !== true)) {
+            return;
+        }
+        const translation = this.translations[0];
+        const translationId = translation.conceptId || translation.id;
+        if (translationId) {
+            this.form.patchValue({ translation: translationId });
         }
     }
 
@@ -1402,6 +1417,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 this.loadingTranslations = false;
                 // Re-enable the translation form control after loading
                 this.form.get('translation')?.enable();
+                this.maybePreselectTranslation();
 
                 // Load translation sets after translations are loaded
                 this.getTranslationSets();
@@ -1467,7 +1483,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         if (selectedRefset) {
             // Format ECL as: ^ refsetCode |refset display|
             const eclValue = `^ ${selectedRefset.code} |${selectedRefset.display}|`;
-            this.form.patchValue({ ecl: eclValue });
+            const refsetTerm = (selectedRefset.display || '').trim();
+            this.form.patchValue({
+                ecl: eclValue,
+                ...(refsetTerm ? { name: `Members of ${refsetTerm}` } : {})
+            });
         }
     }
 
@@ -1480,7 +1500,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         if (selectedDerivative) {
             // Format ECL as: ^ derivativeCode |derivative display|
             const eclValue = `^ ${selectedDerivative.code} |${selectedDerivative.display}|`;
-            this.form.patchValue({ ecl: eclValue });
+            const derivativeTerm = (selectedDerivative.display || '').trim();
+            this.form.patchValue({
+                ecl: eclValue,
+                ...(derivativeTerm ? {
+                    name: `Members of ${derivativeTerm}`,
+                    description: `Members of the set '${derivativeTerm}', published as a derivative product by SNOMED International.`
+                } : {})
+            });
         }
     }
 
@@ -1490,8 +1517,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
         if (subtype && subtype.code) {
             // Format ECL as: << subtypeCode |subtype display|
-            const eclValue = `<< ${subtype.code} |${subtype.display}|`;
-            this.form.patchValue({ ecl: eclValue });
+            const eclTerm = (subtype.fsn || subtype.display || '').trim();
+            const eclValue = `<< ${subtype.code} |${eclTerm}|`;
+            const conceptTerm = (subtype.pt || '').trim();
+            this.form.patchValue({
+                ecl: eclValue,
+                ...(conceptTerm ? { name: conceptTerm } : {}),
+                ...(eclTerm ? { description: `All types of ${eclTerm}` } : {})
+            });
         } else {
             // Clear ECL if no subtype selected
             this.form.patchValue({ ecl: '' });

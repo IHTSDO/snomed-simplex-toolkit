@@ -1,124 +1,127 @@
-<div class="main-container" *ngIf="!selectedEdition">
+<div *ngIf="!selectedEdition">
     <div class="waiting">
         Waiting for edition information
         <mat-spinner [diameter]="20"></mat-spinner>
     </div>
 </div>
-<div class="main-container translation-studio-root" *ngIf="selectedEdition">
+<div class="component-row" *ngIf="selectedEdition">
+    <div class="component-col translation-studio-root">
 
     @if (mode === 'create') {
         <div class="translation-studio-panel">
             <h4>New Translation Set</h4>
             <br><br>
             <form [formGroup]="form" (keydown.enter)="$event.preventDefault(); submit()">
-                <!-- Name Field -->
-                <mat-form-field>
-                    <mat-label>Name</mat-label>
-                    <input matInput formControlName="name">
-                    <button *ngIf="form.get('name')?.value" matSuffix
-                        mat-icon-button aria-label="Clear" (click)="form.get('name')?.setValue('')">
-                        <mat-icon>close</mat-icon>
-                    </button>
-                    <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
-                </mat-form-field>
+                <div class="translation-set-form-section">
+                    <div class="translation-set-form-section__header">
+                        <h4>Translation</h4>
+                        <mat-icon class="info-icon"
+                                  matTooltip="Select which translation you want to work on."
+                                  aria-label="Select which translation you want to work on."
+                                  tabindex="0">info</mat-icon>
+                    </div>
+                    <mat-form-field>
+                        <mat-select formControlName="translation">
+                            <mat-option *ngFor="let translation of translations"
+                                       [value]="translation.conceptId || translation.id"
+                                       [disabled]="translation.isSnolate !== true">
+                                {{ translation.pt?.term }}{{ translation.isSnolate !== true ? ' (not yet linked to Translation Studio)' : '' }}
+                            </mat-option>
+                        </mat-select>
+                        <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>
+                        <mat-error *ngIf="form.get('translation')?.hasError('required')">Translation is required</mat-error>
+                    </mat-form-field>
+                </div>
 
-                <!-- Description Field -->
-                <mat-form-field>
-                    <mat-label>Description (optional)</mat-label>
-                    <textarea matInput formControlName="description" rows="3"></textarea>
-                </mat-form-field>
-
-                <!-- Translation Selection -->
-                <mat-form-field>
-                    <mat-label>Translation</mat-label>
-                    <mat-select formControlName="translation">
-                        <mat-option *ngFor="let translation of translations"
-                                   [value]="translation.conceptId || translation.id"
-                                   [disabled]="translation.isSnolate !== true">
-                            {{ translation.pt?.term }}{{ translation.isSnolate !== true ? ' (not yet linked to Translation Studio)' : '' }}
-                        </mat-option>
-                    </mat-select>
-                    <mat-spinner *ngIf="loadingTranslations" matSuffix [diameter]="20"></mat-spinner>
-                    <mat-error *ngIf="form.get('translation')?.hasError('required')">Translation is required</mat-error>
-                </mat-form-field>
-
-                <!-- Label Field -->
-                <mat-form-field>
-                    <mat-label>Label (computed from name)</mat-label>
-                    <input matInput formControlName="label" readonly>
-                    <mat-icon matSuffix>auto_fix_high</mat-icon>
-                    <mat-error *ngIf="form.get('label')?.hasError('required')">Label is required</mat-error>
-                </mat-form-field>
-
-                <div class="ecl-input-section">
-                    <h4>Selection Method</h4>
+                <div class="translation-set-form-section ecl-input-section">
+                    <h4>Select concepts to translate</h4>
                     <mat-radio-group [(ngModel)]="eclInputMethod" (change)="onEclInputMethodChange()" [ngModelOptions]="{standalone: true}">
                         <mat-radio-button value="subtype"
                                          [disabled]="!selectedEdition?.branchPath"
                                          [matTooltip]="!selectedEdition?.branchPath ? 'Branch path not available. Please ensure an edition is selected.' : ''">
-                            Select a concept and all descendants
+                            Select a concept and all subtypes (hierarchy descendants)
                         </mat-radio-button>
-                        <mat-radio-button value="refset">Select from a Refset in this Extension</mat-radio-button>
-                        <mat-radio-button value="derivative">Select from a SNOMED CT Derivative</mat-radio-button>
-                        <mat-radio-button value="manual">Manual ECL Input</mat-radio-button>
+                        <mat-radio-button value="refset">Select concepts from a Subset in this extension</mat-radio-button>
+                        <mat-radio-button value="derivative">Select concepts from a SNOMED CT Derivative</mat-radio-button>
+                        <mat-radio-button value="manual">Select concepts using ECL</mat-radio-button>
                     </mat-radio-group>
+
+                    <div *ngIf="eclInputMethod === 'manual'" class="selection-method-input">
+                        <h4>ECL</h4>
+                        <mat-form-field>
+                            <input matInput formControlName="ecl">
+                            <button *ngIf="form.get('ecl')?.value" matSuffix
+                                mat-icon-button aria-label="Clear" (click)="form.get('ecl')?.setValue('')">
+                                <mat-icon>close</mat-icon>
+                            </button>
+                            <mat-error *ngIf="form.get('ecl')?.hasError('required')">ECL is required</mat-error>
+                        </mat-form-field>
+                    </div>
+
+                    <div *ngIf="eclInputMethod === 'refset'" class="selection-method-input">
+                        <h4>Select Refset</h4>
+                        <mat-form-field>
+                            <mat-select (selectionChange)="onRefsetSelectionChange($event.value)" [value]="selectedRefsetCode" [disabled]="loadingRefsets">
+                                <mat-option *ngFor="let refset of refsets" [value]="refset.code">
+                                    {{ refset.display }} ({{ refset.code }})
+                                </mat-option>
+                                <mat-option *ngIf="!loadingRefsets && refsets.length === 0" disabled>
+                                    No refsets available
+                                </mat-option>
+                            </mat-select>
+                            <mat-spinner *ngIf="loadingRefsets" matSuffix [diameter]="20"></mat-spinner>
+                            <mat-error *ngIf="form.get('ecl')?.hasError('required')">Refset selection is required</mat-error>
+                        </mat-form-field>
+                    </div>
+
+                    <div *ngIf="eclInputMethod === 'derivative'" class="selection-method-input">
+                        <h4>Select Derivative</h4>
+                        <mat-form-field>
+                            <mat-select (selectionChange)="onDerivativeSelectionChange($event.value)" [value]="selectedDerivativeCode" [disabled]="loadingDerivatives">
+                                <mat-option *ngFor="let derivative of derivatives" [value]="derivative.code">
+                                    {{ derivative.display }} ({{ derivative.code }}){{ derivative.memberCount ? ' - ' + derivative.memberCount + ' members' : '' }}
+                                </mat-option>
+                                <mat-option *ngIf="!loadingDerivatives && derivatives.length === 0" disabled>
+                                    No derivatives available
+                                </mat-option>
+                            </mat-select>
+                            <mat-spinner *ngIf="loadingDerivatives" matSuffix [diameter]="20"></mat-spinner>
+                            <mat-error *ngIf="form.get('ecl')?.hasError('required')">Derivative selection is required</mat-error>
+                        </mat-form-field>
+                    </div>
+
+                    <div *ngIf="eclInputMethod === 'subtype'" class="selection-method-input">
+                        <h4>Select Concept and All Descendants</h4>
+                        <div *ngIf="!selectedEdition?.branchPath" class="error-message">
+                            <mat-icon>error</mat-icon>
+                            <span>Branch path not available. Please ensure an edition is selected.</span>
+                        </div>
+                        <app-autocomplete-binding
+                            *ngIf="selectedEdition?.branchPath"
+                            [binding]="{ecl: '<< 138875005', branchPath: selectedEdition.branchPath}"
+                            [term]="selectedSubtype ? selectedSubtype.code + ' |' + selectedSubtype.display + '|' : ''"
+                            (selectionChange)="onSubtypeSelectionChange($event)">
+                        </app-autocomplete-binding>
+                    </div>
                 </div>
 
-                <!-- Manual ECL Field -->
-                <mat-form-field *ngIf="eclInputMethod === 'manual'">
-                    <mat-label>ECL</mat-label>
-                    <input matInput formControlName="ecl">
-                    <button *ngIf="form.get('ecl')?.value" matSuffix
-                        mat-icon-button aria-label="Clear" (click)="form.get('ecl')?.setValue('')">
-                        <mat-icon>close</mat-icon>
-                    </button>
-                    <mat-error *ngIf="form.get('ecl')?.hasError('required')">ECL is required</mat-error>
+                <div class="translation-set-form-section">
+                    <h4>Name</h4>
+                    <mat-form-field>
+                        <input matInput formControlName="name">
+                        <button *ngIf="form.get('name')?.value" matSuffix
+                            mat-icon-button aria-label="Clear" (click)="form.get('name')?.setValue('')">
+                            <mat-icon>close</mat-icon>
+                        </button>
+                        <mat-error *ngIf="form.get('name')?.hasError('required')">Name is required</mat-error>
+                    </mat-form-field>
+                </div>
 
-                </mat-form-field>
-
-                <!-- Refset Selection -->
-                <mat-form-field *ngIf="eclInputMethod === 'refset'">
-                    <mat-label>Select Refset</mat-label>
-                    <mat-select (selectionChange)="onRefsetSelectionChange($event.value)" [value]="selectedRefsetCode" [disabled]="loadingRefsets">
-                        <mat-option *ngFor="let refset of refsets" [value]="refset.code">
-                            {{ refset.display }} ({{ refset.code }})
-                        </mat-option>
-                        <mat-option *ngIf="!loadingRefsets && refsets.length === 0" disabled>
-                            No refsets available
-                        </mat-option>
-                    </mat-select>
-                    <mat-spinner *ngIf="loadingRefsets" matSuffix [diameter]="20"></mat-spinner>
-                    <mat-error *ngIf="form.get('ecl')?.hasError('required')">Refset selection is required</mat-error>
-                </mat-form-field>
-
-                <!-- Derivative Selection -->
-                <mat-form-field *ngIf="eclInputMethod === 'derivative'">
-                    <mat-label>Select Derivative</mat-label>
-                    <mat-select (selectionChange)="onDerivativeSelectionChange($event.value)" [value]="selectedDerivativeCode" [disabled]="loadingDerivatives">
-                        <mat-option *ngFor="let derivative of derivatives" [value]="derivative.code">
-                            {{ derivative.display }} ({{ derivative.code }}){{ derivative.memberCount ? ' - ' + derivative.memberCount + ' members' : '' }}
-                        </mat-option>
-                        <mat-option *ngIf="!loadingDerivatives && derivatives.length === 0" disabled>
-                            No derivatives available
-                        </mat-option>
-                    </mat-select>
-                    <mat-spinner *ngIf="loadingDerivatives" matSuffix [diameter]="20"></mat-spinner>
-                    <mat-error *ngIf="form.get('ecl')?.hasError('required')">Derivative selection is required</mat-error>
-                </mat-form-field>
-
-                <!-- Subtype Selection -->
-                <div *ngIf="eclInputMethod === 'subtype'" class="subtype-selection">
-                    <mat-label>Select Concept and All Descendants</mat-label>
-                    <div *ngIf="!selectedEdition?.branchPath" class="error-message">
-                        <mat-icon>error</mat-icon>
-                        <span>Branch path not available. Please ensure an edition is selected.</span>
-                    </div>
-                    <app-autocomplete-binding
-                        *ngIf="selectedEdition?.branchPath"
-                        [binding]="{ecl: '<< 138875005', branchPath: selectedEdition.branchPath}"
-                        [term]="selectedSubtype ? selectedSubtype.code + ' |' + selectedSubtype.display + '|' : ''"
-                        (selectionChange)="onSubtypeSelectionChange($event)">
-                    </app-autocomplete-binding>
+                <div class="translation-set-form-section">
+                    <h4>Description (optional)</h4>
+                    <mat-form-field>
+                        <textarea matInput formControlName="description" rows="3"></textarea>
+                    </mat-form-field>
                 </div>
             </form>
 
@@ -179,6 +182,13 @@
                                 <p *ngIf="!isTranslationSetEditable(selectedLabelSet.status)" class="set-detail-status-note">
                                     Set status: <strong>{{ translationSetLifecycleStatusLabel(selectedLabelSet.status) }}</strong>
                                 </p>
+                                <div *ngIf="isTranslationSetInProgress(selectedLabelSet.status) && selectedLabelSet.percentageProcessed !== undefined"
+                                     class="set-creation-progress-block set-detail-creation-progress">
+                                    <mat-progress-bar mode="determinate"
+                                                     [value]="selectedLabelSet.percentageProcessed"
+                                                     class="set-creation-progress-bar"></mat-progress-bar>
+                                    <span class="set-creation-progress-label">{{ translationSetLifecycleStatusLabel(selectedLabelSet.status) }}</span>
+                                </div>
                             </div>
                             <div class="set-detail-header__actions">
                                 <button mat-stroked-button [matMenuTriggerFor]="detailActionsMenu" [disabled]="isTranslationSetBusy(selectedLabelSet.status)">
@@ -649,6 +659,7 @@
             </div>
         </div>
     }
+    </div>
 </div>
 
 <mat-menu #rowActionsMenu="matMenu">
