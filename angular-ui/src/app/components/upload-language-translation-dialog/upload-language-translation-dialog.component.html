@@ -1,12 +1,18 @@
-<h2 mat-dialog-title>File import</h2>
+<h2 mat-dialog-title>Import CSV</h2>
 <mat-dialog-content>
     <div class="dialog-content">
-        <p class="set-hint">
-            Import concepts into <strong>{{ data.setName }}</strong> from CSV.
+        <p class="language-hint">
+            Import translations into an existing language or dialect. Only concepts already in Translation Studio will be updated.
         </p>
-        <p class="language-hint" *ngIf="data.languageDialect">
-            Language/dialect: <strong>{{ data.languageDialect }}</strong>
-        </p>
+
+        <mat-form-field appearance="outline" class="mapping-field">
+            <mat-label>Language/Dialect</mat-label>
+            <mat-select [(ngModel)]="selectedRefsetId" [disabled]="loading || data.languages.length === 0">
+                <mat-option *ngFor="let language of data.languages" [value]="language.refsetId">
+                    {{ language.languageDialect }}
+                </mat-option>
+            </mat-select>
+        </mat-form-field>
 
         <input #fileInput type="file" accept=".csv,text/csv" hidden (change)="onFileSelected($event)">
 
@@ -47,14 +53,6 @@
                 {{ option.label }}
             </mat-radio-button>
         </mat-radio-group>
-
-        <div class="outside-set-option">
-            <mat-checkbox
-                [(ngModel)]="skipRowsOutsideSet"
-                [disabled]="loading">
-                Skip rows outside this set
-            </mat-checkbox>
-        </div>
     </div>
 </mat-dialog-content>
 

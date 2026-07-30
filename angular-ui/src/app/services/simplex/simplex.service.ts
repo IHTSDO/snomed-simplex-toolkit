@@ -299,6 +299,28 @@ export class SimplexService {
     file: File,
     conceptColumn: string,
     termColumns: string[],
+    status: string,
+    outsideSetBehavior: 'SKIP' | 'UPDATE' = 'SKIP'
+  ): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    formData.append('conceptColumn', conceptColumn);
+    formData.append('termColumns', termColumns.join(','));
+    formData.append('status', status);
+    formData.append('outsideSetBehavior', outsideSetBehavior);
+    const apiUrl = `api/${edition}/translations/${refsetId}/snolate-set/${label}/csv`;
+    return this.http.put(apiUrl, formData).pipe(
+      tap(() => this.clearTranslationsCache(edition)),
+      catchError(this.handleError.bind(this))
+    );
+  }
+
+  public uploadLanguageTranslationCsv(
+    edition: string,
+    refsetId: string,
+    file: File,
+    conceptColumn: string,
+    termColumns: string[],
     status: string
   ): Observable<any> {
     const formData = new FormData();
@@ -306,7 +328,7 @@ export class SimplexService {
     formData.append('conceptColumn', conceptColumn);
     formData.append('termColumns', termColumns.join(','));
     formData.append('status', status);
-    const apiUrl = `api/${edition}/translations/${refsetId}/snolate-set/${label}/csv`;
+    const apiUrl = `api/${edition}/translations/${refsetId}/snolate-csv`;
     return this.http.put(apiUrl, formData).pipe(
       tap(() => this.clearTranslationsCache(edition)),
       catchError(this.handleError.bind(this))
@@ -344,6 +366,14 @@ export class SimplexService {
     } else {
       return this.http.get(`api/${edition}/jobs?refsetId=${filter}`).pipe(catchError(this.handleError.bind(this)));
     }
+  }
+
+  public getTranslationStudioImportJobs(edition: string, refsetId?: string): Observable<any> {
+    let params = new HttpParams().set('jobType', 'TRANSLATION_STUDIO');
+    if (refsetId) {
+      params = params.set('refsetId', refsetId);
+    }
+    return this.http.get(`api/${edition}/jobs`, { params }).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getActivities(edition: string, offset?: number, limit?: number, componentId?: string): Observable<any> {
@@ -525,6 +555,10 @@ export class SimplexService {
 
   public getAllTranslationSets(edition: string): Observable<any> {
     return this.http.get(`api/${edition}/translations/snolate-set`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getTranslationSetStatuses(edition: string): Observable<any> {
+    return this.http.get(`api/${edition}/translations/snolate-set/status`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public deleteTranslationSet(edition: string, refsetId: string, label: string): Observable<any> {

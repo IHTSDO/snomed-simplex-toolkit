@@ -3,6 +3,7 @@ package org.snomed.simplex.snolate.service;
 import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationUnitPage;
@@ -206,7 +207,11 @@ public class SnolateTranslationService {
 		if (tuOpt.isEmpty() || !tuOpt.get().getMemberOf().contains(setCode)) {
 			throw new ServiceExceptionWithStatusCode("Translation unit not found in this set.", HttpStatus.NOT_FOUND);
 		}
-		TranslationUnit unit = tuOpt.get();
+		applyTermsAndStatusToUnit(tuOpt.get(), rawTerms, status);
+	}
+
+	private void applyTermsAndStatusToUnit(TranslationUnit unit, List<String> rawTerms, TranslationStatus status)
+			throws ServiceExceptionWithStatusCode {
 		List<String> terms = normalizeTranslationTerms(rawTerms);
 		if (status == TranslationStatus.COMPLETE && unit.getStatus() != TranslationStatus.COMPLETE) {
 			throw new ServiceExceptionWithStatusCode("COMPLETE is set automatically when synced with Snowstorm.", HttpStatus.BAD_REQUEST);
@@ -270,6 +275,12 @@ public class SnolateTranslationService {
 
 	public ChangeSummary importTranslationSetCsv(SnolateTranslationSet translationSet, InputStream inputStream,
 			String conceptColumn, List<String> termColumns, TranslationStatus status) throws ServiceException {
+		return importTranslationSetCsv(translationSet, inputStream, conceptColumn, termColumns, status, OutsideSetBehavior.SKIP);
+	}
+
+	public ChangeSummary importTranslationSetCsv(SnolateTranslationSet translationSet, InputStream inputStream,
+			String conceptColumn, List<String> termColumns, TranslationStatus status, OutsideSetBehavior outsideSetBehavior)
+			throws ServiceException {
 		validateImportParameters(status, conceptColumn, termColumns);
 
 		String setCode = translationSet.getCompositeSetCode();
@@ -278,16 +289,53 @@ public class SnolateTranslationService {
 
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
 			ImportColumnIndices columns = readImportColumnIndices(reader, conceptColumn, termColumns);
-			int skipped = importTranslationSetRows(reader, translationSet, setCode, lang, columns, status, changeSummary);
-			if (skipped > 0) {
-				logger.info("Translation set CSV import skipped {} row(s) with empty terms or unknown concepts.", skipped);
-			}
+			importTranslationSetRows(reader, setCode, lang, columns, status, outsideSetBehavior, changeSummary);
+			logImportSkips("Translation set CSV import", changeSummary);
 		} catch (IOException e) {
 			throw new ServiceException("Failed to read translation set CSV.", e);
 		} catch (ServiceExceptionWithStatusCode e) {
 			throw e;
 		}
 		return changeSummary;
+	}
+
+	public ChangeSummary importTranslationLanguageCsv(CodeSystem codeSystem, String refsetId, String languageCode,
+			InputStream inputStream, String conceptColumn, List<String> termColumns, TranslationStatus status)
+			throws ServiceException {
+		validateImportParameters(status, conceptColumn, termColumns);
+		validateSnolateLinkedLanguage(codeSystem, refsetId);
+
+		String compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
+		ChangeSummary changeSummary = new ChangeSummary();
+
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+			ImportColumnIndices columns = readImportColumnIndices(reader, conceptColumn, termColumns);
+			importTranslationLanguageRows(reader, compositeLanguageCode, columns, status, changeSummary);
+			logImportSkips("Translation language CSV import", changeSummary);
+		} catch (IOException e) {
+			throw new ServiceException("Failed to read translation language CSV.", e);
+		} catch (ServiceExceptionWithStatusCode e) {
+			throw e;
+		}
+		return changeSummary;
+	}
+
+	private static void validateSnolateLinkedLanguage(CodeSystem codeSystem, String refsetId)
+			throws ServiceExceptionWithStatusCode {
+		Map<String, String> snolateLanguages = codeSystem.getTranslationSnolateLanguages();
+		if (snolateLanguages == null || !snolateLanguages.containsKey(refsetId)) {
+			throw new ServiceExceptionWithStatusCode(
+					"Language is not linked to Translation Studio.", HttpStatus.BAD_REQUEST);
+		}
+	}
+
+	private static void logImportSkips(String label, ChangeSummary changeSummary) {
+		int skippedNotFound = changeSummary.getSkippedNotFound();
+		int skippedOutsideSet = changeSummary.getSkippedOutsideSet();
+		if (skippedNotFound > 0 || skippedOutsideSet > 0) {
+			logger.info("{} skipped {} row(s) not found and {} row(s) outside set.",
+					label, skippedNotFound, skippedOutsideSet);
+		}
 	}
 
 	private static void validateImportParameters(TranslationStatus status, String conceptColumn, List<String> termColumns)
@@ -338,38 +386,73 @@ public class SnolateTranslationService {
 		return termColumnIndices;
 	}
 
-	private int importTranslationSetRows(BufferedReader reader, SnolateTranslationSet translationSet, String setCode,
-			String lang, ImportColumnIndices columns, TranslationStatus status, ChangeSummary changeSummary)
-			throws IOException, ServiceExceptionWithStatusCode {
-		int skipped = 0;
+	private void importTranslationSetRows(BufferedReader reader, String setCode, String lang,
+			ImportColumnIndices columns, TranslationStatus status, OutsideSetBehavior outsideSetBehavior,
+			ChangeSummary changeSummary) throws IOException, ServiceExceptionWithStatusCode {
 		List<String> rowFields;
 		while (!(rowFields = CsvParser.readRow(reader, columns.delimiter())).isEmpty()) {
-			if (isBlankCsvRow(rowFields)) {
-				continue;
-			}
-			String conceptCode = getField(rowFields, columns.conceptIndex()).trim();
-			if (conceptCode.isEmpty()) {
-				continue;
-			}
-			List<String> terms = buildTermsFromRow(rowFields, columns.termColumnIndices());
-			if (terms.isEmpty()) {
-				skipped++;
-				continue;
-			}
-			if (!isConceptInTranslationSet(conceptCode, setCode, lang)) {
-				skipped++;
-				logger.debug("Skipping concept {} not found in translation set {}", conceptCode, setCode);
-				continue;
-			}
-			updateTranslationUnit(translationSet, conceptCode, terms, status);
-			changeSummary.incrementUpdated();
+			processImportRow(rowFields, columns, (conceptCode, terms) -> {
+				Optional<TranslationUnit> tuOpt = translationUnitRepository.findByCodeAndCompositeLanguageCode(conceptCode, lang);
+				if (tuOpt.isEmpty()) {
+					changeSummary.incrementSkippedNotFound();
+					logger.debug("Skipping concept {} not found for language {}", conceptCode, lang);
+					return;
+				}
+				TranslationUnit unit = tuOpt.get();
+				if (!unit.getMemberOf().contains(setCode)) {
+					if (outsideSetBehavior == OutsideSetBehavior.SKIP) {
+						changeSummary.incrementSkippedOutsideSet();
+						logger.debug("Skipping concept {} not found in translation set {}", conceptCode, setCode);
+						return;
+					}
+					applyTermsAndStatusToUnit(unit, terms, status);
+					changeSummary.incrementUpdated();
+					return;
+				}
+				applyTermsAndStatusToUnit(unit, terms, status);
+				changeSummary.incrementUpdated();
+			});
 		}
-		return skipped;
 	}
 
-	private boolean isConceptInTranslationSet(String conceptCode, String setCode, String lang) {
-		Optional<TranslationUnit> tuOpt = translationUnitRepository.findByCodeAndCompositeLanguageCode(conceptCode, lang);
-		return tuOpt.isPresent() && tuOpt.get().getMemberOf().contains(setCode);
+	private void importTranslationLanguageRows(BufferedReader reader, String compositeLanguageCode,
+			ImportColumnIndices columns, TranslationStatus status, ChangeSummary changeSummary)
+			throws IOException, ServiceExceptionWithStatusCode {
+		List<String> rowFields;
+		while (!(rowFields = CsvParser.readRow(reader, columns.delimiter())).isEmpty()) {
+			processImportRow(rowFields, columns, (conceptCode, terms) -> {
+				Optional<TranslationUnit> tuOpt = translationUnitRepository.findByCodeAndCompositeLanguageCode(
+						conceptCode, compositeLanguageCode);
+				if (tuOpt.isEmpty()) {
+					changeSummary.incrementSkippedNotFound();
+					logger.debug("Skipping concept {} not found for language {}", conceptCode, compositeLanguageCode);
+					return;
+				}
+				applyTermsAndStatusToUnit(tuOpt.get(), terms, status);
+				changeSummary.incrementUpdated();
+			});
+		}
+	}
+
+	@FunctionalInterface
+	private interface ImportRowHandler {
+		void handle(String conceptCode, List<String> terms) throws ServiceExceptionWithStatusCode;
+	}
+
+	private void processImportRow(List<String> rowFields, ImportColumnIndices columns, ImportRowHandler handler)
+			throws ServiceExceptionWithStatusCode {
+		if (isBlankCsvRow(rowFields)) {
+			return;
+		}
+		String conceptCode = getField(rowFields, columns.conceptIndex()).trim();
+		if (conceptCode.isEmpty()) {
+			return;
+		}
+		List<String> terms = buildTermsFromRow(rowFields, columns.termColumnIndices());
+		if (terms.isEmpty()) {
+			return;
+		}
+		handler.handle(conceptCode, terms);
 	}
 
 	private static boolean isBlankCsvRow(List<String> rowFields) {

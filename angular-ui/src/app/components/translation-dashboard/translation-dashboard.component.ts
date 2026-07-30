@@ -17,6 +17,8 @@ import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dia
 import { EditTranslationSetDialogComponent } from '../edit-translation-set-dialog/edit-translation-set-dialog.component';
 import { DownloadTranslationSetDialogComponent } from '../download-translation-set-dialog/download-translation-set-dialog.component';
 import { UploadTranslationSetDialogComponent } from '../upload-translation-set-dialog/upload-translation-set-dialog.component';
+import { UploadLanguageTranslationDialogComponent } from '../upload-language-translation-dialog/upload-language-translation-dialog.component';
+import { TranslationStudioImportJobsComponent } from '../translation-studio-import-jobs/translation-studio-import-jobs.component';
 import { defaultLanguageDialectName, displayLanguageDialect, LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
 import { isTranslationSetBusy, isTranslationSetEditable, isTranslationSetInProgress, translationSetLifecycleStatusLabel } from 'src/app/utils/translation-set-status';
@@ -72,6 +74,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 	translationSetsLanguageDialectFilter: string | null = null;
 	translationSetsLanguageDialectFilterOptions: Array<{ refsetId: string; label: string }> = [];
 	translationSetRouteSelectionActive = false;
+
+	@ViewChild('importJobsPanel') importJobsPanel?: TranslationStudioImportJobsComponent;
 
 	@ViewChild(MatSort) set matSort(sort: MatSort | undefined) {
 		if (sort) {
@@ -505,6 +509,34 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         });
     }
 
+    uploadLanguageTranslation(): void {
+        const languages = this.languagePolicyRows.map(row => ({
+            refsetId: row.refsetId,
+            languageDialect: row.languageDialectName
+        }));
+
+        if (languages.length === 0) {
+            this.snackBar.open('Link a language refset to Translation Studio before importing.', 'Close', {
+                duration: 5000
+            });
+            return;
+        }
+
+        const dialogRef = this.dialog.open(UploadLanguageTranslationDialogComponent, {
+            width: '480px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                languages
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result?.action === 'import_started') {
+                this.handleImportJobStarted(result.jobId, result.refsetId, false);
+            }
+        });
+    }
+
     uploadTranslationSet(labelSet?: any): void {
         const target = labelSet ?? this.selectedLabelSet;
         if (!target) {
@@ -533,12 +565,21 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
         dialogRef.afterClosed().subscribe(result => {
             if (result?.action === 'import_started') {
-                this.snackBar.open('Import job created', 'Close', {
-                    duration: 5000
-                });
-                this.getTranslationSets();
+                this.handleImportJobStarted(
+                    result.jobId,
+                    target.refset ?? target.translationId,
+                    true
+                );
             }
         });
+    }
+
+    private handleImportJobStarted(jobId: string | undefined, refsetId: string, refreshSets: boolean): void {
+        this.snackBar.open('Import job created', 'Close', { duration: 3000 });
+        this.importJobsPanel?.refresh();
+        if (refreshSets) {
+            this.getTranslationSets();
+        }
     }
 
     editTranslationSetMetadata(labelSet?: any): void {
@@ -800,13 +841,17 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         );
     }
 
-    getTranslationSets() {
-        // Prevent duplicate calls if already loading
-        if (this.loadingSets) {
+    getTranslationSets(options?: { silent?: boolean }) {
+        const silent = options?.silent ?? false;
+
+        // Prevent duplicate calls if already loading (non-silent only)
+        if (!silent && this.loadingSets) {
             return;
         }
 
-        this.loadingSets = true;
+        if (!silent) {
+            this.loadingSets = true;
+        }
 
         this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
             (allTranslationSets) => {
@@ -826,11 +871,13 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 this.labelSets = newLabelSets;
                 this.refreshTranslationSetsTable();
 
-                this.loadingSets = false;
-                this.translationSetsLoaded = true; // Mark that translation sets have been loaded
-                // Clear the main loading state once we have data
-                if (this.loading) {
-                    this.loading = false;
+                if (!silent) {
+                    this.loadingSets = false;
+                    this.translationSetsLoaded = true; // Mark that translation sets have been loaded
+                    // Clear the main loading state once we have data
+                    if (this.loading) {
+                        this.loading = false;
+                    }
                 }
 
                 // Check if any translation sets are processing and manage polling
@@ -839,15 +886,17 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             },
             (error) => {
                 console.error(error);
-                this.snackBar.open('Failed to fetch translation sets', 'Dismiss', {
-                    duration: 5000
-                });
-                this.loadingSets = false;
-                this.loading = false;
-                this.translationSetsLoaded = true; // Mark as loaded even on error
-                this.labelSets = [];
-                this.refreshTranslationSetsTable();
-                this.reconcileTranslationSetFromRoute();
+                if (!silent) {
+                    this.snackBar.open('Failed to fetch translation sets', 'Dismiss', {
+                        duration: 5000
+                    });
+                    this.loadingSets = false;
+                    this.loading = false;
+                    this.translationSetsLoaded = true; // Mark as loaded even on error
+                    this.labelSets = [];
+                    this.refreshTranslationSetsTable();
+                    this.reconcileTranslationSetFromRoute();
+                }
             }
         );
     }
@@ -1125,7 +1174,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.isPolling = true;
         this.pollingInterval = setInterval(() => {
             this.pollTranslationSets();
-        }, 10000); // 10 seconds
+        }, 4000); // 4 seconds
     }
 
     private stopPolling() {
@@ -1136,58 +1185,56 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         }
     }
 
+    private mergeTranslationSetStatus(existing: any, statusUpdate: any): any {
+        return {
+            ...existing,
+            name: statusUpdate.name,
+            status: statusUpdate.status,
+            percentageProcessed: statusUpdate.percentageProcessed,
+            size: statusUpdate.size,
+            lastPulled: statusUpdate.lastPulled
+        };
+    }
+
     private pollTranslationSets() {
-        // Background reload without showing loading state
-        this.simplexService.getAllTranslationSets(this.selectedEdition.shortName).subscribe(
-            (allTranslationSets) => {
-                // Filter out translation sets with status "DELETING" and join with translations data
-                const updatedLabelSets = allTranslationSets
-                    .filter((translationSet: any) => translationSet.status !== 'DELETING')
-                    .map((translationSet: any) => {
-                        const matchingTranslation = this.translations.find((translation: any) =>
-                            (translation.conceptId || translation.id) === translationSet.refset);
-                        return {
-                            ...translationSet,
-                            translationId: translationSet.refset,
-                            translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
-                        };
-                    });
+        // Background status poll without showing loading state
+        this.simplexService.getTranslationSetStatuses(this.selectedEdition.shortName).subscribe(
+            (statusUpdates) => {
+                const activeStatusUpdates = statusUpdates.filter((update: any) => update.status !== 'DELETING');
+                const statusById = new Map(activeStatusUpdates.map((update: any) => [update.id, update]));
 
-                const preservedLabelSets = updatedLabelSets;
-
-                // Check if any sets have finished processing (changed from PROCESSING to READY)
+                // Check if any sets have finished processing (changed from busy to READY)
                 const previouslyBusySets = this.labelSets.filter((set: any) => isTranslationSetBusy(set.status));
-                const nowReadySets = preservedLabelSets.filter((set: any) => set.status === 'READY');
-
-                // Find sets that were busy and are now ready
-                const finishedProcessingSets = nowReadySets.filter((nowReadySet: any) =>
+                const finishedProcessingSets = activeStatusUpdates.filter((update: any) =>
+                    update.status === 'READY' &&
                     previouslyBusySets.some((prevSet: any) =>
-                        prevSet.id === nowReadySet.id &&
-                        prevSet.translationId === nowReadySet.translationId &&
-                        prevSet.label === nowReadySet.label
+                        prevSet.id === update.id &&
+                        prevSet.translationId === update.refset &&
+                        prevSet.label === update.label
                     )
                 );
 
-                // List poll payload already includes full set metadata; no per-set GET needed.
-
-                // Update the list without showing loading state
-                this.labelSets = preservedLabelSets;
+                // Merge status fields into existing sets; drop sets removed or marked DELETING
+                this.labelSets = this.labelSets
+                    .filter((set: any) => statusById.has(set.id))
+                    .map((set: any) => this.mergeTranslationSetStatus(set, statusById.get(set.id)));
                 this.refreshTranslationSetsTable();
 
                 // Silently update selectedLabelSet if it exists
                 if (this.selectedLabelSet) {
-                    const updatedSelectedSet = preservedLabelSets.find((set: any) => set.id === this.selectedLabelSet.id);
-                    if (updatedSelectedSet) {
-                        this.selectedLabelSet = updatedSelectedSet;
+                    const statusUpdate = statusById.get(this.selectedLabelSet.id);
+                    if (statusUpdate) {
+                        this.selectedLabelSet = this.mergeTranslationSetStatus(this.selectedLabelSet, statusUpdate);
                     }
                 }
 
                 // Show notification if any sets finished processing
                 if (finishedProcessingSets.length > 0) {
-                    const setNames = finishedProcessingSets.map(set => set.name).join(', ');
+                    const setNames = finishedProcessingSets.map((set: any) => set.name).join(', ');
                     this.snackBar.open(`Translation set(s) finished processing: ${setNames}`, 'Close', {
                         duration: 4000
                     });
+                    this.getTranslationSets({ silent: true });
                 }
 
                 // Check if polling should continue

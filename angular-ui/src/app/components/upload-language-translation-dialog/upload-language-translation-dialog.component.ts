@@ -2,7 +2,6 @@ import { Component, ElementRef, Inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
@@ -16,34 +15,35 @@ import {
 } from 'src/app/utils/translation-status-label';
 import { detectCsvColumnMapping, readCsvHeaders } from 'src/app/utils/csv-column-mapping.util';
 
-export interface UploadTranslationSetDialogData {
-	edition: string;
+export interface LanguageImportOption {
 	refsetId: string;
-	label: string;
-	setName: string;
 	languageDialect: string;
+}
+
+export interface UploadLanguageTranslationDialogData {
+	edition: string;
+	languages: LanguageImportOption[];
 }
 
 type ImportStatus = (typeof TRANSLATION_STATUS_RADIO_ORDER)[number];
 
 @Component({
-	selector: 'app-upload-translation-set-dialog',
+	selector: 'app-upload-language-translation-dialog',
 	standalone: true,
 	imports: [
 		CommonModule,
 		MatDialogModule,
 		MatButtonModule,
 		MatRadioModule,
-		MatCheckboxModule,
 		MatProgressSpinnerModule,
 		MatSelectModule,
 		MatFormFieldModule,
 		FormsModule
 	],
-	templateUrl: './upload-translation-set-dialog.component.html',
-	styleUrl: './upload-translation-set-dialog.component.scss'
+	templateUrl: './upload-language-translation-dialog.component.html',
+	styleUrl: './upload-language-translation-dialog.component.scss'
 })
-export class UploadTranslationSetDialogComponent {
+export class UploadLanguageTranslationDialogComponent {
 	@ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
 
 	loading = false;
@@ -54,7 +54,7 @@ export class UploadTranslationSetDialogComponent {
 	conceptColumn = '';
 	termColumns: string[] = [];
 	selectedStatus: ImportStatus = 'FOR_REVIEW';
-	skipRowsOutsideSet = true;
+	selectedRefsetId = '';
 
 	readonly statusOptions = TRANSLATION_STATUS_RADIO_ORDER.map((status) => ({
 		value: status,
@@ -62,14 +62,19 @@ export class UploadTranslationSetDialogComponent {
 	}));
 
 	constructor(
-		public dialogRef: MatDialogRef<UploadTranslationSetDialogComponent>,
-		@Inject(MAT_DIALOG_DATA) public data: UploadTranslationSetDialogData,
+		public dialogRef: MatDialogRef<UploadLanguageTranslationDialogComponent>,
+		@Inject(MAT_DIALOG_DATA) public data: UploadLanguageTranslationDialogData,
 		private snackBar: MatSnackBar,
 		private simplexService: SimplexService
-	) {}
+	) {
+		if (data.languages.length === 1) {
+			this.selectedRefsetId = data.languages[0].refsetId;
+		}
+	}
 
 	get canImport(): boolean {
 		return !!this.selectedFile
+			&& !!this.selectedRefsetId
 			&& !!this.conceptColumn
 			&& this.termColumns.length > 0
 			&& !!this.selectedStatus
@@ -126,29 +131,23 @@ export class UploadTranslationSetDialogComponent {
 		}
 
 		this.loading = true;
-		this.simplexService.uploadTranslationSetCsv(
+		this.simplexService.uploadLanguageTranslationCsv(
 			this.data.edition,
-			this.data.refsetId,
-			this.data.label,
+			this.selectedRefsetId,
 			this.selectedFile,
 			this.conceptColumn,
 			this.termColumns,
-			this.selectedStatus,
-			this.skipRowsOutsideSet ? 'SKIP' : 'UPDATE'
+			this.selectedStatus
 		).subscribe({
 			next: (job) => {
 				this.loading = false;
-				this.dialogRef.close({
-					action: 'import_started',
-					jobId: job?.id,
-					refsetId: this.data.refsetId
-				});
+				this.dialogRef.close({ action: 'import_started', jobId: job?.id, refsetId: this.selectedRefsetId });
 			},
 			error: (error) => {
-				console.error('Error importing translation set CSV:', error);
+				console.error('Error importing language translation CSV:', error);
 				this.loading = false;
 
-				let errorMessage = 'Failed to import translation set CSV';
+				let errorMessage = 'Failed to import translation CSV';
 				if (error.error?.message) {
 					errorMessage = `${errorMessage}: ${error.error.message}`;
 				}

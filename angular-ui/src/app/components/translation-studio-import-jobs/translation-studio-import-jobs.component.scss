@@ -1,0 +1,37 @@
+.import-jobs-panel {
+	margin-top: 1.5rem;
+}
+
+.import-jobs-intro {
+	margin: 0 0 1rem;
+	color: rgba(0, 0, 0, 0.6);
+	line-height: 1.5;
+}
+
+.import-jobs-language-filter {
+	width: 260px;
+}
+
+.job-name-cell {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.job-language {
+	color: rgba(0, 0, 0, 0.6);
+	font-size: 0.85rem;
+}
+
+.muted-cell {
+	color: rgba(0, 0, 0, 0.45);
+}
+
+.pulse {
+	animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.5; }
+}

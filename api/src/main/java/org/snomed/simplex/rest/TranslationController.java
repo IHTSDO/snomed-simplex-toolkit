@@ -3,6 +3,7 @@ package org.snomed.simplex.rest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.NonNull;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.authoringservices.APTask;
@@ -20,12 +21,14 @@ import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
+import org.snomed.simplex.service.job.TranslationStudioContentJob;
 import org.snomed.simplex.snolate.domain.LanguagePolicyQuestionnaire;
 import org.snomed.simplex.snolate.domain.LanguageTranslationPolicy;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationStatusLabels;
 import org.snomed.simplex.snolate.service.LanguagePolicyQuestionnaireService;
 import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
+import org.snomed.simplex.snolate.service.OutsideSetBehavior;
 import org.snomed.simplex.snolate.service.SnolateTranslationService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
@@ -129,6 +132,15 @@ public class TranslationController {
 			translationService.deleteTranslationAndMembers(refsetId, theCodeSystem);
 			return null;
 		});
+	}
+
+	@GetMapping("{codeSystem}/translations/snolate-set/status")
+	@Operation(summary = "Lightweight status snapshot for all Snolate translation sets (for dashboard polling).")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public List<SnolateTranslationSetStatus> listSnolateSetStatuses(@PathVariable String codeSystem) {
+		return snolateSetService.findByCodeSystem(codeSystem).stream()
+				.map(SnolateTranslationSetStatus::from)
+				.toList();
 	}
 
 	@GetMapping("{codeSystem}/translations/snolate-set")
@@ -281,7 +293,8 @@ public class TranslationController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob uploadSnolateSetCsv(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@PathVariable String label, @RequestParam MultipartFile file,
-			@RequestParam String conceptColumn, @RequestParam String termColumns, @RequestParam String status)
+			@RequestParam String conceptColumn, @RequestParam String termColumns, @RequestParam String status,
+			@RequestParam(required = false, defaultValue = "SKIP") String outsideSetBehavior)
 			throws ServiceException, IOException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
@@ -291,6 +304,43 @@ public class TranslationController {
 					HttpStatus.BAD_REQUEST);
 		}
 		TranslationStatus importStatus = parseImportTranslationStatus(status);
+		OutsideSetBehavior outsideSet = parseOutsideSetBehavior(outsideSetBehavior);
+		List<String> termColumnList = getTermColumnList(termColumns);
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
+		ContentJob contentJob = new TranslationStudioContentJob(theCodeSystem,
+				"Translation Studio set CSV import", refsetId)
+				.addUpload(file.getInputStream(), file.getOriginalFilename());
+		return jobService.queueContentJob(contentJob, refsetId, activity,
+				job -> snolateTranslationService.importTranslationSetCsv(
+						translationSet, job.getInputStream(), conceptColumn, termColumnList, importStatus, outsideSet));
+	}
+
+	@PutMapping(path = "{codeSystem}/translations/{refsetId}/snolate-csv", consumes = "multipart/form-data")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob uploadSnolateLanguageCsv(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@RequestParam MultipartFile file, @RequestParam String conceptColumn, @RequestParam String termColumns,
+			@RequestParam String status) throws ServiceException, IOException {
+
+		TranslationStatus importStatus = parseImportTranslationStatus(status);
+		List<String> termColumnList = getTermColumnList(termColumns);
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		String languageCode = resolveSnolateLanguageCode(theCodeSystem, refsetId);
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
+		ContentJob contentJob = new TranslationStudioContentJob(theCodeSystem,
+				"Translation Studio language CSV import", refsetId)
+				.addUpload(file.getInputStream(), file.getOriginalFilename());
+		return jobService.queueContentJob(contentJob, refsetId, activity,
+				job -> snolateTranslationService.importTranslationLanguageCsv(
+						theCodeSystem, refsetId, languageCode, job.getInputStream(),
+						conceptColumn, termColumnList, importStatus));
+	}
+
+	private static @NonNull List<String> getTermColumnList(String termColumns) throws ServiceExceptionWithStatusCode {
 		List<String> termColumnList = java.util.Arrays.stream(termColumns.split(","))
 				.map(String::trim)
 				.filter(column -> !column.isEmpty())
@@ -298,15 +348,39 @@ public class TranslationController {
 		if (termColumnList.isEmpty()) {
 			throw new ServiceExceptionWithStatusCode("At least one term column is required.", HttpStatus.BAD_REQUEST);
 		}
+		return termColumnList;
+	}
 
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION, ActivityType.UPDATE);
-		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation set import", refsetId)
-				.addUpload(file.getInputStream(), file.getOriginalFilename());
-		return jobService.queueContentJob(contentJob, refsetId, activity,
-				job -> snolateTranslationService.importTranslationSetCsv(
-						translationSet, job.getInputStream(), conceptColumn, termColumnList, importStatus));
+	private static String resolveSnolateLanguageCode(CodeSystem codeSystem, String refsetId)
+			throws ServiceExceptionWithStatusCode {
+		Map<String, String> snolateLanguages = codeSystem.getTranslationSnolateLanguages();
+		if (snolateLanguages == null || !snolateLanguages.containsKey(refsetId)) {
+			throw new ServiceExceptionWithStatusCode(
+					"Language is not linked to Translation Studio.", HttpStatus.BAD_REQUEST);
+		}
+		String languageCode = snolateLanguages.get(refsetId);
+		if (languageCode == null || languageCode.isBlank()) {
+			Map<String, String> translationLanguages = codeSystem.getTranslationLanguages();
+			languageCode = translationLanguages != null ? translationLanguages.get(refsetId) : null;
+		}
+		if (languageCode == null || languageCode.isBlank()) {
+			throw new ServiceExceptionWithStatusCode(
+					"Language code could not be resolved for refset " + refsetId + ".", HttpStatus.BAD_REQUEST);
+		}
+		return languageCode;
+	}
+
+	private static OutsideSetBehavior parseOutsideSetBehavior(String outsideSetBehavior)
+			throws ServiceExceptionWithStatusCode {
+		if (outsideSetBehavior == null || outsideSetBehavior.isBlank()) {
+			return OutsideSetBehavior.SKIP;
+		}
+		try {
+			return OutsideSetBehavior.valueOf(outsideSetBehavior.trim().toUpperCase());
+		} catch (IllegalArgumentException e) {
+			throw new ServiceExceptionWithStatusCode(
+					"outsideSetBehavior must be SKIP or UPDATE.", HttpStatus.BAD_REQUEST, e);
+		}
 	}
 
 	private static TranslationStatus parseImportTranslationStatus(String status) throws ServiceExceptionWithStatusCode {

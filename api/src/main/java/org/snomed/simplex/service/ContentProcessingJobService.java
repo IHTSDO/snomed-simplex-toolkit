@@ -124,6 +124,7 @@ public class ContentProcessingJobService {
 		return jobs.stream()
 				.filter(job -> jobType == null || job.getJobType() == jobType)
 				.filter(job -> refsetId == null || (job instanceof ContentJob contentJob && refsetId.equals(contentJob.getRefsetId())))
+				.filter(job -> refsetId == null || jobType != null || job.getJobType() != JobType.TRANSLATION_STUDIO)
 				.sorted(Comparator.comparing(AsyncJob::getCreated).reversed())
 				.toList();
 	}

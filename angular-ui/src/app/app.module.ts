@@ -79,6 +79,7 @@ import {AdminSettingsComponent} from './components/admin-settings/admin-settings
 import {CommonModule} from '@angular/common';
 import {MatDialogModule} from '@angular/material/dialog';
 import {TranslationDashboardComponent} from './components/translation-dashboard/translation-dashboard.component';
+import {TranslationStudioImportJobsComponent} from './components/translation-studio-import-jobs/translation-studio-import-jobs.component';
 import {TranslationUnitEditComponent} from './components/translation-unit-edit/translation-unit-edit.component';
 import {TranslationZenModeComponent} from './components/translation-zen-mode/translation-zen-mode.component';
 import {TranslationAiSuggestionsComponent} from './components/translation-ai-suggestions/translation-ai-suggestions.component';
@@ -132,6 +133,7 @@ import {ConfigService} from "./services/config/config.service";
         DownloadReleasesComponent,
         AdminSettingsComponent,
         TranslationDashboardComponent,
+        TranslationStudioImportJobsComponent,
         TranslationUnitEditComponent,
         TranslationZenModeComponent,
         TranslationAiSuggestionsComponent,

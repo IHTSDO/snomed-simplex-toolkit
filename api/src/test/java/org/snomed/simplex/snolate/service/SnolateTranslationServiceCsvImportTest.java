@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
@@ -21,6 +22,7 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -175,6 +177,123 @@ class SnolateTranslationServiceCsvImportTest {
 				TranslationStatus.FOR_REVIEW);
 
 		assertThat(summary.getUpdated()).isZero();
+		assertThat(summary.getSkippedNotFound()).isEqualTo(1);
+	}
+
+	@Test
+	void importTranslationSetCsv_skipsConceptOutsideSetWhenSkipBehavior() throws Exception {
+		TranslationUnit unit = unitOutsideSet("300", List.of("old"), TranslationStatus.NOT_STARTED);
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("300", COMPOSITE))
+				.thenReturn(Optional.of(unit));
+
+		String csv = """
+				context,target
+				300,asma
+				""";
+		ChangeSummary summary = service.importTranslationSetCsv(
+				translationSet,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				"context",
+				List.of("target"),
+				TranslationStatus.FOR_REVIEW,
+				OutsideSetBehavior.SKIP);
+
+		assertThat(summary.getUpdated()).isZero();
+		assertThat(summary.getSkippedOutsideSet()).isEqualTo(1);
+	}
+
+	@Test
+	void importTranslationSetCsv_updatesConceptOutsideSetWhenUpdateBehavior() throws Exception {
+		TranslationUnit unit = unitOutsideSet("300", List.of("old"), TranslationStatus.NOT_STARTED);
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("300", COMPOSITE))
+				.thenReturn(Optional.of(unit));
+
+		String csv = """
+				context,target
+				300,asma
+				""";
+		ChangeSummary summary = service.importTranslationSetCsv(
+				translationSet,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				"context",
+				List.of("target"),
+				TranslationStatus.FOR_REVIEW,
+				OutsideSetBehavior.UPDATE);
+
+		assertThat(summary.getUpdated()).isEqualTo(1);
+		assertThat(unit.getTerms()).containsExactly("asma");
+		assertThat(unit.getMemberOf()).doesNotContain(translationSet.getCompositeSetCode());
+		verify(translationUnitRepository).save(unit);
+	}
+
+	@Test
+	void importTranslationSetCsv_ignoresEmptyTermRowsWithoutCounting() throws Exception {
+		String csv = """
+				context,target
+				100,
+				""";
+		ChangeSummary summary = service.importTranslationSetCsv(
+				translationSet,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				"context",
+				List.of("target"),
+				TranslationStatus.FOR_REVIEW);
+
+		assertThat(summary.getUpdated()).isZero();
+		assertThat(summary.getSkippedNotFound()).isZero();
+		assertThat(summary.getSkippedOutsideSet()).isZero();
+	}
+
+	@Test
+	void importTranslationLanguageCsv_updatesExistingTranslationUnit() throws Exception {
+		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
+				.thenReturn(Optional.of(unit));
+
+		CodeSystem codeSystem = new CodeSystem("SNOMEDCT-TEST", "TEST", "");
+		codeSystem.setTranslationSnolateLanguages(new java.util.HashMap<>(Map.of(REFSET, LANG)));
+
+		String csv = """
+				context,target
+				100,asma
+				""";
+		ChangeSummary summary = service.importTranslationLanguageCsv(
+				codeSystem,
+				REFSET,
+				LANG,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				"context",
+				List.of("target"),
+				TranslationStatus.APPROVED);
+
+		assertThat(summary.getUpdated()).isEqualTo(1);
+		assertThat(unit.getTerms()).containsExactly("asma");
+		verify(translationUnitRepository).save(unit);
+	}
+
+	@Test
+	void importTranslationLanguageCsv_recordsSkippedNotFound() throws Exception {
+		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("999", COMPOSITE))
+				.thenReturn(Optional.empty());
+
+		CodeSystem codeSystem = new CodeSystem("SNOMEDCT-TEST", "TEST", "");
+		codeSystem.setTranslationSnolateLanguages(new java.util.HashMap<>(Map.of(REFSET, LANG)));
+
+		String csv = """
+				context,target
+				999,unknown term
+				""";
+		ChangeSummary summary = service.importTranslationLanguageCsv(
+				codeSystem,
+				REFSET,
+				LANG,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				"context",
+				List.of("target"),
+				TranslationStatus.FOR_REVIEW);
+
+		assertThat(summary.getUpdated()).isZero();
+		assertThat(summary.getSkippedNotFound()).isEqualTo(1);
 	}
 
 	@Test
@@ -209,5 +328,13 @@ class SnolateTranslationServiceCsvImportTest {
 				terms,
 				status,
 				new LinkedHashSet<>(Set.of(translationSet.getCompositeSetCode())));
+	}
+
+	private TranslationUnit unitOutsideSet(String code, List<String> terms, TranslationStatus status) {
+		return new TranslationUnit(
+				new TranslationUnit.MembershipKey(code, REFSET, LANG, COMPOSITE, 0),
+				terms,
+				status,
+				new LinkedHashSet<>(Set.of("OTHER_SET")));
 	}
 }

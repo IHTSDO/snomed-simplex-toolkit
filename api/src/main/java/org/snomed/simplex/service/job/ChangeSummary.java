@@ -6,6 +6,8 @@ public class ChangeSummary {
 	private int updated;
 	private int removed;
 	private int newTotal;
+	private int skippedNotFound;
+	private int skippedOutsideSet;
 
 	public ChangeSummary() {
 	}
@@ -29,6 +31,14 @@ public class ChangeSummary {
 		removed++;
 	}
 
+	public void incrementSkippedNotFound() {
+		skippedNotFound++;
+	}
+
+	public void incrementSkippedOutsideSet() {
+		skippedOutsideSet++;
+	}
+
 	public int getAdded() {
 		return added;
 	}
@@ -49,6 +59,14 @@ public class ChangeSummary {
 		this.newTotal = newTotal;
 	}
 
+	public int getSkippedNotFound() {
+		return skippedNotFound;
+	}
+
+	public int getSkippedOutsideSet() {
+		return skippedOutsideSet;
+	}
+
 	@Override
 	public String toString() {
 		return "ChangeSummary{" +
@@ -56,6 +74,8 @@ public class ChangeSummary {
 			", updated=" + updated +
 			", removed=" + removed +
 			", newTotal=" + newTotal +
+			", skippedNotFound=" + skippedNotFound +
+			", skippedOutsideSet=" + skippedOutsideSet +
 			'}';
 	}
 }

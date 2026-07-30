@@ -475,6 +475,9 @@
                             </mat-option>
                         </mat-select>
                     </mat-form-field>
+                    <button mat-stroked-button (click)="uploadLanguageTranslation()" [disabled]="showSkeleton || languagePolicyRows.length === 0">
+                        Import CSV
+                    </button>
                     <button mat-flat-button color="primary" (click)="setMode('create')" [disabled]="showSkeleton">
                         Create new set
                     </button>
@@ -657,6 +660,12 @@
                     </table>
                 </div>
             </div>
+
+            <app-translation-studio-import-jobs
+                #importJobsPanel
+                [edition]="selectedEdition?.shortName"
+                [languageOptions]="languagePolicyRows">
+            </app-translation-studio-import-jobs>
         </div>
     }
     </div>
