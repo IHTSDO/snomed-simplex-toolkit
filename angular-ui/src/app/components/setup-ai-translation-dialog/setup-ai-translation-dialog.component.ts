@@ -8,7 +8,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormsModule } from '@angular/forms';
 import { SimplexService } from '../../services/simplex/simplex.service';
-import { HttpClient } from '@angular/common/http';
 import { LanguagePolicyQuestionnaireComponent } from '../language-policy-questionnaire/language-policy-questionnaire.component';
 import { LanguageTranslationPolicy } from '../../models/language-translation-policy.model';
 
@@ -63,8 +62,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		public dialogRef: MatDialogRef<SetupAiTranslationDialogComponent>,
 		@Inject(MAT_DIALOG_DATA) public data: SetupAiTranslationDialogData,
 		private snackBar: MatSnackBar,
-		private simplexService: SimplexService,
-		private http: HttpClient
+		private simplexService: SimplexService
 	) {}
 
 	ngOnInit(): void {
@@ -105,9 +103,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 
 	loadSampleRows(): void {
 		this.loadingExamples = true;
-		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/snolate-set/${this.data.label}/rows?page=0&size=1000`;
-
-		this.http.get(apiUrl).subscribe({
+		this.simplexService.getTranslationSetRows(this.data.edition, this.data.refsetId, this.data.label, 0, 1000).subscribe({
 			next: (response: any) => {
 				this.loadingExamples = false;
 				this.populateGoldenExamples(response.results);
@@ -161,9 +157,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		}
 
 		this.loadingSuggestions = true;
-		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/snolate-set/${this.data.label}/ai-suggestion`;
-
-		this.http.post(apiUrl, englishTerms).subscribe({
+		this.simplexService.getAiTranslationSuggestions(this.data.edition, this.data.refsetId, this.data.label, englishTerms).subscribe({
 			next: (response: any) => {
 				this.loadingSuggestions = false;
 				this.goldenExamples.forEach(example => {
@@ -246,9 +240,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 		}
 
 		this.loadingNewExample = true;
-		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/snolate-set/${this.data.label}/unit/${conceptId.trim()}`;
-
-		this.http.get(apiUrl).subscribe({
+		this.simplexService.getTranslationSetSampleRow(this.data.edition, this.data.refsetId, this.data.label, conceptId.trim()).subscribe({
 			next: (response: any) => {
 				this.loadingNewExample = false;
 				this.goldenExamples.push({
@@ -303,8 +295,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 			aiGoldenSet[`${example.conceptId}|${example.preferredTerm}`] = example.translation;
 		});
 
-		const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/snolate-set/${this.data.label}/ai-setup`;
-		this.http.post(apiUrl, { aiGoldenSet }).subscribe({
+		this.simplexService.saveTranslationSetAiSetup(this.data.edition, this.data.refsetId, this.data.label, aiGoldenSet).subscribe({
 			next: () => {
 				this.loading = false;
 				this.dialogRef.close({ action: 'setup', goldenExamples });

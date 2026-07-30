@@ -8,7 +8,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { SimplexService } from '../../services/simplex/simplex.service';
 
 export interface AiBatchTranslationDialogData {
 	edition: string;
@@ -187,7 +187,7 @@ export class AiBatchTranslationDialogComponent {
 		@Inject(MAT_DIALOG_DATA) public data: AiBatchTranslationDialogData,
 		private snackBar: MatSnackBar,
 		private fb: FormBuilder,
-		private http: HttpClient
+		private simplexService: SimplexService
 	) {
 		this.batchForm = this.fb.group({
 			batchSize: ['10', Validators.required]
@@ -203,15 +203,7 @@ export class AiBatchTranslationDialogComponent {
 			this.loading = true;
 			const batchSize = parseInt(this.batchForm.value.batchSize);
 			
-			// Build the API URL
-			const apiUrl = `api/${this.data.edition}/translations/${this.data.refsetId}/snolate-set/${this.data.label}/run-ai-batch`;
-			
-			// Prepare the request body
-			const requestBody = {
-				size: batchSize
-			};
-
-			this.http.post(apiUrl, requestBody).subscribe({
+			this.simplexService.runAiBatchTranslation(this.data.edition, this.data.refsetId, this.data.label, batchSize).subscribe({
 				next: () => {
 					this.loading = false;
 					this.snackBar.open(`AI translation batch started for ${batchSize} concepts`, 'Close', {

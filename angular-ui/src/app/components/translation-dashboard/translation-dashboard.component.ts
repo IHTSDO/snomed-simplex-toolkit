@@ -426,7 +426,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 		this.selectedLabelSet = labelSet;
 		this.syncTranslationConceptFiltersFromRoute(true);
 		if (isTranslationSetEditable(labelSet.status)) {
-			// List GET (.../translations/snolate-set) already returns full SnolateTranslationSet rows
+			// List GET (.../translation-studio/sets) already returns full SnolateTranslationSet rows
 			// with the same applyCounts / dashboard metadata as the per-set GET — avoid redundant fetch.
 			this.finalizeLabelSetFromListAndLoadMembers(labelSet);
 		} else {

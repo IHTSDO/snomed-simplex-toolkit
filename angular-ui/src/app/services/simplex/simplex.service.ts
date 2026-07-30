@@ -286,7 +286,7 @@ export class SimplexService {
     if (status) {
       params = params.set('status', status);
     }
-    const apiUrl = `api/${edition}/translations/${refsetId}/snolate-set/${label}/csv`;
+    const apiUrl = `api/${edition}/translation-studio/${refsetId}/sets/${label}/csv`;
     return this.http.get(apiUrl, { params, responseType: 'blob' }).pipe(
       catchError(this.handleError.bind(this))
     );
@@ -308,7 +308,7 @@ export class SimplexService {
     formData.append('termColumns', termColumns.join(','));
     formData.append('status', status);
     formData.append('outsideSetBehavior', outsideSetBehavior);
-    const apiUrl = `api/${edition}/translations/${refsetId}/snolate-set/${label}/csv`;
+    const apiUrl = `api/${edition}/translation-studio/${refsetId}/sets/${label}/csv`;
     return this.http.put(apiUrl, formData).pipe(
       tap(() => this.clearTranslationsCache(edition)),
       catchError(this.handleError.bind(this))
@@ -328,7 +328,7 @@ export class SimplexService {
     formData.append('conceptColumn', conceptColumn);
     formData.append('termColumns', termColumns.join(','));
     formData.append('status', status);
-    const apiUrl = `api/${edition}/translations/${refsetId}/snolate-csv`;
+    const apiUrl = `api/${edition}/translation-studio/${refsetId}/csv`;
     return this.http.put(apiUrl, formData).pipe(
       tap(() => this.clearTranslationsCache(edition)),
       catchError(this.handleError.bind(this))
@@ -387,7 +387,7 @@ export class SimplexService {
   }
 
   public linkTranslationToTranslationStudio(edition: string, refsetId: string): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-setup`, {}).pipe(
+    return this.http.post(`api/${edition}/translation-studio/${refsetId}/setup`, {}).pipe(
       tap(() => this.clearTranslationsCache(edition)),
       catchError(this.handleError.bind(this)));
   }
@@ -480,7 +480,7 @@ export class SimplexService {
     return this.http.get(`api/language-codes`).pipe(catchError(this.handleError.bind(this)));
   }
 
-  // Translation Studio API (snolate-* paths)
+  // Translation Studio API
 
   public getLabelSets(edition: string): Observable<any> {
     const mockLabelSets = [
@@ -520,7 +520,7 @@ export class SimplexService {
       params = params.set('target', targetEffective);
     }
     return this.http
-      .get(`api/${edition}/translations/${refsetId}/snolate-set/${label}/rows`, { params })
+      .get(`api/${edition}/translation-studio/${refsetId}/sets/${label}/rows`, { params })
       .pipe(catchError(this.handleError.bind(this)));
   }
 
@@ -532,7 +532,7 @@ export class SimplexService {
   ): Observable<any> {
     const id = encodeURIComponent(conceptId.trim());
     return this.http
-      .get(`api/${edition}/translations/${refsetId}/snolate-set/${label}/unit/${id}`)
+      .get(`api/${edition}/translation-studio/${refsetId}/sets/${label}/units/${id}`)
       .pipe(catchError(this.handleError.bind(this)));
   }
 
@@ -545,64 +545,69 @@ export class SimplexService {
   ): Observable<any> {
     const id = encodeURIComponent(conceptId.trim());
     return this.http
-      .put(`api/${edition}/translations/${refsetId}/snolate-set/${label}/unit/${id}`, body)
+      .put(`api/${edition}/translation-studio/${refsetId}/sets/${label}/units/${id}`, body)
       .pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSets(edition: string, refsetId: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/${refsetId}/snolate-set`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translation-studio/${refsetId}/sets`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getAllTranslationSets(edition: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/snolate-set`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translation-studio/sets`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSetStatuses(edition: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/snolate-set/status`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translation-studio/sets/status`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public deleteTranslationSet(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.delete(`api/${edition}/translations/${refsetId}/snolate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.delete(`api/${edition}/translation-studio/${refsetId}/sets/${label}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public createTranslationSet(edition: string, refsetId: string, translationSetData: any): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set`, translationSetData).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/translation-studio/${refsetId}/sets`, translationSetData).pipe(catchError(this.handleError.bind(this)));
   }
 
   public updateTranslationSet(edition: string, refsetId: string, label: string, data: { name: string; description?: string }): Observable<any> {
-    return this.http.put(`api/${edition}/translations/${refsetId}/snolate-set/${label}`, data).pipe(catchError(this.handleError.bind(this)));
+    return this.http.put(`api/${edition}/translation-studio/${refsetId}/sets/${label}`, data).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public pushToSnowstorm(edition: string, refsetId: string, label: string, apTaskRequest?: any): Observable<any> {
+    return this.http.post(`api/${edition}/translation-studio/${refsetId}/sets/${label}/push`, apTaskRequest || {}).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  /** @deprecated Use pushToSnowstorm */
   public pullFromTranslationStudio(edition: string, refsetId: string, label: string, apTaskRequest?: any): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set/${label}/pull-content`, apTaskRequest || {}).pipe(catchError(this.handleError.bind(this)));
+    return this.pushToSnowstorm(edition, refsetId, label, apTaskRequest);
   }
 
   public refreshTranslationStudioSet(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set/${label}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/${edition}/translation-studio/${refsetId}/sets/${label}/refresh`, {}).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getTranslationSetDetails(edition: string, refsetId: string, label: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/${refsetId}/snolate-set/${label}`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translation-studio/${refsetId}/sets/${label}`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public runAiBatchTranslation(edition: string, refsetId: string, label: string, batchSize: number): Observable<any> {
     const request = {
       size: batchSize
     };
-    return this.http.post(`api/${edition}/translations/${refsetId}/snolate-set/${label}/run-ai-batch`, request)
+    return this.http.post(`api/${edition}/translation-studio/${refsetId}/sets/${label}/run-ai-batch`, request)
       .pipe(catchError(this.handleError.bind(this)));
   }
 
   public getLanguagePolicies(edition: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/language-policy`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translation-studio/language-policy`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getLanguagePolicyQuestionnaire(edition: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/language-policy-questionnaire`).pipe(catchError(this.handleError.bind(this)));
+    return this.http.get(`api/${edition}/translation-studio/language-policy-questionnaire`).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getLanguagePolicy(edition: string, refsetId: string): Observable<any> {
-    return this.http.get(`api/${edition}/translations/${refsetId}/language-policy`).pipe(
+    return this.http.get(`api/${edition}/translation-studio/${refsetId}/language-policy`).pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status === 404) {
           return throwError(() => error);
@@ -613,7 +618,29 @@ export class SimplexService {
   }
 
   public saveLanguagePolicy(edition: string, refsetId: string, policy: any): Observable<any> {
-    return this.http.put(`api/${edition}/translations/${refsetId}/language-policy`, policy).pipe(catchError(this.handleError.bind(this)));
+    return this.http.put(`api/${edition}/translation-studio/${refsetId}/language-policy`, policy).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getAiTranslationSuggestions(
+    edition: string,
+    refsetId: string,
+    label: string,
+    englishTerms: string[]
+  ): Observable<any> {
+    return this.http
+      .post(`api/${edition}/translation-studio/${refsetId}/sets/${label}/ai-suggestion`, englishTerms)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public saveTranslationSetAiSetup(
+    edition: string,
+    refsetId: string,
+    label: string,
+    aiGoldenSet: { [key: string]: string }
+  ): Observable<any> {
+    return this.http
+      .post(`api/${edition}/translation-studio/${refsetId}/sets/${label}/ai-setup`, { aiGoldenSet })
+      .pipe(catchError(this.handleError.bind(this)));
   }
 
   public getCurrentAPTask(edition: string, refsetId: string, label: string): Observable<any> {

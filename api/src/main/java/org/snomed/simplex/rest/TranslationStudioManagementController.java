@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@Tag(name = "Snolate Management")
-@RequestMapping("api/snolate")
-public class SnolateManagementController {
+@Tag(name = "Translation Studio Management")
+@RequestMapping("api/translation-studio")
+public class TranslationStudioManagementController {
 
 	private final SnolateSnomedUpgradeService snolateSnomedUpgradeService;
 	private final SnolateSetService snolateSetService;
 
-	public SnolateManagementController(SnolateSnomedUpgradeService snolateSnomedUpgradeService,
+	public TranslationStudioManagementController(SnolateSnomedUpgradeService snolateSnomedUpgradeService,
 			SnolateSetService snolateSetService) {
 		this.snolateSnomedUpgradeService = snolateSnomedUpgradeService;
 		this.snolateSetService = snolateSetService;

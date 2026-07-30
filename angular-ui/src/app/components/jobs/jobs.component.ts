@@ -267,7 +267,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   private isTranslationStudioSetupActivity(activity: any): boolean {
     return (
       activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
-      activity.componentType === 'TRANSLATION' &&
+      activity.componentType === 'TRANSLATION_STUDIO' &&
       activity.componentId === this.artifact?.conceptId
     );
   }
@@ -285,7 +285,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     const failedActivity = this.activities.find(
       (activity: any) =>
         activity.activityType === 'SNOLATE_LANGUAGE_INITIALISATION' &&
-        activity.componentType === 'TRANSLATION' &&
+        activity.componentType === 'TRANSLATION_STUDIO' &&
         activity.componentId === this.artifact?.conceptId &&
         activity.error === true
     );

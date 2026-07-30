@@ -95,7 +95,7 @@ public class SnolateSnomedUpgradeService {
 		}
 
 		CodeSystem rootCodeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(SnowstormClient.ROOT_CODESYSTEM);
-		Activity activity = new Activity(CodeSystem.SNOMEDCT, ComponentType.TRANSLATION,
+		Activity activity = new Activity(CodeSystem.SNOMEDCT, ComponentType.TRANSLATION_STUDIO,
 				initial ? ActivityType.SNOLATE_SNOMED_INITIALISATION : ActivityType.SNOLATE_SNOMED_UPGRADE);
 		ContentJob contentJob = new ContentJob(rootCodeSystem, message, null);
 		jobService.queueContentJob(contentJob, null, activity, job -> runSnomedUpgrade(updatePlan, job));
