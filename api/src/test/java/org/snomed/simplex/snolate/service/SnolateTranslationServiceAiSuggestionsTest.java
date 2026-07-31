@@ -14,7 +14,7 @@ import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
-import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -38,19 +38,19 @@ class SnolateTranslationServiceAiSuggestionsTest {
 	private static final String COMPOSITE = LANG + "-" + REFSET;
 
 	@Mock
-	private SnolateTranslationUnitRepository translationUnitRepository;
-	@Mock
 	private SnolateTranslationSourceRepository translationSourceRepository;
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
+	@Mock
+	private SnolateTranslationUnitStore translationUnitStore;
 
 	private SnolateTranslationService service;
 	private SnolateTranslationSet translationSet;
 
 	@BeforeEach
 	void setUp() {
-		service = new SnolateTranslationService(translationUnitRepository, translationSourceRepository,
-				translationSearchService);
+		service = new SnolateTranslationService(translationSourceRepository, translationSearchService,
+				translationUnitStore);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
 		translationSet.setLanguageCode(LANG);
@@ -82,7 +82,7 @@ class SnolateTranslationServiceAiSuggestionsTest {
 				new TranslationUnit.MembershipKey("100", REFSET, LANG, COMPOSITE, 0),
 				List.of(), TranslationStatus.NOT_STARTED, new LinkedHashSet<>(Set.of(setCode)));
 		unit.setAiSuggestions(List.of("Asma sugerida"));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
+		when(translationSearchService.findUnitInSet(setCode, COMPOSITE, "100"))
 				.thenReturn(Optional.of(unit));
 
 		service.updateTranslationUnit(translationSet, "100", List.of("Asma aceptada"), TranslationStatus.FOR_REVIEW);
@@ -90,7 +90,7 @@ class SnolateTranslationServiceAiSuggestionsTest {
 		assertThat(unit.getTerms()).containsExactly("Asma aceptada");
 		assertThat(unit.getStatus()).isEqualTo(TranslationStatus.FOR_REVIEW);
 		assertThat(unit.getAiSuggestions()).isEmpty();
-		verify(translationUnitRepository).save(unit);
+		verify(translationUnitStore).save(unit);
 	}
 
 	@Test
@@ -100,13 +100,13 @@ class SnolateTranslationServiceAiSuggestionsTest {
 				new TranslationUnit.MembershipKey("100", REFSET, LANG, COMPOSITE, 0),
 				List.of(), TranslationStatus.NOT_STARTED, new LinkedHashSet<>(Set.of(setCode)));
 		unit.setAiSuggestions(List.of("Asma sugerida"));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
+		when(translationSearchService.findUnitInSet(setCode, COMPOSITE, "100"))
 				.thenReturn(Optional.of(unit));
 
 		service.updateTranslationUnit(translationSet, "100", List.of(), TranslationStatus.NOT_STARTED);
 
 		assertThat(unit.getTerms()).isEmpty();
 		assertThat(unit.getAiSuggestions()).isEmpty();
-		verify(translationUnitRepository).save(unit);
+		verify(translationUnitStore).save(unit);
 	}
 }

@@ -134,6 +134,20 @@ public class SnolateTranslationSearchService {
 		return pageUnitsInSet(compositeSetCode, compositeLanguageCode, pageable, statusFilter, null, null);
 	}
 
+	/**
+	 * Loads a single unit that is a member of the given set, using the same Elasticsearch criteria as
+	 * {@link #pageUnitsInSet(String, String, Pageable, TranslationStatus, Collection, String)}.
+	 */
+	public Optional<TranslationUnit> findUnitInSet(String compositeSetCode, String compositeLanguageCode, String conceptCode)
+			throws ServiceExceptionWithStatusCode {
+		Page<TranslationUnit> page = pageUnitsInSet(compositeSetCode, compositeLanguageCode, PageRequest.of(0, 1),
+				null, List.of(conceptCode), null);
+		if (page.isEmpty()) {
+			return Optional.empty();
+		}
+		return Optional.of(page.getContent().getFirst());
+	}
+
 	public Page<TranslationUnit> pageUnitsInSet(String compositeSetCode, String compositeLanguageCode, Pageable pageable,
 			TranslationStatus statusFilter, Collection<String> englishConceptCodes, String targetTerm)
 			throws ServiceExceptionWithStatusCode {

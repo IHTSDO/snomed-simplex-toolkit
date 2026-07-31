@@ -13,6 +13,7 @@ public record SnolateProcessingContext(
 		SnolateSetRepository snolateSetRepository,
 		SnolateTranslationSourceRepository translationSourceRepository,
 		SnolateTranslationUnitRepository translationUnitRepository,
+		SnolateTranslationUnitStore translationUnitStore,
 		SnolateTranslationSearchService translationSearchService,
 		TranslationLLMService translationLLMService,
 		Map<String, SecurityContext> userIdToContextMap,

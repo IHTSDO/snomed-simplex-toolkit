@@ -15,7 +15,6 @@ import org.snomed.simplex.util.TimerUtil;
 import org.springframework.http.HttpStatus;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -28,7 +27,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 
 	private final SnolateSetRepository snolateSetRepository;
 	private final SnolateTranslationSourceRepository translationSourceRepository;
-	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationUnitStore translationUnitStore;
 	private final SnolateTranslationSearchService translationSearchService;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final int batchSize;
@@ -38,7 +37,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		super(processingContext);
 		this.snolateSetRepository = processingContext.snolateSetRepository();
 		this.translationSourceRepository = processingContext.translationSourceRepository();
-		this.translationUnitRepository = processingContext.translationUnitRepository();
+		this.translationUnitStore = processingContext.translationUnitStore();
 		this.translationSearchService = processingContext.translationSearchService();
 		this.snowstormClientFactory = processingContext.snowstormClientFactory();
 		this.batchSize = batchSize;
@@ -118,7 +117,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 			LinkedHashSet<String> m = new LinkedHashSet<>(u.getMemberOf());
 			if (m.remove(compositeSetCode)) {
 				u.setMemberOf(m);
-				translationUnitRepository.save(u);
+				translationUnitStore.save(u);
 			}
 		});
 		snolateSetRepository.delete(translationSet);
@@ -301,9 +300,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 			int end = Math.min(i + ELASTIC_IO_CHUNK_SIZE, rows.size());
 			List<TranslationSource> srcChunk = rows.subList(i, end);
 			List<String> chunkCodes = srcChunk.stream().map(TranslationSource::getCode).toList();
-			List<TranslationUnit> existingBatch = translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(compositeLang, chunkCodes);
-			Map<String, TranslationUnit> byCode = existingBatch.stream()
-					.collect(Collectors.toMap(TranslationUnit::getCode, Function.identity(), (a, b) -> a));
+			Map<String, TranslationUnit> byCode = translationUnitStore.loadByCodes(compositeLang, chunkCodes);
 
 			List<TranslationUnit> toSave = new ArrayList<>(srcChunk.size());
 			for (TranslationSource src : srcChunk) {
@@ -321,10 +318,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 				}
 				toSave.add(u);
 			}
-			for (int s = 0; s < toSave.size(); s += ELASTIC_IO_CHUNK_SIZE) {
-				int sEnd = Math.min(s + ELASTIC_IO_CHUNK_SIZE, toSave.size());
-				translationUnitRepository.saveAll(toSave.subList(s, sEnd));
-			}
+			translationUnitStore.saveAll(toSave);
 		}
 
 		codes.clear();
@@ -336,15 +330,20 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		String compositeSetCode = translationSet.getCompositeSetCode();
 		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
 		logger.info("Removing Snolate set membership:{} from {} concept IDs", compositeSetCode, codes.size());
+		Map<String, TranslationUnit> byCode = translationUnitStore.loadByCodes(compositeLang, codes);
+		List<TranslationUnit> toSave = new ArrayList<>();
 		for (String code : codes) {
-			translationUnitRepository.findByCodeAndCompositeLanguageCode(code, compositeLang).ifPresent(u -> {
-				LinkedHashSet<String> m = new LinkedHashSet<>(u.getMemberOf());
-				if (m.remove(compositeSetCode)) {
-					u.setMemberOf(m);
-					translationUnitRepository.save(u);
-				}
-			});
+			TranslationUnit u = byCode.get(code);
+			if (u == null) {
+				continue;
+			}
+			LinkedHashSet<String> m = new LinkedHashSet<>(u.getMemberOf());
+			if (m.remove(compositeSetCode)) {
+				u.setMemberOf(m);
+				toSave.add(u);
+			}
 		}
+		translationUnitStore.saveAll(toSave);
 		logger.info("Removed Snolate set membership batch");
 		codes.clear();
 		timerUtil.checkpoint("Removed membership batch");

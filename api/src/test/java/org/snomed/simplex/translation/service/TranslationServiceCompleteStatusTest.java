@@ -13,12 +13,13 @@ import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
-import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,7 +48,7 @@ class TranslationServiceCompleteStatusTest {
 	@Mock
 	private TranslationMergeService translationMergeService;
 	@Mock
-	private SnolateTranslationUnitRepository translationUnitRepository;
+	private SnolateTranslationUnitStore translationUnitStore;
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
 
@@ -57,7 +58,7 @@ class TranslationServiceCompleteStatusTest {
 	@BeforeEach
 	void setUp() {
 		translationService = new TranslationService(refsetService, snowstormClientFactory, authoringServicesClient,
-				translationMergeService, translationUnitRepository, translationSearchService);
+				translationMergeService, translationUnitStore, translationSearchService);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
 		translationSet.setLanguageCode(LANG);
@@ -79,10 +80,9 @@ class TranslationServiceCompleteStatusTest {
 		invokeMarkPulledUnitsComplete(translationSet);
 
 		@SuppressWarnings("unchecked")
-		ArgumentCaptor<Iterable<TranslationUnit>> captor = ArgumentCaptor.forClass(Iterable.class);
-		verify(translationUnitRepository).saveAll(captor.capture());
-		List<TranslationUnit> saved = new ArrayList<>();
-		captor.getValue().forEach(saved::add);
+		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
+		verify(translationUnitStore).saveAll(captor.capture());
+		List<TranslationUnit> saved = new ArrayList<>(captor.getValue());
 		assertThat(saved).hasSize(1);
 		assertThat(saved.get(0).getCode()).isEqualTo("100");
 		assertThat(saved.get(0).getStatus()).isEqualTo(TranslationStatus.COMPLETE);
@@ -115,10 +115,9 @@ class TranslationServiceCompleteStatusTest {
 		invokeMarkSnowstormMatchingUnitsComplete(COMPOSITE, snowstormState);
 
 		@SuppressWarnings("unchecked")
-		ArgumentCaptor<Iterable<TranslationUnit>> captor = ArgumentCaptor.forClass(Iterable.class);
-		verify(translationUnitRepository).saveAll(captor.capture());
-		List<TranslationUnit> saved = new ArrayList<>();
-		captor.getValue().forEach(saved::add);
+		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
+		verify(translationUnitStore).saveAll(captor.capture());
+		List<TranslationUnit> saved = new ArrayList<>(captor.getValue());
 		assertThat(saved).extracting(TranslationUnit::getCode).containsExactlyInAnyOrder("100", "200");
 		assertThat(saved).allMatch(u -> u.getStatus() == TranslationStatus.COMPLETE);
 		assertThat(needsEditMatch.getStatus()).isEqualTo(TranslationStatus.NEEDS_EDIT);

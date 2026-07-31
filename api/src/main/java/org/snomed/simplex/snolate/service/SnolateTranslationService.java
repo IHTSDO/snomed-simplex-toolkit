@@ -16,7 +16,7 @@ import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
-import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -48,15 +48,16 @@ public class SnolateTranslationService {
 			TranslationStatus.FOR_REVIEW,
 			TranslationStatus.APPROVED);
 
-	private final SnolateTranslationUnitRepository translationUnitRepository;
 	private final SnolateTranslationSourceRepository translationSourceRepository;
 	private final SnolateTranslationSearchService translationSearchService;
+	private final SnolateTranslationUnitStore translationUnitStore;
 
-	public SnolateTranslationService(SnolateTranslationUnitRepository translationUnitRepository,
-			SnolateTranslationSourceRepository translationSourceRepository, SnolateTranslationSearchService translationSearchService) {
-		this.translationUnitRepository = translationUnitRepository;
+	public SnolateTranslationService(SnolateTranslationSourceRepository translationSourceRepository,
+			SnolateTranslationSearchService translationSearchService,
+			SnolateTranslationUnitStore translationUnitStore) {
 		this.translationSourceRepository = translationSourceRepository;
 		this.translationSearchService = translationSearchService;
+		this.translationUnitStore = translationUnitStore;
 	}
 
 	public void applyDashboardMetadata(SnolateTranslationSet set) {
@@ -179,8 +180,8 @@ public class SnolateTranslationService {
 	public TranslationUnitRow getSampleRow(SnolateTranslationSet translationSet, String conceptId) throws ServiceExceptionWithStatusCode {
 		String setCode = translationSet.getCompositeSetCode();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
-		Optional<TranslationUnit> tuOpt = translationUnitRepository.findByCodeAndCompositeLanguageCode(conceptId, lang);
-		if (tuOpt.isEmpty() || !tuOpt.get().getMemberOf().contains(setCode)) {
+		Optional<TranslationUnit> tuOpt = translationSearchService.findUnitInSet(setCode, lang, conceptId);
+		if (tuOpt.isEmpty()) {
 			return null;
 		}
 		TranslationUnit tu = tuOpt.get();
@@ -203,8 +204,8 @@ public class SnolateTranslationService {
 			TranslationStatus status) throws ServiceExceptionWithStatusCode {
 		String setCode = translationSet.getCompositeSetCode();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
-		Optional<TranslationUnit> tuOpt = translationUnitRepository.findByCodeAndCompositeLanguageCode(conceptId, lang);
-		if (tuOpt.isEmpty() || !tuOpt.get().getMemberOf().contains(setCode)) {
+		Optional<TranslationUnit> tuOpt = translationSearchService.findUnitInSet(setCode, lang, conceptId);
+		if (tuOpt.isEmpty()) {
 			throw new ServiceExceptionWithStatusCode("Translation unit not found in this set.", HttpStatus.NOT_FOUND);
 		}
 		applyTermsAndStatusToUnit(tuOpt.get(), rawTerms, status);
@@ -228,7 +229,7 @@ public class SnolateTranslationService {
 		unit.setTerms(terms);
 		unit.setStatus(status);
 		unit.setAiSuggestions(new ArrayList<>());
-		translationUnitRepository.save(unit);
+		translationUnitStore.save(unit);
 	}
 
 	private static List<String> normalizeTranslationTerms(List<String> rawTerms) {
@@ -392,7 +393,7 @@ public class SnolateTranslationService {
 		List<String> rowFields;
 		while (!(rowFields = CsvParser.readRow(reader, columns.delimiter())).isEmpty()) {
 			processImportRow(rowFields, columns, (conceptCode, terms) -> {
-				Optional<TranslationUnit> tuOpt = translationUnitRepository.findByCodeAndCompositeLanguageCode(conceptCode, lang);
+				Optional<TranslationUnit> tuOpt = translationUnitStore.loadByCode(lang, conceptCode);
 				if (tuOpt.isEmpty()) {
 					changeSummary.incrementSkippedNotFound();
 					logger.debug("Skipping concept {} not found for language {}", conceptCode, lang);
@@ -421,8 +422,7 @@ public class SnolateTranslationService {
 		List<String> rowFields;
 		while (!(rowFields = CsvParser.readRow(reader, columns.delimiter())).isEmpty()) {
 			processImportRow(rowFields, columns, (conceptCode, terms) -> {
-				Optional<TranslationUnit> tuOpt = translationUnitRepository.findByCodeAndCompositeLanguageCode(
-						conceptCode, compositeLanguageCode);
+				Optional<TranslationUnit> tuOpt = translationUnitStore.loadByCode(compositeLanguageCode, conceptCode);
 				if (tuOpt.isEmpty()) {
 					changeSummary.incrementSkippedNotFound();
 					logger.debug("Skipping concept {} not found for language {}", conceptCode, compositeLanguageCode);

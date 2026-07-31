@@ -23,7 +23,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 	/** Chunk size for Elasticsearch batch reads in {@link #loadSourcesByCodes}. */
 	private static final int ELASTIC_IO_CHUNK_SIZE = 1_000;
 	private final TranslationLLMService translationLLMService;
-	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationUnitStore translationUnitStore;
 	private final SnolateTranslationSourceRepository translationSourceRepository;
 	private final SnolateTranslationSearchService translationSearchService;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -31,7 +31,7 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 	public SnolateBatchTranslationService(SnolateProcessingContext processingContext) {
 		super(processingContext);
 		this.translationLLMService = processingContext.translationLLMService();
-		this.translationUnitRepository = processingContext.translationUnitRepository();
+		this.translationUnitStore = processingContext.translationUnitStore();
 		this.translationSourceRepository = processingContext.translationSourceRepository();
 		this.translationSearchService = processingContext.translationSearchService();
 	}
@@ -86,6 +86,9 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 
 	private void persistSuggestions(SnolateTranslationSet translationSet, List<TranslationUnit> batchUnits,
 			Map<String, TranslationSource> sourcesByCode, Map<String, List<String>> suggestions, String lang, String setCode) {
+		List<String> codes = batchUnits.stream().map(TranslationUnit::getCode).toList();
+		Map<String, TranslationUnit> byCode = translationUnitStore.loadByCodes(lang, codes);
+		List<TranslationUnit> toSave = new ArrayList<>();
 		for (TranslationUnit unit : batchUnits) {
 			TranslationSource src = sourcesByCode.get(unit.getCode());
 			if (src == null) {
@@ -96,19 +99,19 @@ public class SnolateBatchTranslationService extends AbstractSnolateSetProcessing
 				continue;
 			}
 			String suggestion = sug.get(0);
-			Optional<TranslationUnit> opt = translationUnitRepository.findByCodeAndCompositeLanguageCode(src.getCode(), lang);
-			if (opt.isPresent()) {
-				TranslationUnit u = opt.get();
+			TranslationUnit u = byCode.get(src.getCode());
+			if (u != null) {
 				u.setAiSuggestions(new ArrayList<>(List.of(suggestion)));
-				translationUnitRepository.save(u);
+				toSave.add(u);
 			} else {
-				TranslationUnit u = new TranslationUnit(
+				u = new TranslationUnit(
 						new TranslationUnit.MembershipKey(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(), lang, src.getOrder()),
 						new ArrayList<>(), TranslationStatus.NOT_STARTED, new LinkedHashSet<>(List.of(setCode)));
 				u.setAiSuggestions(new ArrayList<>(List.of(suggestion)));
-				translationUnitRepository.save(u);
+				toSave.add(u);
 			}
 		}
+		translationUnitStore.saveAll(toSave);
 	}
 
 	static BatchTranslationPrompt buildBatchPrompt(List<TranslationUnit> batchUnits,

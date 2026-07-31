@@ -9,13 +9,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
-import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.TranslationSourceType;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -36,7 +38,7 @@ class SnolateTranslationSourceTest {
 	private static final String COMPOSITE = LANG + "-" + REFSET;
 
 	@Mock
-	private SnolateTranslationUnitRepository translationUnitRepository;
+	private SnolateTranslationUnitStore translationUnitStore;
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
 
@@ -44,7 +46,7 @@ class SnolateTranslationSourceTest {
 
 	@BeforeEach
 	void setUp() {
-		source = new SnolateTranslationSource(translationUnitRepository, translationSearchService, LANG, REFSET);
+		source = new SnolateTranslationSource(translationUnitStore, translationSearchService, LANG, REFSET);
 	}
 
 	@Test
@@ -77,12 +79,15 @@ class SnolateTranslationSourceTest {
 	void writeTranslation_createsAndMergesAdditions() throws Exception {
 		TranslationUnit existing = new TranslationUnit(
 				new TranslationUnit.MembershipKey("200", REFSET, LANG, COMPOSITE, 0), List.of("existing"), TranslationStatus.NEEDS_EDIT, Set.of());
-		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(eq(COMPOSITE), any()))
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), any()))
 				.thenAnswer(invocation -> {
-					Collection<String> codes = invocation.getArgument(1);
-					List<TranslationUnit> found = new ArrayList<>();
-					if (codes.contains("200")) {
-						found.add(existing);
+					@SuppressWarnings("unchecked")
+					Iterable<String> codes = invocation.getArgument(1);
+					Map<String, TranslationUnit> found = new HashMap<>();
+					for (String code : codes) {
+						if ("200".equals(code)) {
+							found.put("200", existing);
+						}
 					}
 					return found;
 				});
@@ -94,10 +99,9 @@ class SnolateTranslationSourceTest {
 
 		assertThat(existing.getTerms()).containsExactly("existing", "extra");
 		@SuppressWarnings("unchecked")
-		ArgumentCaptor<Iterable<TranslationUnit>> captor = ArgumentCaptor.forClass(Iterable.class);
-		verify(translationUnitRepository, times(1)).saveAll(captor.capture());
-		List<TranslationUnit> saved = new ArrayList<>();
-		captor.getValue().forEach(saved::add);
+		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
+		verify(translationUnitStore, times(1)).saveAll(captor.capture());
+		List<TranslationUnit> saved = new ArrayList<>(captor.getValue());
 		TranslationUnit created = saved.stream().filter(u -> "201".equals(u.getCode())).findFirst().orElseThrow();
 		assertThat(created.getTerms()).containsExactly("only");
 		assertThat(created.getStatus()).isEqualTo(TranslationStatus.APPROVED);

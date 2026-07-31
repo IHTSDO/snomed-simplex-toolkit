@@ -15,7 +15,7 @@ import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
-import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -36,7 +37,7 @@ class SnolateTranslationServiceSearchTest {
 	private static final String REFSET = "1000123";
 
 	@Mock
-	private SnolateTranslationUnitRepository translationUnitRepository;
+	private SnolateTranslationUnitStore translationUnitStore;
 	@Mock
 	private SnolateTranslationSourceRepository translationSourceRepository;
 	@Mock
@@ -47,8 +48,7 @@ class SnolateTranslationServiceSearchTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new SnolateTranslationService(translationUnitRepository, translationSourceRepository,
-				translationSearchService);
+		service = new SnolateTranslationService(translationSourceRepository, translationSearchService, translationUnitStore);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
 		translationSet.setLanguageCode(LANG);
@@ -155,6 +155,44 @@ class SnolateTranslationServiceSearchTest {
 		service.getRows(translationSet, 0, 25, TranslationStatus.APPROVED, null, "asma");
 
 		assertThat(englishCodesCaptor.getValue()).isNull();
+	}
+
+	@Test
+	void getSampleRow_usesSetScopedSearch() throws ServiceExceptionWithStatusCode {
+		TranslationUnit unit = unit("63161005", List.of());
+		when(translationSearchService.findUnitInSet(eq(translationSet.getCompositeSetCode()),
+				eq(translationSet.getLanguageCodeWithRefsetId()), eq("63161005")))
+				.thenReturn(Optional.of(unit));
+		when(translationSourceRepository.findById("63161005"))
+				.thenReturn(Optional.of(new TranslationSource("63161005", "Principal", 0)));
+
+		TranslationUnitRow row = service.getSampleRow(translationSet, "63161005");
+
+		assertThat(row).isNotNull();
+		assertThat(row.getContext()).isEqualTo("63161005");
+		assertThat(row.getSource()).containsExactly("Principal");
+	}
+
+	@Test
+	void getSampleRow_returnsNullWhenNotInSet() throws ServiceExceptionWithStatusCode {
+		when(translationSearchService.findUnitInSet(eq(translationSet.getCompositeSetCode()),
+				eq(translationSet.getLanguageCodeWithRefsetId()), eq("999")))
+				.thenReturn(Optional.empty());
+
+		assertThat(service.getSampleRow(translationSet, "999")).isNull();
+	}
+
+	@Test
+	void updateTranslationUnit_usesSetScopedSearch() throws ServiceExceptionWithStatusCode {
+		TranslationUnit unit = unit("63161005", List.of());
+		when(translationSearchService.findUnitInSet(eq(translationSet.getCompositeSetCode()),
+				eq(translationSet.getLanguageCodeWithRefsetId()), eq("63161005")))
+				.thenReturn(Optional.of(unit));
+
+		service.updateTranslationUnit(translationSet, "63161005", List.of("hoofd"), TranslationStatus.APPROVED);
+
+		verify(translationUnitStore).save(unit);
+		assertThat(unit.getTerms()).containsExactly("hoofd");
 	}
 
 	private static TranslationUnit unit(String code, List<String> terms) {

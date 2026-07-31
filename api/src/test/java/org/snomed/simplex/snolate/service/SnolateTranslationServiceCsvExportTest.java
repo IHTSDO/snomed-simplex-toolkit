@@ -13,7 +13,7 @@ import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
-import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.data.domain.Sort;
 
@@ -34,19 +34,19 @@ class SnolateTranslationServiceCsvExportTest {
 	private static final String REFSET = "1000123";
 
 	@Mock
-	private SnolateTranslationUnitRepository translationUnitRepository;
-	@Mock
 	private SnolateTranslationSourceRepository translationSourceRepository;
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
+	@Mock
+	private SnolateTranslationUnitStore translationUnitStore;
 
 	private SnolateTranslationService service;
 	private SnolateTranslationSet translationSet;
 
 	@BeforeEach
 	void setUp() {
-		service = new SnolateTranslationService(translationUnitRepository, translationSourceRepository,
-				translationSearchService);
+		service = new SnolateTranslationService(translationSourceRepository,
+				translationSearchService, translationUnitStore);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
 		translationSet.setLanguageCode(LANG);

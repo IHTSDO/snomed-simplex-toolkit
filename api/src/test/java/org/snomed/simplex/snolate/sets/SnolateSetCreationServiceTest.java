@@ -17,6 +17,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,11 +43,12 @@ class SnolateSetCreationServiceTest {
 		SnolateSetRepository snolateSetRepository = mock();
 		SnolateTranslationSourceRepository translationSourceRepository = mock();
 		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationUnitStore translationUnitStore = mock();
 		SnolateTranslationSearchService translationSearchService = mock();
 		SnowstormClientFactory snowstormClientFactory = mock();
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, translationUnitRepository, translationSearchService, mock(TranslationLLMService.class),
+				translationSourceRepository, translationUnitRepository, translationUnitStore, translationSearchService, mock(TranslationLLMService.class),
 				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 
 		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 2) {
@@ -92,7 +94,7 @@ class SnolateSetCreationServiceTest {
 			return out;
 		});
 
-		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(any(), any())).thenReturn(List.of());
+		when(translationUnitStore.loadByCodes(any(), any())).thenReturn(Map.of());
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-XS", "100", "Subset", "my-label", "<<404684003", TranslationSubsetType.ECL, "SNOMEDCT-XS");
 		set.setLanguageCode("en");
@@ -100,7 +102,7 @@ class SnolateSetCreationServiceTest {
 		service.doCreateSet(set, snowstormClientFactory);
 
 		String composite = "XS_100_my-label";
-		verify(translationUnitRepository, atLeastOnce()).saveAll(any());
+		verify(translationUnitStore, atLeastOnce()).saveAll(any());
 		verify(snolateSetRepository, atLeastOnce()).save(any(SnolateTranslationSet.class));
 	}
 
@@ -109,11 +111,12 @@ class SnolateSetCreationServiceTest {
 		SnolateSetRepository snolateSetRepository = mock();
 		SnolateTranslationSourceRepository translationSourceRepository = mock();
 		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationUnitStore translationUnitStore = mock();
 		SnolateTranslationSearchService translationSearchService = mock();
 		SnowstormClientFactory snowstormClientFactory = mock();
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, translationUnitRepository, translationSearchService, mock(TranslationLLMService.class),
+				translationSourceRepository, translationUnitRepository, translationUnitStore, translationSearchService, mock(TranslationLLMService.class),
 				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 
 		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 10) {
@@ -152,7 +155,7 @@ class SnolateSetCreationServiceTest {
 			}
 			return out;
 		});
-		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(any(), any())).thenReturn(List.of());
+		when(translationUnitStore.loadByCodes(any(), any())).thenReturn(Map.of());
 		when(translationSearchService.countUnitsInSet("XS_100_my-label", "en-100")).thenReturn(2L);
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-XS", "100", "Subset", "my-label", "<<404684003", TranslationSubsetType.ECL, "SNOMEDCT-XS");
@@ -168,11 +171,12 @@ class SnolateSetCreationServiceTest {
 		SnolateSetRepository snolateSetRepository = mock();
 		SnolateTranslationSourceRepository translationSourceRepository = mock();
 		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationUnitStore translationUnitStore = mock();
 		SnolateTranslationSearchService translationSearchService = mock();
 		SnowstormClientFactory snowstormClientFactory = mock();
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, translationUnitRepository, translationSearchService, mock(TranslationLLMService.class),
+				translationSourceRepository, translationUnitRepository, translationUnitStore, translationSearchService, mock(TranslationLLMService.class),
 				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 
 		String composite = "ZS_200_z";
@@ -211,8 +215,18 @@ class SnolateSetCreationServiceTest {
 		};
 
 		when(translationSourceRepository.findAllById(any())).thenReturn(List.of());
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("1", lang)).thenReturn(Optional.of(hadOnly));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("2", lang)).thenReturn(Optional.of(stays));
+		when(translationUnitStore.loadByCodes(eq(lang), any())).thenAnswer(inv -> {
+			@SuppressWarnings("unchecked")
+			Collection<String> codes = inv.getArgument(1);
+			Map<String, TranslationUnit> map = new HashMap<>();
+			if (codes.contains("1")) {
+				map.put("1", hadOnly);
+			}
+			if (codes.contains("2")) {
+				map.put("2", stays);
+			}
+			return map;
+		});
 		when(translationSearchService.countUnitsInSet(composite, lang)).thenReturn(1L);
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-ZS", "200", "Z", "z", "*", TranslationSubsetType.ECL, "SNOMEDCT-ZS");
@@ -228,11 +242,12 @@ class SnolateSetCreationServiceTest {
 		SnolateSetRepository snolateSetRepository = mock();
 		SnolateTranslationSourceRepository translationSourceRepository = mock();
 		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationUnitStore translationUnitStore = mock();
 		SnolateTranslationSearchService translationSearchService = mock();
 		SnowstormClientFactory snowstormClientFactory = mock();
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, translationUnitRepository, translationSearchService, mock(TranslationLLMService.class),
+				translationSourceRepository, translationUnitRepository, translationUnitStore, translationSearchService, mock(TranslationLLMService.class),
 				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 
 		String composite = "ZS_200_z";
@@ -285,9 +300,18 @@ class SnolateSetCreationServiceTest {
 			return out;
 		});
 
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("1", lang)).thenReturn(Optional.of(hadOnly));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("2", lang)).thenReturn(Optional.of(stays));
-		when(translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(eq(lang), any())).thenReturn(List.of());
+		when(translationUnitStore.loadByCodes(eq(lang), any())).thenAnswer(inv -> {
+			@SuppressWarnings("unchecked")
+			Collection<String> codes = inv.getArgument(1);
+			Map<String, TranslationUnit> map = new HashMap<>();
+			if (codes.contains("1")) {
+				map.put("1", hadOnly);
+			}
+			if (codes.contains("2")) {
+				map.put("2", stays);
+			}
+			return map;
+		});
 		when(translationSearchService.countUnitsInSet(composite, lang)).thenReturn(2L);
 
 		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-ZS", "200", "Z", "z", "*", TranslationSubsetType.ECL, "SNOMEDCT-ZS");
@@ -298,7 +322,7 @@ class SnolateSetCreationServiceTest {
 		assertThat(hadOnly.getMemberOf()).doesNotContain(composite);
 		assertThat(stays.getMemberOf()).contains(composite);
 		assertThat(willGain).isNotNull();
-		verify(translationUnitRepository, atLeastOnce()).saveAll(any());
+		verify(translationUnitStore, atLeastOnce()).saveAll(any());
 	}
 
 	@Test
@@ -316,7 +340,7 @@ class SnolateSetCreationServiceTest {
 		when(snowstormClient.getCodeSystemOrThrow("SNOMEDCT-TEST")).thenReturn(codeSystem);
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				mock(), mock(), mock(), mock(TranslationLLMService.class),
+				mock(), mock(), mock(), mock(), mock(TranslationLLMService.class),
 				new HashMap<>(), jmsTemplate, "test-queue", new ObjectMapper());
 		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 10);
 
@@ -340,7 +364,7 @@ class SnolateSetCreationServiceTest {
 	void refreshSetForUpgrade_rejectsBusySet() {
 		SnolateSetRepository snolateSetRepository = mock();
 		SnolateProcessingContext ctx = new SnolateProcessingContext(mock(), snolateSetRepository,
-				mock(), mock(), mock(), mock(TranslationLLMService.class),
+				mock(), mock(), mock(), mock(), mock(TranslationLLMService.class),
 				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 10);
 
@@ -357,11 +381,12 @@ class SnolateSetCreationServiceTest {
 		SnolateSetRepository snolateSetRepository = mock();
 		SnolateTranslationSourceRepository translationSourceRepository = mock();
 		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationUnitStore translationUnitStore = mock();
 		SnolateTranslationSearchService translationSearchService = mock();
 		SnowstormClientFactory snowstormClientFactory = mock();
 
 		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, translationUnitRepository, translationSearchService, mock(TranslationLLMService.class),
+				translationSourceRepository, translationUnitRepository, translationUnitStore, translationSearchService, mock(TranslationLLMService.class),
 				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
 
 		String composite = "ZS_200_z";

@@ -46,7 +46,7 @@ class SnolateSetServiceTest {
 		when(snowstormClientFactory.getClient()).thenReturn(snowstormClient);
 
 		snolateSetService = new SnolateSetService(snolateSetRepository, snolateSetRefsetCache, snowstormClientFactory,
-				mock(), mock(), translationSearchService, mock(TranslationLLMService.class), mock(SupportRegister.class),
+				mock(), mock(), mock(), translationSearchService, mock(TranslationLLMService.class), mock(SupportRegister.class),
 				mock(JmsTemplate.class), "test", 10, new ObjectMapper());
 	}
 

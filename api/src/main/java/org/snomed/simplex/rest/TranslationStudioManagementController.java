@@ -4,9 +4,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.RepairTranslationSetSizesResponse;
+import org.snomed.simplex.rest.pojos.RepairTranslationUnitIdsResponse;
 import org.snomed.simplex.rest.pojos.TranslationToolUpdatePlan;
 import org.snomed.simplex.snolate.service.SnolateSnomedUpgradeService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitMigrationService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,11 +22,14 @@ public class TranslationStudioManagementController {
 
 	private final SnolateSnomedUpgradeService snolateSnomedUpgradeService;
 	private final SnolateSetService snolateSetService;
+	private final SnolateTranslationUnitMigrationService translationUnitMigrationService;
 
 	public TranslationStudioManagementController(SnolateSnomedUpgradeService snolateSnomedUpgradeService,
-			SnolateSetService snolateSetService) {
+			SnolateSetService snolateSetService,
+			SnolateTranslationUnitMigrationService translationUnitMigrationService) {
 		this.snolateSnomedUpgradeService = snolateSnomedUpgradeService;
 		this.snolateSetService = snolateSetService;
+		this.translationUnitMigrationService = translationUnitMigrationService;
 	}
 
 	@PostMapping("snomed-initialise")
@@ -45,5 +50,14 @@ public class TranslationStudioManagementController {
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public RepairTranslationSetSizesResponse repairSetSizes(@RequestParam(required = false) String codeSystem) {
 		return snolateSetService.repairSetSizes(codeSystem);
+	}
+
+	@PostMapping("repair-translation-unit-ids")
+	@Operation(summary = "Merge duplicate translation units and re-key documents to canonical Elasticsearch ids.",
+			description = "Run once per environment after deploy, before relying on canonical-id write paths. "
+					+ "Optionally scope to one CodeSystem.")
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public RepairTranslationUnitIdsResponse repairTranslationUnitIds(@RequestParam(required = false) String codeSystem) {
+		return translationUnitMigrationService.repairTranslationUnitIds(codeSystem);
 	}
 }

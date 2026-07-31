@@ -88,6 +88,17 @@ public class TranslationUnit {
 		this.memberOf = new ArrayList<>();
 	}
 
+	public static String canonicalDocumentId(String compositeLanguageCode, String code) {
+		return compositeLanguageCode + "_" + code;
+	}
+
+	public void prepareForPersistence() {
+		if (code != null && compositeLanguageCode != null) {
+			this.id = canonicalDocumentId(compositeLanguageCode, code);
+		}
+		TranslationStatuses.applySortOrdinal(this);
+	}
+
 	public static TranslationUnit shellMember(String code, String refsetId, String languageCode, String compositeLanguageCode,
 			int sourceOrder, String compositeSetCode) {
 		TranslationUnit u = new TranslationUnit();

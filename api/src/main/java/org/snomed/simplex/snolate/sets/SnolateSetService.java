@@ -59,6 +59,7 @@ public class SnolateSetService {
 	public SnolateSetService(SnolateSetRepository snolateSetRepository, SnolateSetRefsetCache snolateSetRefsetCache,
 			SnowstormClientFactory snowstormClientFactory,
 			SnolateTranslationSourceRepository translationSourceRepository, SnolateTranslationUnitRepository translationUnitRepository,
+			SnolateTranslationUnitStore translationUnitStore,
 			SnolateTranslationSearchService translationSearchService, TranslationLLMService translationLLMService, SupportRegister supportRegister,
 			JmsTemplate jmsTemplate, @Value("${jms.queue.prefix}") String jmsQueuePrefix,
 			@Value("${snolate.label.batch-size}") int labelBatchSize, ObjectMapper objectMapper) {
@@ -72,7 +73,7 @@ public class SnolateSetService {
 
 		String queueName = jmsQueuePrefix + ".snolate-translation-set.processing";
 		SnolateProcessingContext processingContext = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
-				translationSourceRepository, translationUnitRepository, translationSearchService, translationLLMService, userIdToContextMap, jmsTemplate,
+				translationSourceRepository, translationUnitRepository, translationUnitStore, translationSearchService, translationLLMService, userIdToContextMap, jmsTemplate,
 				queueName, objectMapper);
 		creationService = new SnolateSetCreationService(processingContext, labelBatchSize);
 		batchTranslationService = new SnolateBatchTranslationService(processingContext);

@@ -8,6 +8,7 @@ import org.snomed.simplex.snolate.sets.LanguageTranslationPolicyRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration;
@@ -39,6 +40,11 @@ public class TestConfig extends ApplicationConfig {
 	@Bean
 	public SnolateTranslationUnitRepository snolateTranslationUnitRepository() {
 		return mock(SnolateTranslationUnitRepository.class);
+	}
+
+	@Bean
+	public SnolateTranslationUnitStore snolateTranslationUnitStore(SnolateTranslationUnitRepository snolateTranslationUnitRepository) {
+		return new SnolateTranslationUnitStore(snolateTranslationUnitRepository);
 	}
 
 	@Bean

@@ -13,7 +13,7 @@ import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
-import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.util.CsvParser;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 
@@ -39,7 +39,7 @@ class SnolateTranslationServiceCsvImportTest {
 	private static final String COMPOSITE = LANG + "-" + REFSET;
 
 	@Mock
-	private SnolateTranslationUnitRepository translationUnitRepository;
+	private SnolateTranslationUnitStore translationUnitStore;
 	@Mock
 	private SnolateTranslationSourceRepository translationSourceRepository;
 	@Mock
@@ -50,8 +50,7 @@ class SnolateTranslationServiceCsvImportTest {
 
 	@BeforeEach
 	void setUp() {
-		service = new SnolateTranslationService(translationUnitRepository, translationSourceRepository,
-				translationSearchService);
+		service = new SnolateTranslationService(translationSourceRepository, translationSearchService, translationUnitStore);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
 		translationSet.setLanguageCode(LANG);
@@ -79,7 +78,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_importsTranslationStudioExportFormat() throws Exception {
 		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
+		when(translationUnitStore.loadByCode(COMPOSITE, "100"))
 				.thenReturn(Optional.of(unit));
 
 		String csv = """
@@ -96,13 +95,13 @@ class SnolateTranslationServiceCsvImportTest {
 		assertThat(summary.getUpdated()).isEqualTo(1);
 		assertThat(unit.getTerms()).containsExactly("asma", "asma crónica");
 		assertThat(unit.getStatus()).isEqualTo(TranslationStatus.FOR_REVIEW);
-		verify(translationUnitRepository).save(unit);
+		verify(translationUnitStore).save(unit);
 	}
 
 	@Test
 	void importTranslationSetCsv_importsLegacyContextTargetFormat() throws Exception {
 		TranslationUnit unit = unit("200", List.of(), TranslationStatus.NOT_STARTED);
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("200", COMPOSITE))
+		when(translationUnitStore.loadByCode(COMPOSITE, "200"))
 				.thenReturn(Optional.of(unit));
 
 		String csv = """
@@ -124,7 +123,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_importsTabSeparatedLegacyFormat() throws Exception {
 		TranslationUnit unit = unit("200", List.of(), TranslationStatus.NOT_STARTED);
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("200", COMPOSITE))
+		when(translationUnitStore.loadByCode(COMPOSITE, "200"))
 				.thenReturn(Optional.of(unit));
 
 		String csv = "context\ttarget\n200\tasma\n";
@@ -142,7 +141,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_importsSemicolonSeparatedTranslationStudioFormat() throws Exception {
 		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
+		when(translationUnitStore.loadByCode(COMPOSITE, "100"))
 				.thenReturn(Optional.of(unit));
 
 		String csv = """
@@ -162,7 +161,7 @@ class SnolateTranslationServiceCsvImportTest {
 
 	@Test
 	void importTranslationSetCsv_skipsUnknownConceptCodes() throws Exception {
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("999", COMPOSITE))
+		when(translationUnitStore.loadByCode(COMPOSITE, "999"))
 				.thenReturn(Optional.empty());
 
 		String csv = """
@@ -183,7 +182,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_skipsConceptOutsideSetWhenSkipBehavior() throws Exception {
 		TranslationUnit unit = unitOutsideSet("300", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("300", COMPOSITE))
+		when(translationUnitStore.loadByCode(COMPOSITE, "300"))
 				.thenReturn(Optional.of(unit));
 
 		String csv = """
@@ -205,7 +204,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_updatesConceptOutsideSetWhenUpdateBehavior() throws Exception {
 		TranslationUnit unit = unitOutsideSet("300", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("300", COMPOSITE))
+		when(translationUnitStore.loadByCode(COMPOSITE, "300"))
 				.thenReturn(Optional.of(unit));
 
 		String csv = """
@@ -223,7 +222,7 @@ class SnolateTranslationServiceCsvImportTest {
 		assertThat(summary.getUpdated()).isEqualTo(1);
 		assertThat(unit.getTerms()).containsExactly("asma");
 		assertThat(unit.getMemberOf()).doesNotContain(translationSet.getCompositeSetCode());
-		verify(translationUnitRepository).save(unit);
+		verify(translationUnitStore).save(unit);
 	}
 
 	@Test
@@ -247,7 +246,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationLanguageCsv_updatesExistingTranslationUnit() throws Exception {
 		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
+		when(translationUnitStore.loadByCode(COMPOSITE, "100"))
 				.thenReturn(Optional.of(unit));
 
 		CodeSystem codeSystem = new CodeSystem("SNOMEDCT-TEST", "TEST", "");
@@ -268,12 +267,12 @@ class SnolateTranslationServiceCsvImportTest {
 
 		assertThat(summary.getUpdated()).isEqualTo(1);
 		assertThat(unit.getTerms()).containsExactly("asma");
-		verify(translationUnitRepository).save(unit);
+		verify(translationUnitStore).save(unit);
 	}
 
 	@Test
 	void importTranslationLanguageCsv_recordsSkippedNotFound() throws Exception {
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("999", COMPOSITE))
+		when(translationUnitStore.loadByCode(COMPOSITE, "999"))
 				.thenReturn(Optional.empty());
 
 		CodeSystem codeSystem = new CodeSystem("SNOMEDCT-TEST", "TEST", "");

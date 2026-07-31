@@ -6,7 +6,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
-import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.TranslationSource;
 import org.snomed.simplex.translation.service.TranslationSourceType;
@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Snolate persistence backing for {@link TranslationSource}. Maps {@link TranslationUnit} documents to
@@ -31,15 +29,15 @@ public class SnolateTranslationSource implements TranslationSource {
 	private static final int WRITE_LOAD_BATCH_SIZE = 500;
 	private static final int WRITE_SAVE_BATCH_SIZE = 5_000;
 
-	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationUnitStore translationUnitStore;
 	private final SnolateTranslationSearchService translationSearchService;
 	private final String isoLanguageCode;
 	private final String refsetId;
 	private final String compositeLanguageCode;
 
-	public SnolateTranslationSource(SnolateTranslationUnitRepository translationUnitRepository,
+	public SnolateTranslationSource(SnolateTranslationUnitStore translationUnitStore,
 			SnolateTranslationSearchService translationSearchService, String languageCode, String refsetId) {
-		this.translationUnitRepository = translationUnitRepository;
+		this.translationUnitStore = translationUnitStore;
 		this.translationSearchService = translationSearchService;
 		this.isoLanguageCode = languageCode;
 		this.refsetId = refsetId;
@@ -79,10 +77,7 @@ public class SnolateTranslationSource implements TranslationSource {
 			int end = Math.min(i + WRITE_LOAD_BATCH_SIZE, entries.size());
 			List<Map.Entry<Long, List<String>>> chunk = entries.subList(i, end);
 			List<String> codes = chunk.stream().map(e -> e.getKey().toString()).toList();
-			List<TranslationUnit> existingBatch = translationUnitRepository.findAllByCompositeLanguageCodeAndCodeIn(
-					compositeLanguageCode, codes);
-			Map<String, TranslationUnit> byCode = existingBatch.stream()
-					.collect(Collectors.toMap(TranslationUnit::getCode, Function.identity(), (a, b) -> a));
+			Map<String, TranslationUnit> byCode = translationUnitStore.loadByCodes(compositeLanguageCode, codes);
 
 			for (Map.Entry<Long, List<String>> entry : chunk) {
 				String code = entry.getKey().toString();
@@ -102,7 +97,7 @@ public class SnolateTranslationSource implements TranslationSource {
 
 	private void flushSaveBufferIfNeeded(List<TranslationUnit> saveBuffer, AtomicInteger savedTotal) {
 		while (saveBuffer.size() >= WRITE_SAVE_BATCH_SIZE) {
-			translationUnitRepository.saveAll(saveBuffer.subList(0, WRITE_SAVE_BATCH_SIZE));
+			translationUnitStore.saveAll(saveBuffer.subList(0, WRITE_SAVE_BATCH_SIZE));
 			saveBuffer.subList(0, WRITE_SAVE_BATCH_SIZE).clear();
 			logSaveBatch(WRITE_SAVE_BATCH_SIZE, savedTotal);
 		}
@@ -111,7 +106,7 @@ public class SnolateTranslationSource implements TranslationSource {
 	private void flushSaveBufferRemainder(List<TranslationUnit> saveBuffer, AtomicInteger savedTotal) {
 		if (!saveBuffer.isEmpty()) {
 			int n = saveBuffer.size();
-			translationUnitRepository.saveAll(saveBuffer);
+			translationUnitStore.saveAll(saveBuffer);
 			logSaveBatch(n, savedTotal);
 		}
 	}

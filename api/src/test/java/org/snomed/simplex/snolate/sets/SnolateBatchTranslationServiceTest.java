@@ -45,7 +45,7 @@ class SnolateBatchTranslationServiceTest {
 	@Mock
 	private SnolateSetRepository snolateSetRepository;
 	@Mock
-	private SnolateTranslationUnitRepository translationUnitRepository;
+	private SnolateTranslationUnitStore translationUnitStore;
 	@Mock
 	private SnolateTranslationSourceRepository translationSourceRepository;
 	@Mock
@@ -62,7 +62,8 @@ class SnolateBatchTranslationServiceTest {
 				org.mockito.Mockito.mock(SnowstormClientFactory.class),
 				snolateSetRepository,
 				translationSourceRepository,
-				translationUnitRepository,
+				org.mockito.Mockito.mock(SnolateTranslationUnitRepository.class),
+				translationUnitStore,
 				translationSearchService,
 				translationLLMService,
 				new HashMap<>(),
@@ -86,14 +87,14 @@ class SnolateBatchTranslationServiceTest {
 				.thenReturn(List.of(new TranslationSource("100", "Asthma", 0)));
 		when(translationLLMService.suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class)))
 				.thenReturn(Map.of("Asthma", List.of("Asma")));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("100", COMPOSITE))
-				.thenReturn(Optional.of(emptyUnit));
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), eq(List.of("100"))))
+				.thenReturn(Map.of("100", emptyUnit));
 
 		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(1));
 
-		ArgumentCaptor<TranslationUnit> captor = ArgumentCaptor.forClass(TranslationUnit.class);
-		verify(translationUnitRepository).save(captor.capture());
-		TranslationUnit saved = captor.getValue();
+		ArgumentCaptor<List<TranslationUnit>> captor = ArgumentCaptor.forClass(List.class);
+		verify(translationUnitStore).saveAll(captor.capture());
+		TranslationUnit saved = captor.getValue().get(0);
 		assertThat(saved.getTerms()).isEmpty();
 		assertThat(saved.getAiSuggestions()).containsExactly("Asma");
 		assertThat(saved.getStatus()).isEqualTo(TranslationStatus.NOT_STARTED);
@@ -108,7 +109,7 @@ class SnolateBatchTranslationServiceTest {
 		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(1));
 
 		verify(translationLLMService, never()).suggestBatchTranslations(any(), any());
-		verify(translationUnitRepository, never()).save(any());
+		verify(translationUnitStore, never()).saveAll(any());
 	}
 
 	@Test
@@ -132,8 +133,8 @@ class SnolateBatchTranslationServiceTest {
 		});
 		when(translationLLMService.suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class)))
 				.thenReturn(Map.of("Heart failure", List.of("Insuficiencia cardíaca")));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("300", COMPOSITE))
-				.thenReturn(Optional.of(emptyUnit));
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), eq(List.of("300"))))
+				.thenReturn(Map.of("300", emptyUnit));
 
 		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(1));
 
@@ -165,8 +166,8 @@ class SnolateBatchTranslationServiceTest {
 		});
 		when(translationLLMService.suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class)))
 				.thenReturn(Map.of("Heart failure", List.of("Insuficiencia cardíaca")));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("300", COMPOSITE))
-				.thenReturn(Optional.of(emptyUnit));
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), eq(List.of("300"))))
+				.thenReturn(Map.of("300", emptyUnit));
 
 		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(1));
 
@@ -194,8 +195,8 @@ class SnolateBatchTranslationServiceTest {
 		});
 		when(translationLLMService.suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class)))
 				.thenReturn(Map.of("Heart failure", List.of("Insuficiencia cardíaca")));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("200", COMPOSITE))
-				.thenReturn(Optional.of(emptyUnit));
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), eq(List.of("200"))))
+				.thenReturn(Map.of("200", emptyUnit));
 
 		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(1));
 
@@ -223,8 +224,8 @@ class SnolateBatchTranslationServiceTest {
 		});
 		when(translationLLMService.suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class)))
 				.thenReturn(Map.of("Term 0", List.of("Término 0")));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("0", COMPOSITE))
-				.thenReturn(Optional.of(eligibleUnit));
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), eq(List.of("0"))))
+				.thenReturn(Map.of("0", eligibleUnit));
 
 		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(1));
 
@@ -273,15 +274,15 @@ class SnolateBatchTranslationServiceTest {
 		when(translationLLMService.suggestBatchTranslations(eq(translationSet), any(BatchTranslationPrompt.class)))
 				.thenReturn(Map.of("Term 0", List.of("Término 0")))
 				.thenReturn(Map.of("Term 1", List.of("Término 1")));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("0", COMPOSITE))
-				.thenReturn(Optional.of(unitA));
-		when(translationUnitRepository.findByCodeAndCompositeLanguageCode("1", COMPOSITE))
-				.thenReturn(Optional.of(unitB));
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), eq(List.of("0"))))
+				.thenReturn(Map.of("0", unitA));
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), eq(List.of("1"))))
+				.thenReturn(Map.of("1", unitB));
 
 		service.doRunAiBatchTranslate(translationSet, new BatchTranslateRequest(2));
 
 		verify(translationSearchService, times(2)).listEligibleUnitsForBatchTranslate(eq(setCode), eq(COMPOSITE), anyInt());
-		verify(translationUnitRepository, times(2)).save(any());
+		verify(translationUnitStore, times(2)).saveAll(any());
 	}
 
 	@Test
