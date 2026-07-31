@@ -41,8 +41,9 @@ class SnolateTranslationUnitStoreTest {
 
 		Map<String, TranslationUnit> loaded = store.loadByCodes(COMPOSITE, List.of("100", "200"));
 
-		assertThat(loaded).containsEntry("100", unit);
-		assertThat(loaded).doesNotContainKey("200");
+		assertThat(loaded)
+				.containsEntry("100", unit)
+				.doesNotContainKey("200");
 	}
 
 	@Test

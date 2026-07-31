@@ -160,8 +160,8 @@ class SnolateTranslationServiceSearchTest {
 	@Test
 	void getSampleRow_usesSetScopedSearch() throws ServiceExceptionWithStatusCode {
 		TranslationUnit unit = unit("63161005", List.of());
-		when(translationSearchService.findUnitInSet(eq(translationSet.getCompositeSetCode()),
-				eq(translationSet.getLanguageCodeWithRefsetId()), eq("63161005")))
+		when(translationSearchService.findUnitInSet(translationSet.getCompositeSetCode(),
+				translationSet.getLanguageCodeWithRefsetId(), "63161005"))
 				.thenReturn(Optional.of(unit));
 		when(translationSourceRepository.findById("63161005"))
 				.thenReturn(Optional.of(new TranslationSource("63161005", "Principal", 0)));
@@ -175,8 +175,8 @@ class SnolateTranslationServiceSearchTest {
 
 	@Test
 	void getSampleRow_returnsNullWhenNotInSet() throws ServiceExceptionWithStatusCode {
-		when(translationSearchService.findUnitInSet(eq(translationSet.getCompositeSetCode()),
-				eq(translationSet.getLanguageCodeWithRefsetId()), eq("999")))
+		when(translationSearchService.findUnitInSet(translationSet.getCompositeSetCode(),
+				translationSet.getLanguageCodeWithRefsetId(), "999"))
 				.thenReturn(Optional.empty());
 
 		assertThat(service.getSampleRow(translationSet, "999")).isNull();
@@ -185,8 +185,8 @@ class SnolateTranslationServiceSearchTest {
 	@Test
 	void updateTranslationUnit_usesSetScopedSearch() throws ServiceExceptionWithStatusCode {
 		TranslationUnit unit = unit("63161005", List.of());
-		when(translationSearchService.findUnitInSet(eq(translationSet.getCompositeSetCode()),
-				eq(translationSet.getLanguageCodeWithRefsetId()), eq("63161005")))
+		when(translationSearchService.findUnitInSet(translationSet.getCompositeSetCode(),
+				translationSet.getLanguageCodeWithRefsetId(), "63161005"))
 				.thenReturn(Optional.of(unit));
 
 		service.updateTranslationUnit(translationSet, "63161005", List.of("hoofd"), TranslationStatus.APPROVED);
