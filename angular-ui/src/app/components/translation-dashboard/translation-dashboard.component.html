@@ -458,23 +458,30 @@
         </div>
     } @else {
         <div class="translation-sets-list-panel">
+            <mat-tab-group class="translation-studio-list-tabs" [(selectedIndex)]="listTabIndex" mat-stretch-tabs="false">
+                <mat-tab label="Translation Sets">
+
+            <p class="translation-studio-tab-intro">
+                Translation sets are scoped batches of SNOMED CT concepts for a language or dialect.
+                Create a set to choose which concepts to translate, work through them here, then push approved terms into your extension.
+            </p>
+
             <div class="translation-sets-toolbar">
-                <h4>Translation Sets</h4>
+                <mat-form-field class="translation-sets-language-filter" subscriptSizing="dynamic">
+                    <mat-label>Language/Dialect</mat-label>
+                    <mat-select
+                        [value]="translationSetsLanguageDialectFilter"
+                        [disabled]="showSkeleton"
+                        (selectionChange)="onTranslationSetsLanguageDialectFilterChange($event.value)">
+                        <mat-option [value]="null">All languages/dialects</mat-option>
+                        <mat-option
+                            *ngFor="let option of translationSetsLanguageDialectFilterOptions; trackBy: trackTranslationSetLanguageDialectOption"
+                            [value]="option.refsetId">
+                            {{ option.label }}
+                        </mat-option>
+                    </mat-select>
+                </mat-form-field>
                 <div class="translation-sets-toolbar-actions">
-                    <mat-form-field class="translation-sets-language-filter" subscriptSizing="dynamic">
-                        <mat-label>Language/Dialect</mat-label>
-                        <mat-select
-                            [value]="translationSetsLanguageDialectFilter"
-                            [disabled]="showSkeleton"
-                            (selectionChange)="onTranslationSetsLanguageDialectFilterChange($event.value)">
-                            <mat-option [value]="null">All languages/dialects</mat-option>
-                            <mat-option
-                                *ngFor="let option of translationSetsLanguageDialectFilterOptions; trackBy: trackTranslationSetLanguageDialectOption"
-                                [value]="option.refsetId">
-                                {{ option.label }}
-                            </mat-option>
-                        </mat-select>
-                    </mat-form-field>
                     <button mat-stroked-button (click)="uploadLanguageTranslation()" [disabled]="showSkeleton || languagePolicyRows.length === 0">
                         Import CSV
                     </button>
@@ -483,11 +490,6 @@
                     </button>
                 </div>
             </div>
-
-            <p class="translation-sets-intro">
-                Translation sets are scoped batches of SNOMED CT concepts for a language or dialect.
-                Create a set to choose which concepts to translate, work through them here, then push approved terms into your extension.
-            </p>
 
             <div *ngIf="showSkeleton" class="skeleton-loader">
                 <div class="skeleton-text"></div>
@@ -603,12 +605,15 @@
                     </tr>
                 </table>
             </div>
+                </mat-tab>
+
+                <mat-tab label="AI Language Policies">
+            <p class="translation-studio-tab-intro">
+                AI language policies define translation guidelines for each language or dialect linked to Translation Studio.
+                Configure a policy for each linked language refset before creating translation sets.
+            </p>
 
             <div class="language-policies-panel">
-                <div class="translation-sets-toolbar">
-                    <h4>Language Policies</h4>
-                </div>
-
                 <div *ngIf="loadingLanguagePolicies" class="skeleton-loader compact-skeleton">
                     <div class="skeleton-text"></div>
                     <div class="skeleton-text"></div>
@@ -660,12 +665,16 @@
                     </table>
                 </div>
             </div>
+                </mat-tab>
 
+                <mat-tab label="Import jobs">
             <app-translation-studio-import-jobs
                 #importJobsPanel
                 [edition]="selectedEdition?.shortName"
                 [languageOptions]="languagePolicyRows">
             </app-translation-studio-import-jobs>
+                </mat-tab>
+            </mat-tab-group>
         </div>
     }
     </div>

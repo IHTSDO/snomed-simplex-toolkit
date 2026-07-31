@@ -1,6 +1,9 @@
 <div class="import-jobs-panel">
-    <div class="translation-sets-toolbar">
-        <h4>Import jobs</h4>
+    <p class="translation-studio-tab-intro">
+        CSV imports into Translation Studio are tracked here. These jobs do not upload directly to the Snowstorm language refset.
+    </p>
+
+    <div class="translation-sets-toolbar translation-sets-toolbar--actions-only">
         <div class="translation-sets-toolbar-actions">
             <mat-form-field class="import-jobs-language-filter" subscriptSizing="dynamic">
                 <mat-label>Language/Dialect</mat-label>
@@ -16,10 +19,6 @@
             </mat-form-field>
         </div>
     </div>
-
-    <p class="import-jobs-intro">
-        CSV imports into Translation Studio are tracked here. These jobs do not upload directly to the Snowstorm language refset.
-    </p>
 
     <div *ngIf="loading" class="skeleton-loader compact-skeleton">
         <div class="skeleton-text"></div>

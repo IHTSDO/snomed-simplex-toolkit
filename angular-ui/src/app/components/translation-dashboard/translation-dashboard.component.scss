@@ -16,10 +16,25 @@
     h4 {
         margin: 0;
     }
+
+    &--actions-only {
+        justify-content: flex-end;
+    }
 }
 
-.translation-sets-intro {
+.translation-studio-list-tabs {
+    width: 100%;
+}
+
+:host ::ng-deep mat-tab-group.translation-studio-list-tabs.mat-mdc-tab-group > .mat-mdc-tab-header .mat-mdc-tab {
+    flex: 0 0 auto;
+    padding: 0 10em;
+}
+
+.translation-studio-tab-intro,
+:host ::ng-deep .translation-studio-tab-intro {
     margin: 0 0 1rem;
+    padding: 20px 5px;
     color: rgba(0, 0, 0, 0.6);
     line-height: 1.5;
 }
@@ -36,7 +51,8 @@
     width: 260px;
 }
 
-.translation-sets-table-wrap {
+.translation-sets-table-wrap,
+:host ::ng-deep .translation-sets-table-wrap {
     width: 100%;
     overflow: auto;
     border: 1px solid rgba(0, 0, 0, 0.12);
@@ -1033,7 +1049,7 @@ mat-list-item:not(:last-child) {
 }
 
 .language-policies-panel {
-    margin-top: 2rem;
+    margin-top: 0;
 }
 
 .compact-skeleton {

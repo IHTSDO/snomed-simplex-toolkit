@@ -74,6 +74,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 	translationSetsLanguageDialectFilter: string | null = null;
 	translationSetsLanguageDialectFilterOptions: Array<{ refsetId: string; label: string }> = [];
 	translationSetRouteSelectionActive = false;
+	listTabIndex = 0;
+	readonly importJobsTabIndex = 2;
 
 	@ViewChild('importJobsPanel') importJobsPanel?: TranslationStudioImportJobsComponent;
 
@@ -576,6 +578,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
     private handleImportJobStarted(jobId: string | undefined, refsetId: string, refreshSets: boolean): void {
         this.snackBar.open('Import job created', 'Close', { duration: 3000 });
+        this.listTabIndex = this.importJobsTabIndex;
         this.importJobsPanel?.refresh();
         if (refreshSets) {
             this.getTranslationSets();
