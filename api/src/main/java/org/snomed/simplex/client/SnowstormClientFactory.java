@@ -26,6 +26,7 @@ public class SnowstormClientFactory {
 	private final String snowstormUrl;
 	private final String userAgent;
 	private final SnowstormClient derivativesClient;
+	private final int maxFetches;
 
 	private final Cache<String, SnowstormClient> clientCache;
 	private final ObjectMapper objectMapper;
@@ -35,18 +36,21 @@ public class SnowstormClientFactory {
 			@Value("${snowstorm.url}") String snowstormUrl,
 			@Value("${snowstorm.derivatives.url}") String snowstormAltDerivativesUrl,
 			@Value("${snowstorm.user-agent:Simplex v{version}}") String userAgentTemplate,
+			@Value("${snowstorm.pagination.max-results:600000}") int maxPaginationResults,
 			@Autowired(required = false) BuildProperties buildProperties) {
 		this.clientCache = CacheBuilder.newBuilder().expireAfterAccess(5L, TimeUnit.MINUTES).build();
 		this.objectMapper = (new ObjectMapper()).setSerializationInclusion(JsonInclude.Include.NON_NULL);
 		this.snowstormUrl = snowstormUrl;
 		this.userAgent = SnowstormUserAgentSupport.resolve(userAgentTemplate, buildProperties);
+		this.maxFetches = Math.max(1, (maxPaginationResults + SnowstormClient.MAX_PAGE_SIZE - 1) / SnowstormClient.MAX_PAGE_SIZE);
 		logger.info("Snowstorm URL set as '{}'", snowstormUrl);
 		if (userAgent != null) {
 			logger.info("Snowstorm User-Agent set as '{}'", userAgent);
 		}
+		logger.info("Snowstorm searchAfter pagination max fetches set as {}", maxFetches);
 		if (!Strings.isNullOrEmpty(snowstormAltDerivativesUrl)) {
 			logger.info("Snowstorm Derivatives URL set as '{}'", snowstormAltDerivativesUrl);
-			derivativesClient = new SnowstormClient(snowstormAltDerivativesUrl, null, userAgent, objectMapper);
+			derivativesClient = new SnowstormClient(snowstormAltDerivativesUrl, null, userAgent, objectMapper, maxFetches);
 		} else {
 			derivativesClient = null;
 		}
@@ -55,7 +59,7 @@ public class SnowstormClientFactory {
 	public SnowstormClient getClient() throws ServiceExceptionWithStatusCode {
 		try {
 			String authenticationToken = getAuthToken();
-			return clientCache.get(authenticationToken, () -> new SnowstormClient(snowstormUrl, authenticationToken, userAgent, objectMapper));
+			return clientCache.get(authenticationToken, () -> new SnowstormClient(snowstormUrl, authenticationToken, userAgent, objectMapper, maxFetches));
 		} catch (ExecutionException e) {
 			throw new ServiceExceptionWithStatusCode("Failed to create Snowstorm client", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		}

@@ -73,10 +73,12 @@ public class SnowstormClient {
 	private final ObjectMapper objectMapper;
 	private final Map<String, String> workingBranches;
 	private final Map<String, CachedCodeSystem> codeSystemCache;
+	private final int maxFetches;
 
 	private static final Logger logger = LoggerFactory.getLogger(SnowstormClient.class);
 
-	public SnowstormClient(String snowstormUrl, String authenticationToken, String userAgent, ObjectMapper objectMapper) {
+	public SnowstormClient(String snowstormUrl, String authenticationToken, String userAgent, ObjectMapper objectMapper, int maxFetches) {
+		this.maxFetches = maxFetches;
 		this.objectMapper = objectMapper;
 		this.workingBranches = new HashMap<>();
 		this.codeSystemCache = new ConcurrentHashMap<>();
@@ -446,10 +448,15 @@ public class SnowstormClient {
 		List<RefsetMember> refsetMembers = new ArrayList<>();
 		String searchAfter = null;
 		Page<RefsetMember> page;
+		SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
 		do {
+			guard.beforeFetch(searchAfter);
 			page = getRefsetMembers(refsetId, codeSystem, activeOnly, MAX_PAGE_SIZE, searchAfter);
 			refsetMembers.addAll(page.getItems());
-			searchAfter = page.getSearchAfter();
+			if (page.getItems().size() == MAX_PAGE_SIZE) {
+				guard.afterFullPage(searchAfter, page.getSearchAfter());
+				searchAfter = page.getSearchAfter();
+			}
 		} while (page.getItems().size() == MAX_PAGE_SIZE);
 
 		return refsetMembers;
@@ -704,6 +711,7 @@ public class SnowstormClient {
 			private int itemOffset = 0;
 			private String searchAfter = "";
 			private boolean lastPage;
+			private final SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
 
 			private final ParameterizedTypeReference<Page<ConceptMini>> listOfConceptMinisType = new ParameterizedTypeReference<>() {};
 
@@ -712,6 +720,11 @@ public class SnowstormClient {
 				if (items == null || itemOffset == items.size()) {
 					if (lastPage) {
 						return null;
+					}
+					try {
+						guard.beforeFetch(searchAfter);
+					} catch (ServiceException e) {
+						throw new RuntimeServiceException(e.getMessage(), e);
 					}
 					Map<String, Object> searchRequest = new HashMap<>();
 					searchRequest.put("form", "inferred");
@@ -735,6 +748,11 @@ public class SnowstormClient {
 					if (items.size() < MAX_PAGE_SIZE) {
 						lastPage = true;
 					} else {
+						try {
+							guard.afterFullPage(searchAfter, page.getSearchAfter());
+						} catch (ServiceException e) {
+							throw new RuntimeServiceException(e.getMessage(), e);
+						}
 						searchAfter = page.getSearchAfter();
 					}
 				}
@@ -744,7 +762,7 @@ public class SnowstormClient {
 	}
 
 	public ConceptIdStream getConceptIdStream(String branch, String ecl) {
-		return new ConceptIdStream(branch, ecl, restTemplate);
+		return new ConceptIdStream(branch, ecl, restTemplate, maxFetches);
 	}
 
 	public static final class ConceptIdStream implements Supplier<String> {
@@ -752,6 +770,7 @@ public class SnowstormClient {
 		private final String branch;
 		private final String ecl;
 		private final RestTemplate restTemplate;
+		private final SearchAfterPaginationGuard guard;
 
 		private List<String> items;
 		private int itemOffset = 0;
@@ -761,10 +780,11 @@ public class SnowstormClient {
 
 		private final ParameterizedTypeReference<Page<String>> listOfConceptIdsType = new ParameterizedTypeReference<>() {};
 
-		public ConceptIdStream(String branch, String ecl, RestTemplate restTemplate) {
+		public ConceptIdStream(String branch, String ecl, RestTemplate restTemplate, int maxFetches) {
 			this.branch = branch;
 			this.ecl = ecl;
 			this.restTemplate = restTemplate;
+			this.guard = new SearchAfterPaginationGuard(maxFetches);
 		}
 
 		@Override
@@ -772,6 +792,11 @@ public class SnowstormClient {
 			if (items == null || itemOffset == items.size()) {
 				if (lastPage) {
 					return null;
+				}
+				try {
+					guard.beforeFetch(searchAfter);
+				} catch (ServiceException e) {
+					throw new RuntimeServiceException(e.getMessage(), e);
 				}
 				String url = format("/%s/concepts?ecl=%s&form=inferred&returnIdOnly=true&limit=%s&searchAfter=%s", branch, ecl, MAX_PAGE_SIZE, searchAfter);
 				ResponseEntity<Page<String>> pageResponse = restTemplate.exchange(url, HttpMethod.GET, null, listOfConceptIdsType);
@@ -788,6 +813,11 @@ public class SnowstormClient {
 				if (items.size() < MAX_PAGE_SIZE) {
 					lastPage = true;
 				} else {
+					try {
+						guard.afterFullPage(searchAfter, page.getSearchAfter());
+					} catch (ServiceException e) {
+						throw new RuntimeServiceException(e.getMessage(), e);
+					}
 					searchAfter = page.getSearchAfter();
 				}
 			}
