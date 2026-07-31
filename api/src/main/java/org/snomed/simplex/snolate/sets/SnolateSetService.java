@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.StreamSupport;
 
 @Service
 public class SnolateSetService {
@@ -159,7 +160,7 @@ public class SnolateSetService {
 	public RepairTranslationSetSizesResponse repairSetSizes(@Nullable String codeSystem) {
 		List<SnolateTranslationSet> sets = codeSystem != null && !codeSystem.isBlank()
 				? findByCodeSystem(codeSystem)
-				: (List<SnolateTranslationSet>) snolateSetRepository.findAll();
+				: StreamSupport.stream(snolateSetRepository.findAll().spliterator(), false).toList();
 
 		int repaired = 0;
 		int unchanged = 0;

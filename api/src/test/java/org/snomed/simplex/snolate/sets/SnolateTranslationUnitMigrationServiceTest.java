@@ -6,9 +6,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.snomed.simplex.rest.pojos.RepairTranslationUnitIdsResponse;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
+import org.snomed.simplex.translation.tool.TranslationSubsetType;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -40,6 +43,22 @@ class SnolateTranslationUnitMigrationServiceTest {
 	void setUp() {
 		service = new SnolateTranslationUnitMigrationService(snolateSetRepository, translationSearchService,
 				translationUnitRepository);
+	}
+
+	@Test
+	void repairTranslationUnitIds_allCodeSystems_handlesPageFromFindAll() {
+		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-BE", "31000172101", "Set", "label", "ecl",
+				TranslationSubsetType.REFSET, "SNOMEDCT-BE");
+		set.setLanguageCode("nl");
+		when(snolateSetRepository.findAll()).thenReturn(new PageImpl<>(List.of(set), PageRequest.of(0, 100), 1));
+
+		doAnswer(invocation -> null)
+				.when(translationSearchService).forEachUnitByCompositeLanguageCode(eq(COMPOSITE), any());
+
+		RepairTranslationUnitIdsResponse response = service.repairTranslationUnitIds(null);
+
+		assertThat(response.compositeLanguageBucketsProcessed()).isEqualTo(1);
+		assertThat(response.mergedGroups()).isZero();
 	}
 
 	@Test

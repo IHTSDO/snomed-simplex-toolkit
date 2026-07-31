@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 @Service
 public class SnolateTranslationUnitMigrationService {
@@ -36,7 +37,7 @@ public class SnolateTranslationUnitMigrationService {
 	public RepairTranslationUnitIdsResponse repairTranslationUnitIds(@Nullable String codeSystem) {
 		List<SnolateTranslationSet> sets = codeSystem != null && !codeSystem.isBlank()
 				? snolateSetRepository.findByCodesystemOrderByName(codeSystem)
-				: (List<SnolateTranslationSet>) snolateSetRepository.findAll();
+				: StreamSupport.stream(snolateSetRepository.findAll().spliterator(), false).toList();
 
 		Set<String> compositeLanguageBuckets = new LinkedHashSet<>();
 		for (SnolateTranslationSet set : sets) {
