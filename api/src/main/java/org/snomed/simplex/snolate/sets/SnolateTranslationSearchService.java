@@ -145,7 +145,7 @@ public class SnolateTranslationSearchService {
 		if (page.isEmpty()) {
 			return Optional.empty();
 		}
-		return Optional.of(page.getContent().getFirst());
+		return Optional.of(page.getContent().get(0));
 	}
 
 	public Page<TranslationUnit> pageUnitsInSet(String compositeSetCode, String compositeLanguageCode, Pageable pageable,
