@@ -86,9 +86,10 @@ public class SnowstormClient {
 		}
 		RestTemplateBuilder builder = new RestTemplateBuilder()
 				.rootUri(snowstormUrl)
-				.defaultHeader("Cookie", authenticationToken)
-				// Set the request content type to JSON
 				.messageConverters(new MappingJackson2HttpMessageConverter());
+		if (!Strings.isBlank(authenticationToken)) {
+			builder = builder.defaultHeader("Cookie", authenticationToken);
+		}
 		if (!Strings.isBlank(userAgent)) {
 			builder = builder.defaultHeader("User-Agent", userAgent);
 		}
@@ -449,7 +450,7 @@ public class SnowstormClient {
 			page = getRefsetMembers(refsetId, codeSystem, activeOnly, MAX_PAGE_SIZE, searchAfter);
 			refsetMembers.addAll(page.getItems());
 			searchAfter = page.getSearchAfter();
-		} while (!page.getItems().isEmpty());
+		} while (page.getItems().size() == MAX_PAGE_SIZE);
 
 		return refsetMembers;
 	}
@@ -702,16 +703,20 @@ public class SnowstormClient {
 			private List<ConceptMini> items;
 			private int itemOffset = 0;
 			private String searchAfter = "";
+			private boolean lastPage;
 
 			private final ParameterizedTypeReference<Page<ConceptMini>> listOfConceptMinisType = new ParameterizedTypeReference<>() {};
 
 			@Override
 			public ConceptMini get() {
 				if (items == null || itemOffset == items.size()) {
+					if (lastPage) {
+						return null;
+					}
 					Map<String, Object> searchRequest = new HashMap<>();
 					searchRequest.put("form", "inferred");
 					searchRequest.put("eclFilter", ecl);
-					searchRequest.put("limit", 10_000);
+					searchRequest.put("limit", MAX_PAGE_SIZE);
 					searchRequest.put("searchAfter", searchAfter);
 					searchRequest.put("includeLeafFlag", true);
 
@@ -727,7 +732,11 @@ public class SnowstormClient {
 					if (items.isEmpty()) {
 						return null;
 					}
-					searchAfter = page.getSearchAfter();
+					if (items.size() < MAX_PAGE_SIZE) {
+						lastPage = true;
+					} else {
+						searchAfter = page.getSearchAfter();
+					}
 				}
 				return items.get(itemOffset++);
 			}
@@ -747,6 +756,7 @@ public class SnowstormClient {
 		private List<String> items;
 		private int itemOffset = 0;
 		private String searchAfter = "";
+		private boolean lastPage;
 		private int total;
 
 		private final ParameterizedTypeReference<Page<String>> listOfConceptIdsType = new ParameterizedTypeReference<>() {};
@@ -760,7 +770,10 @@ public class SnowstormClient {
 		@Override
 		public String get() {
 			if (items == null || itemOffset == items.size()) {
-				String url = format("/%s/concepts?ecl=%s&form=inferred&returnIdOnly=true&limit=%s&searchAfter=%s", branch, ecl, 10_000, searchAfter);
+				if (lastPage) {
+					return null;
+				}
+				String url = format("/%s/concepts?ecl=%s&form=inferred&returnIdOnly=true&limit=%s&searchAfter=%s", branch, ecl, MAX_PAGE_SIZE, searchAfter);
 				ResponseEntity<Page<String>> pageResponse = restTemplate.exchange(url, HttpMethod.GET, null, listOfConceptIdsType);
 				Page<String> page = pageResponse.getBody();
 				if (page == null) {
@@ -772,7 +785,11 @@ public class SnowstormClient {
 				if (items.isEmpty()) {
 					return null;
 				}
-				searchAfter = page.getSearchAfter();
+				if (items.size() < MAX_PAGE_SIZE) {
+					lastPage = true;
+				} else {
+					searchAfter = page.getSearchAfter();
+				}
 			}
 			return items.get(itemOffset++);
 		}
