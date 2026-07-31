@@ -68,21 +68,23 @@ public class CsvParser {
 	static int countDelimiterOccurrencesOutsideQuotes(String line, char delimiter) {
 		int count = 0;
 		boolean inQuotes = false;
-		for (int i = 0; i < line.length(); i++) {
-			char c = line.charAt(i);
+		int index = 0;
+		while (index < line.length()) {
+			char c = line.charAt(index);
 			if (inQuotes) {
 				if (c == '"') {
-					if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
-						i++;
-					} else {
-						inQuotes = false;
+					if (index + 1 < line.length() && line.charAt(index + 1) == '"') {
+						index += 2;
+						continue;
 					}
+					inQuotes = false;
 				}
 			} else if (c == '"') {
 				inQuotes = true;
 			} else if (c == delimiter) {
 				count++;
 			}
+			index++;
 		}
 		return count;
 	}
@@ -130,40 +132,69 @@ public class CsvParser {
 		while ((ch = reader.read()) != -1) {
 			char c = (char) ch;
 			if (inQuotes) {
-				if (c == '"') {
-					reader.mark(1);
-					int next = reader.read();
-					if (next == '"') {
-						field.append('"');
-					} else {
-						inQuotes = false;
-						if (next != -1) {
-							reader.reset();
-						}
-					}
-				} else {
-					field.append(c);
-				}
-			} else if (c == '"') {
-				inQuotes = true;
-			} else if (c == delimiter) {
-				fields.add(field.toString());
-				field.setLength(0);
-			} else if (c == '\r') {
-				reader.mark(1);
-				int next = reader.read();
-				if (next != '\n' && next != -1) {
-					reader.reset();
-				}
-				fields.add(field.toString());
-				return fields;
-			} else if (c == '\n') {
-				fields.add(field.toString());
-				return fields;
+				inQuotes = readQuotedCharacter(reader, field, c);
 			} else {
-				field.append(c);
+				List<String> completedRow = readUnquotedCharacter(reader, fields, field, c, delimiter);
+				if (completedRow != null) {
+					return completedRow;
+				}
+				if (c == '"') {
+					inQuotes = true;
+				}
 			}
 		}
+		return finishRow(fields, field);
+	}
+
+	private static boolean readQuotedCharacter(Reader reader, StringBuilder field, char c) throws IOException {
+		if (c != '"') {
+			field.append(c);
+			return true;
+		}
+		reader.mark(1);
+		int next = reader.read();
+		if (next == '"') {
+			field.append('"');
+			return true;
+		}
+		if (next != -1) {
+			reader.reset();
+		}
+		return false;
+	}
+
+	private static List<String> readUnquotedCharacter(Reader reader, List<String> fields, StringBuilder field,
+			char c, char delimiter) throws IOException {
+		if (c == delimiter) {
+			fields.add(field.toString());
+			field.setLength(0);
+			return null;
+		}
+		if (c == '\r') {
+			return completeRowAfterCarriageReturn(reader, fields, field);
+		}
+		if (c == '\n') {
+			fields.add(field.toString());
+			return fields;
+		}
+		if (c != '"') {
+			field.append(c);
+		}
+		return null;
+	}
+
+	private static List<String> completeRowAfterCarriageReturn(Reader reader, List<String> fields,
+			StringBuilder field) throws IOException {
+		reader.mark(1);
+		int next = reader.read();
+		if (next != '\n' && next != -1) {
+			reader.reset();
+		}
+		fields.add(field.toString());
+		return fields;
+	}
+
+	private static List<String> finishRow(List<String> fields, StringBuilder field) {
 		if (!field.isEmpty() || !fields.isEmpty()) {
 			fields.add(field.toString());
 			return fields;

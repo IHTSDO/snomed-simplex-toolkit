@@ -917,7 +917,7 @@ public class TranslationService {
 		headerLine = FileUtils.removeUTF8BOM(headerLine);
 		char delimiter = CsvParser.detectDelimiter(headerLine);
 		List<String> headerFields = CsvParser.parseLine(headerLine, delimiter).stream()
-				.map(field -> field.trim())
+				.map(String::trim)
 				.toList();
 		if (isStandardTranslationCsvHeader(headerFields)) {
 			return new TranslationCsvImportContext(
