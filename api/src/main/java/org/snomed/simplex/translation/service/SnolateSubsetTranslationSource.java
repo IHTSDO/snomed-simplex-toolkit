@@ -1,6 +1,7 @@
 package org.snomed.simplex.translation.service;
 
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.translation.domain.TranslationState;
@@ -18,12 +19,19 @@ public class SnolateSubsetTranslationSource implements TranslationSource {
 	private final SnolateTranslationSearchService translationSearchService;
 	private final String compositeLanguageCode;
 	private final String compositeSetCode;
+	private final boolean includeReadyForReview;
 
 	public SnolateSubsetTranslationSource(SnolateTranslationSearchService translationSearchService, String languageCode, String refsetId,
 			String compositeSetCode) {
+		this(translationSearchService, languageCode, refsetId, compositeSetCode, true);
+	}
+
+	public SnolateSubsetTranslationSource(SnolateTranslationSearchService translationSearchService, String languageCode, String refsetId,
+			String compositeSetCode, boolean includeReadyForReview) {
 		this.translationSearchService = translationSearchService;
 		this.compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
 		this.compositeSetCode = compositeSetCode;
+		this.includeReadyForReview = includeReadyForReview;
 	}
 
 	@Override
@@ -34,7 +42,7 @@ public class SnolateSubsetTranslationSource implements TranslationSource {
 		for (TranslationUnit unit : inSet) {
 			try {
 				long conceptId = Long.parseLong(unit.getCode());
-				if (unit.hasTermContent()) {
+				if (unit.hasTermContent() && shouldIncludeUnit(unit)) {
 					conceptTerms.put(conceptId, new ArrayList<>(unit.getTerms()));
 				}
 			} catch (NumberFormatException e) {
@@ -54,5 +62,9 @@ public class SnolateSubsetTranslationSource implements TranslationSource {
 	@Override
 	public TranslationSourceType getType() {
 		return TranslationSourceType.SNOLATE_SUBSET;
+	}
+
+	private boolean shouldIncludeUnit(TranslationUnit unit) {
+		return includeReadyForReview || unit.getStatus() != TranslationStatus.FOR_REVIEW;
 	}
 }

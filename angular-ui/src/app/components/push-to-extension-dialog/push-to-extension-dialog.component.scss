@@ -1,0 +1,36 @@
+.dialog-content {
+  min-width: 360px;
+  max-width: 480px;
+}
+
+.set-hint {
+  margin: 0 0 16px;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.include-option {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.unit-count {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9em;
+}
+
+.helper-text {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9em;
+}
+
+.loading-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+mat-dialog-content {
+  max-height: 600px;
+  overflow-y: auto;
+}

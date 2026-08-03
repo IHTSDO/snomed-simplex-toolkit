@@ -360,12 +360,13 @@ public class TranslationStudioController {
 		}
 		String assigneeUsername = apTaskRequest.getAssigneeUsername();
 		String taskTitle = apTaskRequest.getTaskTitle();
+		boolean includeReadyForReview = apTaskRequest.isIncludeReadyForReviewOrDefault();
 		pushJob.setTaskCreationCallable(() -> translationService.getCreateTranslationTask(theCodeSystem, assigneeUsername, taskTitle));
 
 		return jobService.queueContentJob(pushJob, refsetId, activity, job -> {
 			SnolateTranslationSet set = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 			ChangeSummary summary = translationService.synchroniseSnolateSubsetToSnowstorm(
-					theCodeSystem, snowstormClient, set, job, job.getTaskCreationCallable());
+					theCodeSystem, snowstormClient, set, job, job.getTaskCreationCallable(), includeReadyForReview);
 			set.setLastPulled(new Date());
 			snolateSetService.updateSet(set);
 			return summary;

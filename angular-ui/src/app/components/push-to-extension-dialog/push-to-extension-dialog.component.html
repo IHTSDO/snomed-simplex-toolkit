@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>Push into extension</h2>
+<mat-dialog-content>
+    <div class="dialog-content">
+        <p class="set-hint">
+            Push translations from <strong>{{ data.setName }}</strong> into the extension.
+        </p>
+
+        <mat-checkbox
+            class="include-option"
+            [(ngModel)]="includeReadyForReview"
+            [disabled]="loading">
+            {{ readyForReviewLabel }}
+            <span class="unit-count">({{ readyForReviewCount() | number:'1.0-0' }})</span>
+        </mat-checkbox>
+
+        @if (!includeReadyForReview) {
+            <p class="helper-text">
+                Only units marked {{ readyToPushLabel }} ({{ readyToPushCount() | number:'1.0-0' }}) will be included.
+            </p>
+        } @else {
+            <p class="helper-text">
+                All translated units will be included, including those marked {{ readyForReviewLabel }}.
+            </p>
+        }
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()" [disabled]="loading">Cancel</button>
+    <button mat-raised-button color="primary" [disabled]="loading" (click)="onPush()">
+        <span *ngIf="loading" class="loading-content">
+            <mat-spinner diameter="20"></mat-spinner>
+            Pushing...
+        </span>
+        <span *ngIf="!loading">Push</span>
+    </button>
+</mat-dialog-actions>

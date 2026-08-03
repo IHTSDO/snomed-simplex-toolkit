@@ -16,6 +16,7 @@ import { AiBatchTranslationDialogComponent } from '../ai-batch-translation-dialo
 import { ExportTaskDialogComponent } from '../export-task-dialog/export-task-dialog.component';
 import { EditTranslationSetDialogComponent } from '../edit-translation-set-dialog/edit-translation-set-dialog.component';
 import { DownloadTranslationSetDialogComponent } from '../download-translation-set-dialog/download-translation-set-dialog.component';
+import { PushToExtensionDialogComponent } from '../push-to-extension-dialog/push-to-extension-dialog.component';
 import { UploadTranslationSetDialogComponent } from '../upload-translation-set-dialog/upload-translation-set-dialog.component';
 import { UploadLanguageTranslationDialogComponent } from '../upload-language-translation-dialog/upload-language-translation-dialog.component';
 import { TranslationStudioImportJobsComponent } from '../translation-studio-import-jobs/translation-studio-import-jobs.component';
@@ -1864,26 +1865,25 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             return;
         }
 
-        if (confirm(`Pull translations from Translation Studio into Snowstorm for "${target.name}"?`)) {
-            this.simplexService.pullFromTranslationStudio(
-                this.selectedEdition.shortName,
-                translationId,
-                label
-            ).subscribe(
-                () => {
-                    this.snackBar.open('Task is scheduled', 'Dismiss', {
-                        duration: 5000
-                    });
-                    this.getLabelSetMembers(target, false);
-                },
-                (error) => {
-                    console.error(error);
-                    this.snackBar.open('Failed to pull content from Translation Studio', 'Dismiss', {
-                        duration: 5000
-                    });
-                }
-            );
-        }
+        const dialogRef = this.dialog.open(PushToExtensionDialogComponent, {
+            width: '480px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                refsetId: translationId,
+                label,
+                setName: target.name,
+                statusCounts: target.statusCounts
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result?.action === 'push_started') {
+                this.snackBar.open('Task is scheduled', 'Dismiss', {
+                    duration: 5000
+                });
+                this.getLabelSetMembers(target, false);
+            }
+        });
     }
 
     refreshTranslationSet(forSet?: any) {
