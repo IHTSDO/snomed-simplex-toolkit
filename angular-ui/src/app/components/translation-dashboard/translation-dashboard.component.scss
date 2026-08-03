@@ -612,17 +612,6 @@ mat-list-item:not(:last-child) {
 
 .ecl-input-section {
     margin-bottom: 32px;
-
-    mat-radio-group {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 16px;
-
-        mat-radio-button {
-            margin-bottom: 8px;
-        }
-    }
 }
 
 .selection-method-input {

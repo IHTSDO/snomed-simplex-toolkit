@@ -35,16 +35,22 @@
 
                 <div class="translation-set-form-section ecl-input-section">
                     <h4>Select concepts to translate</h4>
-                    <mat-radio-group [(ngModel)]="eclInputMethod" (change)="onEclInputMethodChange()" [ngModelOptions]="{standalone: true}">
-                        <mat-radio-button value="subtype"
-                                         [disabled]="!selectedEdition?.branchPath"
-                                         [matTooltip]="!selectedEdition?.branchPath ? 'Branch path not available. Please ensure an edition is selected.' : ''">
-                            Select a concept and all subtypes (hierarchy descendants)
-                        </mat-radio-button>
-                        <mat-radio-button value="refset">Select concepts from a Subset in this extension</mat-radio-button>
-                        <mat-radio-button value="derivative">Select concepts from a SNOMED CT Derivative</mat-radio-button>
-                        <mat-radio-button value="manual">Select concepts using ECL</mat-radio-button>
-                    </mat-radio-group>
+                    <mat-form-field>
+                        <mat-label>Selection method</mat-label>
+                        <mat-select
+                            [(ngModel)]="eclInputMethod"
+                            (selectionChange)="onEclInputMethodChange()"
+                            [ngModelOptions]="{standalone: true}">
+                            <mat-option
+                                *ngFor="let option of eclInputMethodOptions"
+                                [value]="option.value"
+                                [disabled]="option.value === 'subtype' && !selectedEdition?.branchPath"
+                                [matTooltip]="option.value === 'subtype' && !selectedEdition?.branchPath
+                                    ? 'Branch path not available. Please ensure an edition is selected.' : ''">
+                                {{ option.label }}
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
 
                     <div *ngIf="eclInputMethod === 'manual'" class="selection-method-input">
                         <h4>ECL</h4>

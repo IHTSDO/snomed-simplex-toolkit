@@ -88,6 +88,12 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
     // ECL input method properties
     eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'subtype';
+    readonly eclInputMethodOptions: Array<{ value: 'manual' | 'refset' | 'derivative' | 'subtype'; label: string }> = [
+        { value: 'subtype', label: 'Select a concept and all subtypes (hierarchy descendants)' },
+        { value: 'refset', label: 'Select concepts from a Subset in this extension' },
+        { value: 'derivative', label: 'Select concepts from a SNOMED CT Derivative' },
+        { value: 'manual', label: 'Select concepts using ECL' },
+    ];
     selectedRefsetCode: string = '';
     selectedDerivativeCode: string = '';
     selectedSubtype: any = null;
