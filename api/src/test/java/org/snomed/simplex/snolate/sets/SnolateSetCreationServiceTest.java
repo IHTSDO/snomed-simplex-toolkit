@@ -326,6 +326,66 @@ class SnolateSetCreationServiceTest {
 	}
 
 	@Test
+	void doRefreshSet_syncsOrderForStayingMembers() throws ServiceExceptionWithStatusCode {
+		SnolateSetRepository snolateSetRepository = mock();
+		SnolateTranslationSourceRepository translationSourceRepository = mock();
+		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationUnitStore translationUnitStore = mock();
+		SnolateTranslationSearchService translationSearchService = mock();
+		SnowstormClientFactory snowstormClientFactory = mock();
+
+		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
+				translationSourceRepository, translationUnitRepository, translationUnitStore, translationSearchService, mock(TranslationLLMService.class),
+				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
+
+		String composite = "ZS_200_z";
+		String lang = "en-200";
+		TranslationUnit stays = TranslationUnit.shellMember("2", "200", "en", lang, 0, composite);
+
+		doAnswer(invocation -> {
+			Consumer<TranslationUnit> consumer = invocation.getArgument(2);
+			consumer.accept(stays);
+			return null;
+		}).when(translationSearchService).forEachUnitInSet(eq(composite), eq(lang), any());
+
+		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 10) {
+			@Override
+			protected SnolateSetCreationService.ConceptIdSource createConceptIdSource(SnolateTranslationSet translationSet,
+					SnowstormClientFactory factory) {
+				return new ConceptIdSource() {
+					private boolean consumed;
+
+					@Override
+					public String next() {
+						if (consumed) {
+							return null;
+						}
+						consumed = true;
+						return "2";
+					}
+
+					@Override
+					public int getTotal() {
+						return 1;
+					}
+				};
+			}
+		};
+
+		when(translationSourceRepository.findAllById(List.of("2")))
+				.thenReturn(List.of(new TranslationSource("2", "Staying", 99)));
+		when(translationSearchService.countUnitsInSet(composite, lang)).thenReturn(1L);
+
+		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-ZS", "200", "Z", "z", "*", TranslationSubsetType.ECL, "SNOMEDCT-ZS");
+		set.setLanguageCode("en");
+		set.setId("id");
+		service.doRefreshSet(set, snowstormClientFactory);
+
+		assertThat(stays.getOrder()).isEqualTo(99);
+		verify(translationUnitStore).saveAll(List.of(stays));
+	}
+
+	@Test
 	void refreshSetForUpgrade_setsQueuedForUpgradeAndQueuesJob() throws ServiceException {
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("test-user", "n/a"));
 
@@ -422,5 +482,80 @@ class SnolateSetCreationServiceTest {
 
 		assertThat(set.getStatus()).isEqualTo(TranslationSetStatus.READY);
 		verify(snolateSetRepository, atLeastOnce()).save(any(SnolateTranslationSet.class));
+	}
+
+	@Test
+	void doCreateSet_usesStoredConceptListForConceptListSubsetType() throws ServiceExceptionWithStatusCode {
+		SnolateSetRepository snolateSetRepository = mock();
+		SnolateTranslationSourceRepository translationSourceRepository = mock();
+		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationUnitStore translationUnitStore = mock();
+		SnolateTranslationSearchService translationSearchService = mock();
+		SnowstormClientFactory snowstormClientFactory = mock();
+
+		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
+				translationSourceRepository, translationUnitRepository, translationUnitStore, translationSearchService, mock(TranslationLLMService.class),
+				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
+
+		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 10);
+
+		TranslationSource source = new TranslationSource("111111111", "Term", 0);
+		when(translationSourceRepository.findAllById(any())).thenReturn(List.of(source));
+		when(translationUnitStore.loadByCodes(any(), any())).thenReturn(Map.of());
+		when(translationSearchService.countUnitsInSet(any(), any())).thenReturn(1L);
+
+		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-XS", "100", "File set", "file-set",
+				SnolateSetCreationService.CONCEPT_LIST_ECL_PLACEHOLDER, TranslationSubsetType.CONCEPT_LIST, "SNOMEDCT-XS");
+		set.setConceptList("111111111,222222222");
+		set.setLanguageCode("en");
+		set.setId("file-set-id");
+
+		service.doCreateSet(set, snowstormClientFactory);
+
+		assertThat(set.getStatus()).isEqualTo(TranslationSetStatus.READY);
+		verify(translationUnitStore, atLeastOnce()).saveAll(any());
+	}
+
+	@Test
+	void doRefreshSet_reappliesStoredConceptList() throws ServiceExceptionWithStatusCode {
+		SnolateSetRepository snolateSetRepository = mock();
+		SnolateTranslationSourceRepository translationSourceRepository = mock();
+		SnolateTranslationUnitRepository translationUnitRepository = mock();
+		SnolateTranslationUnitStore translationUnitStore = mock();
+		SnolateTranslationSearchService translationSearchService = mock();
+		SnowstormClientFactory snowstormClientFactory = mock();
+
+		SnolateProcessingContext ctx = new SnolateProcessingContext(snowstormClientFactory, snolateSetRepository,
+				translationSourceRepository, translationUnitRepository, translationUnitStore, translationSearchService, mock(TranslationLLMService.class),
+				new HashMap<>(), mock(JmsTemplate.class), "test-queue", new ObjectMapper());
+
+		SnolateSetCreationService service = new SnolateSetCreationService(ctx, 10);
+
+		String composite = "XS_100_file-set";
+		String lang = "en-100";
+		when(translationSearchService.countUnitsInSet(composite, lang)).thenReturn(1L);
+		doAnswer(invocation -> {
+			Consumer<TranslationUnit> consumer = invocation.getArgument(2);
+			TranslationUnit existing = new TranslationUnit();
+			existing.setCode("111111111");
+			consumer.accept(existing);
+			return null;
+		}).when(translationSearchService).forEachUnitInSet(eq(composite), eq(lang), any());
+
+		TranslationSource source = new TranslationSource("222222222", "Term", 0);
+		when(translationSourceRepository.findAllById(any())).thenReturn(List.of(source));
+		when(translationUnitStore.loadByCodes(any(), any())).thenReturn(Map.of());
+
+		SnolateTranslationSet set = new SnolateTranslationSet("SNOMEDCT-XS", "100", "File set", "file-set",
+				SnolateSetCreationService.CONCEPT_LIST_ECL_PLACEHOLDER, TranslationSubsetType.CONCEPT_LIST, "SNOMEDCT-XS");
+		set.setConceptList("222222222");
+		set.setLanguageCode("en");
+		set.setId("file-set-id");
+		set.setStatus(TranslationSetStatus.READY);
+
+		service.doRefreshSet(set, snowstormClientFactory);
+
+		assertThat(set.getStatus()).isEqualTo(TranslationSetStatus.READY);
+		verify(translationUnitStore, atLeastOnce()).saveAll(any());
 	}
 }

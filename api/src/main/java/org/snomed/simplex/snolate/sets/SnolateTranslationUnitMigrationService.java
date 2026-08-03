@@ -24,14 +24,17 @@ public class SnolateTranslationUnitMigrationService {
 	private final SnolateSetRepository snolateSetRepository;
 	private final SnolateTranslationSearchService translationSearchService;
 	private final SnolateTranslationUnitRepository translationUnitRepository;
+	private final SnolateTranslationSourceRepository translationSourceRepository;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public SnolateTranslationUnitMigrationService(SnolateSetRepository snolateSetRepository,
 			SnolateTranslationSearchService translationSearchService,
-			SnolateTranslationUnitRepository translationUnitRepository) {
+			SnolateTranslationUnitRepository translationUnitRepository,
+			SnolateTranslationSourceRepository translationSourceRepository) {
 		this.snolateSetRepository = snolateSetRepository;
 		this.translationSearchService = translationSearchService;
 		this.translationUnitRepository = translationUnitRepository;
+		this.translationSourceRepository = translationSourceRepository;
 	}
 
 	public RepairTranslationUnitIdsResponse repairTranslationUnitIds(@Nullable String codeSystem) {
@@ -103,6 +106,10 @@ public class SnolateTranslationUnitMigrationService {
 	}
 
 	private void saveInChunks(List<TranslationUnit> units) {
+		if (units.isEmpty()) {
+			return;
+		}
+		TranslationUnitOrderSync.syncBatch(units, translationSourceRepository);
 		units.forEach(TranslationUnit::prepareForPersistence);
 		for (int i = 0; i < units.size(); i += ELASTIC_IO_CHUNK_SIZE) {
 			int end = Math.min(i + ELASTIC_IO_CHUNK_SIZE, units.size());

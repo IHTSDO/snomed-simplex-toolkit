@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -58,7 +59,7 @@ class TranslationServiceCompleteStatusTest {
 	@BeforeEach
 	void setUp() {
 		translationService = new TranslationService(refsetService, snowstormClientFactory, authoringServicesClient,
-				translationMergeService, translationUnitStore, translationSearchService);
+				translationMergeService, translationUnitStore, translationSearchService, mock());
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
 		translationSet.setLanguageCode(LANG);
@@ -77,7 +78,7 @@ class TranslationServiceCompleteStatusTest {
 			return null;
 		}).when(translationSearchService).forEachUnitInSet(eq(setCode), eq(COMPOSITE), any());
 
-		invokeMarkPulledUnitsComplete(translationSet);
+		invokeMarkPulledUnitsComplete(translationSet, true);
 
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -87,6 +88,31 @@ class TranslationServiceCompleteStatusTest {
 		assertThat(saved.get(0).getCode()).isEqualTo("100");
 		assertThat(saved.get(0).getStatus()).isEqualTo(TranslationStatus.COMPLETE);
 		assertThat(shell.getStatus()).isEqualTo(TranslationStatus.NOT_STARTED);
+	}
+
+	@Test
+	void markPulledUnitsComplete_excludesForReviewWhenNotIncluded() throws Exception {
+		String setCode = translationSet.getCompositeSetCode();
+		TranslationUnit approved = unit("100", List.of("approved"), TranslationStatus.APPROVED, setCode);
+		TranslationUnit forReview = unit("200", List.of("for review"), TranslationStatus.FOR_REVIEW, setCode);
+
+		doAnswer(invocation -> {
+			Consumer<TranslationUnit> consumer = invocation.getArgument(2);
+			consumer.accept(approved);
+			consumer.accept(forReview);
+			return null;
+		}).when(translationSearchService).forEachUnitInSet(eq(setCode), eq(COMPOSITE), any());
+
+		invokeMarkPulledUnitsComplete(translationSet, false);
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
+		verify(translationUnitStore).saveAll(captor.capture());
+		List<TranslationUnit> saved = new ArrayList<>(captor.getValue());
+		assertThat(saved).hasSize(1);
+		assertThat(saved.get(0).getCode()).isEqualTo("100");
+		assertThat(saved.get(0).getStatus()).isEqualTo(TranslationStatus.COMPLETE);
+		assertThat(forReview.getStatus()).isEqualTo(TranslationStatus.FOR_REVIEW);
 	}
 
 	@Test
@@ -129,10 +155,11 @@ class TranslationServiceCompleteStatusTest {
 				new LinkedHashSet<>(Set.of(setCode)));
 	}
 
-	private void invokeMarkPulledUnitsComplete(SnolateTranslationSet set) throws Exception {
-		Method method = TranslationService.class.getDeclaredMethod("markPulledUnitsComplete", SnolateTranslationSet.class);
+	private void invokeMarkPulledUnitsComplete(SnolateTranslationSet set, boolean includeReadyForReview) throws Exception {
+		Method method = TranslationService.class.getDeclaredMethod("markPulledUnitsComplete", SnolateTranslationSet.class,
+				boolean.class);
 		method.setAccessible(true);
-		method.invoke(translationService, set);
+		method.invoke(translationService, set, includeReadyForReview);
 	}
 
 	private void invokeMarkSnowstormMatchingUnitsComplete(String compositeLanguageCode, TranslationState snowstormState)

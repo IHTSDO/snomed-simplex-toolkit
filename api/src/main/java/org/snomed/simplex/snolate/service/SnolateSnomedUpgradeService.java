@@ -31,6 +31,8 @@ import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.rf2.RF2LoadingComponentFactoryWithPT;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
+import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
+import org.snomed.simplex.snolate.sets.TranslationUnitOrderSync;
 import org.snomed.simplex.util.FileUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -56,6 +58,7 @@ public class SnolateSnomedUpgradeService {
 
 	private final SnolateTranslationSourceRepository translationSourceRepository;
 	private final SnolateTranslationSearchService translationSearchService;
+	private final SnolateTranslationUnitStore translationUnitStore;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final CodeSystemService codeSystemService;
 	private final ContentProcessingJobService jobService;
@@ -64,11 +67,13 @@ public class SnolateSnomedUpgradeService {
 	private boolean upgradeEnabled;
 
 	public SnolateSnomedUpgradeService(SnolateTranslationSourceRepository translationSourceRepository,
-			SnolateTranslationSearchService translationSearchService, SnowstormClientFactory snowstormClientFactory,
+			SnolateTranslationSearchService translationSearchService, SnolateTranslationUnitStore translationUnitStore,
+			SnowstormClientFactory snowstormClientFactory,
 			CodeSystemService codeSystemService, ContentProcessingJobService jobService) {
 
 		this.translationSourceRepository = translationSourceRepository;
 		this.translationSearchService = translationSearchService;
+		this.translationUnitStore = translationUnitStore;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.codeSystemService = codeSystemService;
 		this.jobService = jobService;
@@ -143,7 +148,7 @@ public class SnolateSnomedUpgradeService {
 		return new TranslationToolUpdatePlan(previousVersion, newVersionDate, newVersion, codeSystem);
 	}
 
-	private int insertNewConceptStubsIntoSnolate(TranslationToolUpdatePlan updatePlan) throws ServiceExceptionWithStatusCode {
+	int insertNewConceptStubsIntoSnolate(TranslationToolUpdatePlan updatePlan) throws ServiceExceptionWithStatusCode {
 		File releaseFile = null;
 		try {
 			logger.info("Loading existing SNOMED CT concept list from persistence.");
@@ -262,6 +267,7 @@ public class SnolateSnomedUpgradeService {
 
 		int added = insertNewConceptStubsIntoSnolate(updatePlan);
 		int newTotal = (int) translationSourceRepository.count();
+		TranslationUnitOrderSync.syncAllUnits(translationSearchService, translationSourceRepository, translationUnitStore);
 		contentJob.setRecordsProcessed(100);
 		logger.info("Snolate SNOMED CT source updated. {} new concepts persisted.", added);
 

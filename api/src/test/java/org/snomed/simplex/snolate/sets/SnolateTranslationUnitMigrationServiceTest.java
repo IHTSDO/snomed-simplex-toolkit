@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.snomed.simplex.rest.pojos.RepairTranslationUnitIdsResponse;
+import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
@@ -36,13 +37,15 @@ class SnolateTranslationUnitMigrationServiceTest {
 	private SnolateTranslationSearchService translationSearchService;
 	@Mock
 	private SnolateTranslationUnitRepository translationUnitRepository;
+	@Mock
+	private SnolateTranslationSourceRepository translationSourceRepository;
 
 	private SnolateTranslationUnitMigrationService service;
 
 	@BeforeEach
 	void setUp() {
 		service = new SnolateTranslationUnitMigrationService(snolateSetRepository, translationSearchService,
-				translationUnitRepository);
+				translationUnitRepository, translationSourceRepository);
 	}
 
 	@Test
@@ -79,6 +82,9 @@ class SnolateTranslationUnitMigrationServiceTest {
 			return null;
 		}).when(translationSearchService).forEachUnitByCompositeLanguageCode(eq(COMPOSITE), any());
 
+		when(translationSourceRepository.findAllById(List.of("63161005")))
+				.thenReturn(List.of(new TranslationSource("63161005", "Principal", 55)));
+
 		RepairTranslationUnitIdsResponse response = service.repairTranslationUnitIds("SNOMEDCT-BE");
 
 		assertThat(response.compositeLanguageBucketsProcessed()).isEqualTo(1);
@@ -90,6 +96,7 @@ class SnolateTranslationUnitMigrationServiceTest {
 		TranslationUnit saved = saveCaptor.getValue().iterator().next();
 		assertThat(saved.getId()).isEqualTo("nl-31000172101_63161005");
 		assertThat(saved.getMemberOf()).contains(set.getCompositeSetCode());
+		assertThat(saved.getOrder()).isEqualTo(55);
 
 		ArgumentCaptor<Iterable<String>> deleteCaptor = ArgumentCaptor.forClass(Iterable.class);
 		verify(translationUnitRepository).deleteAllById(deleteCaptor.capture());

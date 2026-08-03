@@ -10,7 +10,9 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
+import org.snomed.simplex.snolate.service.ConceptListSupport;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
+import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.snomed.simplex.util.TimerUtil;
 import org.springframework.http.HttpStatus;
 
@@ -21,6 +23,9 @@ import java.util.stream.StreamSupport;
 import static org.snomed.simplex.snolate.sets.SnolateSetService.*;
 
 public class SnolateSetCreationService extends AbstractSnolateSetProcessingService {
+
+	/** Placeholder ECL for {@link TranslationSubsetType#CONCEPT_LIST} sets. */
+	public static final String CONCEPT_LIST_ECL_PLACEHOLDER = "*";
 
 	/** Chunk size for Elasticsearch batch reads/writes in {@link #bulkAddSetMembership}. */
 	private static final int ELASTIC_IO_CHUNK_SIZE = 1_000;
@@ -50,7 +55,11 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		String refsetId = translationSet.getRefset();
 		ServiceHelper.requiredParameter("refset", refsetId);
 		ServiceHelper.requiredParameter("label", translationSet.getLabel());
-		ServiceHelper.requiredParameter("ecl", translationSet.getEcl());
+		if (translationSet.getSubsetType() == TranslationSubsetType.CONCEPT_LIST) {
+			ServiceHelper.requiredParameter("conceptList", translationSet.getConceptList());
+		} else {
+			ServiceHelper.requiredParameter("ecl", translationSet.getEcl());
+		}
 		ServiceHelper.requiredParameter("selectionCodesystem", translationSet.getSelectionCodesystem());
 
 		Optional<SnolateTranslationSet> optional = snolateSetRepository.findByCodesystemAndLabelAndRefsetOrderByName(
@@ -74,6 +83,46 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		snolateSetRepository.save(translationSet);
 
 		queueJob(translationSet, JOB_TYPE_CREATE);
+	}
+
+	/**
+	 * Validates and persists a {@link TranslationSubsetType#CONCEPT_LIST} set for asynchronous creation
+	 * (membership is added by a separate content job, not the Snolate JMS queue).
+	 */
+	public void prepareConceptListSet(SnolateTranslationSet translationSet) throws ServiceException {
+		if (translationSet.getSubsetType() != TranslationSubsetType.CONCEPT_LIST) {
+			throw new ServiceExceptionWithStatusCode("Expected CONCEPT_LIST subset type.", HttpStatus.BAD_REQUEST);
+		}
+		String codesystemShortName = translationSet.getCodesystem();
+		ServiceHelper.requiredParameter("codesystem", codesystemShortName);
+		ServiceHelper.requiredParameter("name", translationSet.getName());
+		String refsetId = translationSet.getRefset();
+		ServiceHelper.requiredParameter("refset", refsetId);
+		ServiceHelper.requiredParameter("label", translationSet.getLabel());
+		ServiceHelper.requiredParameter("conceptList", translationSet.getConceptList());
+		ServiceHelper.requiredParameter("selectionCodesystem", translationSet.getSelectionCodesystem());
+		if (ConceptListSupport.splitConceptList(translationSet.getConceptList()).isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("Concept list must contain at least one valid concept ID.", HttpStatus.BAD_REQUEST);
+		}
+
+		Optional<SnolateTranslationSet> optional = snolateSetRepository.findByCodesystemAndLabelAndRefsetOrderByName(
+				codesystemShortName, translationSet.getLabel(), refsetId);
+		if (optional.isPresent()) {
+			throw new ServiceExceptionWithStatusCode("A translation set with this label already exists.", HttpStatus.CONFLICT);
+		}
+
+		CodeSystem codeSystem = snowstormClientFactory.getClient().getCodeSystemOrThrow(codesystemShortName);
+		String languageCode = codeSystem.getTranslationLanguages().get(refsetId);
+		if (languageCode == null) {
+			throw new ServiceExceptionWithStatusCode("Language code not found for refset: " + refsetId, HttpStatus.NOT_FOUND);
+		}
+		translationSet.setLanguageCode(languageCode);
+		translationSet.setInternationalEffectiveTime(codeSystem.getDependantVersionEffectiveTime());
+		translationSet.setStatus(TranslationSetStatus.INITIALISING);
+		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
+
+		logger.info("Preparing Snolate concept-list translation set {}/{}/{}", codesystemShortName, refsetId, translationSet.getLabel());
+		snolateSetRepository.save(translationSet);
 	}
 
 	public void refreshSet(SnolateTranslationSet translationSet) throws ServiceException {
@@ -151,6 +200,8 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		if (skippedAdds > 0) {
 			logger.info("Snolate refresh: {} concepts were not in translation_source and were skipped when adding set membership.", skippedAdds);
 		}
+
+		syncOrderForSetMembers(translationSet);
 
 		translationSet.setSize(countUnitsInSet(compositeSetCode, translationSet.getLanguageCodeWithRefsetId()));
 		setProgressToComplete(translationSet);
@@ -240,6 +291,22 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 	}
 
 	protected ConceptIdSource createConceptIdSource(SnolateTranslationSet translationSet, SnowstormClientFactory factory) throws ServiceExceptionWithStatusCode {
+		if (translationSet.getSubsetType() == TranslationSubsetType.CONCEPT_LIST) {
+			List<String> ids = ConceptListSupport.splitConceptList(translationSet.getConceptList());
+			return new ConceptIdSource() {
+				private int index;
+
+				@Override
+				public String next() {
+					return index < ids.size() ? ids.get(index++) : null;
+				}
+
+				@Override
+				public int getTotal() {
+					return ids.size();
+				}
+			};
+		}
 		SnowstormClient.ConceptIdStream stream = getConceptIdStream(translationSet, factory);
 		return new ConceptIdSource() {
 			@Override
@@ -281,6 +348,30 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 		snolateSetRepository.save(translationSet);
 	}
 
+	private void syncOrderForSetMembers(SnolateTranslationSet translationSet) {
+		String compositeSetCode = translationSet.getCompositeSetCode();
+		String compositeLang = translationSet.getLanguageCodeWithRefsetId();
+		List<TranslationUnit> batch = new ArrayList<>(ELASTIC_IO_CHUNK_SIZE);
+		translationSearchService.forEachUnitInSet(compositeSetCode, compositeLang, unit -> {
+			batch.add(unit);
+			if (batch.size() >= ELASTIC_IO_CHUNK_SIZE) {
+				flushOrderSyncBatch(batch);
+			}
+		});
+		flushOrderSyncBatch(batch);
+	}
+
+	private void flushOrderSyncBatch(List<TranslationUnit> batch) {
+		if (batch.isEmpty()) {
+			return;
+		}
+		List<TranslationUnit> changed = TranslationUnitOrderSync.syncBatch(batch, translationSourceRepository);
+		if (!changed.isEmpty()) {
+			translationUnitStore.saveAll(changed);
+		}
+		batch.clear();
+	}
+
 	/**
 	 * @return number of requested codes not found in {@link TranslationSource} (skipped)
 	 */
@@ -311,7 +402,7 @@ public class SnolateSetCreationService extends AbstractSnolateSetProcessingServi
 					LinkedHashSet<String> memberOf = new LinkedHashSet<>(u.getMemberOf());
 					memberOf.add(compositeSetCode);
 					u.setMemberOf(memberOf);
-					u.setOrder(src.getOrder());
+					TranslationUnitOrderSync.applyIfChanged(u, src);
 				} else {
 					u = TranslationUnit.shellMember(src.getCode(), translationSet.getRefset(), translationSet.getLanguageCode(),
 							compositeLang, src.getOrder(), compositeSetCode);

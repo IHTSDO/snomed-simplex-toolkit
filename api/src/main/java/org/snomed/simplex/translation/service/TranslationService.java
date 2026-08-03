@@ -35,6 +35,7 @@ import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.service.SnolateTranslationSource;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.importer.TranslationCsvFormat;
@@ -93,6 +94,7 @@ public class TranslationService {
 	private final TranslationMergeService translationMergeService;
 	private final SnolateTranslationUnitStore translationUnitStore;
 	private final SnolateTranslationSearchService translationSearchService;
+	private final SnolateTranslationSourceRepository translationSourceRepository;
 
 	private final Map<String, List<ConceptMini>> languageRefsetCache = new ConcurrentHashMap<>();
 
@@ -102,7 +104,8 @@ public class TranslationService {
 	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory, AuthoringServicesClient authoringServicesClient,
 			TranslationMergeService translationMergeService,
 			SnolateTranslationUnitStore translationUnitStore,
-			SnolateTranslationSearchService translationSearchService) {
+			SnolateTranslationSearchService translationSearchService,
+			SnolateTranslationSourceRepository translationSourceRepository) {
 
 		this.refsetService = refsetService;
 		this.snowstormClientFactory = snowstormClientFactory;
@@ -110,6 +113,7 @@ public class TranslationService {
 		this.translationMergeService = translationMergeService;
 		this.translationUnitStore = translationUnitStore;
 		this.translationSearchService = translationSearchService;
+		this.translationSourceRepository = translationSourceRepository;
 	}
 
 	@PostConstruct
@@ -999,7 +1003,8 @@ public class TranslationService {
 			throws ServiceExceptionWithStatusCode {
 
 		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
-		SnolateTranslationSource snolateTranslationSource = new SnolateTranslationSource(translationUnitStore, translationSearchService, languageCode, refsetId);
+		SnolateTranslationSource snolateTranslationSource = new SnolateTranslationSource(translationUnitStore, translationSearchService,
+				translationSourceRepository, languageCode, refsetId);
 		TranslationMergeService.MergeResult mergeResult = translationMergeService.applyMerge(
 				snowstormTranslationSource, snolateTranslationSource, languageCode, refsetId);
 		String compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
@@ -1009,11 +1014,19 @@ public class TranslationService {
 	public ChangeSummary synchroniseSnolateSubsetToSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient,
 			SnolateTranslationSet translationSet, ProgressMonitor progressMonitor, APTaskCreationCallable taskCreationCallable)
 			throws ServiceException {
+		return synchroniseSnolateSubsetToSnowstorm(codeSystem, snowstormClient, translationSet, progressMonitor,
+				taskCreationCallable, true);
+	}
+
+	public ChangeSummary synchroniseSnolateSubsetToSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient,
+			SnolateTranslationSet translationSet, ProgressMonitor progressMonitor, APTaskCreationCallable taskCreationCallable,
+			boolean includeReadyForReview)
+			throws ServiceException {
 
 		String languageCode = translationSet.getLanguageCode();
 		String refsetId = translationSet.getRefset();
 		SnolateSubsetTranslationSource snolateSubsetTranslationSource = new SnolateSubsetTranslationSource(
-				translationSearchService, languageCode, refsetId, translationSet.getCompositeSetCode());
+				translationSearchService, languageCode, refsetId, translationSet.getCompositeSetCode(), includeReadyForReview);
 		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
 		TranslationMergeService.MergeResult mergeResult = translationMergeService.computeMerge(
 				snolateSubsetTranslationSource, snowstormTranslationSource, languageCode, refsetId);
@@ -1027,16 +1040,20 @@ public class TranslationService {
 				snowstormClient, progressMonitor, taskCreationCallable);
 		translationMergeService.persistMergeSnapshots(mergeResult, refsetId,
 				snolateSubsetTranslationSource.getType(), snowstormTranslationSource.getType());
-		markPulledUnitsComplete(translationSet);
+		markPulledUnitsComplete(translationSet, includeReadyForReview);
 		return changeSummary;
 	}
 
 	private void markPulledUnitsComplete(SnolateTranslationSet translationSet) {
+		markPulledUnitsComplete(translationSet, true);
+	}
+
+	private void markPulledUnitsComplete(SnolateTranslationSet translationSet, boolean includeReadyForReview) {
 		String compositeLanguageCode = translationSet.getLanguageCodeWithRefsetId();
 		String setCode = translationSet.getCompositeSetCode();
 		List<TranslationUnit> saveBuffer = new ArrayList<>();
 		translationSearchService.forEachUnitInSet(setCode, compositeLanguageCode, unit -> {
-			if (unit.hasTermContent()) {
+			if (unit.hasTermContent() && (includeReadyForReview || unit.getStatus() != TranslationStatus.FOR_REVIEW)) {
 				unit.setStatus(TranslationStatus.COMPLETE);
 				saveBuffer.add(unit);
 				flushStatusSaveBufferIfNeeded(saveBuffer);

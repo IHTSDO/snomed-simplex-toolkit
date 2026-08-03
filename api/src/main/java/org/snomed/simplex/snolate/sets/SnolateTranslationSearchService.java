@@ -435,6 +435,14 @@ public class SnolateTranslationSearchService {
 	}
 
 	/**
+	 * Visits every translation unit in the index using {@code search_after} paging.
+	 */
+	public void forEachTranslationUnit(Consumer<TranslationUnit> consumer) {
+		forEachMatching(new Criteria(), UNITS_IN_SET_STREAM_SORT,
+				"cannot continue streaming all translation units", consumer);
+	}
+
+	/**
 	 * Visits every translation unit for a language/refset bucket using {@code search_after} paging.
 	 */
 	public void forEachUnitByCompositeLanguageCode(String compositeLanguageCode, Consumer<TranslationUnit> consumer) {

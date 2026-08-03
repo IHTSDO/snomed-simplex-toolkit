@@ -6,17 +6,21 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
+import org.snomed.simplex.snolate.sets.TranslationUnitOrderSync;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.TranslationSource;
 import org.snomed.simplex.translation.service.TranslationSourceType;
 import org.springframework.http.HttpStatus;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.StreamSupport;
 
 /**
  * Snolate persistence backing for {@link TranslationSource}. Maps {@link TranslationUnit} documents to
@@ -31,14 +35,18 @@ public class SnolateTranslationSource implements TranslationSource {
 
 	private final SnolateTranslationUnitStore translationUnitStore;
 	private final SnolateTranslationSearchService translationSearchService;
+	private final SnolateTranslationSourceRepository translationSourceRepository;
 	private final String isoLanguageCode;
 	private final String refsetId;
 	private final String compositeLanguageCode;
 
 	public SnolateTranslationSource(SnolateTranslationUnitStore translationUnitStore,
-			SnolateTranslationSearchService translationSearchService, String languageCode, String refsetId) {
+			SnolateTranslationSearchService translationSearchService,
+			SnolateTranslationSourceRepository translationSourceRepository,
+			String languageCode, String refsetId) {
 		this.translationUnitStore = translationUnitStore;
 		this.translationSearchService = translationSearchService;
+		this.translationSourceRepository = translationSourceRepository;
 		this.isoLanguageCode = languageCode;
 		this.refsetId = refsetId;
 		this.compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
@@ -78,6 +86,7 @@ public class SnolateTranslationSource implements TranslationSource {
 			List<Map.Entry<Long, List<String>>> chunk = entries.subList(i, end);
 			List<String> codes = chunk.stream().map(e -> e.getKey().toString()).toList();
 			Map<String, TranslationUnit> byCode = translationUnitStore.loadByCodes(compositeLanguageCode, codes);
+			Map<String, org.snomed.simplex.snolate.domain.TranslationSource> sourcesByCode = loadSourcesByCodes(codes);
 
 			for (Map.Entry<Long, List<String>> entry : chunk) {
 				String code = entry.getKey().toString();
@@ -87,12 +96,19 @@ public class SnolateTranslationSource implements TranslationSource {
 					unit.setTerms(mergeAdditions(unit.getTerms(), additions));
 					saveBuffer.add(unit);
 				} else {
-					saveBuffer.add(newFullUnit(code, additions));
+					saveBuffer.add(newFullUnit(code, additions, sourcesByCode.get(code)));
 				}
 				flushSaveBufferIfNeeded(saveBuffer, savedTotal);
 			}
 		}
 		flushSaveBufferRemainder(saveBuffer, savedTotal);
+	}
+
+	private Map<String, org.snomed.simplex.snolate.domain.TranslationSource> loadSourcesByCodes(List<String> codes) {
+		Map<String, org.snomed.simplex.snolate.domain.TranslationSource> sourcesByCode = new HashMap<>();
+		StreamSupport.stream(translationSourceRepository.findAllById(codes).spliterator(), false)
+				.forEach(source -> sourcesByCode.put(source.getCode(), source));
+		return sourcesByCode;
 	}
 
 	private void flushSaveBufferIfNeeded(List<TranslationUnit> saveBuffer, AtomicInteger savedTotal) {
@@ -117,11 +133,12 @@ public class SnolateTranslationSource implements TranslationSource {
 				batchSize, compositeLanguageCode, total);
 	}
 
-	private TranslationUnit newFullUnit(String code, List<String> additions) {
+	private TranslationUnit newFullUnit(String code, List<String> additions,
+			org.snomed.simplex.snolate.domain.TranslationSource source) {
 		TranslationUnit u = new TranslationUnit(code, compositeLanguageCode, new ArrayList<>(additions), TranslationStatus.APPROVED);
 		u.setRefsetId(refsetId);
 		u.setLanguageCode(isoLanguageCode);
-		u.setOrder(0);
+		TranslationUnitOrderSync.applyIfChanged(u, source);
 		return u;
 	}
 
