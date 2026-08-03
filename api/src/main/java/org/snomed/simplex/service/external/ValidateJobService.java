@@ -1,5 +1,6 @@
 package org.snomed.simplex.service.external;
 
+import org.apache.hc.client5.http.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
@@ -16,6 +17,7 @@ import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
 
 import java.net.URI;
 import java.util.Map;
@@ -120,7 +122,12 @@ public class ValidateJobService extends ExternalFunctionJobService<Void> {
 		try {
 			validationReport = validationServiceClient.getValidation(codeSystem.getLatestValidationReport());
 		} catch (ServiceException e) {
-			logger.warn("Failed to fetch RVF validation report from {}.", codeSystem.getLatestValidationReport(), e);
+			if (isConnectionTimeout(e)) {
+				// No stacktrace for timeout
+				logger.warn("Failed to fetch RVF validation report from {}. API connection timeout.", codeSystem.getLatestValidationReport());
+			} else {
+				logger.warn("Failed to fetch RVF validation report from {}.", codeSystem.getLatestValidationReport(), e);
+			}
 			return CodeSystemValidationStatus.UNAVAILABLE;
 		}
 		if (validationReport.status() == ValidationReport.State.FAILED) {
@@ -143,6 +150,13 @@ public class ValidateJobService extends ExternalFunctionJobService<Void> {
 			}
 		}
 		return status;
+	}
+
+	private static boolean isConnectionTimeout(ServiceException e) {
+		if (e.getCause() instanceof ResourceAccessException rae) {
+			return rae.getCause() instanceof ConnectTimeoutException;
+		}
+		return false;
 	}
 
 	private static void setValidationJobStatusAndMessage(ExternalServiceJob job, ValidationReport validationReport) {

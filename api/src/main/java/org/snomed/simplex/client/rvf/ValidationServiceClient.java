@@ -17,6 +17,8 @@ import org.snomed.simplex.service.SpreadsheetService;
 import org.snomed.simplex.util.SecurityUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
+import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
@@ -37,6 +39,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -52,7 +55,11 @@ public class ValidationServiceClient {
 	private static final String VALIDATION_SERVICE_UNAVAILABLE_MESSAGE =
 			"The validation service is not currently available. Please wait and try again later.";
 
+	/** Connect and read timeout for GET validation report requests. Job creation uses {@link #restTemplate} defaults. */
+	private static final Duration VALIDATION_FETCH_TIMEOUT = Duration.ofSeconds(15);
+
 	private final RestTemplate restTemplate;
+	private final RestTemplate restTemplateFetchValidation;
 	private final String queuePrefix;
 	private final SpreadsheetService spreadsheetService;
 	private final List<String> validationIgnoreCaseAssertionExclusionList;
@@ -62,7 +69,7 @@ public class ValidationServiceClient {
 	public ValidationServiceClient(@Value("${rvf.url}") String rvfUrl, @Value("${jms.queue.prefix}") String queuePrefix,
 								   @Value("${rvf.validation.ignore-case.assertion-exclusion-list}") String validationIgnoreCaseAssertionExclusionList,
 								   @Autowired SpreadsheetService spreadsheetService) {
-		this.restTemplate = new RestTemplateBuilder()
+		RestTemplateBuilder builder = new RestTemplateBuilder()
 				.rootUri(rvfUrl)
 				.interceptors((request, body, execution) -> {
 					// Add authentication token to RVF request
@@ -71,7 +78,13 @@ public class ValidationServiceClient {
 					return execution.execute(request, body);
 				})
 				.messageConverters(new MappingJackson2HttpMessageConverter(), new FormHttpMessageConverter(), new ByteArrayHttpMessageConverter())
-				.additionalRequestCustomizers(request -> request.getHeaders().add("Cookie", getAuthenticationToken()))
+				.additionalRequestCustomizers(request -> request.getHeaders().add("Cookie", getAuthenticationToken()));
+		this.restTemplate = builder.build();
+		ClientHttpRequestFactorySettings fetchHttpSettings = ClientHttpRequestFactorySettings.defaults()
+				.withConnectTimeout(VALIDATION_FETCH_TIMEOUT)
+				.withReadTimeout(VALIDATION_FETCH_TIMEOUT);
+		this.restTemplateFetchValidation = builder
+				.requestFactory(() -> ClientHttpRequestFactoryBuilder.detect().build(fetchHttpSettings))
 				.build();
 		this.queuePrefix = queuePrefix;
 		this.spreadsheetService = spreadsheetService;
@@ -129,7 +142,7 @@ public class ValidationServiceClient {
 
 	public ValidationReport getValidation(String validationUrl) throws ServiceException {
 		try {
-			return restTemplate.getForEntity(validationUrl, ValidationReport.class).getBody();
+			return restTemplateFetchValidation.getForEntity(validationUrl, ValidationReport.class).getBody();
 		} catch (RestClientException e) {
 			throw new ServiceException("Failed to fetch RVF validation report.", e);
 		}
