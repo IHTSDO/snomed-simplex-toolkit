@@ -1,11 +1,13 @@
 import * as XLSX from 'xlsx';
 import {
+	countConceptIdsInFile,
 	detectCsvColumnMapping,
 	detectImportColumnMapping,
 	detectCsvDelimiter,
 	isSpreadsheetFile,
 	parseCsvLine,
 	parseFirstCsvRow,
+	parseSnomedConceptId,
 	readCsvHeaders,
 	readImportHeaders,
 	readSpreadsheetHeaders
@@ -134,5 +136,21 @@ describe('csv-column-mapping.util', () => {
 			'English Term',
 			'Spanish Preferred Term'
 		]);
+	});
+
+	it('parseSnomedConceptId normalises pipe-delimited concept cells', () => {
+		expect(parseSnomedConceptId('123456789 |Term|')).toBe('123456789');
+		expect(parseSnomedConceptId('bad')).toBeNull();
+	});
+
+	it('countConceptIdsInFile counts unique concept IDs from CSV', async () => {
+		const file = new File(['Concept Code,Term\n123456789,a\n123456789,b\n987654321,c\n'], 'set.csv', {
+			type: 'text/csv'
+		});
+		await expect(countConceptIdsInFile(file, 'Concept Code')).resolves.toEqual({
+			conceptCount: 2,
+			invalidRows: 0,
+			duplicateRows: 1
+		});
 	});
 });

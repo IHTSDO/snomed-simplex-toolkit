@@ -109,6 +109,59 @@
                             (selectionChange)="onSubtypeSelectionChange($event)">
                         </app-autocomplete-binding>
                     </div>
+
+                    <div *ngIf="eclInputMethod === 'file'" class="selection-method-input">
+                        <input #conceptFileInput type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden (change)="onConceptFileSelected($event)">
+                        <div class="file-picker">
+                            <button mat-stroked-button type="button" (click)="chooseConceptFile()" [disabled]="saving || parsingConceptFile">
+                                Choose file
+                            </button>
+                            <span class="file-name" *ngIf="selectedConceptFileName">{{ selectedConceptFileName }}</span>
+                            <mat-spinner *ngIf="parsingConceptFile || previewingConceptFile" [diameter]="20"></mat-spinner>
+                        </div>
+
+                        <div class="mapping-section" *ngIf="conceptFileHeaders.length > 0">
+                            <mat-form-field>
+                                <mat-label>Concept code column</mat-label>
+                                <mat-select [(ngModel)]="conceptFileConceptColumn" [ngModelOptions]="{standalone: true}"
+                                            [disabled]="saving" (selectionChange)="onConceptFileConceptColumnChange()">
+                                    <mat-option *ngFor="let header of conceptFileHeaders" [value]="header">{{ header }}</mat-option>
+                                </mat-select>
+                            </mat-form-field>
+
+                            <mat-form-field>
+                                <mat-label>Term column(s) (optional)</mat-label>
+                                <mat-select [(ngModel)]="conceptFileTermColumns" [ngModelOptions]="{standalone: true}" multiple [disabled]="saving">
+                                    <mat-select-trigger>{{ conceptFileTermColumnCountLabel }}</mat-select-trigger>
+                                    <mat-option *ngFor="let header of conceptFileHeaders" [value]="header">{{ header }}</mat-option>
+                                </mat-select>
+                            </mat-form-field>
+
+                            <p class="mapping-hint" *ngIf="conceptPreviewCount > 0">
+                                {{ conceptPreviewCount }} concept{{ conceptPreviewCount === 1 ? '' : 's' }} found
+                                <span *ngIf="conceptPreviewDuplicateRows > 0">({{ conceptPreviewDuplicateRows }} duplicate{{ conceptPreviewDuplicateRows === 1 ? '' : 's' }} skipped)</span>
+                                <span *ngIf="conceptPreviewInvalidRows > 0">({{ conceptPreviewInvalidRows }} invalid row{{ conceptPreviewInvalidRows === 1 ? '' : 's' }} skipped)</span>
+                            </p>
+                            <p class="mapping-hint">
+                                Concepts not present in the Translation Studio language index will be skipped during set creation.
+                            </p>
+                        </div>
+
+                        <mat-radio-group
+                            class="status-options"
+                            [(ngModel)]="conceptFileImportStatus"
+                            [ngModelOptions]="{standalone: true}"
+                            [disabled]="saving"
+                            *ngIf="conceptFileTermColumns.length > 0">
+                            <p class="section-label">Status for imported rows</p>
+                            <mat-radio-button
+                                class="status-option"
+                                *ngFor="let option of conceptFileStatusOptions"
+                                [value]="option.value">
+                                {{ option.label }}
+                            </mat-radio-button>
+                        </mat-radio-group>
+                    </div>
                 </div>
 
                 <div class="translation-set-form-section">
@@ -141,7 +194,7 @@
 
             <div>
                 <button mat-flat-button (click)="setMode('view')" *ngIf="!saving">Cancel</button>
-                <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="form.invalid">Create</button>
+                <button mat-flat-button color="accent" (click)="submit()" *ngIf="!saving" [disabled]="!canSubmitCreateForm">Create</button>
                 <p *ngIf="saving" class="saving"><mat-spinner [diameter]="20"></mat-spinner>&nbsp;&nbsp;Creating set...</p>
             </div>
         </div>
@@ -239,6 +292,12 @@
                                             [disabled]="!isTranslationSetEditable(selectedLabelSet.status)">
                                         <mat-icon class="large-icon">file_upload</mat-icon>
                                         File import
+                                    </button>
+                                    <button mat-menu-item (click)="updateConceptListFromFile()"
+                                            *ngIf="selectedLabelSet.subsetType === 'CONCEPT_LIST'"
+                                            [disabled]="!isTranslationSetEditable(selectedLabelSet.status)">
+                                        <mat-icon class="large-icon">playlist_add</mat-icon>
+                                        Update concept list from file
                                     </button>
                                     <button mat-menu-item (click)="deleteTranslationSet()" [disabled]="isTranslationSetBusy(selectedLabelSet.status) || deleting">
                                         <mat-icon class="large-icon">cancel</mat-icon>

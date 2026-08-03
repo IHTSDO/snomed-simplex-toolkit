@@ -1,4 +1,4 @@
-import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
@@ -19,9 +19,11 @@ import { DownloadTranslationSetDialogComponent } from '../download-translation-s
 import { PushToExtensionDialogComponent } from '../push-to-extension-dialog/push-to-extension-dialog.component';
 import { UploadTranslationSetDialogComponent } from '../upload-translation-set-dialog/upload-translation-set-dialog.component';
 import { UploadLanguageTranslationDialogComponent } from '../upload-language-translation-dialog/upload-language-translation-dialog.component';
+import { UpdateConceptListDialogComponent } from '../update-concept-list-dialog/update-concept-list-dialog.component';
 import { TranslationStudioImportJobsComponent } from '../translation-studio-import-jobs/translation-studio-import-jobs.component';
 import { defaultLanguageDialectName, displayLanguageDialect, LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
-import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
+import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_STATUS_RADIO_ORDER, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
+import { countConceptIdsInFile, detectImportColumnMapping, readImportHeaders } from 'src/app/utils/csv-column-mapping.util';
 import { isTranslationSetBusy, isTranslationSetEditable, isTranslationSetInProgress, translationSetLifecycleStatusLabel } from 'src/app/utils/translation-set-status';
 import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, effectiveTranslationTermSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
 
@@ -88,16 +90,34 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
 
     // ECL input method properties
-    eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' = 'subtype';
-    readonly eclInputMethodOptions: Array<{ value: 'manual' | 'refset' | 'derivative' | 'subtype'; label: string }> = [
+    eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' | 'file' = 'subtype';
+    readonly eclInputMethodOptions: Array<{ value: 'manual' | 'refset' | 'derivative' | 'subtype' | 'file'; label: string }> = [
         { value: 'subtype', label: 'Select a concept and all subtypes (hierarchy descendants)' },
         { value: 'refset', label: 'Select concepts from a Subset in this extension' },
         { value: 'derivative', label: 'Select concepts from a SNOMED CT Derivative' },
         { value: 'manual', label: 'Select concepts using ECL' },
+        { value: 'file', label: 'Upload a file of concept codes (CSV or spreadsheet)' },
     ];
     selectedRefsetCode: string = '';
     selectedDerivativeCode: string = '';
     selectedSubtype: any = null;
+
+    @ViewChild('conceptFileInput') conceptFileInput?: ElementRef<HTMLInputElement>;
+    selectedConceptFile: File | null = null;
+    selectedConceptFileName = '';
+    conceptFileHeaders: string[] = [];
+    conceptFileConceptColumn = '';
+    conceptFileTermColumns: string[] = [];
+    conceptFileImportStatus: (typeof TRANSLATION_STATUS_RADIO_ORDER)[number] = 'FOR_REVIEW';
+    parsingConceptFile = false;
+    previewingConceptFile = false;
+    conceptPreviewCount = 0;
+    conceptPreviewInvalidRows = 0;
+    conceptPreviewDuplicateRows = 0;
+    readonly conceptFileStatusOptions = TRANSLATION_STATUS_RADIO_ORDER.map((status) => ({
+        value: status,
+        label: translationStatusRadioLabel(status)
+    }));
 
     // Dynamic refsets loaded from server
     refsets: any[] = [];
@@ -116,6 +136,29 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         label: [{ value: '', disabled: true }, Validators.required],
         ecl: ['', Validators.required]
     });
+
+    get canSubmitCreateForm(): boolean {
+        if (this.eclInputMethod === 'file') {
+            return !!this.form.get('translation')?.valid
+                && !!this.form.get('name')?.valid
+                && !!this.form.get('label')?.value
+                && !!this.selectedConceptFile
+                && !!this.conceptFileConceptColumn
+                && this.conceptPreviewCount > 0
+                && (this.conceptFileTermColumns.length === 0 || !!this.conceptFileImportStatus)
+                && !this.parsingConceptFile
+                && !this.previewingConceptFile;
+        }
+        return this.form.valid;
+    }
+
+    get conceptFileTermColumnCountLabel(): string {
+        const count = this.conceptFileTermColumns.length;
+        if (count === 0) {
+            return '';
+        }
+        return count === 1 ? '1 column selected' : `${count} columns selected`;
+    }
 
     // Computed property for skeleton loading state
     get showSkeleton(): boolean {
@@ -583,6 +626,135 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         });
     }
 
+    updateConceptListFromFile(labelSet?: any): void {
+        const target = labelSet ?? this.selectedLabelSet;
+        if (!target) {
+            this.snackBar.open('Please select a translation set first.', 'Close', {
+                duration: 3000
+            });
+            return;
+        }
+        if (target.subsetType !== 'CONCEPT_LIST') {
+            this.snackBar.open('Concept list update is only available for sets created from a file.', 'Close', {
+                duration: 5000
+            });
+            return;
+        }
+        if (!isTranslationSetEditable(target.status)) {
+            this.snackBar.open('Concept list update is only available when the set status is READY.', 'Close', {
+                duration: 5000
+            });
+            return;
+        }
+
+        const dialogRef = this.dialog.open(UpdateConceptListDialogComponent, {
+            width: '480px',
+            data: {
+                edition: this.selectedEdition.shortName,
+                refsetId: target.refset ?? target.translationId,
+                label: target.label,
+                setName: target.name
+            }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+            if (result?.action === 'update_started') {
+                this.handleImportJobStarted(
+                    result.jobId,
+                    target.refset ?? target.translationId,
+                    true
+                );
+            }
+        });
+    }
+
+    chooseConceptFile(): void {
+        this.conceptFileInput?.nativeElement.click();
+    }
+
+    async onConceptFileSelected(event: Event): Promise<void> {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) {
+            return;
+        }
+
+        this.selectedConceptFile = file;
+        this.selectedConceptFileName = file.name;
+        this.parsingConceptFile = true;
+        this.conceptFileHeaders = [];
+        this.conceptFileConceptColumn = '';
+        this.conceptFileTermColumns = [];
+        this.resetConceptFilePreview();
+
+        try {
+            this.conceptFileHeaders = await readImportHeaders(file);
+            if (this.conceptFileHeaders.length === 0) {
+                throw new Error('No header row found');
+            }
+            const mapping = detectImportColumnMapping(this.conceptFileHeaders);
+            this.conceptFileConceptColumn = mapping.conceptColumn;
+            this.conceptFileTermColumns = [...mapping.termColumns];
+
+            const baseName = file.name.replace(/\.[^.]+$/, '').trim();
+            if (baseName && !this.form.get('name')?.value) {
+                this.form.patchValue({ name: baseName });
+            }
+
+            await this.refreshConceptFilePreview();
+        } catch (error) {
+            console.error('Failed to read file headers:', error);
+            this.clearConceptFileState();
+            this.snackBar.open('Failed to read file headers. Please choose a valid CSV or Excel spreadsheet.', 'Close', {
+                duration: 8000
+            });
+        } finally {
+            this.parsingConceptFile = false;
+            input.value = '';
+        }
+    }
+
+    async onConceptFileConceptColumnChange(): Promise<void> {
+        await this.refreshConceptFilePreview();
+    }
+
+    private async refreshConceptFilePreview(): Promise<void> {
+        if (!this.selectedConceptFile || !this.conceptFileConceptColumn) {
+            this.resetConceptFilePreview();
+            return;
+        }
+        this.previewingConceptFile = true;
+        try {
+            const preview = await countConceptIdsInFile(this.selectedConceptFile, this.conceptFileConceptColumn);
+            this.conceptPreviewCount = preview.conceptCount;
+            this.conceptPreviewInvalidRows = preview.invalidRows;
+            this.conceptPreviewDuplicateRows = preview.duplicateRows;
+        } catch (error) {
+            console.error('Failed to preview concept count:', error);
+            this.resetConceptFilePreview();
+        } finally {
+            this.previewingConceptFile = false;
+        }
+    }
+
+    private resetConceptFilePreview(): void {
+        this.conceptPreviewCount = 0;
+        this.conceptPreviewInvalidRows = 0;
+        this.conceptPreviewDuplicateRows = 0;
+    }
+
+    private clearConceptFileState(): void {
+        this.selectedConceptFile = null;
+        this.selectedConceptFileName = '';
+        this.conceptFileHeaders = [];
+        this.conceptFileConceptColumn = '';
+        this.conceptFileTermColumns = [];
+        this.conceptFileImportStatus = 'FOR_REVIEW';
+        this.parsingConceptFile = false;
+        this.previewingConceptFile = false;
+        this.resetConceptFilePreview();
+    }
+
     private handleImportJobStarted(jobId: string | undefined, refsetId: string, refreshSets: boolean): void {
         this.snackBar.open('Import job created', 'Close', { duration: 3000 });
         this.listTabIndex = this.importJobsTabIndex;
@@ -749,6 +921,15 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     }
 
     submit() {
+        if (!this.canSubmitCreateForm) {
+            return;
+        }
+
+        if (this.eclInputMethod === 'file') {
+            this.submitCreateFromFile();
+            return;
+        }
+
         if (this.form.valid) {
             this.saving = true;
             const formData = this.form.value;
@@ -799,6 +980,53 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 }
             );
         }
+    }
+
+    private submitCreateFromFile(): void {
+        if (!this.selectedConceptFile || !this.selectedEdition) {
+            return;
+        }
+
+        this.saving = true;
+        const formData = this.form.value;
+        const label = this.form.get('label')?.value;
+        const description = formData.description?.trim() || undefined;
+        const termColumns = this.conceptFileTermColumns.length > 0 ? this.conceptFileTermColumns : undefined;
+        const status = termColumns ? this.conceptFileImportStatus : undefined;
+
+        this.simplexService.createTranslationSetFromFile(
+            this.selectedEdition.shortName,
+            formData.translation,
+            this.selectedConceptFile,
+            formData.name,
+            label,
+            this.conceptFileConceptColumn,
+            description,
+            termColumns,
+            status
+        ).subscribe(
+            () => {
+                this.snackBar.open('Translation set is being created', 'Dismiss', {
+                    duration: 5000
+                });
+                this.form.reset();
+                this.clearConceptFileState();
+                this.mode = 'view';
+                this.saving = false;
+                this.getTranslationSets();
+            },
+            (error) => {
+                console.error(error);
+                let errorMessage = 'Failed to create translation set from file';
+                if (error.error && error.error.message) {
+                    errorMessage = `${errorMessage}: ${error.error.message}`;
+                }
+                this.snackBar.open(errorMessage, 'Dismiss', {
+                    duration: 8000
+                });
+                this.saving = false;
+            }
+        );
     }
 
     loadLanguagePolicies(): void {
@@ -1436,6 +1664,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             this.selectedRefsetCode = '';
             this.selectedDerivativeCode = '';
             this.selectedSubtype = null; // Reset subtype
+            this.clearConceptFileState();
             // Reset cache flags to allow fresh data loading
             this.refsetsLoaded = false;
             this.derivativesLoaded = false;
@@ -1510,6 +1739,15 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.selectedRefsetCode = '';
         this.selectedDerivativeCode = '';
         this.selectedSubtype = null; // Clear subtype on method change
+        this.clearConceptFileState();
+
+        if (this.eclInputMethod === 'file') {
+            this.form.get('ecl')?.clearValidators();
+            this.form.get('ecl')?.updateValueAndValidity({ emitEvent: false });
+        } else {
+            this.form.get('ecl')?.setValidators(Validators.required);
+            this.form.get('ecl')?.updateValueAndValidity({ emitEvent: false });
+        }
 
         // Load refsets from server when refset option is selected (only if not already loaded)
         if (this.eclInputMethod === 'refset' && !this.refsetsLoaded) {
@@ -1658,6 +1896,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
      */
     private determineSubsetType(): string {
         switch (this.eclInputMethod) {
+            case 'file':
+                return 'CONCEPT_LIST';
             case 'manual':
                 return 'ECL';
             case 'refset':

@@ -60,6 +60,27 @@ class TranslationStudioRequestSupport {
 		return termColumnList;
 	}
 
+	static List<String> getOptionalTermColumnList(List<String> termColumns) throws ServiceExceptionWithStatusCode {
+		if (termColumns == null || termColumns.isEmpty()) {
+			return List.of();
+		}
+		return getTermColumnList(termColumns);
+	}
+
+	static void validateTranslationSetLabel(String label) throws ServiceExceptionWithStatusCode {
+		if (label == null || label.trim().isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("Label parameter cannot be null or empty.", HttpStatus.BAD_REQUEST);
+		}
+		if (!label.equals(label.toLowerCase())) {
+			throw new ServiceExceptionWithStatusCode("Label parameter must be all lowercase.", HttpStatus.BAD_REQUEST);
+		}
+		if (!label.matches("^[a-z0-9_-]+$")) {
+			throw new ServiceExceptionWithStatusCode(
+					"Label parameter must contain only lowercase letters, numbers, hyphens, and underscores.",
+					HttpStatus.BAD_REQUEST);
+		}
+	}
+
 	static String resolveSnolateLanguageCode(CodeSystem codeSystem, String refsetId)
 			throws ServiceExceptionWithStatusCode {
 		Map<String, String> snolateLanguages = codeSystem.getTranslationSnolateLanguages();

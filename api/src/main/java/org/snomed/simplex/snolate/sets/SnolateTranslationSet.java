@@ -1,5 +1,6 @@
 package org.snomed.simplex.snolate.sets;
 
+import org.snomed.simplex.snolate.service.ConceptListSupport;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.data.annotation.Id;
@@ -46,6 +47,10 @@ public final class SnolateTranslationSet {
 
 	@Field(type = FieldType.Keyword)
 	private final String selectionCodesystem;
+
+	/** Comma-separated SCTIDs when {@link #subsetType} is {@link TranslationSubsetType#CONCEPT_LIST}. */
+	@Field(type = FieldType.Text)
+	private String conceptList;
 
 	@Field(type = FieldType.Object)
 	private LinkedHashMap<String, String> aiGoldenSet;
@@ -115,6 +120,7 @@ public final class SnolateTranslationSet {
 		}
 		c.setInternationalEffectiveTime(internationalEffectiveTime);
 		c.setDescription(description);
+		c.setConceptList(conceptList);
 		return c;
 	}
 
@@ -136,6 +142,10 @@ public final class SnolateTranslationSet {
 		}
 		if (subsetType == TranslationSubsetType.REFSET) {
 			return "Members of the refset: %s".formatted(ecl.replace("^", "").strip());
+		}
+		if (subsetType == TranslationSubsetType.CONCEPT_LIST) {
+			int count = ConceptListSupport.splitConceptList(conceptList).size();
+			return "Concept list from file (%d concepts)".formatted(count);
 		}
 		return ecl;
 	}
@@ -202,6 +212,14 @@ public final class SnolateTranslationSet {
 
 	public String getSelectionCodesystem() {
 		return selectionCodesystem;
+	}
+
+	public String getConceptList() {
+		return conceptList;
+	}
+
+	public void setConceptList(String conceptList) {
+		this.conceptList = conceptList;
 	}
 
 	public void setStatus(TranslationSetStatus status) {

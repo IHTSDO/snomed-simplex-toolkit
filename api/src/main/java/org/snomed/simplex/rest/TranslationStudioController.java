@@ -23,14 +23,18 @@ import org.snomed.simplex.snolate.domain.LanguagePolicyQuestionnaire;
 import org.snomed.simplex.snolate.domain.LanguageTranslationPolicy;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationStatusLabels;
+import org.snomed.simplex.snolate.service.ConceptListSupport;
+import org.snomed.simplex.snolate.service.ConceptListSupport.ConceptListParseResult;
 import org.snomed.simplex.snolate.service.LanguagePolicyQuestionnaireService;
 import org.snomed.simplex.snolate.service.LanguageTranslationPolicyService;
 import org.snomed.simplex.snolate.service.OutsideSetBehavior;
 import org.snomed.simplex.snolate.service.SnolateTranslationService;
+import org.snomed.simplex.snolate.sets.SnolateSetCreationService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.service.TranslationService;
+import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -121,21 +125,124 @@ public class TranslationStudioController {
 		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 
 		String label = createRequest.getLabel();
-		if (label == null || label.trim().isEmpty()) {
-			throw new ServiceExceptionWithStatusCode("Label parameter cannot be null or empty.", HttpStatus.BAD_REQUEST);
-		}
-		if (!label.equals(label.toLowerCase())) {
-			throw new ServiceExceptionWithStatusCode("Label parameter must be all lowercase.", HttpStatus.BAD_REQUEST);
-		}
-		if (!label.matches("^[a-z0-9_-]+$")) {
-			throw new ServiceExceptionWithStatusCode("Label parameter must contain only lowercase letters, numbers, hyphens, and underscores.", HttpStatus.BAD_REQUEST);
-		}
+		validateTranslationSetLabel(label);
 		validateDescriptionLength(createRequest.getDescription());
 
 		SnolateTranslationSet set = new SnolateTranslationSet(codeSystem, refsetId, createRequest.getName(), label,
 				createRequest.getEcl(), createRequest.getSubsetType(), createRequest.getSelectionCodesystem());
 		set.setDescription(normaliseDescription(createRequest.getDescription()));
 		return snolateSetService.createSet(set);
+	}
+
+	@PostMapping(path = "{refsetId}/sets/from-file", consumes = "multipart/form-data")
+	@Operation(summary = "Create a translation set from a CSV or spreadsheet of concept codes.",
+			description = "Optionally import translation terms from the same file when term columns and status are provided.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public SnolateTranslationSet createSetFromFile(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@RequestParam MultipartFile file, @RequestParam String name, @RequestParam String label,
+			@RequestParam(required = false) String description, @RequestParam String conceptColumn,
+			@RequestParam(required = false) List<String> termColumns, @RequestParam(required = false) String status)
+			throws ServiceException, IOException {
+
+		rejectFoundationEnglishLangRefset(refsetId);
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+
+		validateTranslationSetLabel(label);
+		validateDescriptionLength(description);
+		ServiceHelper.requiredParameter("name", name);
+		ServiceHelper.requiredParameter("conceptColumn", conceptColumn);
+
+		List<String> termColumnList = getOptionalTermColumnList(termColumns);
+		TranslationStatus importStatus = termColumnList.isEmpty() ? null : parseImportTranslationStatus(status);
+
+		ContentJob contentJob = new TranslationStudioContentJob(theCodeSystem,
+				"Translation Studio set creation from file", refsetId)
+				.addUpload(file.getInputStream(), file.getOriginalFilename());
+
+		ConceptListParseResult parseResult;
+		try (var inputStream = contentJob.getInputStream()) {
+			parseResult = snolateTranslationService.parseConceptIdsFromFile(inputStream,
+					contentJob.getInputFileOriginalName(), conceptColumn);
+		}
+		if (parseResult.conceptIds().isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("File contains no valid concept IDs.", HttpStatus.BAD_REQUEST);
+		}
+
+		SnolateTranslationSet set = new SnolateTranslationSet(codeSystem, refsetId, name, label,
+				SnolateSetCreationService.CONCEPT_LIST_ECL_PLACEHOLDER, TranslationSubsetType.CONCEPT_LIST, codeSystem);
+		set.setDescription(normaliseDescription(description));
+		set.setConceptList(ConceptListSupport.joinConceptList(parseResult.conceptIds()));
+		snolateSetService.prepareConceptListSet(set);
+
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION_STUDIO, ActivityType.CREATE);
+		jobService.queueContentJob(contentJob, refsetId, activity, job -> {
+			SnolateTranslationSet currentSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+			snolateSetService.runCreateSet(currentSet);
+			ChangeSummary changeSummary = new ChangeSummary();
+			if (!termColumnList.isEmpty()) {
+				changeSummary = snolateTranslationService.importTranslationSetFile(currentSet, job.getInputStream(),
+						job.getInputFileOriginalName(), conceptColumn, termColumnList, importStatus,
+						OutsideSetBehavior.SKIP);
+			}
+			return changeSummary;
+		});
+
+		return set;
+	}
+
+	@PutMapping(path = "{refsetId}/sets/{label}/concept-list", consumes = "multipart/form-data")
+	@Operation(summary = "Replace the concept list of a CONCEPT_LIST translation set from a file.",
+			description = "Optionally import translation terms from the same file when term columns and status are provided.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public AsyncJob updateConceptListFromFile(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@PathVariable String label, @RequestParam MultipartFile file, @RequestParam String conceptColumn,
+			@RequestParam(required = false) List<String> termColumns, @RequestParam(required = false) String status)
+			throws ServiceException, IOException {
+
+		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		if (translationSet.getSubsetType() != TranslationSubsetType.CONCEPT_LIST) {
+			throw new ServiceExceptionWithStatusCode(
+					"Concept list can only be updated for translation sets created from a file.", HttpStatus.BAD_REQUEST);
+		}
+		if (!translationSet.getStatus().isEditable()) {
+			throw new ServiceExceptionWithStatusCode(
+					"Concept list update is only available when set status is READY.", HttpStatus.BAD_REQUEST);
+		}
+
+		ServiceHelper.requiredParameter("conceptColumn", conceptColumn);
+		List<String> termColumnList = getOptionalTermColumnList(termColumns);
+		TranslationStatus importStatus = termColumnList.isEmpty() ? null : parseImportTranslationStatus(status);
+
+		ContentJob contentJob = new TranslationStudioContentJob(
+				snowstormClientFactory.getClient().getCodeSystemOrThrow(codeSystem),
+				"Translation Studio concept list update", refsetId)
+				.addUpload(file.getInputStream(), file.getOriginalFilename());
+
+		ConceptListParseResult parseResult;
+		try (var inputStream = contentJob.getInputStream()) {
+			parseResult = snolateTranslationService.parseConceptIdsFromFile(inputStream,
+					contentJob.getInputFileOriginalName(), conceptColumn);
+		}
+		if (parseResult.conceptIds().isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("File contains no valid concept IDs.", HttpStatus.BAD_REQUEST);
+		}
+
+		translationSet.setConceptList(ConceptListSupport.joinConceptList(parseResult.conceptIds()));
+		snolateSetService.updateSet(translationSet);
+
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION_STUDIO, ActivityType.UPDATE);
+		return jobService.queueContentJob(contentJob, refsetId, activity, job -> {
+			SnolateTranslationSet currentSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+			snolateSetService.runRefreshSet(currentSet);
+			if (termColumnList.isEmpty()) {
+				return new ChangeSummary();
+			}
+			return snolateTranslationService.importTranslationSetFile(currentSet, job.getInputStream(),
+					job.getInputFileOriginalName(), conceptColumn, termColumnList, importStatus,
+					OutsideSetBehavior.SKIP);
+		});
 	}
 
 	@PutMapping("{refsetId}/sets/{label}")

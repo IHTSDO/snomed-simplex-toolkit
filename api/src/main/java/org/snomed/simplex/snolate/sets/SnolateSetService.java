@@ -106,6 +106,22 @@ public class SnolateSetService {
 		return translationSet;
 	}
 
+	public SnolateTranslationSet prepareConceptListSet(SnolateTranslationSet translationSet) throws ServiceException {
+		creationService.prepareConceptListSet(translationSet);
+		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
+		return translationSet;
+	}
+
+	public void runCreateSet(SnolateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+		creationService.doCreateSet(translationSet, snowstormClientFactory);
+		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
+	}
+
+	public void runRefreshSet(SnolateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+		creationService.doRefreshSet(translationSet, snowstormClientFactory);
+		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
+	}
+
 	public SnolateTranslationSet refreshSet(SnolateTranslationSet translationSet) throws ServiceException {
 		creationService.refreshSet(translationSet);
 		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());

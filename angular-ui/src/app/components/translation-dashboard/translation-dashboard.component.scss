@@ -619,6 +619,41 @@ mat-list-item:not(:last-child) {
     margin-top: 16px;
     padding-left: 24px;
 
+    .file-picker {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .file-name {
+        word-break: break-all;
+    }
+
+    .mapping-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .mapping-hint,
+    .section-label {
+        margin: 0;
+        color: rgba(0, 0, 0, 0.7);
+        font-size: 14px;
+    }
+
+    .status-options {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .status-option {
+        display: block;
+    }
+
     h4 {
         margin-top: 0;
         margin-bottom: 12px;

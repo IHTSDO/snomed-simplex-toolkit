@@ -1,0 +1,68 @@
+<h2 mat-dialog-title>Update concept list from file</h2>
+<mat-dialog-content>
+    <div class="dialog-content">
+        <p class="set-hint">
+            Replace membership for <strong>{{ data.setName }}</strong> from a CSV or Excel spreadsheet.
+        </p>
+
+        <input #fileInput type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden (change)="onFileSelected($event)">
+
+        <div class="file-picker">
+            <button mat-stroked-button type="button" (click)="chooseFile()" [disabled]="loading || parsingHeaders">
+                Choose file
+            </button>
+            <span class="file-name" *ngIf="selectedFileName">{{ selectedFileName }}</span>
+            <mat-spinner *ngIf="parsingHeaders || previewingConcepts" diameter="20"></mat-spinner>
+        </div>
+
+        <div class="mapping-section" *ngIf="headers.length > 0">
+            <mat-form-field appearance="outline" class="mapping-field">
+                <mat-label>Concept code column</mat-label>
+                <mat-select [(ngModel)]="conceptColumn" [disabled]="loading" (selectionChange)="onConceptColumnChange()">
+                    <mat-option *ngFor="let header of headers" [value]="header">{{ header }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="mapping-field">
+                <mat-label>Term column(s) (optional)</mat-label>
+                <mat-select [(ngModel)]="termColumns" multiple [disabled]="loading">
+                    <mat-select-trigger>{{ termColumnCountLabel }}</mat-select-trigger>
+                    <mat-option *ngFor="let header of headers" [value]="header">{{ header }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+            <p class="mapping-hint" *ngIf="termColumns.length > 0">
+                Terms from the selected columns will be imported with the chosen status.
+            </p>
+
+            <p class="mapping-hint" *ngIf="conceptPreviewCount > 0">
+                {{ conceptPreviewCount }} concept{{ conceptPreviewCount === 1 ? '' : 's' }} found
+                <span *ngIf="conceptPreviewDuplicateRows > 0">({{ conceptPreviewDuplicateRows }} duplicate{{ conceptPreviewDuplicateRows === 1 ? '' : 's' }} skipped)</span>
+                <span *ngIf="conceptPreviewInvalidRows > 0">({{ conceptPreviewInvalidRows }} invalid row{{ conceptPreviewInvalidRows === 1 ? '' : 's' }} skipped)</span>
+            </p>
+        </div>
+
+        <mat-radio-group
+            class="status-options"
+            [(ngModel)]="selectedStatus"
+            [disabled]="loading"
+            *ngIf="termColumns.length > 0">
+            <p class="section-label">Status for imported rows</p>
+            <mat-radio-button
+                class="status-option"
+                *ngFor="let option of statusOptions"
+                [value]="option.value">
+                {{ option.label }}
+            </mat-radio-button>
+        </mat-radio-group>
+    </div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    <button mat-button (click)="onCancel()" [disabled]="loading">Cancel</button>
+    <button mat-flat-button color="accent" (click)="onSubmit()" [disabled]="!canSubmit">
+        <span *ngIf="!loading">Update concept list</span>
+        <span class="loading-content" *ngIf="loading">
+            <mat-spinner diameter="20"></mat-spinner>
+            Updating...
+        </span>
+    </button>
+</mat-dialog-actions>

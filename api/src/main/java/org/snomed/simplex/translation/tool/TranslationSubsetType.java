@@ -5,5 +5,6 @@ public enum TranslationSubsetType {
 	ECL,
 	SUB_TYPE,
 	REFSET,
+	CONCEPT_LIST,
 
 }

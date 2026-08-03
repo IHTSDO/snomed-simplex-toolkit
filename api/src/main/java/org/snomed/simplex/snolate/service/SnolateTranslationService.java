@@ -18,6 +18,9 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
+import org.snomed.simplex.snolate.service.ConceptListSupport.ConceptListParseResult;
+
+import static org.snomed.simplex.snolate.service.ConceptListSupport.dedupeConceptIds;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -281,6 +284,70 @@ public class SnolateTranslationService {
 			}
 		}
 		return s.isEmpty() ? DEFAULT_TRANSLATION_LABEL : s;
+	}
+
+	public ConceptListParseResult parseConceptIdsFromFile(InputStream inputStream, String filename, String conceptColumn)
+			throws ServiceException {
+		org.snomed.simplex.service.ServiceHelper.requiredParameter("conceptColumn", conceptColumn);
+		if (isSpreadsheetFile(filename)) {
+			return parseConceptIdsFromSpreadsheet(inputStream, conceptColumn);
+		}
+		return parseConceptIdsFromCsv(inputStream, conceptColumn);
+	}
+
+	private ConceptListParseResult parseConceptIdsFromCsv(InputStream inputStream, String conceptColumn)
+			throws ServiceException {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+			String headerLine = reader.readLine();
+			if (headerLine == null || headerLine.isBlank()) {
+				throw new ServiceExceptionWithStatusCode("CSV file has no header row.", HttpStatus.BAD_REQUEST);
+			}
+			headerLine = FileUtils.removeUTF8BOM(headerLine);
+			char delimiter = CsvParser.detectDelimiter(headerLine);
+			List<String> headerFields = CsvParser.parseLine(headerLine, delimiter);
+			Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
+			int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), "Concept column");
+			List<String> rawIds = new ArrayList<>();
+			List<String> rowFields;
+			while (!(rowFields = CsvParser.readRow(reader, delimiter)).isEmpty()) {
+				if (isBlankCsvRow(rowFields)) {
+					continue;
+				}
+				rawIds.add(getField(rowFields, conceptIndex));
+			}
+			return dedupeConceptIds(rawIds);
+		} catch (IOException e) {
+			throw new ServiceException("Failed to read concept list CSV.", e);
+		} catch (ServiceExceptionWithStatusCode e) {
+			throw e;
+		}
+	}
+
+	private ConceptListParseResult parseConceptIdsFromSpreadsheet(InputStream inputStream, String conceptColumn)
+			throws ServiceException {
+		try (XSSFWorkbook workbook = new XSSFWorkbook(inputStream)) {
+			Sheet sheet = workbook.getSheetAt(0);
+			Row headerRow = sheet.getRow(0);
+			if (headerRow == null) {
+				throw new ServiceExceptionWithStatusCode("Spreadsheet has no header row.", HttpStatus.BAD_REQUEST);
+			}
+			List<String> headerFields = readSpreadsheetHeaderFields(headerRow);
+			Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
+			int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), "Concept column");
+			List<String> rawIds = new ArrayList<>();
+			for (Row row : sheet) {
+				if (row.getRowNum() == 0) {
+					continue;
+				}
+				String conceptCode = SpreadsheetService.readSnomedConcept(row, conceptIndex, row.getRowNum() + 1);
+				rawIds.add(conceptCode != null ? conceptCode : "");
+			}
+			return dedupeConceptIds(rawIds);
+		} catch (IOException e) {
+			throw new ServiceException("Failed to read concept list spreadsheet.", e);
+		} catch (ServiceExceptionWithStatusCode e) {
+			throw e;
+		}
 	}
 
 	public ChangeSummary importTranslationSetFile(SnolateTranslationSet translationSet, InputStream inputStream,

@@ -318,3 +318,135 @@ export function detectImportColumnMapping(headers: string[]): CsvColumnMapping {
 
 /** @deprecated Use detectImportColumnMapping */
 export const detectCsvColumnMapping = detectImportColumnMapping;
+
+const SCTID_PATTERN = /^\d{6,18}$/;
+
+export function parseSnomedConceptId(cellValue: string): string | null {
+	if (!cellValue || !cellValue.trim()) {
+		return null;
+	}
+	let value = cellValue.trim();
+	if (value.includes('|')) {
+		value = value.substring(0, value.indexOf('|')).trim();
+	}
+	if (!SCTID_PATTERN.test(value)) {
+		return null;
+	}
+	return value;
+}
+
+export interface ConceptIdPreviewResult {
+	conceptCount: number;
+	invalidRows: number;
+	duplicateRows: number;
+}
+
+export async function countConceptIdsInFile(file: File, conceptColumn: string): Promise<ConceptIdPreviewResult> {
+	if (isSpreadsheetFile(file)) {
+		return countConceptIdsInSpreadsheet(file, conceptColumn);
+	}
+	return countConceptIdsInCsv(file, conceptColumn);
+}
+
+async function countConceptIdsInCsv(file: File, conceptColumn: string): Promise<ConceptIdPreviewResult> {
+	const text = await file.text();
+	const headerLine = readFirstLine(text);
+	const delimiter = detectCsvDelimiter(headerLine);
+	const headers = parseFirstCsvRow(headerLine, delimiter).map((header) => header.trim());
+	const conceptIndex = headers.indexOf(conceptColumn);
+	if (conceptIndex < 0) {
+		return { conceptCount: 0, invalidRows: 0, duplicateRows: 0 };
+	}
+
+	const seen = new Set<string>();
+	let conceptCount = 0;
+	let invalidRows = 0;
+	let duplicateRows = 0;
+	let bodyStart = headerLine.length;
+	if (text.charAt(bodyStart) === '\r') {
+		bodyStart++;
+	}
+	if (text.charAt(bodyStart) === '\n') {
+		bodyStart++;
+	}
+	const body = text.slice(bodyStart);
+	let lineStart = 0;
+	for (let i = 0; i <= body.length; i++) {
+		const endOfLine = i === body.length || body.charAt(i) === '\n' || body.charAt(i) === '\r';
+		if (!endOfLine) {
+			continue;
+		}
+		const line = body.slice(lineStart, i).trim();
+		lineStart = i + 1;
+		if (body.charAt(i) === '\r' && body.charAt(i + 1) === '\n') {
+			lineStart++;
+			i++;
+		}
+		if (!line) {
+			continue;
+		}
+		const fields = parseCsvLine(line, delimiter);
+		const conceptId = parseSnomedConceptId(fields[conceptIndex] ?? '');
+		if (!conceptId) {
+			const raw = (fields[conceptIndex] ?? '').trim();
+			if (raw) {
+				invalidRows++;
+			}
+			continue;
+		}
+		if (seen.has(conceptId)) {
+			duplicateRows++;
+			continue;
+		}
+		seen.add(conceptId);
+		conceptCount++;
+	}
+	return { conceptCount, invalidRows, duplicateRows };
+}
+
+async function countConceptIdsInSpreadsheet(file: File, conceptColumn: string): Promise<ConceptIdPreviewResult> {
+	const buffer = await file.arrayBuffer();
+	const workbook = XLSX.read(buffer, { type: 'array', raw: false });
+	const sheetName = workbook.SheetNames[0];
+	if (!sheetName) {
+		return { conceptCount: 0, invalidRows: 0, duplicateRows: 0 };
+	}
+	const sheet = workbook.Sheets[sheetName];
+	const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
+	const headerRow = rows[0];
+	if (!headerRow || !Array.isArray(headerRow)) {
+		return { conceptCount: 0, invalidRows: 0, duplicateRows: 0 };
+	}
+	const headers = headerRow.map((header) => String(header ?? '').trim());
+	const conceptIndex = headers.indexOf(conceptColumn);
+	if (conceptIndex < 0) {
+		return { conceptCount: 0, invalidRows: 0, duplicateRows: 0 };
+	}
+
+	const seen = new Set<string>();
+	let conceptCount = 0;
+	let invalidRows = 0;
+	let duplicateRows = 0;
+	for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+		const row = rows[rowIndex];
+		if (!Array.isArray(row)) {
+			continue;
+		}
+		const raw = String(row[conceptIndex] ?? '').trim();
+		if (!raw) {
+			continue;
+		}
+		const conceptId = parseSnomedConceptId(raw);
+		if (!conceptId) {
+			invalidRows++;
+			continue;
+		}
+		if (seen.has(conceptId)) {
+			duplicateRows++;
+			continue;
+		}
+		seen.add(conceptId);
+		conceptCount++;
+	}
+	return { conceptCount, invalidRows, duplicateRows };
+}

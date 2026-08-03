@@ -575,6 +575,61 @@ export class SimplexService {
     return this.http.post(`api/${edition}/translation-studio/${refsetId}/sets`, translationSetData).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public createTranslationSetFromFile(
+    edition: string,
+    refsetId: string,
+    file: File,
+    name: string,
+    label: string,
+    conceptColumn: string,
+    description?: string,
+    termColumns?: string[],
+    status?: string
+  ): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    formData.append('name', name);
+    formData.append('label', label);
+    formData.append('conceptColumn', conceptColumn);
+    if (description) {
+      formData.append('description', description);
+    }
+    if (termColumns?.length) {
+      termColumns.forEach((column) => formData.append('termColumns', column));
+      if (status) {
+        formData.append('status', status);
+      }
+    }
+    return this.http.post(`api/${edition}/translation-studio/${refsetId}/sets/from-file`, formData).pipe(
+      tap(() => this.clearTranslationsCache(edition)),
+      catchError(this.handleError.bind(this))
+    );
+  }
+
+  public updateTranslationSetConceptList(
+    edition: string,
+    refsetId: string,
+    label: string,
+    file: File,
+    conceptColumn: string,
+    termColumns?: string[],
+    status?: string
+  ): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    formData.append('conceptColumn', conceptColumn);
+    if (termColumns?.length) {
+      termColumns.forEach((column) => formData.append('termColumns', column));
+      if (status) {
+        formData.append('status', status);
+      }
+    }
+    return this.http.put(`api/${edition}/translation-studio/${refsetId}/sets/${label}/concept-list`, formData).pipe(
+      tap(() => this.clearTranslationsCache(edition)),
+      catchError(this.handleError.bind(this))
+    );
+  }
+
   public updateTranslationSet(edition: string, refsetId: string, label: string, data: { name: string; description?: string }): Observable<any> {
     return this.http.put(`api/${edition}/translation-studio/${refsetId}/sets/${label}`, data).pipe(catchError(this.handleError.bind(this)));
   }
