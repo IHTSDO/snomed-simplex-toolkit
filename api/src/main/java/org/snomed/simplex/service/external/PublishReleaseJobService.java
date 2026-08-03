@@ -50,12 +50,9 @@ public class PublishReleaseJobService extends ExternalFunctionJobService<Void> {
 
 	@Override
 	protected String doCallService(CodeSystem codeSystem, ExternalServiceJob job, Void requestParam) throws ServiceException {
-		publishingStatusCheck(codeSystem);
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		SRSBuild build = releaseServiceClient.getReleaseCompleteBuildOrThrow(codeSystem);
 		String effectiveTime = build.configuration().getEffectiveTime();
-
-		setEditionStatus(codeSystem, EditionStatus.PUBLISHING, snowstormClient);
 
 		logger.info("Versioning CodeSystem {}", codeSystem.getShortName());
 		snowstormClient.versionCodeSystem(codeSystem, effectiveTime);

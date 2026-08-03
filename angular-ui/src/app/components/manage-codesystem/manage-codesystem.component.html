@@ -246,15 +246,15 @@
                         <button mat-flat-button color="accent" disabled *ngIf="edition.editionStatus != 'RELEASE'  && edition.editionStatus != 'PUBLISHING'">
                             Publish and complete release cycle
                         </button>
-                        <button mat-flat-button color="accent" *ngIf="edition.editionStatus == 'RELEASE' && edition.buildStatus != 'IN_PROGRESS' && edition.buildStatus != 'COMPLETE'" (click)="createReleaseCandidate()">
+                        <button mat-flat-button color="accent" *ngIf="edition.editionStatus == 'RELEASE' && edition.buildStatus != 'COMPLETE' && !isReleaseBuildInProgress()" (click)="createReleaseCandidate()">
                             Create release candidate package
                         </button>
-                        <button mat-flat-button disabled class="pulse" *ngIf="edition.editionStatus == 'RELEASE' && edition.buildStatus == 'IN_PROGRESS'">Building Release Candidate</button>
-                        <button mat-flat-button color="accent" *ngIf="edition.editionStatus == 'RELEASE' && edition.buildStatus == 'COMPLETE'" (click)="finalizeRelease()">
+                        <button mat-flat-button disabled class="pulse" *ngIf="edition.editionStatus == 'RELEASE' && isReleaseBuildInProgress()">Building Release Candidate</button>
+                        <button mat-flat-button color="accent" *ngIf="edition.editionStatus == 'RELEASE' && edition.buildStatus == 'COMPLETE' && !isPublishInProgress()" (click)="finalizeRelease()">
                             Publish and complete release cycle
                         </button>
-                        <button mat-flat-button disabled class="pulse" *ngIf="edition.editionStatus == 'PUBLISHING'">Publishing in process</button>
-                        <p class="pub-message" *ngIf="edition.editionStatus == 'PUBLISHING'">Once the release is published, the editing cycle will be closed and the edition will be available for download. This process may take several hours.</p>
+                        <button mat-flat-button disabled class="pulse" *ngIf="isPublishInProgress()">Publishing in process</button>
+                        <p class="pub-message" *ngIf="isPublishInProgress()">Once the release is published, the editing cycle will be closed and the edition will be available for download. This process may take several hours.</p>
                     </div>
                 </div>
             </div>

@@ -30,6 +30,8 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   loadingIssues = false;
   issuesReport: any;
   downloadReleaseCandidateDisabled = false;
+  creatingReleaseCandidate = false;
+  finalizingRelease = false;
   private subscriptions: Subscription = new Subscription();
 
   humanReadableIssueAdvice: string[] = [
@@ -81,6 +83,14 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   isValidationWorkflowInProgress(): boolean {
     return this.edition?.validationStatus === 'IN_PROGRESS'
       || this.edition?.classificationStatus === 'IN_PROGRESS';
+  }
+
+  isReleaseBuildInProgress(): boolean {
+    return this.edition?.buildStatus === 'IN_PROGRESS' || this.creatingReleaseCandidate;
+  }
+
+  isPublishInProgress(): boolean {
+    return this.edition?.editionStatus === 'PUBLISHING' || this.finalizingRelease;
   }
 
   canCloseEditing(): boolean {
@@ -216,7 +226,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   }
 
   createReleaseCandidate() {
-    this.edition.editionStatus = 'MAINTENANCE';
+    if (this.isReleaseBuildInProgress()) {
+      this.alert('A release candidate build is already in progress');
+      return;
+    }
+    this.creatingReleaseCandidate = true;
+    this.edition.buildStatus = 'IN_PROGRESS';
     this.alert('Creating release candidate');
     this.simplexService.createReleaseCandidate(this.edition.shortName).subscribe(
       (response: any) => {
@@ -227,6 +242,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
         this.refreshEdition();
       },
       error => {
+        this.creatingReleaseCandidate = false;
         console.error('Release candidate creation failed:', error);
         this.alert('Release candidate creation failed: ' + error.error.message);
         this.refreshEdition();
@@ -235,16 +251,23 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   }
 
   finalizeRelease() {
-    this.edition.editionStatus = 'MAINTENANCE';
+    if (this.isPublishInProgress()) {
+      this.alert('Publishing is already in progress');
+      return;
+    }
+    this.finalizingRelease = true;
+    this.edition.editionStatus = 'PUBLISHING';
     this.alert('Finalizing release');
     this.simplexService.finalizeRelease(this.edition.shortName).subscribe(
       (response: any) => {
-        this.alert('Release preparation was cancelled');
+        this.alert('Publishing started');
         this.refreshEdition();
       },
       error => {
-        console.error('Release preparation cancel failed:', error);
-        this.alert('Release preparation cancel failed');
+        this.finalizingRelease = false;
+        console.error('Release finalization failed:', error);
+        this.alert('Release finalization failed: ' + (error?.error?.message || ''));
+        this.refreshEdition();
       }
     );
   }
@@ -272,6 +295,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
         this.simplexService.getEdition(this.edition.shortName)
       );
       this.edition = response;
+      if (this.edition.buildStatus !== 'IN_PROGRESS') {
+        this.creatingReleaseCandidate = false;
+      }
+      if (this.edition.editionStatus !== 'PUBLISHING') {
+        this.finalizingRelease = false;
+      }
       await this.refreshIssues();
       this.activitiesComponent.loadActivities(false);
       if (this.jobComponent) {

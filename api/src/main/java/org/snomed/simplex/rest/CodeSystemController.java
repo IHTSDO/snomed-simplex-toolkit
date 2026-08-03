@@ -60,13 +60,14 @@ public class CodeSystemController {
 	private final UpgradeJobService upgradeJobService;
 	private final ActivityService activityService;
 	private final ValidationWorkflowService validationWorkflowService;
+	private final ReleaseWorkflowService releaseWorkflowService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public CodeSystemController(SnowstormClientFactory clientFactory, CodeSystemService codeSystemService,
 			ValidationService validationService, ValidateJobService validateJobService, ValidationServiceClient validationServiceClient,
 			UpgradeJobService upgradeJobService, ActivityService activityService,
-			ValidationWorkflowService validationWorkflowService) {
+			ValidationWorkflowService validationWorkflowService, ReleaseWorkflowService releaseWorkflowService) {
 
 		this.clientFactory = clientFactory;
 		this.codeSystemService = codeSystemService;
@@ -76,6 +77,7 @@ public class CodeSystemController {
 		this.upgradeJobService = upgradeJobService;
 		this.activityService = activityService;
 		this.validationWorkflowService = validationWorkflowService;
+		this.releaseWorkflowService = releaseWorkflowService;
 	}
 
 	@GetMapping
@@ -328,25 +330,10 @@ public class CodeSystemController {
 					If no effectiveTime is given it defaults to today's date.
 					""")
 	public void startReleaseBuild(@PathVariable String codeSystem, @RequestParam(required = false) String effectiveTime) throws ServiceException {
-		SnowstormClient snowstormClient = getSnowstormClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		if (effectiveTime == null) {
 			effectiveTime = new SimpleDateFormat("yyyyMMdd").format(new Date());
 		}
-
-		if (theCodeSystem.getEditionStatus() != EditionStatus.RELEASE) {
-			throw new ServiceExceptionWithStatusCode("CodeSystem must be approved for release before creating a release candidate.", HttpStatus.CONFLICT);
-		}
-
-		PackageConfiguration packageConfiguration = codeSystemService.getPackageConfiguration(theCodeSystem.getBranchObject());
-		if (Strings.isBlank(packageConfiguration.orgName()) || Strings.isBlank(packageConfiguration.orgContactDetails())) {
-			throw new ServiceExceptionWithStatusCode("Organisation name and contact details must be set before creating a build.", HttpStatus.CONFLICT);
-		}
-		ReleaseServiceClient releaseServiceClient = codeSystemService.getReleaseServiceClient();
-		releaseServiceClient.getCreateProduct(theCodeSystem, packageConfiguration);
-
-		ReleaseCandidateJobService releaseCandidateJobService = codeSystemService.getReleaseCandidateJobService();
-		activityService.startExternalServiceActivity(theCodeSystem, CODE_SYSTEM, BUILD_RELEASE, releaseCandidateJobService, effectiveTime);
+		releaseWorkflowService.startReleaseCandidate(codeSystem, effectiveTime);
 	}
 
 	@GetMapping(path = "{codeSystem}/release-candidate", produces="application/zip")
@@ -367,10 +354,7 @@ public class CodeSystemController {
 	@PostMapping("{codeSystem}/finalize-release")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void finalizeRelease(@PathVariable String codeSystem) throws ServiceException {
-		CodeSystem theCodeSystem = getCodeSystemDetails(codeSystem);
-		// There is no job for this action. Publish status is updated when user views CodeSystem.
-		PublishReleaseJobService publishReleaseJobService = codeSystemService.getPublishReleaseJobService();
-		activityService.startExternalServiceActivity(theCodeSystem, CODE_SYSTEM, FINALIZE_RELEASE, publishReleaseJobService, null);
+		releaseWorkflowService.finalizeRelease(codeSystem);
 	}
 
 
