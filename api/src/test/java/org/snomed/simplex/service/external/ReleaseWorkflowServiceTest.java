@@ -114,11 +114,11 @@ class ReleaseWorkflowServiceTest {
 		releaseWorkflowService.startReleaseCandidate(CODE_SYSTEM_SHORT_NAME, EFFECTIVE_TIME);
 
 		verify(snowstormClient).invalidateCodeSystemCache(CODE_SYSTEM_SHORT_NAME);
-		verify(snowstormClient).upsertBranchMetadata(eq(codeSystem.getBranchPath()), eq(Map.of(
-				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name())));
+		verify(snowstormClient).upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
+				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name()));
 		verify(releaseServiceClient).getCreateProduct(codeSystem, packageConfiguration);
-		verify(activityService).startExternalServiceActivity(eq(codeSystem), eq(CODE_SYSTEM), eq(ActivityType.BUILD_RELEASE),
-				eq(releaseCandidateJobService), eq(EFFECTIVE_TIME));
+		verify(activityService).startExternalServiceActivity(codeSystem, CODE_SYSTEM, ActivityType.BUILD_RELEASE,
+				releaseCandidateJobService, EFFECTIVE_TIME);
 	}
 
 	@Test
@@ -136,8 +136,8 @@ class ReleaseWorkflowServiceTest {
 		assertThrows(ServiceException.class,
 				() -> releaseWorkflowService.startReleaseCandidate(CODE_SYSTEM_SHORT_NAME, EFFECTIVE_TIME));
 
-		verify(snowstormClient).upsertBranchMetadata(eq(codeSystem.getBranchPath()), eq(Map.of(
-				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name())));
+		verify(snowstormClient).upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
+				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name()));
 		verify(activityService, never()).startExternalServiceActivity(any(), any(), any(), any(), any());
 	}
 
@@ -198,8 +198,8 @@ class ReleaseWorkflowServiceTest {
 		releaseWorkflowService.finalizeRelease(CODE_SYSTEM_SHORT_NAME);
 
 		verify(snowstormClient).invalidateCodeSystemCache(CODE_SYSTEM_SHORT_NAME);
-		verify(snowstormClient).upsertBranchMetadata(eq(codeSystem.getBranchPath()), eq(Map.of(
-				Branch.EDITION_STATUS_METADATA_KEY, EditionStatus.PUBLISHING.name())));
+		verify(snowstormClient).upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
+				Branch.EDITION_STATUS_METADATA_KEY, EditionStatus.PUBLISHING.name()));
 		verify(activityService).startExternalServiceActivity(eq(codeSystem), eq(CODE_SYSTEM), eq(ActivityType.FINALIZE_RELEASE),
 				eq(publishReleaseJobService), isNull());
 	}
@@ -217,8 +217,8 @@ class ReleaseWorkflowServiceTest {
 
 		assertThrows(ServiceException.class, () -> releaseWorkflowService.finalizeRelease(CODE_SYSTEM_SHORT_NAME));
 
-		verify(snowstormClient).upsertBranchMetadata(eq(codeSystem.getBranchPath()), eq(Map.of(
-				Branch.EDITION_STATUS_METADATA_KEY, EditionStatus.RELEASE.name())));
+		verify(snowstormClient).upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
+				Branch.EDITION_STATUS_METADATA_KEY, EditionStatus.RELEASE.name()));
 	}
 
 	private static CodeSystem codeSystem() {

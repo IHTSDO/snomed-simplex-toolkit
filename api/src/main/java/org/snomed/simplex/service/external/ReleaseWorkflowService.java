@@ -1,6 +1,7 @@
 package org.snomed.simplex.service.external;
 
 import org.apache.logging.log4j.util.Strings;
+import org.jspecify.annotations.NonNull;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.Branch;
@@ -21,9 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import static org.snomed.simplex.domain.activity.ComponentType.CODE_SYSTEM;
-import static org.snomed.simplex.service.CodeSystemService.clearBuildStatus;
-import static org.snomed.simplex.service.CodeSystemService.setCodeSystemMetadata;
-import static org.snomed.simplex.service.CodeSystemService.setEditionStatus;
+import static org.snomed.simplex.service.CodeSystemService.*;
 
 @Service
 public class ReleaseWorkflowService {
@@ -61,15 +60,15 @@ public class ReleaseWorkflowService {
 		}
 
 		if (codeSystem.getBuildStatus() == CodeSystemBuildStatus.IN_PROGRESS) {
-			throw new ServiceExceptionWithStatusCode("A release candidate build is already in progress.", HttpStatus.CONFLICT);
+			throw createReleaseAlreadyInProgressError();
 		}
 		Activity latestBuildActivity = activityService.findLatestByCodeSystemAndActivityType(codeSystemShortName, ActivityType.BUILD_RELEASE);
 		if (latestBuildActivity != null && latestBuildActivity.getEndDate() == null) {
-			throw new ServiceExceptionWithStatusCode("A release candidate build is already in progress.", HttpStatus.CONFLICT);
+			throw createReleaseAlreadyInProgressError();
 		}
 		ExternalServiceJob inMemoryBuildJob = releaseCandidateJobService.getLatestJob(codeSystemShortName);
 		if (inMemoryBuildJob != null && inMemoryBuildJob.getStatus() == JobStatus.IN_PROGRESS) {
-			throw new ServiceExceptionWithStatusCode("A release candidate build is already in progress.", HttpStatus.CONFLICT);
+			throw createReleaseAlreadyInProgressError();
 		}
 
 		PackageConfiguration packageConfiguration = codeSystemService.getPackageConfiguration(codeSystem.getBranchObject());
@@ -88,21 +87,25 @@ public class ReleaseWorkflowService {
 		}
 	}
 
+	private static @NonNull ServiceExceptionWithStatusCode createReleaseAlreadyInProgressError() {
+		return new ServiceExceptionWithStatusCode("A release candidate build is already in progress.", HttpStatus.CONFLICT);
+	}
+
 	public void finalizeRelease(String codeSystemShortName) throws ServiceException {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		snowstormClient.invalidateCodeSystemCache(codeSystemShortName);
 		CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(codeSystemShortName);
 
 		if (codeSystem.getEditionStatus() == EditionStatus.PUBLISHING) {
-			throw new ServiceExceptionWithStatusCode("Publishing is already in progress.", HttpStatus.CONFLICT);
+			throw createPublishingInProgressError();
 		}
 		Activity latestFinalizeActivity = activityService.findLatestByCodeSystemAndActivityType(codeSystemShortName, ActivityType.FINALIZE_RELEASE);
 		if (latestFinalizeActivity != null && latestFinalizeActivity.getEndDate() == null) {
-			throw new ServiceExceptionWithStatusCode("Publishing is already in progress.", HttpStatus.CONFLICT);
+			throw createPublishingInProgressError();
 		}
 		ExternalServiceJob inMemoryPublishJob = publishReleaseJobService.getLatestJob(codeSystemShortName);
 		if (inMemoryPublishJob != null && inMemoryPublishJob.getStatus() == JobStatus.IN_PROGRESS) {
-			throw new ServiceExceptionWithStatusCode("Publishing is already in progress.", HttpStatus.CONFLICT);
+			throw createPublishingInProgressError();
 		}
 
 		EditionStatus previousStatus = codeSystem.getEditionStatus();
@@ -114,6 +117,10 @@ public class ReleaseWorkflowService {
 			setEditionStatus(codeSystem, previousStatus, snowstormClient);
 			throw e;
 		}
+	}
+
+	private static @NonNull ServiceExceptionWithStatusCode createPublishingInProgressError() {
+		return new ServiceExceptionWithStatusCode("Publishing is already in progress.", HttpStatus.CONFLICT);
 	}
 
 }

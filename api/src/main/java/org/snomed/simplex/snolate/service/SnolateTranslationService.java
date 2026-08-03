@@ -1,6 +1,9 @@
 package org.snomed.simplex.snolate.service;
 
 import com.google.common.base.Strings;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -8,29 +11,24 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationUnitPage;
 import org.snomed.simplex.rest.pojos.TranslationUnitRow;
-import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.SpreadsheetService;
+import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationStatusLabels;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
+import org.snomed.simplex.snolate.service.ConceptListSupport.ConceptListParseResult;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
-import org.snomed.simplex.snolate.service.ConceptListSupport.ConceptListParseResult;
-
-import static org.snomed.simplex.snolate.service.ConceptListSupport.dedupeConceptIds;
+import org.snomed.simplex.util.CsvParser;
+import org.snomed.simplex.util.FileUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.snomed.simplex.util.CsvParser;
-import org.snomed.simplex.util.FileUtils;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -38,6 +36,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import static org.snomed.simplex.snolate.service.ConceptListSupport.dedupeConceptIds;
 
 @Service
 public class SnolateTranslationService {
@@ -55,6 +55,11 @@ public class SnolateTranslationService {
 			TranslationStatus.FOR_REVIEW,
 			TranslationStatus.APPROVED);
 
+	public static final String CSV_FILE_HAS_NO_HEADER_ROW = "CSV file has no header row.";
+	public static final String CONCEPT_COLUMN = "Concept column";
+	public static final String SPREADSHEET_HAS_NO_HEADER_ROW = "Spreadsheet has no header row.";
+	public static final String SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE = "Skipping concept {} not found for language {}";
+
 	private final SnolateTranslationSourceRepository translationSourceRepository;
 	private final SnolateTranslationSearchService translationSearchService;
 	private final SnolateTranslationUnitStore translationUnitStore;
@@ -69,10 +74,7 @@ public class SnolateTranslationService {
 
 	public void applyDashboardMetadata(SnolateTranslationSet set) {
 		Map<String, String> aiGoldenSet = set.getAiGoldenSet();
-		boolean aiSetupComplete = false;
-		if (aiGoldenSet != null && aiGoldenSet.size() >= 5 && aiGoldenSet.values().stream().noneMatch(Strings::isNullOrEmpty)) {
-			aiSetupComplete = true;
-		}
+		boolean aiSetupComplete = aiGoldenSet != null && aiGoldenSet.size() >= 5 && aiGoldenSet.values().stream().noneMatch(Strings::isNullOrEmpty);
 		set.setAiSetupComplete(aiSetupComplete);
 	}
 
@@ -300,13 +302,13 @@ public class SnolateTranslationService {
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
 			String headerLine = reader.readLine();
 			if (headerLine == null || headerLine.isBlank()) {
-				throw new ServiceExceptionWithStatusCode("CSV file has no header row.", HttpStatus.BAD_REQUEST);
+				throw new ServiceExceptionWithStatusCode(CSV_FILE_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
 			}
 			headerLine = FileUtils.removeUTF8BOM(headerLine);
 			char delimiter = CsvParser.detectDelimiter(headerLine);
 			List<String> headerFields = CsvParser.parseLine(headerLine, delimiter);
 			Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
-			int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), "Concept column");
+			int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), CONCEPT_COLUMN);
 			List<String> rawIds = new ArrayList<>();
 			List<String> rowFields;
 			while (!(rowFields = CsvParser.readRow(reader, delimiter)).isEmpty()) {
@@ -329,11 +331,11 @@ public class SnolateTranslationService {
 			Sheet sheet = workbook.getSheetAt(0);
 			Row headerRow = sheet.getRow(0);
 			if (headerRow == null) {
-				throw new ServiceExceptionWithStatusCode("Spreadsheet has no header row.", HttpStatus.BAD_REQUEST);
+				throw new ServiceExceptionWithStatusCode(SPREADSHEET_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
 			}
 			List<String> headerFields = readSpreadsheetHeaderFields(headerRow);
 			Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
-			int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), "Concept column");
+			int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), CONCEPT_COLUMN);
 			List<String> rawIds = new ArrayList<>();
 			for (Row row : sheet) {
 				if (row.getRowNum() == 0) {
@@ -444,11 +446,9 @@ public class SnolateTranslationService {
 					changeSummary);
 			logImportSkips("Translation set file import", changeSummary);
 			logger.info("Translation set spreadsheet import finished {}", changeSummary);
-		} catch (IOException e) {
-			throw new ServiceException("Failed to read translation set spreadsheet.", e);
 		} catch (ServiceExceptionWithStatusCode e) {
 			throw e;
-		} catch (ServiceException e) {
+		} catch (IOException | ServiceException e) {
 			throw new ServiceException("Failed to read translation set spreadsheet.", e);
 		}
 		return changeSummary;
@@ -471,11 +471,9 @@ public class SnolateTranslationService {
 			importTranslationLanguageSpreadsheetRows(sheet, columns, compositeLanguageCode, status, changeSummary);
 			logImportSkips("Translation language file import", changeSummary);
 			logger.info("Translation language spreadsheet import finished {}", changeSummary);
-		} catch (IOException e) {
-			throw new ServiceException("Failed to read translation language spreadsheet.", e);
 		} catch (ServiceExceptionWithStatusCode e) {
 			throw e;
-		} catch (ServiceException e) {
+		} catch (IOException | ServiceException e) {
 			throw new ServiceException("Failed to read translation language spreadsheet.", e);
 		}
 		return changeSummary;
@@ -489,14 +487,14 @@ public class SnolateTranslationService {
 			List<String> termColumns) throws ServiceExceptionWithStatusCode {
 		Row headerRow = sheet.getRow(0);
 		if (headerRow == null) {
-			throw new ServiceExceptionWithStatusCode("Spreadsheet has no header row.", HttpStatus.BAD_REQUEST);
+			throw new ServiceExceptionWithStatusCode(SPREADSHEET_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
 		}
 		List<String> headerFields = readSpreadsheetHeaderFields(headerRow);
 		if (headerFields.isEmpty()) {
-			throw new ServiceExceptionWithStatusCode("Spreadsheet has no header row.", HttpStatus.BAD_REQUEST);
+			throw new ServiceExceptionWithStatusCode(SPREADSHEET_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
 		}
 		Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
-		int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), "Concept column");
+		int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), CONCEPT_COLUMN);
 		List<Integer> termColumnIndices = resolveTermColumnIndices(headerIndex, termColumns);
 		return new SpreadsheetImportColumnIndices(conceptIndex, termColumnIndices, headerFields.size());
 	}
@@ -515,7 +513,8 @@ public class SnolateTranslationService {
 
 	private void importTranslationSetSpreadsheetRows(Sheet sheet, SpreadsheetImportColumnIndices columns,
 			String setCode, String lang, TranslationStatus status, OutsideSetBehavior outsideSetBehavior,
-			ChangeSummary changeSummary) throws ServiceException, ServiceExceptionWithStatusCode {
+			ChangeSummary changeSummary) throws ServiceException {
+
 		Map<String, List<String>> termsByCode = parseSpreadsheetTermsByConceptCode(sheet, columns);
 		logger.info("Translation set spreadsheet import parsed {} concept row(s)", termsByCode.size());
 		if (termsByCode.isEmpty()) {
@@ -527,15 +526,13 @@ public class SnolateTranslationService {
 			TranslationUnit unit = unitsByCode.get(entry.getKey());
 			if (unit == null) {
 				changeSummary.incrementSkippedNotFound();
-				logger.debug("Skipping concept {} not found for language {}", entry.getKey(), lang);
+				logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, entry.getKey(), lang);
 				continue;
 			}
-			if (!unit.getMemberOf().contains(setCode)) {
-				if (outsideSetBehavior == OutsideSetBehavior.SKIP) {
-					changeSummary.incrementSkippedOutsideSet();
-					logger.debug("Skipping concept {} not found in translation set {}", entry.getKey(), setCode);
-					continue;
-				}
+			if (!unit.getMemberOf().contains(setCode) && outsideSetBehavior == OutsideSetBehavior.SKIP) {
+				changeSummary.incrementSkippedOutsideSet();
+				logger.debug("Skipping concept {} not found in translation set {}", entry.getKey(), setCode);
+				continue;
 			}
 			applyTermsAndStatusInMemory(unit, entry.getValue(), status);
 			toSave.add(unit);
@@ -546,7 +543,8 @@ public class SnolateTranslationService {
 
 	private void importTranslationLanguageSpreadsheetRows(Sheet sheet, SpreadsheetImportColumnIndices columns,
 			String compositeLanguageCode, TranslationStatus status, ChangeSummary changeSummary)
-			throws ServiceException, ServiceExceptionWithStatusCode {
+			throws ServiceException {
+
 		Map<String, List<String>> termsByCode = parseSpreadsheetTermsByConceptCode(sheet, columns);
 		logger.info("Translation language spreadsheet import parsed {} concept row(s)", termsByCode.size());
 		if (termsByCode.isEmpty()) {
@@ -558,7 +556,7 @@ public class SnolateTranslationService {
 			TranslationUnit unit = unitsByCode.get(entry.getKey());
 			if (unit == null) {
 				changeSummary.incrementSkippedNotFound();
-				logger.debug("Skipping concept {} not found for language {}", entry.getKey(), compositeLanguageCode);
+				logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, entry.getKey(), compositeLanguageCode);
 				continue;
 			}
 			applyTermsAndStatusInMemory(unit, entry.getValue(), status);
@@ -569,7 +567,8 @@ public class SnolateTranslationService {
 	}
 
 	private Map<String, List<String>> parseSpreadsheetTermsByConceptCode(Sheet sheet,
-			SpreadsheetImportColumnIndices columns) throws ServiceException, ServiceExceptionWithStatusCode {
+			SpreadsheetImportColumnIndices columns) throws ServiceException {
+
 		Map<String, List<String>> termsByCode = new LinkedHashMap<>();
 		for (Row row : sheet) {
 			if (row.getRowNum() == 0) {
@@ -643,16 +642,16 @@ public class SnolateTranslationService {
 
 		String headerLine = reader.readLine();
 		if (headerLine == null || headerLine.isBlank()) {
-			throw new ServiceExceptionWithStatusCode("CSV file has no header row.", HttpStatus.BAD_REQUEST);
+			throw new ServiceExceptionWithStatusCode(CSV_FILE_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
 		}
 		headerLine = FileUtils.removeUTF8BOM(headerLine);
 		char delimiter = CsvParser.detectDelimiter(headerLine);
 		List<String> headerFields = CsvParser.parseLine(headerLine, delimiter);
 		if (headerFields.isEmpty()) {
-			throw new ServiceExceptionWithStatusCode("CSV file has no header row.", HttpStatus.BAD_REQUEST);
+			throw new ServiceExceptionWithStatusCode(CSV_FILE_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
 		}
 		Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
-		int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), "Concept column");
+		int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), CONCEPT_COLUMN);
 		List<Integer> termColumnIndices = resolveTermColumnIndices(headerIndex, termColumns);
 		return new ImportColumnIndices(conceptIndex, termColumnIndices, delimiter);
 	}
@@ -681,7 +680,7 @@ public class SnolateTranslationService {
 				Optional<TranslationUnit> tuOpt = translationUnitStore.loadByCode(lang, conceptCode);
 				if (tuOpt.isEmpty()) {
 					changeSummary.incrementSkippedNotFound();
-					logger.debug("Skipping concept {} not found for language {}", conceptCode, lang);
+					logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, conceptCode, lang);
 					return;
 				}
 				TranslationUnit unit = tuOpt.get();
@@ -710,7 +709,7 @@ public class SnolateTranslationService {
 				Optional<TranslationUnit> tuOpt = translationUnitStore.loadByCode(compositeLanguageCode, conceptCode);
 				if (tuOpt.isEmpty()) {
 					changeSummary.incrementSkippedNotFound();
-					logger.debug("Skipping concept {} not found for language {}", conceptCode, compositeLanguageCode);
+					logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, conceptCode, compositeLanguageCode);
 					return;
 				}
 				applyTermsAndStatusToUnit(tuOpt.get(), terms, status);

@@ -1044,10 +1044,6 @@ public class TranslationService {
 		return changeSummary;
 	}
 
-	private void markPulledUnitsComplete(SnolateTranslationSet translationSet) {
-		markPulledUnitsComplete(translationSet, true);
-	}
-
 	private void markPulledUnitsComplete(SnolateTranslationSet translationSet, boolean includeReadyForReview) {
 		String compositeLanguageCode = translationSet.getLanguageCodeWithRefsetId();
 		String setCode = translationSet.getCompositeSetCode();
