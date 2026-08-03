@@ -9,6 +9,7 @@ import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationUnitPage;
 import org.snomed.simplex.rest.pojos.TranslationUnitRow;
 import org.snomed.simplex.service.job.ChangeSummary;
+import org.snomed.simplex.service.SpreadsheetService;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationStatusLabels;
@@ -24,6 +25,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.snomed.simplex.util.CsvParser;
 import org.snomed.simplex.util.FileUtils;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -213,6 +217,12 @@ public class SnolateTranslationService {
 
 	private void applyTermsAndStatusToUnit(TranslationUnit unit, List<String> rawTerms, TranslationStatus status)
 			throws ServiceExceptionWithStatusCode {
+		applyTermsAndStatusInMemory(unit, rawTerms, status);
+		translationUnitStore.save(unit);
+	}
+
+	private void applyTermsAndStatusInMemory(TranslationUnit unit, List<String> rawTerms, TranslationStatus status)
+			throws ServiceExceptionWithStatusCode {
 		List<String> terms = normalizeTranslationTerms(rawTerms);
 		if (status == TranslationStatus.COMPLETE && unit.getStatus() != TranslationStatus.COMPLETE) {
 			throw new ServiceExceptionWithStatusCode("COMPLETE is set automatically when synced with Snowstorm.", HttpStatus.BAD_REQUEST);
@@ -229,7 +239,6 @@ public class SnolateTranslationService {
 		unit.setTerms(terms);
 		unit.setStatus(status);
 		unit.setAiSuggestions(new ArrayList<>());
-		translationUnitStore.save(unit);
 	}
 
 	private static List<String> normalizeTranslationTerms(List<String> rawTerms) {
@@ -272,6 +281,35 @@ public class SnolateTranslationService {
 			}
 		}
 		return s.isEmpty() ? DEFAULT_TRANSLATION_LABEL : s;
+	}
+
+	public ChangeSummary importTranslationSetFile(SnolateTranslationSet translationSet, InputStream inputStream,
+			String filename, String conceptColumn, List<String> termColumns, TranslationStatus status)
+			throws ServiceException {
+		return importTranslationSetFile(translationSet, inputStream, filename, conceptColumn, termColumns, status,
+				OutsideSetBehavior.SKIP);
+	}
+
+	public ChangeSummary importTranslationSetFile(SnolateTranslationSet translationSet, InputStream inputStream,
+			String filename, String conceptColumn, List<String> termColumns, TranslationStatus status,
+			OutsideSetBehavior outsideSetBehavior) throws ServiceException {
+		if (isSpreadsheetFile(filename)) {
+			return importTranslationSetSpreadsheet(translationSet, inputStream, conceptColumn, termColumns, status,
+					outsideSetBehavior);
+		}
+		return importTranslationSetCsv(translationSet, inputStream, conceptColumn, termColumns, status,
+				outsideSetBehavior);
+	}
+
+	public ChangeSummary importTranslationLanguageFile(CodeSystem codeSystem, String refsetId, String languageCode,
+			InputStream inputStream, String filename, String conceptColumn, List<String> termColumns,
+			TranslationStatus status) throws ServiceException {
+		if (isSpreadsheetFile(filename)) {
+			return importTranslationLanguageSpreadsheet(codeSystem, refsetId, languageCode, inputStream, conceptColumn,
+					termColumns, status);
+		}
+		return importTranslationLanguageCsv(codeSystem, refsetId, languageCode, inputStream, conceptColumn, termColumns,
+				status);
 	}
 
 	public ChangeSummary importTranslationSetCsv(SnolateTranslationSet translationSet, InputStream inputStream,
@@ -319,6 +357,186 @@ public class SnolateTranslationService {
 			throw e;
 		}
 		return changeSummary;
+	}
+
+	private ChangeSummary importTranslationSetSpreadsheet(SnolateTranslationSet translationSet, InputStream inputStream,
+			String conceptColumn, List<String> termColumns, TranslationStatus status,
+			OutsideSetBehavior outsideSetBehavior) throws ServiceException {
+		validateImportParameters(status, conceptColumn, termColumns);
+
+		String setCode = translationSet.getCompositeSetCode();
+		String lang = translationSet.getLanguageCodeWithRefsetId();
+		ChangeSummary changeSummary = new ChangeSummary();
+
+		try (XSSFWorkbook workbook = new XSSFWorkbook(inputStream)) {
+			Sheet sheet = workbook.getSheetAt(0);
+			SpreadsheetImportColumnIndices columns = readSpreadsheetImportColumnIndices(sheet, conceptColumn,
+					termColumns);
+			logger.info("Starting translation set spreadsheet import for set {}", setCode);
+			importTranslationSetSpreadsheetRows(sheet, columns, setCode, lang, status, outsideSetBehavior,
+					changeSummary);
+			logImportSkips("Translation set file import", changeSummary);
+			logger.info("Translation set spreadsheet import finished {}", changeSummary);
+		} catch (IOException e) {
+			throw new ServiceException("Failed to read translation set spreadsheet.", e);
+		} catch (ServiceExceptionWithStatusCode e) {
+			throw e;
+		} catch (ServiceException e) {
+			throw new ServiceException("Failed to read translation set spreadsheet.", e);
+		}
+		return changeSummary;
+	}
+
+	private ChangeSummary importTranslationLanguageSpreadsheet(CodeSystem codeSystem, String refsetId,
+			String languageCode, InputStream inputStream, String conceptColumn, List<String> termColumns,
+			TranslationStatus status) throws ServiceException {
+		validateImportParameters(status, conceptColumn, termColumns);
+		validateSnolateLinkedLanguage(codeSystem, refsetId);
+
+		String compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
+		ChangeSummary changeSummary = new ChangeSummary();
+
+		try (XSSFWorkbook workbook = new XSSFWorkbook(inputStream)) {
+			Sheet sheet = workbook.getSheetAt(0);
+			SpreadsheetImportColumnIndices columns = readSpreadsheetImportColumnIndices(sheet, conceptColumn,
+					termColumns);
+			logger.info("Starting translation language spreadsheet import for {}", compositeLanguageCode);
+			importTranslationLanguageSpreadsheetRows(sheet, columns, compositeLanguageCode, status, changeSummary);
+			logImportSkips("Translation language file import", changeSummary);
+			logger.info("Translation language spreadsheet import finished {}", changeSummary);
+		} catch (IOException e) {
+			throw new ServiceException("Failed to read translation language spreadsheet.", e);
+		} catch (ServiceExceptionWithStatusCode e) {
+			throw e;
+		} catch (ServiceException e) {
+			throw new ServiceException("Failed to read translation language spreadsheet.", e);
+		}
+		return changeSummary;
+	}
+
+	private static boolean isSpreadsheetFile(String filename) {
+		return filename != null && filename.toLowerCase().endsWith(".xlsx");
+	}
+
+	private SpreadsheetImportColumnIndices readSpreadsheetImportColumnIndices(Sheet sheet, String conceptColumn,
+			List<String> termColumns) throws ServiceExceptionWithStatusCode {
+		Row headerRow = sheet.getRow(0);
+		if (headerRow == null) {
+			throw new ServiceExceptionWithStatusCode("Spreadsheet has no header row.", HttpStatus.BAD_REQUEST);
+		}
+		List<String> headerFields = readSpreadsheetHeaderFields(headerRow);
+		if (headerFields.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("Spreadsheet has no header row.", HttpStatus.BAD_REQUEST);
+		}
+		Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
+		int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), "Concept column");
+		List<Integer> termColumnIndices = resolveTermColumnIndices(headerIndex, termColumns);
+		return new SpreadsheetImportColumnIndices(conceptIndex, termColumnIndices, headerFields.size());
+	}
+
+	private static List<String> readSpreadsheetHeaderFields(Row headerRow) {
+		List<String> headerFields = new ArrayList<>();
+		int lastCellNum = headerRow.getLastCellNum();
+		if (lastCellNum < 0) {
+			return headerFields;
+		}
+		for (int i = 0; i < lastCellNum; i++) {
+			headerFields.add(SpreadsheetService.readCellAsString(headerRow, i));
+		}
+		return headerFields;
+	}
+
+	private void importTranslationSetSpreadsheetRows(Sheet sheet, SpreadsheetImportColumnIndices columns,
+			String setCode, String lang, TranslationStatus status, OutsideSetBehavior outsideSetBehavior,
+			ChangeSummary changeSummary) throws ServiceException, ServiceExceptionWithStatusCode {
+		Map<String, List<String>> termsByCode = parseSpreadsheetTermsByConceptCode(sheet, columns);
+		logger.info("Translation set spreadsheet import parsed {} concept row(s)", termsByCode.size());
+		if (termsByCode.isEmpty()) {
+			return;
+		}
+		Map<String, TranslationUnit> unitsByCode = translationUnitStore.loadByCodes(lang, termsByCode.keySet());
+		List<TranslationUnit> toSave = new ArrayList<>();
+		for (Map.Entry<String, List<String>> entry : termsByCode.entrySet()) {
+			TranslationUnit unit = unitsByCode.get(entry.getKey());
+			if (unit == null) {
+				changeSummary.incrementSkippedNotFound();
+				logger.debug("Skipping concept {} not found for language {}", entry.getKey(), lang);
+				continue;
+			}
+			if (!unit.getMemberOf().contains(setCode)) {
+				if (outsideSetBehavior == OutsideSetBehavior.SKIP) {
+					changeSummary.incrementSkippedOutsideSet();
+					logger.debug("Skipping concept {} not found in translation set {}", entry.getKey(), setCode);
+					continue;
+				}
+			}
+			applyTermsAndStatusInMemory(unit, entry.getValue(), status);
+			toSave.add(unit);
+			changeSummary.incrementUpdated();
+		}
+		translationUnitStore.saveAll(toSave);
+	}
+
+	private void importTranslationLanguageSpreadsheetRows(Sheet sheet, SpreadsheetImportColumnIndices columns,
+			String compositeLanguageCode, TranslationStatus status, ChangeSummary changeSummary)
+			throws ServiceException, ServiceExceptionWithStatusCode {
+		Map<String, List<String>> termsByCode = parseSpreadsheetTermsByConceptCode(sheet, columns);
+		logger.info("Translation language spreadsheet import parsed {} concept row(s)", termsByCode.size());
+		if (termsByCode.isEmpty()) {
+			return;
+		}
+		Map<String, TranslationUnit> unitsByCode = translationUnitStore.loadByCodes(compositeLanguageCode, termsByCode.keySet());
+		List<TranslationUnit> toSave = new ArrayList<>();
+		for (Map.Entry<String, List<String>> entry : termsByCode.entrySet()) {
+			TranslationUnit unit = unitsByCode.get(entry.getKey());
+			if (unit == null) {
+				changeSummary.incrementSkippedNotFound();
+				logger.debug("Skipping concept {} not found for language {}", entry.getKey(), compositeLanguageCode);
+				continue;
+			}
+			applyTermsAndStatusInMemory(unit, entry.getValue(), status);
+			toSave.add(unit);
+			changeSummary.incrementUpdated();
+		}
+		translationUnitStore.saveAll(toSave);
+	}
+
+	private Map<String, List<String>> parseSpreadsheetTermsByConceptCode(Sheet sheet,
+			SpreadsheetImportColumnIndices columns) throws ServiceException, ServiceExceptionWithStatusCode {
+		Map<String, List<String>> termsByCode = new LinkedHashMap<>();
+		for (Row row : sheet) {
+			if (row.getRowNum() == 0) {
+				continue;
+			}
+			List<String> rowFields = readSpreadsheetRowFields(row, row.getRowNum() + 1, columns);
+			if (isBlankCsvRow(rowFields)) {
+				continue;
+			}
+			String conceptCode = getField(rowFields, columns.conceptIndex()).trim();
+			if (conceptCode.isEmpty()) {
+				continue;
+			}
+			List<String> terms = buildTermsFromRow(rowFields, columns.termColumnIndices());
+			if (terms.isEmpty()) {
+				continue;
+			}
+			termsByCode.put(conceptCode, terms);
+		}
+		return termsByCode;
+	}
+
+	private List<String> readSpreadsheetRowFields(Row row, int rowNumber, SpreadsheetImportColumnIndices columns)
+			throws ServiceException {
+		List<String> rowFields = new ArrayList<>(columns.columnCount());
+		for (int columnIndex = 0; columnIndex < columns.columnCount(); columnIndex++) {
+			if (columnIndex == columns.conceptIndex()) {
+				String conceptCode = SpreadsheetService.readSnomedConcept(row, columnIndex, rowNumber);
+				rowFields.add(conceptCode != null ? conceptCode : "");
+			} else {
+				rowFields.add(SpreadsheetService.readCellAsString(row, columnIndex));
+			}
+		}
+		return rowFields;
 	}
 
 	private static void validateSnolateLinkedLanguage(CodeSystem codeSystem, String refsetId)
@@ -461,6 +679,8 @@ public class SnolateTranslationService {
 
 	private record ImportColumnIndices(int conceptIndex, List<Integer> termColumnIndices, char delimiter) {}
 
+	private record SpreadsheetImportColumnIndices(int conceptIndex, List<Integer> termColumnIndices, int columnCount) {}
+
 	public void writeTranslationSetCsv(SnolateTranslationSet translationSet, TranslationStatus statusFilter,
 			String languageDisplayName, OutputStream out) throws ServiceException {
 		String dialect = languageDisplayName == null || languageDisplayName.isBlank()
@@ -478,16 +698,7 @@ public class SnolateTranslationService {
 					"URL");
 			List<TranslationUnit> batch = new ArrayList<>(CSV_EXPORT_BATCH_SIZE);
 			translationSearchService.forEachUnitInSet(setCode, lang, statusFilter,
-					SnolateTranslationSearchService.UNITS_IN_SET_EXPORT_SORT, unit -> {
-						batch.add(unit);
-						if (batch.size() >= CSV_EXPORT_BATCH_SIZE) {
-							try {
-								flushExportBatch(batch, writer);
-							} catch (IOException e) {
-								throw new UncheckedIOException(e);
-							}
-						}
-					});
+					SnolateTranslationSearchService.UNITS_IN_SET_EXPORT_SORT, unit -> appendExportBatch(unit, batch, writer));
 			if (!batch.isEmpty()) {
 				flushExportBatch(batch, writer);
 			}
@@ -495,6 +706,17 @@ public class SnolateTranslationService {
 			throw new ServiceException("Failed to write translation set CSV.", e.getCause());
 		} catch (IOException e) {
 			throw new ServiceException("Failed to write translation set CSV.", e);
+		}
+	}
+
+	private void appendExportBatch(TranslationUnit unit, List<TranslationUnit> batch, BufferedWriter writer) {
+		batch.add(unit);
+		if (batch.size() >= CSV_EXPORT_BATCH_SIZE) {
+			try {
+				flushExportBatch(batch, writer);
+			} catch (IOException e) {
+				throw new UncheckedIOException(e);
+			}
 		}
 	}
 
@@ -568,7 +790,7 @@ public class SnolateTranslationService {
 		Integer index = headerIndex.get(columnName);
 		if (index == null) {
 			throw new ServiceExceptionWithStatusCode(
-					columnLabel + " '" + columnName + "' was not found in the CSV header.", HttpStatus.BAD_REQUEST);
+					columnLabel + " '" + columnName + "' was not found in the file header.", HttpStatus.BAD_REQUEST);
 		}
 		return index;
 	}

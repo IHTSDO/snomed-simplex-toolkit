@@ -305,7 +305,7 @@ export class SimplexService {
     const formData = new FormData();
     formData.append('file', file, file.name);
     formData.append('conceptColumn', conceptColumn);
-    formData.append('termColumns', termColumns.join(','));
+    termColumns.forEach((column) => formData.append('termColumns', column));
     formData.append('status', status);
     formData.append('outsideSetBehavior', outsideSetBehavior);
     const apiUrl = `api/${edition}/translation-studio/${refsetId}/sets/${label}/csv`;
@@ -326,7 +326,7 @@ export class SimplexService {
     const formData = new FormData();
     formData.append('file', file, file.name);
     formData.append('conceptColumn', conceptColumn);
-    formData.append('termColumns', termColumns.join(','));
+    termColumns.forEach((column) => formData.append('termColumns', column));
     formData.append('status', status);
     const apiUrl = `api/${edition}/translation-studio/${refsetId}/csv`;
     return this.http.put(apiUrl, formData).pipe(
@@ -423,11 +423,17 @@ export class SimplexService {
   }
 
   public createReleaseCandidate(edition: string): Observable<any> {
-    return this.http.post(`api/codesystems/${edition}/create-release-candidate`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/create-release-candidate`, null).pipe(
+      tap(() => this.clearEditionDetailCache(edition)),
+      catchError(this.handleError.bind(this))
+    );
   }
 
   public finalizeRelease(edition: string): Observable<any> {
-    return this.http.post(`api/codesystems/${edition}/finalize-release`, null).pipe(catchError(this.handleError.bind(this)));
+    return this.http.post(`api/codesystems/${edition}/finalize-release`, null).pipe(
+      tap(() => this.clearEditionDetailCache(edition)),
+      catchError(this.handleError.bind(this))
+    );
   }
 
   public startMaintenance(edition: string): Observable<any> {

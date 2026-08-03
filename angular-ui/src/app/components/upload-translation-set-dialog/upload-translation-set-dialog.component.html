@@ -2,13 +2,13 @@
 <mat-dialog-content>
     <div class="dialog-content">
         <p class="set-hint">
-            Import concepts into <strong>{{ data.setName }}</strong> from CSV.
+            Import concepts into <strong>{{ data.setName }}</strong> from CSV or Excel spreadsheet.
         </p>
         <p class="language-hint" *ngIf="data.languageDialect">
             Language/dialect: <strong>{{ data.languageDialect }}</strong>
         </p>
 
-        <input #fileInput type="file" accept=".csv,text/csv" hidden (change)="onFileSelected($event)">
+        <input #fileInput type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden (change)="onFileSelected($event)">
 
         <div class="file-picker">
             <button mat-stroked-button type="button" (click)="chooseFile()" [disabled]="loading || parsingHeaders">
@@ -29,10 +29,17 @@
             <mat-form-field appearance="outline" class="mapping-field">
                 <mat-label>Term column(s)</mat-label>
                 <mat-select [(ngModel)]="termColumns" multiple [disabled]="loading">
+                    <mat-select-trigger>{{ termColumnCountLabel }}</mat-select-trigger>
                     <mat-option *ngFor="let header of headers" [value]="header">{{ header }}</mat-option>
                 </mat-select>
             </mat-form-field>
-            <p class="mapping-hint">The first selected term column is treated as the preferred term.</p>
+            <p class="mapping-hint" *ngIf="termColumns.length === 0">
+                Select one or more term columns in preferred-term order. Each column value becomes a synonym; empty cells are skipped.
+            </p>
+            <p class="mapping-hint" *ngIf="termColumns.length > 0">
+                {{ termColumns.length === 1 ? '1 term column selected' : termColumns.length + ' term columns selected' }}
+                in preferred-term order. Each column value becomes a synonym; empty cells are skipped.
+            </p>
         </div>
 
         <mat-radio-group

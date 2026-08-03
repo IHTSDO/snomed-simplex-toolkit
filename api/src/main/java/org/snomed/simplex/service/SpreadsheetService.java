@@ -497,6 +497,60 @@ public class SpreadsheetService {
 	}
 
 	/**
+	 * Reads a cell value as plain text for generic import columns (e.g. translation terms).
+	 */
+	public static String readCellAsString(Row row, int column) {
+		Cell cell = row.getCell(column, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+		if (cell == null) {
+			return "";
+		}
+		CellType cellType = cell.getCellType();
+		if (cellType == CellType.STRING) {
+			String value = cell.getStringCellValue();
+			return value != null ? value.trim() : "";
+		}
+		if (cellType == CellType.NUMERIC) {
+			if (DateUtil.isCellDateFormatted(cell)) {
+				return cell.getLocalDateTimeCellValue().toString().trim();
+			}
+			double numericValue = cell.getNumericCellValue();
+			if (numericValue == Math.floor(numericValue)) {
+				return Long.toString((long) numericValue);
+			}
+			return Double.toString(numericValue).trim();
+		}
+		if (cellType == CellType.BOOLEAN) {
+			return Boolean.toString(cell.getBooleanCellValue());
+		}
+		if (cellType == CellType.FORMULA) {
+			return readFormulaCellAsString(cell);
+		}
+		return "";
+	}
+
+	private static String readFormulaCellAsString(Cell cell) {
+		CellType resultType = cell.getCachedFormulaResultType();
+		if (resultType == CellType.STRING) {
+			String value = cell.getStringCellValue();
+			return value != null ? value.trim() : "";
+		}
+		if (resultType == CellType.NUMERIC) {
+			if (DateUtil.isCellDateFormatted(cell)) {
+				return cell.getLocalDateTimeCellValue().toString().trim();
+			}
+			double numericValue = cell.getNumericCellValue();
+			if (numericValue == Math.floor(numericValue)) {
+				return Long.toString((long) numericValue);
+			}
+			return Double.toString(numericValue).trim();
+		}
+		if (resultType == CellType.BOOLEAN) {
+			return Boolean.toString(cell.getBooleanCellValue());
+		}
+		return "";
+	}
+
+	/**
 	 * Reads a SNOMED CT concept id from the spreadsheet cell that may be formatted as either a string or number.
 	 * Detects if the value has been corrupted by bad spreadsheet formatting and automatically fixes the SCTID by reconstructing the segment and check digit.
 	 * @throws ServiceException if the identifier is corrupted beyond repair. This is not expected to happen for SCTIDs.

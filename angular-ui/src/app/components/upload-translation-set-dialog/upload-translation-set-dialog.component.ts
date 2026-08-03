@@ -14,7 +14,7 @@ import {
 	TRANSLATION_STATUS_RADIO_ORDER,
 	translationStatusRadioLabel
 } from 'src/app/utils/translation-status-label';
-import { detectCsvColumnMapping, readCsvHeaders } from 'src/app/utils/csv-column-mapping.util';
+import { detectImportColumnMapping, readImportHeaders } from 'src/app/utils/csv-column-mapping.util';
 
 export interface UploadTranslationSetDialogData {
 	edition: string;
@@ -77,6 +77,14 @@ export class UploadTranslationSetDialogComponent {
 			&& !this.parsingHeaders;
 	}
 
+	get termColumnCountLabel(): string {
+		const count = this.termColumns.length;
+		if (count === 0) {
+			return '';
+		}
+		return count === 1 ? '1 column selected' : `${count} columns selected`;
+	}
+
 	chooseFile(): void {
 		this.fileInput?.nativeElement.click();
 	}
@@ -96,18 +104,18 @@ export class UploadTranslationSetDialogComponent {
 		this.termColumns = [];
 
 		try {
-			this.headers = await readCsvHeaders(file);
+			this.headers = await readImportHeaders(file);
 			if (this.headers.length === 0) {
-				throw new Error('No CSV header row found');
+				throw new Error('No header row found');
 			}
-			const mapping = detectCsvColumnMapping(this.headers);
+			const mapping = detectImportColumnMapping(this.headers);
 			this.conceptColumn = mapping.conceptColumn;
 			this.termColumns = [...mapping.termColumns];
 		} catch (error) {
-			console.error('Failed to read CSV headers:', error);
+			console.error('Failed to read file headers:', error);
 			this.selectedFile = null;
 			this.selectedFileName = '';
-			this.snackBar.open('Failed to read CSV headers. Please choose a valid CSV file.', 'Close', {
+			this.snackBar.open('Failed to read file headers. Please choose a valid CSV or Excel spreadsheet.', 'Close', {
 				duration: 8000
 			});
 		} finally {

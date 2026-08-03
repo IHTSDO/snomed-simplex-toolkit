@@ -1,9 +1,14 @@
+import * as XLSX from 'xlsx';
 import {
 	detectCsvColumnMapping,
+	detectImportColumnMapping,
 	detectCsvDelimiter,
+	isSpreadsheetFile,
 	parseCsvLine,
 	parseFirstCsvRow,
-	readCsvHeaders
+	readCsvHeaders,
+	readImportHeaders,
+	readSpreadsheetHeaders
 } from './csv-column-mapping.util';
 
 describe('csv-column-mapping.util', () => {
@@ -59,6 +64,55 @@ describe('csv-column-mapping.util', () => {
 			conceptColumn: 'id',
 			termColumns: ['term']
 		});
+	});
+
+	it('detectImportColumnMapping maps Portugal-style synonym columns', () => {
+		expect(
+			detectImportColumnMapping([
+				'Concept Code',
+				'PT',
+				'Synonym 1',
+				'Synonym 2',
+				'Synonym 3',
+				'Synonym 4',
+				'Synonym 5'
+			])
+		).toEqual({
+			conceptColumn: 'Concept Code',
+			termColumns: ['PT', 'Synonym 1', 'Synonym 2', 'Synonym 3', 'Synonym 4', 'Synonym 5']
+		});
+	});
+
+	it('isSpreadsheetFile detects xlsx uploads', () => {
+		expect(isSpreadsheetFile(new File([], 'import.xlsx'))).toBe(true);
+		expect(isSpreadsheetFile(new File([], 'import.csv'))).toBe(false);
+	});
+
+	it('readImportHeaders reads spreadsheet headers', async () => {
+		const workbook = XLSX.utils.book_new();
+		const sheet = XLSX.utils.aoa_to_sheet([
+			['Concept Code', 'PT', 'Synonym 1'],
+			['100', 'asma', 'asma brônquica']
+		]);
+		XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1');
+		const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+		const file = new File([buffer], 'import.xlsx', {
+			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		});
+
+		await expect(readImportHeaders(file)).resolves.toEqual(['Concept Code', 'PT', 'Synonym 1']);
+	});
+
+	it('readSpreadsheetHeaders reads the first sheet row', async () => {
+		const workbook = XLSX.utils.book_new();
+		const sheet = XLSX.utils.aoa_to_sheet([['context', 'target']]);
+		XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1');
+		const buffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+		const file = new File([buffer], 'import.xlsx', {
+			type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		});
+
+		await expect(readSpreadsheetHeaders(file)).resolves.toEqual(['context', 'target']);
 	});
 
 	it('readCsvHeaders reads the first row from a file', async () => {

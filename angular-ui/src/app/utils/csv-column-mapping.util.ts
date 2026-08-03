@@ -1,7 +1,13 @@
+import * as XLSX from 'xlsx';
+
 export interface CsvColumnMapping {
 	conceptColumn: string;
 	termColumns: string[];
 }
+
+const KNOWN_CONCEPT_HEADERS = ['concept code', 'context', 'sctid', 'concept id'] as const;
+
+const METADATA_HEADERS = new Set(['english term', 'status', 'url', 'notes', 'comments', 'developer comments']);
 
 export const COMMON_CSV_DELIMITERS = [',', '\t', ';', '|'] as const;
 
@@ -176,6 +182,11 @@ function readFirstLine(text: string): string {
 	return text;
 }
 
+export function isSpreadsheetFile(file: File): boolean {
+	const name = file.name.toLowerCase();
+	return name.endsWith('.xlsx');
+}
+
 export async function readCsvHeaders(file: File): Promise<string[]> {
 	const chunk = await file.slice(0, 65536).text();
 	const headerLine = readFirstLine(chunk);
@@ -184,11 +195,82 @@ export async function readCsvHeaders(file: File): Promise<string[]> {
 	return headers.filter((header) => header.length > 0);
 }
 
-export function detectCsvColumnMapping(headers: string[]): CsvColumnMapping {
+export async function readSpreadsheetHeaders(file: File): Promise<string[]> {
+	const buffer = await file.arrayBuffer();
+	const workbook = XLSX.read(buffer, { type: 'array' });
+	const sheetName = workbook.SheetNames[0];
+	if (!sheetName) {
+		return [];
+	}
+	const sheet = workbook.Sheets[sheetName];
+	const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
+	const headerRow = rows[0];
+	if (!headerRow || !Array.isArray(headerRow)) {
+		return [];
+	}
+	return headerRow
+		.map((header) => String(header ?? '').trim())
+		.filter((header) => header.length > 0);
+}
+
+export async function readImportHeaders(file: File): Promise<string[]> {
+	if (isSpreadsheetFile(file)) {
+		return readSpreadsheetHeaders(file);
+	}
+	return readCsvHeaders(file);
+}
+
+function isMetadataColumn(header: string): boolean {
+	return METADATA_HEADERS.has(header.toLowerCase().trim());
+}
+
+function isSynonymColumn(header: string): boolean {
+	const lower = header.toLowerCase().trim();
+	return /^synonym\s*\d*$/.test(lower)
+		|| /^other\s.*terms$/.test(lower)
+		|| /^sin[oó]nimo\s*\d*$/.test(lower);
+}
+
+function isPreferredTermColumn(header: string): boolean {
+	const lower = header.toLowerCase().trim();
+	return lower.endsWith(' preferred term') || lower === 'target' || lower === 'pt';
+}
+
+function findConceptColumn(headers: string[]): string {
+	const known = headers.find((header) =>
+		KNOWN_CONCEPT_HEADERS.includes(header.toLowerCase().trim() as typeof KNOWN_CONCEPT_HEADERS[number])
+	);
+	if (known) {
+		return known;
+	}
+	return headers[0] ?? '';
+}
+
+function uniqueTermColumns(columns: (string | undefined)[]): string[] {
+	const seen = new Set<string>();
+	const result: string[] = [];
+	for (const column of columns) {
+		if (!column || seen.has(column)) {
+			continue;
+		}
+		seen.add(column);
+		result.push(column);
+	}
+	return result;
+}
+
+export function detectImportColumnMapping(headers: string[]): CsvColumnMapping {
 	if (headers.includes('Concept Code')) {
-		const preferred = headers.find((header) => header.endsWith(' Preferred Term'));
-		const other = headers.find((header) => header.startsWith('Other ') && header.endsWith(' Terms'));
-		const termColumns = [preferred, other].filter((header): header is string => !!header);
+		const termCandidates = headers.filter((header) => header !== 'Concept Code' && !isMetadataColumn(header));
+		const preferred = termCandidates.find((header) =>
+			header.endsWith(' Preferred Term') || isPreferredTermColumn(header)
+		);
+		const other = termCandidates.find((header) => header.startsWith('Other ') && header.endsWith(' Terms'));
+		const synonymColumns = termCandidates.filter((header) => isSynonymColumn(header));
+		const additionalTermColumns = termCandidates.filter((header) =>
+			header !== preferred && header !== other && !isSynonymColumn(header)
+		);
+		const termColumns = uniqueTermColumns([preferred, other, ...additionalTermColumns, ...synonymColumns]);
 		return {
 			conceptColumn: 'Concept Code',
 			termColumns
@@ -198,6 +280,28 @@ export function detectCsvColumnMapping(headers: string[]): CsvColumnMapping {
 		return {
 			conceptColumn: 'context',
 			termColumns: headers.includes('target') ? ['target'] : []
+		};
+	}
+
+	const conceptColumn = findConceptColumn(headers);
+	const termCandidates = headers.filter((header) => header !== conceptColumn && !isMetadataColumn(header));
+	const preferred = termCandidates.find((header) => isPreferredTermColumn(header));
+	const synonymColumns = termCandidates.filter((header) => isSynonymColumn(header));
+
+	if (preferred || synonymColumns.length > 0) {
+		return {
+			conceptColumn,
+			termColumns: uniqueTermColumns([
+				preferred,
+				...synonymColumns.filter((header) => header !== preferred)
+			])
+		};
+	}
+
+	if (termCandidates.length > 0) {
+		return {
+			conceptColumn,
+			termColumns: termCandidates
 		};
 	}
 	if (headers.length >= 2) {
@@ -211,3 +315,6 @@ export function detectCsvColumnMapping(headers: string[]): CsvColumnMapping {
 		termColumns: []
 	};
 }
+
+/** @deprecated Use detectImportColumnMapping */
+export const detectCsvColumnMapping = detectImportColumnMapping;

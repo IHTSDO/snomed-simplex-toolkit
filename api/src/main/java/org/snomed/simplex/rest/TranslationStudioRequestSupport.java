@@ -40,8 +40,17 @@ class TranslationStudioRequestSupport {
 		}
 	}
 
-	static @NonNull List<String> getTermColumnList(String termColumns) throws ServiceExceptionWithStatusCode {
-		List<String> termColumnList = java.util.Arrays.stream(termColumns.split(","))
+	static @NonNull List<String> getTermColumnList(List<String> termColumns) throws ServiceExceptionWithStatusCode {
+		if (termColumns == null || termColumns.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("At least one term column is required.", HttpStatus.BAD_REQUEST);
+		}
+		if (termColumns.size() == 1 && termColumns.get(0).contains(",")) {
+			return java.util.Arrays.stream(termColumns.get(0).split(","))
+					.map(String::trim)
+					.filter(column -> !column.isEmpty())
+					.toList();
+		}
+		List<String> termColumnList = termColumns.stream()
 				.map(String::trim)
 				.filter(column -> !column.isEmpty())
 				.toList();
