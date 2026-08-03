@@ -26,9 +26,10 @@
     width: 100%;
 }
 
-:host ::ng-deep mat-tab-group.translation-studio-list-tabs.mat-mdc-tab-group > .mat-mdc-tab-header .mat-mdc-tab {
+:host ::ng-deep mat-tab-group.translation-studio-list-tabs.mat-mdc-tab-group > .mat-mdc-tab-header .mat-mdc-tab.mdc-tab {
     flex: 0 0 auto;
     padding: 0 10em;
+    border-bottom: 1px solid lightgrey;
 }
 
 .translation-studio-tab-intro,
