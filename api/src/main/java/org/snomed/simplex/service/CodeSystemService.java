@@ -111,12 +111,10 @@ public class CodeSystemService {
 	}
 
 	private void runStatusChecks(CodeSystem codeSystem, SnowstormClient snowstormClient) {
-		if (codeSystem.getBuildStatus() == CodeSystemBuildStatus.IN_PROGRESS) {
-			String buildUrl = codeSystem.getLatestReleaseCandidateBuild();
-			if (buildUrl == null || !releaseCandidateJobService.isJobBeingMonitored(buildUrl)) {
-				logger.info("Reseting build status of {}", codeSystem.getShortName());
-				clearBuildStatus(codeSystem, snowstormClient);
-			}
+		try {
+			releaseCandidateJobService.recoverOrphanedBuild(codeSystem, snowstormClient);
+		} catch (ServiceException e) {
+			logger.warn("Failed to recover orphaned release build for {}", codeSystem.getShortName(), e);
 		}
 	}
 
