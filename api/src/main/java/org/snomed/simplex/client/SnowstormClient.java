@@ -1107,14 +1107,13 @@ public class SnowstormClient {
 		return response.getBody();
 	}
 
-	@SuppressWarnings("unchecked")
 	public Map<String, String> eclModelToString(Object eclModel) {
 		sanitizeEclModelForSerialization(eclModel);
-		ResponseEntity<Map> response = restTemplate.exchange(
+		ResponseEntity<Map<String, String>> response = restTemplate.exchange(
 				"/util/ecl-model-to-string",
 				HttpMethod.POST,
 				new HttpEntity<>(eclModel),
-				Map.class);
+				new ParameterizedTypeReference<>() {});
 		return response.getBody();
 	}
 
@@ -1127,14 +1126,13 @@ public class SnowstormClient {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public Map<String, Object> getMrcmDomainAttributes(String branchPath, String parentIds, String acceptLanguage) {
 		String url = format("/mrcm/%s/domain-attributes?proximalPrimitiveModeling=false&parentIds=%s", branchPath, parentIds);
 		HttpHeaders headers = new HttpHeaders();
 		if (!Strings.isBlank(acceptLanguage)) {
 			headers.set(HttpHeaders.ACCEPT_LANGUAGE, acceptLanguage);
 		}
-		ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+		ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), new ParameterizedTypeReference<>() {});
 		return response.getBody();
 	}
 
