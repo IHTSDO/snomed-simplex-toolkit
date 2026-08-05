@@ -50,25 +50,25 @@
 
 .question-toggle {
 	display: block;
+
+	::ng-deep .mdc-label {
+		font-size: 1rem;
+		font-weight: 600;
+		color: #1976d2;
+	}
+}
+
+.question-block:not(.question-block--included) .question-toggle ::ng-deep .mdc-label {
+	color: #9e9e9e;
 }
 
 .question-content {
-	margin-top: 8px;
+	margin-top: 4px;
 	margin-left: 28px;
-}
-
-.question-content h3 {
-	margin: 0 0 8px;
-	color: #1976d2;
-	font-size: 1rem;
 }
 
 .question-content--muted {
 	opacity: 0.55;
-
-	h3 {
-		color: #9e9e9e;
-	}
 
 	p,
 	td,

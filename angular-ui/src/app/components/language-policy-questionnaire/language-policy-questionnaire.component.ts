@@ -141,6 +141,10 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 		}
 	}
 
+	displayQuestionTitle(title: string): string {
+		return title.replace(/^Q\d+\.\s*/, '');
+	}
+
 	onCancel(): void {
 		this.cancelled.emit();
 	}

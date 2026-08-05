@@ -26,13 +26,11 @@
 						class="question-toggle"
 						[checked]="isRuleSelected(question.id)"
 						(change)="setRuleSelected(question.id, $event.checked)">
-						Include this
+						{{ displayQuestionTitle(question.title) }}
 					</mat-checkbox>
 
 					<div class="question-content"
 						[class.question-content--muted]="!isRuleSelected(question.id)">
-						<h3>{{ question.title }}</h3>
-
 						<div class="question-body">
 							<p *ngIf="question.hint">{{ question.hint }}</p>
 
