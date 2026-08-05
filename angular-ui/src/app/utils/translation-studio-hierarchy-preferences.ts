@@ -1,13 +1,15 @@
 export interface TranslationStudioHierarchyPreferences {
 	showHierarchyTranslationTerms: boolean;
 	showFullPartialHierarchy: boolean;
+	showConceptDiagram: boolean;
 }
 
 const STORAGE_KEY = 'simplex.translation-studio.hierarchy-preferences';
 
 const DEFAULT_PREFERENCES: TranslationStudioHierarchyPreferences = {
 	showHierarchyTranslationTerms: false,
-	showFullPartialHierarchy: false
+	showFullPartialHierarchy: false,
+	showConceptDiagram: false
 };
 
 function parseBoolean(value: unknown): boolean | undefined {
@@ -23,7 +25,9 @@ function normalizePreferences(value: unknown): TranslationStudioHierarchyPrefere
 		parseBoolean(raw['showHierarchyTranslationTerms']) ?? DEFAULT_PREFERENCES.showHierarchyTranslationTerms;
 	const showFullPartialHierarchy =
 		parseBoolean(raw['showFullPartialHierarchy']) ?? DEFAULT_PREFERENCES.showFullPartialHierarchy;
-	return { showHierarchyTranslationTerms, showFullPartialHierarchy };
+	const showConceptDiagram =
+		parseBoolean(raw['showConceptDiagram']) ?? DEFAULT_PREFERENCES.showConceptDiagram;
+	return { showHierarchyTranslationTerms, showFullPartialHierarchy, showConceptDiagram };
 }
 
 export function loadTranslationStudioHierarchyPreferences(): TranslationStudioHierarchyPreferences {

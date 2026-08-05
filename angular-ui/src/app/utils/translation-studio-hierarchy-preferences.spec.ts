@@ -13,24 +13,28 @@ describe('translation-studio-hierarchy-preferences', () => {
 	it('returns defaults when storage is empty', () => {
 		expect(loadTranslationStudioHierarchyPreferences()).toEqual({
 			showHierarchyTranslationTerms: false,
-			showFullPartialHierarchy: false
+			showFullPartialHierarchy: false,
+			showConceptDiagram: false
 		});
 	});
 
 	it('round-trips saved values', () => {
 		saveTranslationStudioHierarchyPreferences({
 			showHierarchyTranslationTerms: true,
-			showFullPartialHierarchy: true
+			showFullPartialHierarchy: true,
+			showConceptDiagram: true
 		});
 
 		expect(loadTranslationStudioHierarchyPreferences()).toEqual({
 			showHierarchyTranslationTerms: true,
-			showFullPartialHierarchy: true
+			showFullPartialHierarchy: true,
+			showConceptDiagram: true
 		});
 		expect(localStorage.getItem(STORAGE_KEY)).toBe(
 			JSON.stringify({
 				showHierarchyTranslationTerms: true,
-				showFullPartialHierarchy: true
+				showFullPartialHierarchy: true,
+				showConceptDiagram: true
 			})
 		);
 	});
@@ -40,7 +44,8 @@ describe('translation-studio-hierarchy-preferences', () => {
 
 		expect(loadTranslationStudioHierarchyPreferences()).toEqual({
 			showHierarchyTranslationTerms: false,
-			showFullPartialHierarchy: false
+			showFullPartialHierarchy: false,
+			showConceptDiagram: false
 		});
 	});
 
@@ -55,7 +60,8 @@ describe('translation-studio-hierarchy-preferences', () => {
 
 		expect(loadTranslationStudioHierarchyPreferences()).toEqual({
 			showHierarchyTranslationTerms: false,
-			showFullPartialHierarchy: false
+			showFullPartialHierarchy: false,
+			showConceptDiagram: false
 		});
 	});
 
@@ -64,9 +70,12 @@ describe('translation-studio-hierarchy-preferences', () => {
 
 		saveTranslationStudioHierarchyPreferences({ showFullPartialHierarchy: true });
 
+		saveTranslationStudioHierarchyPreferences({ showConceptDiagram: true });
+
 		expect(loadTranslationStudioHierarchyPreferences()).toEqual({
 			showHierarchyTranslationTerms: true,
-			showFullPartialHierarchy: true
+			showFullPartialHierarchy: true,
+			showConceptDiagram: true
 		});
 	});
 });

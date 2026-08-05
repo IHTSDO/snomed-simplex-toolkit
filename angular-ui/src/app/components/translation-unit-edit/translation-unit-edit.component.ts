@@ -159,6 +159,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		const hierarchyPrefs = loadTranslationStudioHierarchyPreferences();
 		this.showHierarchyTranslationTerms = hierarchyPrefs.showHierarchyTranslationTerms;
 		this.showFullPartialHierarchy = hierarchyPrefs.showFullPartialHierarchy;
+		this.showConceptDiagram = hierarchyPrefs.showConceptDiagram;
 
 		this.formSyncSub = merge(
 			this.form.get('primaryTerm')!.valueChanges,
@@ -314,7 +315,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			this.sliceFirstTargetTermByConceptId.clear();
 			return of(null);
 		}
-		this.resetConceptDiagramUi();
+		this.clearConceptDiagramForConceptChange();
 		this.applyRow(row);
 		this.conceptDetailsLoading = true;
 		this.conceptContext = null;
@@ -325,6 +326,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			catchError(() => of(null)),
 			finalize(() => {
 				this.conceptDetailsLoading = false;
+				if (this.showConceptDiagram) {
+					this.fetchConceptDiagram();
+				}
 			}),
 			map(() => row)
 		);
@@ -583,8 +587,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.revokeConceptDiagramUrl();
 	}
 
-	private resetConceptDiagramUi(): void {
-		this.showConceptDiagram = false;
+	private clearConceptDiagramForConceptChange(): void {
 		this.conceptDiagramLoading = false;
 		this.revokeConceptDiagramUrl();
 	}
@@ -599,17 +602,27 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	onConceptDiagramToggle(checked: boolean): void {
 		if (!checked) {
 			this.showConceptDiagram = false;
+			saveTranslationStudioHierarchyPreferences({ showConceptDiagram: false });
 			this.revokeConceptDiagramUrl();
 			return;
 		}
+		this.showConceptDiagram = true;
+		saveTranslationStudioHierarchyPreferences({ showConceptDiagram: true });
+		this.fetchConceptDiagram(true);
+	}
+
+	private fetchConceptDiagram(showUnavailableMessage = false): void {
 		const raw = this.segmentRawConceptById.get(this.conceptId);
 		if (raw == null) {
-			this.snackBar.open('Concept details are not available for the diagram.', 'Dismiss', {
-				duration: 6000
-			});
+			this.showConceptDiagram = false;
+			saveTranslationStudioHierarchyPreferences({ showConceptDiagram: false });
+			if (showUnavailableMessage) {
+				this.snackBar.open('Concept details are not available for the diagram.', 'Dismiss', {
+					duration: 6000
+				});
+			}
 			return;
 		}
-		this.showConceptDiagram = true;
 		this.conceptDiagramLoading = true;
 		this.http
 			.post(`api/codesystems/${encodeURIComponent(this.edition)}/diagrams/preview`, raw, {
@@ -628,6 +641,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 				},
 				error: () => {
 					this.showConceptDiagram = false;
+					saveTranslationStudioHierarchyPreferences({ showConceptDiagram: false });
 					this.snackBar.open('Could not load concept diagram.', 'Dismiss', { duration: 6000 });
 				}
 			});
