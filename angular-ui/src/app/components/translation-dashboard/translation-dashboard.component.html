@@ -552,9 +552,6 @@
                     </mat-select>
                 </mat-form-field>
                 <div class="translation-sets-toolbar-actions">
-                    <button mat-stroked-button (click)="uploadLanguageTranslation()" [disabled]="showSkeleton || languagePolicyRows.length === 0">
-                        Import spreadsheet
-                    </button>
                     <button mat-flat-button color="primary" (click)="setMode('create')" [disabled]="showSkeleton">
                         Create new set
                     </button>

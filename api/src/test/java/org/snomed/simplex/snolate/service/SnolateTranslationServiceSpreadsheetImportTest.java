@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
@@ -101,34 +100,6 @@ class SnolateTranslationServiceSpreadsheetImportTest {
 
 		assertThat(summary.getUpdated()).isEqualTo(1);
 		assertThat(unit.getTerms()).containsExactly("asma");
-		verify(translationUnitStore).saveAll(any());
-	}
-
-	@Test
-	void importTranslationLanguageFile_importsSpreadsheet() throws Exception {
-		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitStore.loadByCodes(eq(COMPOSITE), any()))
-				.thenReturn(Map.of("100", unit));
-
-		CodeSystem codeSystem = new CodeSystem("SNOMEDCT-TEST", "TEST", "");
-		codeSystem.setTranslationSnolateLanguages(new java.util.HashMap<>(Map.of(REFSET, LANG)));
-
-		byte[] spreadsheet = createSpreadsheet(
-				List.of("Concept Code", "PT", "Synonym 1"),
-				List.of("100", "asma", "asma brônquica"));
-
-		ChangeSummary summary = service.importTranslationLanguageFile(
-				codeSystem,
-				REFSET,
-				LANG,
-				new ByteArrayInputStream(spreadsheet),
-				"language.xlsx",
-				"Concept Code",
-				List.of("PT", "Synonym 1"),
-				TranslationStatus.FOR_REVIEW);
-
-		assertThat(summary.getUpdated()).isEqualTo(1);
-		assertThat(unit.getTerms()).containsExactly("asma", "asma brônquica");
 		verify(translationUnitStore).saveAll(any());
 	}
 

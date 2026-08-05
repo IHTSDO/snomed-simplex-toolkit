@@ -350,29 +350,6 @@ public class TranslationStudioController {
 						termColumnList, importStatus, outsideSet));
 	}
 
-	@PutMapping(path = "{refsetId}/csv", consumes = "multipart/form-data")
-	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
-	public AsyncJob uploadLanguageCsv(@PathVariable String codeSystem, @PathVariable String refsetId,
-			@RequestParam MultipartFile file, @RequestParam String conceptColumn,
-			@RequestParam List<String> termColumns, @RequestParam String status)
-			throws ServiceException, IOException {
-
-		TranslationStatus importStatus = parseImportTranslationStatus(status);
-		List<String> termColumnList = getTermColumnList(termColumns);
-
-		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
-		String languageCode = resolveSnolateLanguageCode(theCodeSystem, refsetId);
-		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION_STUDIO, ActivityType.UPDATE);
-		ContentJob contentJob = new TranslationStudioContentJob(theCodeSystem,
-				"Translation Studio language file import", refsetId)
-				.addUpload(file.getInputStream(), file.getOriginalFilename());
-		return jobService.queueContentJob(contentJob, refsetId, activity,
-				job -> snolateTranslationService.importTranslationLanguageFile(
-						theCodeSystem, refsetId, languageCode, job.getInputStream(),
-						job.getInputFileOriginalName(), conceptColumn, termColumnList, importStatus));
-	}
-
 	@GetMapping("{refsetId}/sets/{label}/units/{conceptId}")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public TranslationUnitRow getTranslationUnit(@PathVariable String codeSystem, @PathVariable String refsetId, @PathVariable String label,

@@ -315,26 +315,6 @@ export class SimplexService {
     );
   }
 
-  public uploadLanguageTranslationCsv(
-    edition: string,
-    refsetId: string,
-    file: File,
-    conceptColumn: string,
-    termColumns: string[],
-    status: string
-  ): Observable<any> {
-    const formData = new FormData();
-    formData.append('file', file, file.name);
-    formData.append('conceptColumn', conceptColumn);
-    termColumns.forEach((column) => formData.append('termColumns', column));
-    formData.append('status', status);
-    const apiUrl = `api/${edition}/translation-studio/${refsetId}/csv`;
-    return this.http.put(apiUrl, formData).pipe(
-      tap(() => this.clearTranslationsCache(edition)),
-      catchError(this.handleError.bind(this))
-    );
-  }
-
   // Method to trigger file download in the browser
   public triggerDownload(file: Blob, filename: string): void {
     const url = window.URL.createObjectURL(file);

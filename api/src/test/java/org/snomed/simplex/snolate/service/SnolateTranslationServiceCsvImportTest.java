@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
@@ -241,58 +240,6 @@ class SnolateTranslationServiceCsvImportTest {
 		assertThat(summary.getUpdated()).isZero();
 		assertThat(summary.getSkippedNotFound()).isZero();
 		assertThat(summary.getSkippedOutsideSet()).isZero();
-	}
-
-	@Test
-	void importTranslationLanguageCsv_updatesExistingTranslationUnit() throws Exception {
-		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitStore.loadByCode(COMPOSITE, "100"))
-				.thenReturn(Optional.of(unit));
-
-		CodeSystem codeSystem = new CodeSystem("SNOMEDCT-TEST", "TEST", "");
-		codeSystem.setTranslationSnolateLanguages(new java.util.HashMap<>(Map.of(REFSET, LANG)));
-
-		String csv = """
-				context,target
-				100,asma
-				""";
-		ChangeSummary summary = service.importTranslationLanguageCsv(
-				codeSystem,
-				REFSET,
-				LANG,
-				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
-				"context",
-				List.of("target"),
-				TranslationStatus.APPROVED);
-
-		assertThat(summary.getUpdated()).isEqualTo(1);
-		assertThat(unit.getTerms()).containsExactly("asma");
-		verify(translationUnitStore).save(unit);
-	}
-
-	@Test
-	void importTranslationLanguageCsv_recordsSkippedNotFound() throws Exception {
-		when(translationUnitStore.loadByCode(COMPOSITE, "999"))
-				.thenReturn(Optional.empty());
-
-		CodeSystem codeSystem = new CodeSystem("SNOMEDCT-TEST", "TEST", "");
-		codeSystem.setTranslationSnolateLanguages(new java.util.HashMap<>(Map.of(REFSET, LANG)));
-
-		String csv = """
-				context,target
-				999,unknown term
-				""";
-		ChangeSummary summary = service.importTranslationLanguageCsv(
-				codeSystem,
-				REFSET,
-				LANG,
-				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
-				"context",
-				List.of("target"),
-				TranslationStatus.FOR_REVIEW);
-
-		assertThat(summary.getUpdated()).isZero();
-		assertThat(summary.getSkippedNotFound()).isEqualTo(1);
 	}
 
 	@Test

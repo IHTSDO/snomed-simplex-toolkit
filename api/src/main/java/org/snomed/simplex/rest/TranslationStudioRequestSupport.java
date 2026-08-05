@@ -1,7 +1,6 @@
 package org.snomed.simplex.rest;
 
 import org.jspecify.annotations.NonNull;
-import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.service.OutsideSetBehavior;
@@ -9,7 +8,6 @@ import org.snomed.simplex.translation.service.TranslationService;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
-import java.util.Map;
 
 class TranslationStudioRequestSupport {
 
@@ -79,25 +77,6 @@ class TranslationStudioRequestSupport {
 					"Label parameter must contain only lowercase letters, numbers, hyphens, and underscores.",
 					HttpStatus.BAD_REQUEST);
 		}
-	}
-
-	static String resolveSnolateLanguageCode(CodeSystem codeSystem, String refsetId)
-			throws ServiceExceptionWithStatusCode {
-		Map<String, String> snolateLanguages = codeSystem.getTranslationSnolateLanguages();
-		if (snolateLanguages == null || !snolateLanguages.containsKey(refsetId)) {
-			throw new ServiceExceptionWithStatusCode(
-					"Language is not linked to Translation Studio.", HttpStatus.BAD_REQUEST);
-		}
-		String languageCode = snolateLanguages.get(refsetId);
-		if (languageCode == null || languageCode.isBlank()) {
-			Map<String, String> translationLanguages = codeSystem.getTranslationLanguages();
-			languageCode = translationLanguages != null ? translationLanguages.get(refsetId) : null;
-		}
-		if (languageCode == null || languageCode.isBlank()) {
-			throw new ServiceExceptionWithStatusCode(
-					"Language code could not be resolved for refset " + refsetId + ".", HttpStatus.BAD_REQUEST);
-		}
-		return languageCode;
 	}
 
 	static OutsideSetBehavior parseOutsideSetBehavior(String outsideSetBehavior)

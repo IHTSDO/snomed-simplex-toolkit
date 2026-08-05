@@ -40,7 +40,7 @@ class ContentProcessingJobServiceTest {
 	@Test
 	void listJobs_byRefsetExcludesTranslationStudioJobs() throws Exception {
 		registerJob(new ContentJob(codeSystem(), "Snowstorm translation upload", REFSET));
-		registerJob(new TranslationStudioContentJob(codeSystem(), "Translation Studio language CSV import", REFSET));
+		registerJob(new TranslationStudioContentJob(codeSystem(), "Translation Studio set CSV import", REFSET));
 
 		List<AsyncJob> jobs = service.listJobs(EDITION, REFSET, null);
 

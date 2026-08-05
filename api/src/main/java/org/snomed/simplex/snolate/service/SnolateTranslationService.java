@@ -6,7 +6,6 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.TranslationUnitPage;
@@ -370,17 +369,6 @@ public class SnolateTranslationService {
 				outsideSetBehavior);
 	}
 
-	public ChangeSummary importTranslationLanguageFile(CodeSystem codeSystem, String refsetId, String languageCode,
-			InputStream inputStream, String filename, String conceptColumn, List<String> termColumns,
-			TranslationStatus status) throws ServiceException {
-		if (isSpreadsheetFile(filename)) {
-			return importTranslationLanguageSpreadsheet(codeSystem, refsetId, languageCode, inputStream, conceptColumn,
-					termColumns, status);
-		}
-		return importTranslationLanguageCsv(codeSystem, refsetId, languageCode, inputStream, conceptColumn, termColumns,
-				status);
-	}
-
 	public ChangeSummary importTranslationSetCsv(SnolateTranslationSet translationSet, InputStream inputStream,
 			String conceptColumn, List<String> termColumns, TranslationStatus status) throws ServiceException {
 		return importTranslationSetCsv(translationSet, inputStream, conceptColumn, termColumns, status, OutsideSetBehavior.SKIP);
@@ -401,27 +389,6 @@ public class SnolateTranslationService {
 			logImportSkips("Translation set CSV import", changeSummary);
 		} catch (IOException e) {
 			throw new ServiceException("Failed to read translation set CSV.", e);
-		} catch (ServiceExceptionWithStatusCode e) {
-			throw e;
-		}
-		return changeSummary;
-	}
-
-	public ChangeSummary importTranslationLanguageCsv(CodeSystem codeSystem, String refsetId, String languageCode,
-			InputStream inputStream, String conceptColumn, List<String> termColumns, TranslationStatus status)
-			throws ServiceException {
-		validateImportParameters(status, conceptColumn, termColumns);
-		validateSnolateLinkedLanguage(codeSystem, refsetId);
-
-		String compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
-		ChangeSummary changeSummary = new ChangeSummary();
-
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-			ImportColumnIndices columns = readImportColumnIndices(reader, conceptColumn, termColumns);
-			importTranslationLanguageRows(reader, compositeLanguageCode, columns, status, changeSummary);
-			logImportSkips("Translation language CSV import", changeSummary);
-		} catch (IOException e) {
-			throw new ServiceException("Failed to read translation language CSV.", e);
 		} catch (ServiceExceptionWithStatusCode e) {
 			throw e;
 		}
@@ -450,31 +417,6 @@ public class SnolateTranslationService {
 			throw e;
 		} catch (IOException | ServiceException e) {
 			throw new ServiceException("Failed to read translation set spreadsheet.", e);
-		}
-		return changeSummary;
-	}
-
-	private ChangeSummary importTranslationLanguageSpreadsheet(CodeSystem codeSystem, String refsetId,
-			String languageCode, InputStream inputStream, String conceptColumn, List<String> termColumns,
-			TranslationStatus status) throws ServiceException {
-		validateImportParameters(status, conceptColumn, termColumns);
-		validateSnolateLinkedLanguage(codeSystem, refsetId);
-
-		String compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
-		ChangeSummary changeSummary = new ChangeSummary();
-
-		try (XSSFWorkbook workbook = new XSSFWorkbook(inputStream)) {
-			Sheet sheet = workbook.getSheetAt(0);
-			SpreadsheetImportColumnIndices columns = readSpreadsheetImportColumnIndices(sheet, conceptColumn,
-					termColumns);
-			logger.info("Starting translation language spreadsheet import for {}", compositeLanguageCode);
-			importTranslationLanguageSpreadsheetRows(sheet, columns, compositeLanguageCode, status, changeSummary);
-			logImportSkips("Translation language file import", changeSummary);
-			logger.info("Translation language spreadsheet import finished {}", changeSummary);
-		} catch (ServiceExceptionWithStatusCode e) {
-			throw e;
-		} catch (IOException | ServiceException e) {
-			throw new ServiceException("Failed to read translation language spreadsheet.", e);
 		}
 		return changeSummary;
 	}
@@ -541,31 +483,6 @@ public class SnolateTranslationService {
 		translationUnitStore.saveAll(toSave);
 	}
 
-	private void importTranslationLanguageSpreadsheetRows(Sheet sheet, SpreadsheetImportColumnIndices columns,
-			String compositeLanguageCode, TranslationStatus status, ChangeSummary changeSummary)
-			throws ServiceException {
-
-		Map<String, List<String>> termsByCode = parseSpreadsheetTermsByConceptCode(sheet, columns);
-		logger.info("Translation language spreadsheet import parsed {} concept row(s)", termsByCode.size());
-		if (termsByCode.isEmpty()) {
-			return;
-		}
-		Map<String, TranslationUnit> unitsByCode = translationUnitStore.loadByCodes(compositeLanguageCode, termsByCode.keySet());
-		List<TranslationUnit> toSave = new ArrayList<>();
-		for (Map.Entry<String, List<String>> entry : termsByCode.entrySet()) {
-			TranslationUnit unit = unitsByCode.get(entry.getKey());
-			if (unit == null) {
-				changeSummary.incrementSkippedNotFound();
-				logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, entry.getKey(), compositeLanguageCode);
-				continue;
-			}
-			applyTermsAndStatusInMemory(unit, entry.getValue(), status);
-			toSave.add(unit);
-			changeSummary.incrementUpdated();
-		}
-		translationUnitStore.saveAll(toSave);
-	}
-
 	private Map<String, List<String>> parseSpreadsheetTermsByConceptCode(Sheet sheet,
 			SpreadsheetImportColumnIndices columns) throws ServiceException {
 
@@ -603,15 +520,6 @@ public class SnolateTranslationService {
 			}
 		}
 		return rowFields;
-	}
-
-	private static void validateSnolateLinkedLanguage(CodeSystem codeSystem, String refsetId)
-			throws ServiceExceptionWithStatusCode {
-		Map<String, String> snolateLanguages = codeSystem.getTranslationSnolateLanguages();
-		if (snolateLanguages == null || !snolateLanguages.containsKey(refsetId)) {
-			throw new ServiceExceptionWithStatusCode(
-					"Language is not linked to Translation Studio.", HttpStatus.BAD_REQUEST);
-		}
 	}
 
 	private static void logImportSkips(String label, ChangeSummary changeSummary) {
@@ -695,24 +603,6 @@ public class SnolateTranslationService {
 					return;
 				}
 				applyTermsAndStatusToUnit(unit, terms, status);
-				changeSummary.incrementUpdated();
-			});
-		}
-	}
-
-	private void importTranslationLanguageRows(BufferedReader reader, String compositeLanguageCode,
-			ImportColumnIndices columns, TranslationStatus status, ChangeSummary changeSummary)
-			throws IOException, ServiceExceptionWithStatusCode {
-		List<String> rowFields;
-		while (!(rowFields = CsvParser.readRow(reader, columns.delimiter())).isEmpty()) {
-			processImportRow(rowFields, columns, (conceptCode, terms) -> {
-				Optional<TranslationUnit> tuOpt = translationUnitStore.loadByCode(compositeLanguageCode, conceptCode);
-				if (tuOpt.isEmpty()) {
-					changeSummary.incrementSkippedNotFound();
-					logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, conceptCode, compositeLanguageCode);
-					return;
-				}
-				applyTermsAndStatusToUnit(tuOpt.get(), terms, status);
 				changeSummary.incrementUpdated();
 			});
 		}

@@ -18,7 +18,6 @@ import { EditTranslationSetDialogComponent } from '../edit-translation-set-dialo
 import { DownloadTranslationSetDialogComponent } from '../download-translation-set-dialog/download-translation-set-dialog.component';
 import { PushToExtensionDialogComponent } from '../push-to-extension-dialog/push-to-extension-dialog.component';
 import { UploadTranslationSetDialogComponent } from '../upload-translation-set-dialog/upload-translation-set-dialog.component';
-import { UploadLanguageTranslationDialogComponent } from '../upload-language-translation-dialog/upload-language-translation-dialog.component';
 import { UpdateConceptListDialogComponent } from '../update-concept-list-dialog/update-concept-list-dialog.component';
 import { TranslationStudioImportJobsComponent } from '../translation-studio-import-jobs/translation-studio-import-jobs.component';
 import { defaultLanguageDialectName, displayLanguageDialect, LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
@@ -558,34 +557,6 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 languageDialect: this.displayTranslationLanguageDialect(target.translationName),
                 statusCounts: target.statusCounts,
                 totalSize: target.size
-            }
-        });
-    }
-
-    uploadLanguageTranslation(): void {
-        const languages = this.languagePolicyRows.map(row => ({
-            refsetId: row.refsetId,
-            languageDialect: row.languageDialectName
-        }));
-
-        if (languages.length === 0) {
-            this.snackBar.open('Link a language refset to Translation Studio before importing.', 'Close', {
-                duration: 5000
-            });
-            return;
-        }
-
-        const dialogRef = this.dialog.open(UploadLanguageTranslationDialogComponent, {
-            width: '480px',
-            data: {
-                edition: this.selectedEdition.shortName,
-                languages
-            }
-        });
-
-        dialogRef.afterClosed().subscribe(result => {
-            if (result?.action === 'import_started') {
-                this.handleImportJobStarted(result.jobId, result.refsetId, false);
             }
         });
     }
