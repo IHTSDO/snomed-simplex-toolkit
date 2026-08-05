@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -79,8 +78,8 @@ class ReleaseCandidateJobServiceTest {
 		boolean complete = releaseCandidateJobService.doMonitorProgress(job, BUILD_URL);
 
 		assertTrue(complete);
-		verify(supportRegister).handleSystemError(eq(job), eq("SRS build failed with status FAILED_PRE_CONDITIONS."));
-		verify(snowstormClient).upsertBranchMetadata(eq("MAIN/SNOMEDCT-TEST"), eq(Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name())));
+		verify(supportRegister).handleSystemError(job, "SRS build failed with status FAILED_PRE_CONDITIONS.");
+		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST", Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name()));
 	}
 
 	@Test
@@ -114,8 +113,8 @@ class ReleaseCandidateJobServiceTest {
 
 		assertTrue(complete);
 		assertEquals(JobStatus.COMPLETE, job.getStatus());
-		verify(snowstormClient).upsertBranchMetadata(eq("MAIN/SNOMEDCT-TEST"),
-				eq(Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.COMPLETE.name())));
+		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST",
+				Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.COMPLETE.name()));
 	}
 
 	@Test
@@ -134,8 +133,8 @@ class ReleaseCandidateJobServiceTest {
 
 		releaseCandidateJobService.recoverOrphanedBuild(codeSystem, snowstormClient);
 
-		verify(snowstormClient).upsertBranchMetadata(eq("MAIN/SNOMEDCT-TEST"),
-				eq(Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name())));
+		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST",
+				Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name()));
 		ArgumentCaptor<Activity> activityCaptor = ArgumentCaptor.forClass(Activity.class);
 		verify(activityService).endAsynchronousActivity(activityCaptor.capture());
 		assertTrue(activityCaptor.getValue().isError());

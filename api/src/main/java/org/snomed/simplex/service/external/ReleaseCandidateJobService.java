@@ -171,6 +171,7 @@ public class ReleaseCandidateJobService extends ExternalFunctionJobService<Strin
 			return true;
 		} catch (ServiceException e) {
 			supportRegister.handleSystemError(job, "Failed to update build status in branch metadata", e);
+			// Stop monitoring: SRS is already terminal; retrying the poll won't help. Orphan recovery fixes stale metadata.
 			return true;
 		}
 	}
