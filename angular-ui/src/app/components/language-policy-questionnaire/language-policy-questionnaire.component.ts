@@ -24,6 +24,7 @@ import {
 	policyToRequest,
 	serializeKeyValueTable
 } from '../../models/language-translation-policy.model';
+import { textDirection, TextDirection } from '../../utils/language-direction';
 
 @Component({
 	selector: 'app-language-policy-questionnaire',
@@ -46,6 +47,7 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 	@Input() edition = '';
 	@Input() refsetId = '';
 	@Input() dialectName = '';
+	@Input() languageCode = '';
 	@Input() initialPolicy: LanguageTranslationPolicy | null = null;
 	@Input() showCancel = true;
 	@Input() submitLabel = 'Save policy';
@@ -58,6 +60,10 @@ export class LanguagePolicyQuestionnaireComponent implements OnInit {
 	selectedRules = new Set<string>();
 	saving = false;
 	loading = false;
+
+	get preferredTranslationDir(): TextDirection {
+		return textDirection(this.languageCode || this.policy?.languageCode);
+	}
 
 	constructor(
 		private simplexService: SimplexService,

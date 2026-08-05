@@ -93,6 +93,7 @@
 													(ngModelChange)="setKeyValueCell(question, key, $event)"
 													[name]="question.id + '-' + key"
 													placeholder="Preferred translation"
+													[attr.dir]="preferredTranslationDir"
 													[disabled]="!isRuleSelected(question.id)">
 											</td>
 										</tr>

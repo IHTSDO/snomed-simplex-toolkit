@@ -26,6 +26,7 @@ import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_STATUS
 import { countConceptIdsInFile, detectImportColumnMapping, readImportHeaders } from 'src/app/utils/csv-column-mapping.util';
 import { isTranslationSetBusy, isTranslationSetEditable, isTranslationSetInProgress, translationSetLifecycleStatusLabel } from 'src/app/utils/translation-set-status';
 import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, effectiveTranslationTermSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
+import { textDirection, TextDirection } from 'src/app/utils/language-direction';
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -829,6 +830,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 labelSetName: target.name,
                 label: target.label,
                 dialectName: this.displayTranslationLanguageDialect(target.translationName),
+                languageCode: target.languageCode || this.targetLanguageCode,
                 selectedLabelSet: target
             }
         });
@@ -1069,14 +1071,44 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     editLanguagePolicy(row?: LanguagePolicyRow): void {
         const refsetId = row?.refsetId;
         const dialectName = displayLanguageDialect(row?.languageDialectName) || row?.languageDialectName;
+        const languageCode = row?.languageCode?.trim();
         if (!refsetId || !this.selectedEdition?.shortName) {
             return;
         }
 
         void this.router.navigate(
             ['/translation-studio', this.selectedEdition.shortName, 'language-policy', refsetId],
-            { queryParams: dialectName ? { dialect: dialectName } : {} }
+            {
+                queryParams: {
+                    ...(dialectName ? { dialect: dialectName } : {}),
+                    ...(languageCode ? { lang: languageCode } : {})
+                }
+            }
         );
+    }
+
+    get targetLanguageCode(): string | null {
+        const fromSet = (this.selectedLabelSet?.languageCode as string | undefined)?.trim();
+        if (fromSet) {
+            return fromSet;
+        }
+        const refsetId = String(this.selectedLabelSet?.refset ?? this.selectedLabelSet?.translationId ?? '');
+        if (!refsetId) {
+            return null;
+        }
+        const fromPolicy = this.languagePolicyRows.find((row) => row.refsetId === refsetId)?.languageCode?.trim();
+        if (fromPolicy) {
+            return fromPolicy;
+        }
+        const fromTranslation = this.translations.find(
+            (translation: any) => String(translation.conceptId || translation.id) === refsetId
+        );
+        const lang = (fromTranslation?.extraFields?.lang || fromTranslation?.lang || '').trim();
+        return lang || null;
+    }
+
+    get targetTextDir(): TextDirection {
+        return textDirection(this.targetLanguageCode);
     }
 
     getTranslationSets(options?: { silent?: boolean }) {
@@ -1099,10 +1131,15 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                     .map((translationSet: any) => {
                         const matchingTranslation = this.translations.find((translation: any) =>
                             (translation.conceptId || translation.id) === translationSet.refset);
+                        const languageCode = translationSet.languageCode
+                            || matchingTranslation?.extraFields?.lang
+                            || matchingTranslation?.lang
+                            || null;
                         return {
                             ...translationSet,
                             translationId: translationSet.refset,
-                            translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation'
+                            translationName: matchingTranslation ? matchingTranslation.pt.term : 'Unknown Translation',
+                            languageCode
                         };
                     });
 
@@ -1343,6 +1380,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         }
         const i = this.labelSetMembersPageIndex * this.labelSetMembersPageSize + rowIndex;
         const dialect = this.displayTranslationLanguageDialect(this.selectedLabelSet?.translationName);
+        const languageCode = this.targetLanguageCode;
         const snowstormBranch =
             (this.selectedEdition as any)?.simplexWorkingBranch || this.selectedEdition?.branchPath;
         const branchParam =
@@ -1363,6 +1401,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                         s: this.labelSetMembersPageSize,
                         t: this.labelSetMembersTotalCount,
                         ...(dialect ? { d: dialect } : {}),
+                        ...(languageCode ? { lang: languageCode } : {}),
                         ...(branchParam ? { b: branchParam } : {})
                     },
                     this.labelSetMembersStatusFilter,
@@ -1380,6 +1419,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         const globalStart = this.labelSetMembersPageIndex * this.labelSetMembersPageSize;
         const page = Math.floor(globalStart / 25);
         const dialect = this.displayTranslationLanguageDialect(this.selectedLabelSet?.translationName);
+        const languageCode = this.targetLanguageCode;
         const snowstormBranch =
             (this.selectedEdition as any)?.simplexWorkingBranch || this.selectedEdition?.branchPath;
         const branchParam =
@@ -1398,6 +1438,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                         page,
                         t: this.labelSetMembersTotalCount,
                         ...(dialect ? { d: dialect } : {}),
+                        ...(languageCode ? { lang: languageCode } : {}),
                         ...(branchParam ? { b: branchParam } : {})
                     },
                     this.labelSetMembersStatusFilter,

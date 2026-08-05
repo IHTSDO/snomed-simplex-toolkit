@@ -24,6 +24,7 @@ export class LanguagePolicyPageComponent implements OnInit {
 	edition = '';
 	refsetId = '';
 	dialectName = '';
+	languageCode = '';
 
 	constructor(
 		private route: ActivatedRoute,
@@ -35,16 +36,17 @@ export class LanguagePolicyPageComponent implements OnInit {
 		this.route.paramMap.subscribe(() => {
 			this.edition = this.route.snapshot.paramMap.get('edition') ?? '';
 			this.refsetId = this.route.snapshot.paramMap.get('refsetId') ?? '';
-			this.updateDialectName();
+			this.updateQueryDerivedFields();
 		});
 		this.route.queryParamMap.subscribe(() => {
-			this.updateDialectName();
+			this.updateQueryDerivedFields();
 		});
 	}
 
-	private updateDialectName(): void {
+	private updateQueryDerivedFields(): void {
 		const dialect = this.route.snapshot.queryParamMap.get('dialect')?.trim();
 		this.dialectName = dialect || this.refsetId;
+		this.languageCode = this.route.snapshot.queryParamMap.get('lang')?.trim() || '';
 	}
 
 	goBack(): void {

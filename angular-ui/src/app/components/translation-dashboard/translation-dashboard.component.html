@@ -398,6 +398,7 @@
                                 <input
                                     matInput
                                     type="text"
+                                    [attr.dir]="targetTextDir"
                                     [value]="labelSetMembersTargetSearch"
                                     [disabled]="!isTranslationSetEditable(selectedLabelSet.status)"
                                     (input)="onLabelSetMembersTargetSearchInput($any($event.target).value)" />
@@ -467,12 +468,16 @@
 
                                 <ng-container matColumnDef="dialect">
                                     <th mat-header-cell *matHeaderCellDef>{{ translatedTermsDialectColumnHeader }}</th>
-                                    <td mat-cell *matCellDef="let unit">
+                                    <td mat-cell *matCellDef="let unit"
+                                        class="col-dialect-terms"
+                                        [class.col-dialect-terms--rtl]="targetTextDir === 'rtl'"
+                                        [attr.dir]="targetTextDir">
                                         <ng-container *ngIf="hasVisibleAiSuggestions(unit); else dialectTerms">
                                             <app-translation-ai-suggestions
                                                 [suggestions]="unit.suggestions"
                                                 [accepting]="isAcceptingAiSuggestion(unit)"
                                                 [compact]="true"
+                                                [dir]="targetTextDir"
                                                 (acceptSuggestion)="acceptAiSuggestion(unit, $event)">
                                             </app-translation-ai-suggestions>
                                         </ng-container>

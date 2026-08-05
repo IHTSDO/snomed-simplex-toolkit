@@ -56,6 +56,7 @@
 						type="text"
 						formControlName="primaryTerm"
 						autocomplete="off"
+						[attr.dir]="targetTextDir"
 						(blur)="onTermBlur(unit)"
 						(input)="onUnitFormInput(unit)"
 					/>
@@ -72,6 +73,7 @@
 					*ngIf="hasVisibleAiSuggestions(unit)"
 					[suggestions]="unit.suggestions"
 					[accepting]="unit.acceptingSuggestion"
+					[dir]="targetTextDir"
 					(acceptSuggestion)="acceptAiSuggestion(unit, $event)">
 				</app-translation-ai-suggestions>
 			</div>
@@ -89,6 +91,7 @@
 						[formControl]="$any(ctrl)"
 						autocomplete="off"
 						[attr.aria-label]="'Synonym ' + (si + 1)"
+						[attr.dir]="targetTextDir"
 						(blur)="onTermBlur(unit)"
 						(input)="onUnitFormInput(unit)"
 					/>

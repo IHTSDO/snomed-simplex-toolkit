@@ -712,6 +712,12 @@ mat-list-item:not(:last-child) {
         overflow-wrap: break-word;
     }
 
+    /* Override forced left align so target terms start from the right for RTL languages. */
+    td.mat-cell.col-dialect-terms--rtl,
+    td.mat-mdc-cell.col-dialect-terms--rtl {
+        text-align: start;
+    }
+
     th.mat-header-cell {
         font-weight: 500;
         color: rgba(0, 0, 0, 0.87);

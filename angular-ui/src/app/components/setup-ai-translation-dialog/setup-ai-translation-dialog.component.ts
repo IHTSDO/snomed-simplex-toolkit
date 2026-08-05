@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { SimplexService } from '../../services/simplex/simplex.service';
 import { LanguagePolicyQuestionnaireComponent } from '../language-policy-questionnaire/language-policy-questionnaire.component';
 import { LanguageTranslationPolicy } from '../../models/language-translation-policy.model';
+import { textDirection, TextDirection } from '../../utils/language-direction';
 
 export interface SetupAiTranslationDialogData {
 	edition: string;
@@ -17,6 +18,7 @@ export interface SetupAiTranslationDialogData {
 	labelSetName: string;
 	label: string;
 	dialectName?: string;
+	languageCode?: string;
 	selectedLabelSet?: any;
 }
 
@@ -72,6 +74,17 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 
 	get dialectName(): string {
 		return this.data.dialectName || this.data.labelSetName;
+	}
+
+	get languageCode(): string {
+		return this.data.languageCode
+			|| this.data.selectedLabelSet?.languageCode
+			|| this.existingPolicy?.languageCode
+			|| '';
+	}
+
+	get targetTextDir(): TextDirection {
+		return textDirection(this.languageCode);
 	}
 
 	loadPolicyStatus(): void {

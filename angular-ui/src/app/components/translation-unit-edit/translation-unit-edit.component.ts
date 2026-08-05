@@ -33,6 +33,7 @@ import {
 } from 'src/app/utils/translation-unit-form.helper';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
 import {mergeTranslationStudioQueryParams, parseTranslationEnglishSearch, parseTranslationTargetSearch, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
+import {textDirection, TextDirection} from 'src/app/utils/language-direction';
 import {
 	loadTranslationStudioHierarchyPreferences,
 	saveTranslationStudioHierarchyPreferences
@@ -62,6 +63,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 	sourceTerm = '';
 	/** Display name for target language (from query param `d`, set when opening from dashboard). */
 	dialectDisplayName = 'Translation';
+	/** ISO language code (from query param `lang`). */
+	languageCode: string | null = null;
+	targetTextDir: TextDirection = 'ltr';
 	conceptContext: TranslationConceptContextRow | null = null;
 	conceptDetailsLoading = false;
 	globalIndex = 0;
@@ -230,6 +234,9 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		this.pageSize = Math.max(1, parseInt(q.get('s') ?? '25', 10));
 		const dParam = q.get('d')?.trim();
 		this.dialectDisplayName = dParam && dParam.length > 0 ? dParam : 'Translation';
+		const langParam = q.get('lang')?.trim();
+		this.languageCode = langParam && langParam.length > 0 ? langParam : null;
+		this.targetTextDir = textDirection(this.languageCode);
 		const t = q.get('t');
 		const parsedT = t != null ? parseInt(t, 10) : NaN;
 		this.totalCount = Number.isFinite(parsedT) ? parsedT : null;
@@ -357,6 +364,15 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		}
 		const t = (this.sliceFirstTargetTermByConceptId.get(row.code) ?? '').trim();
 		return t.length > 0 ? t : row.term;
+	}
+
+	/** Text direction for a hierarchy term; RTL only when showing an actual target translation. */
+	hierarchyTermDir(row: PartialHierarchyRow): TextDirection {
+		if (!this.showHierarchyTranslationTerms) {
+			return 'ltr';
+		}
+		const t = (this.sliceFirstTargetTermByConceptId.get(row.code) ?? '').trim();
+		return t.length > 0 ? this.targetTextDir : 'ltr';
 	}
 
 	/** True when showing translations but this concept has no primary target yet. */
@@ -905,6 +921,7 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			{
 				...extra,
 				...(this.dialectDisplayName !== 'Translation' ? { d: this.dialectDisplayName } : {}),
+				...(this.languageCode ? { lang: this.languageCode } : {}),
 				...(this.snowstormBranchQuery ? { b: this.snowstormBranchQuery } : {})
 			},
 			status,

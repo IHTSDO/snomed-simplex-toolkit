@@ -80,6 +80,7 @@
 					<span class="partial-hierarchy__dot" aria-hidden="true"></span>
 					<span
 						class="partial-hierarchy__term"
+						[attr.dir]="hierarchyTermDir(row)"
 						[class.partial-hierarchy__term--on-page]="row.onCurrentPage"
 						[class.partial-hierarchy__term--off-page]="!row.onCurrentPage"
 						[class.partial-hierarchy__term--untranslated]="hierarchyTermIsMissingTranslation(row)"
@@ -257,11 +258,13 @@
 				type="text"
 				formControlName="primaryTerm"
 				autocomplete="off"
+				[attr.dir]="targetTextDir"
 			/>
 			<app-translation-ai-suggestions
 				*ngIf="hasVisibleAiSuggestions()"
 				[suggestions]="aiSuggestions"
 				[accepting]="acceptingSuggestion"
+				[dir]="targetTextDir"
 				(acceptSuggestion)="acceptAiSuggestion($event)">
 			</app-translation-ai-suggestions>
 		</div>
@@ -282,6 +285,7 @@
 					[formControl]="$any(ctrl)"
 					autocomplete="off"
 					[attr.aria-label]="'Synonym ' + (si + 1)"
+					[attr.dir]="targetTextDir"
 				/>
 				<button
 					mat-stroked-button

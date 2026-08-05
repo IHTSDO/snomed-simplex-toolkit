@@ -13,6 +13,7 @@ import {
 } from 'src/app/utils/translation-unit-form.helper';
 import {TRANSLATION_STATUS_RADIO_ORDER, translationStatusRadioLabel} from 'src/app/utils/translation-status-label';
 import {mergeTranslationStudioQueryParams, parseTranslationEnglishSearch, parseTranslationTargetSearch, parseTranslationStatusFilter} from 'src/app/utils/translation-studio-query-params';
+import {textDirection, TextDirection} from 'src/app/utils/language-direction';
 
 export interface ZenUnitState {
 	context: string;
@@ -41,6 +42,9 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 	refset = '';
 	label = '';
 	dialectDisplayName = 'Translation';
+	/** ISO language code (from query param `lang`). */
+	languageCode: string | null = null;
+	targetTextDir: TextDirection = 'ltr';
 	pageIndex = 0;
 	totalCount: number | null = null;
 	statusFilter: string | null = null;
@@ -262,6 +266,9 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 		this.pageIndex = Math.max(0, parseInt(q.get('page') ?? '0', 10));
 		const dParam = q.get('d')?.trim();
 		this.dialectDisplayName = dParam && dParam.length > 0 ? dParam : 'Translation';
+		const langParam = q.get('lang')?.trim();
+		this.languageCode = langParam && langParam.length > 0 ? langParam : null;
+		this.targetTextDir = textDirection(this.languageCode);
 		const t = q.get('t');
 		const parsedT = t != null ? parseInt(t, 10) : NaN;
 		this.totalCount = Number.isFinite(parsedT) ? parsedT : null;
@@ -447,6 +454,7 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 				page: newPage,
 				...(statusOverride === undefined && this.totalCount != null ? { t: this.totalCount } : {}),
 				...(this.dialectDisplayName !== 'Translation' ? { d: this.dialectDisplayName } : {}),
+				...(this.languageCode ? { lang: this.languageCode } : {}),
 				...(this.snowstormBranchQuery ? { b: this.snowstormBranchQuery } : {})
 			},
 			status,

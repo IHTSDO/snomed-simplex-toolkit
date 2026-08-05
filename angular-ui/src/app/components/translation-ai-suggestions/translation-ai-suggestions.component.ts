@@ -1,4 +1,5 @@
 import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {TextDirection} from 'src/app/utils/language-direction';
 
 @Component({
 	selector: 'app-translation-ai-suggestions',
@@ -9,6 +10,8 @@ export class TranslationAiSuggestionsComponent {
 	@Input() suggestions: string[] | null | undefined = [];
 	@Input() accepting = false;
 	@Input() compact = false;
+	/** Text direction for suggestion chip text (content-only RTL). */
+	@Input() dir: TextDirection = 'ltr';
 
 	@Output() acceptSuggestion = new EventEmitter<string>();
 
