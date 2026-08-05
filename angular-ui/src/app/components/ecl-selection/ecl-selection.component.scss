@@ -21,6 +21,16 @@
         width: 100%;
         display: block;
     }
+
+    .manual-ecl-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ecl-builder-button {
+        align-self: flex-start;
+    }
 }
 
 .subtype-selection {

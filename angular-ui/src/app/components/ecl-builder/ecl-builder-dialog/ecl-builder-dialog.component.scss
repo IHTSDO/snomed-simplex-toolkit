@@ -1,0 +1,37 @@
+.dialog-content {
+  display: grid;
+  gap: 12px;
+  min-height: 400px;
+}
+
+.mode-toggle {
+  width: fit-content;
+}
+
+.plain-text-field {
+  width: 100%;
+}
+
+.info-banner,
+.warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.info-banner {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.warning-banner {
+  background: #fff8e1;
+  color: #8d6e00;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}

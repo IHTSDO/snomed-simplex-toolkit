@@ -1,0 +1,98 @@
+<mat-card appearance="outlined" class="attribute-card">
+  <div class="attribute-header">
+    <span>Attribute</span>
+    <button mat-icon-button type="button" [disabled]="readonly" (click)="remove.emit()" aria-label="Remove attribute">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </div>
+
+  @if (loadingDomainAttributes) {
+    <div class="state-row">
+      <mat-spinner diameter="24"></mat-spinner>
+      <span>Loading attribute constraints</span>
+    </div>
+  }
+
+  @if (mrcmFailed) {
+    <div class="mrcm-fallback-hint">
+      <mat-icon class="hint-icon">info_outline</mat-icon>
+      <span>MRCM unavailable — showing all attributes</span>
+    </div>
+  }
+
+  <div class="field-grid">
+    <app-constraint-operator-select
+      class="attribute-operator-cell"
+      [label]="'Attribute operator'"
+      [compact]="true"
+      [value]="attribute.attributeName.operator ?? 'descendantorselfof'"
+      [readonly]="readonly"
+      (valueChange)="attribute.attributeName.operator = $event; changed.emit()">
+    </app-constraint-operator-select>
+
+    <mat-form-field appearance="outline" class="attribute-name-cell compact-field">
+      <mat-label>Attribute name</mat-label>
+      <mat-select
+        [value]="selectedAttributeConceptId"
+        [disabled]="readonly || loadingDomainAttributes"
+        (selectionChange)="updateAttributeNameSelection($event.value)">
+        <mat-option>
+          <input
+            matInput
+            type="text"
+            placeholder="Filter attributes"
+            [value]="attributeNameFilter"
+            (click)="$event.stopPropagation()"
+            (keydown)="$event.stopPropagation()"
+            (input)="updateAttributeNameFilter($any($event.target).value)">
+        </mat-option>
+        @for (item of filteredDomainAttributes; track item.conceptId) {
+          <mat-option [value]="item.conceptId">
+            {{ item.fsn?.term || item.conceptId }}
+          </mat-option>
+        }
+        @if (!loadingDomainAttributes && filteredDomainAttributes.length === 0) {
+          <mat-option disabled>No attributes available</mat-option>
+        }
+      </mat-select>
+      @if (getAttributeNameHint()) {
+        <mat-hint>{{ getAttributeNameHint() }}</mat-hint>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="comparison-field comparison-cell compact-field">
+      <mat-label>Comparison</mat-label>
+      <mat-select
+        [value]="attribute.expressionComparisonOperator ?? '='"
+        [disabled]="readonly"
+        (selectionChange)="attribute.expressionComparisonOperator = $event.value; changed.emit()">
+        @for (operator of comparisonOperators; track operator) {
+          <mat-option [value]="operator">{{ operator }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <app-constraint-operator-select
+      class="value-operator-cell"
+      [label]="'Value operator'"
+      [compact]="true"
+      [value]="valueOperatorSelection"
+      [readonly]="readonly"
+      (valueChange)="updateValueOperator($event)">
+    </app-constraint-operator-select>
+
+    <app-concept-picker
+      class="value-cell"
+      [label]="'Value'"
+      [note]="getValueNote()"
+      [ecl]="getAttributeRangeEcl()"
+      [branchPath]="branchPath"
+      [conceptId]="valueConceptId"
+      [readonly]="readonly"
+      [appearance]="'outline'"
+      [compact]="true"
+      [allowWildcard]="true"
+      (conceptIdChange)="updateValue($event)">
+    </app-concept-picker>
+  </div>
+</mat-card>

@@ -85,6 +85,13 @@ import {TranslationZenModeComponent} from './components/translation-zen-mode/tra
 import {TranslationAiSuggestionsComponent} from './components/translation-ai-suggestions/translation-ai-suggestions.component';
 import {AutocompleteBindingComponent} from './components/binding-controls/autocomplete-binding/autocomplete-binding.component';
 import {EclSelectionComponent} from './components/ecl-selection/ecl-selection.component';
+import {EclBuilderComponent} from './components/ecl-builder/ecl-builder.component';
+import {EclBuilderDialogComponent} from './components/ecl-builder/ecl-builder-dialog/ecl-builder-dialog.component';
+import {ConceptPickerComponent} from './components/ecl-builder/concept-picker/concept-picker.component';
+import {ConstraintOperatorSelectComponent} from './components/ecl-builder/constraint-operator-select/constraint-operator-select.component';
+import {ExpressionConstraintNodeComponent} from './components/ecl-builder/expression-constraint-node/expression-constraint-node.component';
+import {AttributeSetEditorComponent} from './components/ecl-builder/attribute-set-editor/attribute-set-editor.component';
+import {AttributeEditorComponent} from './components/ecl-builder/attribute-editor/attribute-editor.component';
 import {DrawerComponent} from "./components/drawer/drawer.component";
 import {DrawerService} from "./services/drawer/drawer.service";
 import {ConfigService} from "./services/config/config.service";
@@ -139,6 +146,13 @@ import {ConfigService} from "./services/config/config.service";
         TranslationAiSuggestionsComponent,
         AutocompleteBindingComponent,
         EclSelectionComponent,
+        EclBuilderComponent,
+        EclBuilderDialogComponent,
+        ConceptPickerComponent,
+        ConstraintOperatorSelectComponent,
+        ExpressionConstraintNodeComponent,
+        AttributeSetEditorComponent,
+        AttributeEditorComponent,
         DrawerComponent
     ],
     bootstrap: [AppComponent], imports: [BrowserModule,
@@ -171,7 +185,8 @@ import {ConfigService} from "./services/config/config.service";
         MatCardModule,
         MatCheckboxModule,
         MatAutocompleteModule,
-        MatSlideToggleModule], providers: [
+        MatSlideToggleModule,
+        MatDialogModule], providers: [
         AuthenticationService,
         AuthoringService,
         StatusPageService,
@@ -180,7 +195,6 @@ import {ConfigService} from "./services/config/config.service";
         CookieService,
         DrawerService,
         ConfigService,
-        MatDialogModule,
         CommonModule,
         EnvServiceProvider,
         provideHttpClient(withInterceptorsFromDi()),

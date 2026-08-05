@@ -1,0 +1,12 @@
+<div class="picker">
+  <app-autocomplete-binding
+    [binding]="binding"
+    [term]="selectedTerm"
+    [readonly]="readonly"
+    [appearance]="appearance"
+    [compact]="compact"
+    [allowWildcard]="allowWildcard"
+    (selectionChange)="onSelectionChange($event)"
+    (cleared)="onCleared()">
+  </app-autocomplete-binding>
+</div>

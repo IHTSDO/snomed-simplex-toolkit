@@ -1,0 +1,123 @@
+.builder-shell {
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.editor-card,
+.output-card,
+.message-card {
+  display: grid;
+  gap: 10px;
+}
+
+.editor-card,
+.output-card {
+  padding: 14px;
+}
+
+.builder-section {
+  display: grid;
+  gap: 8px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.section-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.focus-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 8px;
+  align-items: start;
+}
+
+.compound-line {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 76px;
+  gap: 8px;
+  align-items: start;
+}
+
+.compound-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.focus-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-height: 44px;
+}
+
+.focus-actions .mat-mdc-icon-button.mat-mdc-button-base {
+  width: 34px;
+  height: 34px;
+  padding: 5px;
+}
+
+.output {
+  min-height: 84px;
+  resize: vertical;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 8px;
+  font: inherit;
+  line-height: 1.35;
+  background: #fafafa;
+}
+
+.loading-state,
+.message-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning-card {
+  color: #8d6e00;
+  background: #fff8e1;
+}
+
+.error-card {
+  color: #b3261e;
+  background: #fdecea;
+}
+
+@media (max-width: 900px) {
+  .focus-line,
+  .compound-line {
+    grid-template-columns: 1fr;
+  }
+
+  .focus-actions,
+  .compound-label {
+    justify-content: flex-start;
+    min-height: auto;
+  }
+}

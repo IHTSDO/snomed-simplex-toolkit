@@ -1,5 +1,6 @@
 package org.snomed.simplex.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -18,10 +19,8 @@ import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -88,7 +87,7 @@ public class SnowstormClient {
 		}
 		RestTemplateBuilder builder = new RestTemplateBuilder()
 				.rootUri(snowstormUrl)
-				.messageConverters(new MappingJackson2HttpMessageConverter());
+				.messageConverters(new StringHttpMessageConverter(), new MappingJackson2HttpMessageConverter());
 		if (!Strings.isBlank(authenticationToken)) {
 			builder = builder.defaultHeader("Cookie", authenticationToken);
 		}
@@ -1095,6 +1094,48 @@ public class SnowstormClient {
 
 	private String postAuthorFlag(String branchPath) {
 		return "/branches/" + branchPath + "/actions/set-author-flag";
+	}
+
+	public JsonNode eclStringToModel(String eclString) {
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.TEXT_PLAIN);
+		ResponseEntity<JsonNode> response = restTemplate.exchange(
+				"/util/ecl-string-to-model",
+				HttpMethod.POST,
+				new HttpEntity<>(eclString, headers),
+				JsonNode.class);
+		return response.getBody();
+	}
+
+	@SuppressWarnings("unchecked")
+	public Map<String, String> eclModelToString(Object eclModel) {
+		sanitizeEclModelForSerialization(eclModel);
+		ResponseEntity<Map> response = restTemplate.exchange(
+				"/util/ecl-model-to-string",
+				HttpMethod.POST,
+				new HttpEntity<>(eclModel),
+				Map.class);
+		return response.getBody();
+	}
+
+	private void sanitizeEclModelForSerialization(Object node) {
+		if (node instanceof Map<?, ?> map) {
+			map.keySet().removeIf(key -> "altIdentifier".equals(key) || "returnAllMemberFields".equals(key) || "uiId".equals(key));
+			map.values().forEach(this::sanitizeEclModelForSerialization);
+		} else if (node instanceof List<?> list) {
+			list.forEach(this::sanitizeEclModelForSerialization);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> getMrcmDomainAttributes(String branchPath, String parentIds, String acceptLanguage) {
+		String url = format("/mrcm/%s/domain-attributes?proximalPrimitiveModeling=false&parentIds=%s", branchPath, parentIds);
+		HttpHeaders headers = new HttpHeaders();
+		if (!Strings.isBlank(acceptLanguage)) {
+			headers.set(HttpHeaders.ACCEPT_LANGUAGE, acceptLanguage);
+		}
+		ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), Map.class);
+		return response.getBody();
 	}
 
 	private record ConceptBulkLoadRequest(Set<String> conceptIds) {

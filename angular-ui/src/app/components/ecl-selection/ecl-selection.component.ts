@@ -2,6 +2,7 @@ import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TerminologyService } from 'src/app/services/simplex/terminology.service';
+import { EclBuilderDialogService } from '../ecl-builder/ecl-builder-dialog.service';
 
 @Component({
   selector: 'app-ecl-selection',
@@ -28,7 +29,8 @@ export class EclSelectionComponent implements OnChanges {
 
   constructor(
     private terminologyService: TerminologyService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private eclBuilderDialog: EclBuilderDialogService
   ) {}
 
   ngOnChanges(changes: SimpleChanges) {
@@ -176,6 +178,22 @@ export class EclSelectionComponent implements OnChanges {
     this.refsets = [];
     this.derivatives = [];
     this.eclForm?.patchValue({ ecl: '' });
+  }
+
+  openEclBuilder(): void {
+    if (!this.edition?.branchPath) {
+      this.snackBar.open('Branch path not available. Please ensure an edition is selected.', 'Dismiss', {
+        duration: 5000
+      });
+      return;
+    }
+
+    const currentEcl = this.eclForm?.get('ecl')?.value || '';
+    this.eclBuilderDialog.open(currentEcl, this.edition.branchPath).subscribe((result) => {
+      if (result !== null) {
+        this.eclForm.patchValue({ ecl: result });
+      }
+    });
   }
 
 }

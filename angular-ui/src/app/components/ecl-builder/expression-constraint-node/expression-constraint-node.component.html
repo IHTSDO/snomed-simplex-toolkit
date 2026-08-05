@@ -1,0 +1,23 @@
+<div class="node-shell">
+  <app-constraint-operator-select
+    class="focus-operator"
+    [value]="model.operator ?? ''"
+    [compact]="compact"
+    [readonly]="readonly"
+    (valueChange)="updateOperator($event)">
+  </app-constraint-operator-select>
+
+  <app-concept-picker
+    class="concept-picker"
+    [label]="label"
+    [note]="note"
+    [ecl]="conceptEcl"
+    [branchPath]="branchPath"
+    [conceptId]="currentConceptId"
+    [readonly]="readonly"
+    [compact]="compact"
+    [allowWildcard]="allowWildcard"
+    [appearance]="'outline'"
+    (conceptIdChange)="updateConceptId($event)">
+  </app-concept-picker>
+</div>

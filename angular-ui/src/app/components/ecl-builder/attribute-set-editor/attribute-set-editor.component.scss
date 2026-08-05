@@ -1,0 +1,27 @@
+.attribute-set {
+  display: grid;
+  gap: 8px;
+}
+
+.attribute-set-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.attribute-row {
+  display: grid;
+  gap: 6px;
+}
+
+.and-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8f0fe;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a73e8;
+}

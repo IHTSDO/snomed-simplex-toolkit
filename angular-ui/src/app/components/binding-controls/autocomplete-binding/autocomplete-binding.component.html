@@ -1,8 +1,8 @@
-<mat-form-field>
-  <mat-label *ngIf="binding.title">{{ binding.title }}</mat-label>
+<mat-form-field [appearance]="appearance" [class.compact-field]="compact">
+  <mat-label *ngIf="binding?.title">{{ binding.title }}</mat-label>
   <input type="text" placeholder="{{ formControl.value?.display || binding.title || 'Search...' }}" matInput [formControl]="formControl" [matAutocomplete]="auto">
   <!-- [value]="(formControl.value?.display) ? formControl.value.display : ''"> -->
-  <mat-hint>{{ binding.note }}</mat-hint>
+  <mat-hint *ngIf="binding?.note">{{ binding.note }}</mat-hint>
   <button matSuffix mat-icon-button aria-label="Clear" (click)="clearInput()" *ngIf="formControl.value">
     <mat-icon>close</mat-icon>
   </button>

@@ -3,7 +3,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, UntypedFormControl } from '@an
 import {debounceTime, distinctUntilChanged, finalize, map, startWith, switchMap,tap} from 'rxjs/operators';
 import {concat, Observable, of, Subject} from 'rxjs';
 import { TerminologyService } from '../../../services/simplex/terminology.service';
-import { MatFormFieldControl } from '@angular/material/form-field';
+import { MatFormFieldAppearance, MatFormFieldControl } from '@angular/material/form-field';
 
 /**
  * Interface for the binding object passed to the autocomplete binding component
@@ -34,7 +34,11 @@ interface AutocompleteBinding {
 })
 export class AutocompleteBindingComponent implements OnInit, OnChanges, ControlValueAccessor  {
   @Input() binding: AutocompleteBinding;
-  @Input() term: string = "";
+  @Input() term: string | { code?: string; display?: string } = "";
+  @Input() readonly = false;
+  @Input() appearance: MatFormFieldAppearance = 'fill';
+  @Input() compact = false;
+  @Input() allowWildcard = false;
   @Output() selectionChange = new EventEmitter<any>();
   @Output() cleared = new EventEmitter<any>();
   
@@ -87,24 +91,43 @@ export class AutocompleteBindingComponent implements OnInit, OnChanges, ControlV
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['readonly']) {
+      if (this.readonly) {
+        this.formControl.disable({ emitEvent: false });
+      } else {
+        this.formControl.enable({ emitEvent: false });
+      }
+    }
+
     if (changes['term']) {
         this.term = changes['term'].currentValue;
         let localTerm = this.term;
         if (this.term && typeof this.term === 'object' && localTerm["display"]) {
-            this.formControl.setValue(localTerm["display"]);
+            this.formControl.setValue(localTerm["display"], { emitEvent: false });
+            this.selectedConcept = this.term;
         } else {
-            this.formControl.setValue(this.term);
+            this.formControl.setValue(this.term, { emitEvent: false });
         }
     }
   }
 
 
   ngOnInit(): void {
+      if (this.readonly) {
+        this.formControl.disable({ emitEvent: false });
+      }
+
       this.autoFilter = this.formControl.valueChanges.pipe(
         debounceTime(300),
         distinctUntilChanged(),
         /** 1️⃣  Launch request only when term ≥ 3 chars */
         switchMap((term: string) => {
+          if (this.readonly) {
+            return of([]);
+          }
+          if (this.allowWildcard && term?.trim() === '*') {
+            return of([{ code: '*', display: '*' }]);
+          }
           if (term?.length >= 3 && this.binding?.branchPath) {
             this.loading = true;
             /** 2️⃣  Emit [] immediately, then emit the server result */

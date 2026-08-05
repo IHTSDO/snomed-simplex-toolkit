@@ -1,0 +1,49 @@
+<h1 mat-dialog-title>ECL Builder</h1>
+
+<div mat-dialog-content class="dialog-content">
+  <mat-button-toggle-group [value]="mode" (change)="setMode($event.value)" class="mode-toggle">
+    <mat-button-toggle value="builder">Visual builder</mat-button-toggle>
+    <mat-button-toggle value="plain">Plain text</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  @if (unsupportedMessage && mode === 'builder') {
+    <mat-card appearance="outlined" class="info-banner">
+      <mat-icon>info</mat-icon>
+      <span>{{ unsupportedMessage }}</span>
+      <button mat-stroked-button type="button" (click)="switchToPlainText()">Switch to plain text</button>
+    </mat-card>
+  }
+
+  @if (modeSwitchWarning) {
+    <mat-card appearance="outlined" class="warning-banner">
+      <mat-icon>warning</mat-icon>
+      <span>{{ modeSwitchWarning }}</span>
+    </mat-card>
+  }
+
+  @if (mode === 'builder') {
+    <app-ecl-builder
+      [eclString]="localEcl"
+      [branchPath]="branchPath"
+      (eclStringChange)="eclChanged($event)"
+      (validityChange)="validityChanged($event)"
+      (unsupportedFeaturesChange)="unsupportedFeaturesChanged($event)">
+    </app-ecl-builder>
+  } @else {
+    <mat-form-field appearance="outline" class="plain-text-field">
+      <mat-label>ECL expression</mat-label>
+      <textarea
+        matInput
+        rows="8"
+        [(ngModel)]="localEcl"
+        placeholder="Enter ECL expression">
+      </textarea>
+      <mat-hint>Use plain text for ECL features not supported by the visual builder.</mat-hint>
+    </mat-form-field>
+  }
+</div>
+
+<div mat-dialog-actions class="actions">
+  <button mat-button type="button" (click)="onNoClick()" cdkFocusInitial>Cancel</button>
+  <button mat-flat-button color="accent" type="button" [disabled]="!canConfirm" (click)="confirm()">OK</button>
+</div>

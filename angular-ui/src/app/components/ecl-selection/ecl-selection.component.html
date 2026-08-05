@@ -11,15 +11,27 @@
         <mat-radio-button value="manual">Manual ECL Input</mat-radio-button>
     </mat-radio-group>
 
-    <mat-form-field *ngIf="eclInputMethod === 'manual'" class="ecl-field">
-        <mat-label>ECL</mat-label>
-        <input matInput formControlName="ecl">
-        <button *ngIf="eclForm.get('ecl')?.value" matSuffix
-            mat-icon-button aria-label="Clear" (click)="eclForm.get('ecl')?.setValue('')">
-            <mat-icon>close</mat-icon>
+    <div *ngIf="eclInputMethod === 'manual'" class="manual-ecl-section">
+        <mat-form-field class="ecl-field">
+            <mat-label>ECL</mat-label>
+            <input matInput formControlName="ecl">
+            <button *ngIf="eclForm.get('ecl')?.value" matSuffix
+                mat-icon-button aria-label="Clear" (click)="eclForm.get('ecl')?.setValue('')">
+                <mat-icon>close</mat-icon>
+            </button>
+            <mat-error *ngIf="eclForm.get('ecl')?.hasError('required')">ECL is required</mat-error>
+        </mat-form-field>
+        <button
+            mat-stroked-button
+            type="button"
+            class="ecl-builder-button"
+            [disabled]="!edition?.branchPath"
+            [matTooltip]="!edition?.branchPath ? 'Branch path not available. Please ensure an edition is selected.' : 'Open visual ECL builder'"
+            (click)="openEclBuilder()">
+            <mat-icon>schema</mat-icon>
+            ECL Builder
         </button>
-        <mat-error *ngIf="eclForm.get('ecl')?.hasError('required')">ECL is required</mat-error>
-    </mat-form-field>
+    </div>
 
     <mat-form-field *ngIf="eclInputMethod === 'refset'" class="ecl-field">
         <mat-label>Select Refset</mat-label>
