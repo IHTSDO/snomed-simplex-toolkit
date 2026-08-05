@@ -619,6 +619,16 @@ mat-list-item:not(:last-child) {
     margin-top: 16px;
     padding-left: 24px;
 
+    .manual-ecl-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ecl-builder-button {
+        align-self: flex-start;
+    }
+
     .file-picker {
         display: flex;
         align-items: center;

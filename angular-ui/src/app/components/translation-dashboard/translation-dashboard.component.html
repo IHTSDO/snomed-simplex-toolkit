@@ -54,14 +54,26 @@
 
                     <div *ngIf="eclInputMethod === 'manual'" class="selection-method-input">
                         <h4>ECL</h4>
-                        <mat-form-field>
-                            <input matInput formControlName="ecl">
-                            <button *ngIf="form.get('ecl')?.value" matSuffix
-                                mat-icon-button aria-label="Clear" (click)="form.get('ecl')?.setValue('')">
-                                <mat-icon>close</mat-icon>
+                        <div class="manual-ecl-section">
+                            <mat-form-field>
+                                <input matInput formControlName="ecl">
+                                <button *ngIf="form.get('ecl')?.value" matSuffix
+                                    mat-icon-button aria-label="Clear" (click)="form.get('ecl')?.setValue('')">
+                                    <mat-icon>close</mat-icon>
+                                </button>
+                                <mat-error *ngIf="form.get('ecl')?.hasError('required')">ECL is required</mat-error>
+                            </mat-form-field>
+                            <button
+                                mat-stroked-button
+                                type="button"
+                                class="ecl-builder-button"
+                                [disabled]="!selectedEdition?.branchPath"
+                                [matTooltip]="!selectedEdition?.branchPath ? 'Branch path not available. Please ensure an edition is selected.' : 'Open visual ECL builder'"
+                                (click)="openEclBuilder()">
+                                <mat-icon>schema</mat-icon>
+                                ECL Builder
                             </button>
-                            <mat-error *ngIf="form.get('ecl')?.hasError('required')">ECL is required</mat-error>
-                        </mat-form-field>
+                        </div>
                     </div>
 
                     <div *ngIf="eclInputMethod === 'refset'" class="selection-method-input">

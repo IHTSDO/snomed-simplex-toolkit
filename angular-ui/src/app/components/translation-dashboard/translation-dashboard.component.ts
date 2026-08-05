@@ -26,6 +26,7 @@ import { countConceptIdsInFile, detectImportColumnMapping, readImportHeaders } f
 import { isTranslationSetBusy, isTranslationSetEditable, isTranslationSetInProgress, translationSetLifecycleStatusLabel } from 'src/app/utils/translation-set-status';
 import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, effectiveTranslationTermSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
 import { textDirection, TextDirection } from 'src/app/utils/language-direction';
+import { EclBuilderDialogService } from '../ecl-builder/ecl-builder-dialog.service';
 
 @Component({
     selector: 'app-translation-dashboard',
@@ -218,7 +219,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         private terminologyService: TerminologyService,
         private route: ActivatedRoute,
         private router: Router,
-        private dialog: MatDialog) {
+        private dialog: MatDialog,
+        private eclBuilderDialog: EclBuilderDialogService) {
     }
 
 	ngAfterViewInit(): void {
@@ -1779,6 +1781,22 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             // Reset to manual mode if branchPath is not available
             this.eclInputMethod = 'manual';
         }
+    }
+
+    openEclBuilder(): void {
+        if (!this.selectedEdition?.branchPath) {
+            this.snackBar.open('Branch path not available. Please ensure an edition is selected.', 'Dismiss', {
+                duration: 5000
+            });
+            return;
+        }
+
+        const currentEcl = this.form.get('ecl')?.value || '';
+        this.eclBuilderDialog.open(currentEcl, this.selectedEdition.branchPath).subscribe((result) => {
+            if (result !== null) {
+                this.form.patchValue({ ecl: result });
+            }
+        });
     }
 
     onRefsetSelectionChange(refsetCode: string) {

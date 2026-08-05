@@ -6,6 +6,12 @@
 
 .mode-toggle {
   width: fit-content;
+  max-height: 50px;
+  align-self: start;
+
+  ::ng-deep .mat-button-toggle-button {
+    max-height: 50px;
+  }
 }
 
 .plain-text-field {
