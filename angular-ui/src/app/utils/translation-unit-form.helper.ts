@@ -1,3 +1,9 @@
+import { FormControl } from '@angular/forms';
+import {
+	normalizeTranslationTerm,
+	normalizeTranslationTerms
+} from './translation-term-normalizer.util';
+
 export interface TranslationUpdateBody {
 	terms: string[];
 	status: string;
@@ -9,22 +15,17 @@ export interface StatusSyncResult {
 }
 
 export function normalizeTargetTerms(target: string[]): string[] {
-	return (Array.isArray(target) ? target : [])
-		.map((t) => (t ?? '').trim())
-		.filter((t) => t.length > 0);
+	return normalizeTranslationTerms(Array.isArray(target) ? target : []);
 }
 
 export function currentTargetTerms(primary: string, synonyms: string[]): string[] {
-	const p = primary.trim();
-	const synVals = synonyms.map((s) => s.trim()).filter((x) => x.length > 0);
+	const p = normalizeTranslationTerm(primary);
+	const synVals = normalizeTranslationTerms(synonyms);
 	return p ? [p, ...synVals] : synVals;
 }
 
 export function isTranslationEmpty(primary: string, synonyms: string[]): boolean {
-	if (primary.trim().length > 0) {
-		return false;
-	}
-	return !synonyms.some((s) => s.trim().length > 0);
+	return currentTargetTerms(primary, synonyms).length === 0;
 }
 
 export function termsChangedFromLoaded(current: string[], loaded: string[]): boolean {
@@ -39,9 +40,7 @@ export function buildUpdateBody(
 	synonyms: string[],
 	status: string
 ): TranslationUpdateBody {
-	const synVals = synonyms.map((s) => s.trim()).filter((x) => x.length > 0);
-	const p = primary.trim();
-	const terms = p ? [p, ...synVals] : synVals;
+	const terms = currentTargetTerms(primary, synonyms);
 	const resolvedStatus = isTranslationEmpty(primary, synonyms) ? 'NOT_STARTED' : (status ?? 'FOR_REVIEW');
 	return { terms, status: resolvedStatus };
 }
@@ -70,4 +69,16 @@ export function syncStatusWithTranslationText(
 		nextStatus = 'FOR_REVIEW';
 	}
 	return { status: nextStatus, disabled: false };
+}
+
+export { normalizeTranslationTerm };
+
+export function patchNormalizedTermControl(control: FormControl<string> | null | undefined): void {
+	if (!control) {
+		return;
+	}
+	const normalized = normalizeTranslationTerm(control.value);
+	if (normalized !== control.value) {
+		control.setValue(normalized, { emitEvent: true });
+	}
 }

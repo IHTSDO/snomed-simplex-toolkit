@@ -28,6 +28,8 @@ import {
 	currentTargetTerms,
 	isTranslationEmpty as isTranslationEmptyHelper,
 	normalizeTargetTerms,
+	normalizeTranslationTerm,
+	patchNormalizedTermControl,
 	syncStatusWithTranslationText as syncStatusWithTranslationTextHelper,
 	termsChangedFromLoaded
 } from 'src/app/utils/translation-unit-form.helper';
@@ -1009,12 +1011,21 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 		return this.isTranslationEmpty() && this.aiSuggestions.length > 0;
 	}
 
+	onTermBlur(): void {
+		patchNormalizedTermControl(this.form.get('primaryTerm') as FormControl<string>);
+		for (const ctrl of this.synonyms.controls) {
+			patchNormalizedTermControl(ctrl as FormControl<string>);
+		}
+		this.syncStatusWithTranslationText();
+	}
+
 	acceptAiSuggestion(suggestion: string): void {
 		if (this.acceptingSuggestion || this.saving || this.loading) {
 			return;
 		}
+		const normalizedSuggestion = normalizeTranslationTerm(suggestion);
 		this.form.patchValue({
-			primaryTerm: suggestion,
+			primaryTerm: normalizedSuggestion,
 			status: 'FOR_REVIEW'
 		});
 		this.syncStatusWithTranslationText();
@@ -1024,10 +1035,10 @@ export class TranslationUnitEditComponent implements OnInit, OnDestroy {
 			this.refset,
 			this.label,
 			this.conceptId,
-			{ terms: [suggestion], status: 'FOR_REVIEW' }
+			{ terms: [normalizedSuggestion], status: 'FOR_REVIEW' }
 		).subscribe({
 			next: () => {
-				this.loadedTargetTerms = normalizeTargetTerms([suggestion]);
+				this.loadedTargetTerms = normalizeTargetTerms([normalizedSuggestion]);
 				this.aiSuggestions = [];
 				this.acceptingSuggestion = false;
 				this.snackBar.open('AI suggestion accepted.', 'Dismiss', { duration: 3000 });

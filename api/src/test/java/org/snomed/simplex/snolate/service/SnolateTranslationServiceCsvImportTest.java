@@ -98,6 +98,27 @@ class SnolateTranslationServiceCsvImportTest {
 	}
 
 	@Test
+	void importTranslationSetCsv_normalizesBadCharactersInTerms() throws Exception {
+		TranslationUnit unit = unit("200", List.of(), TranslationStatus.NOT_STARTED);
+		when(translationUnitStore.loadByCode(COMPOSITE, "200"))
+				.thenReturn(Optional.of(unit));
+
+		String csv = """
+				context,target
+				200,  asma\u00A0cr\u00F3nica\u2013severa  \u200B
+				""";
+		ChangeSummary summary = service.importTranslationSetCsv(
+				translationSet,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				"context",
+				List.of("target"),
+				TranslationStatus.APPROVED);
+
+		assertThat(summary.getUpdated()).isEqualTo(1);
+		assertThat(unit.getTerms()).containsExactly("asma cr\u00F3nica-severa");
+	}
+
+	@Test
 	void importTranslationSetCsv_importsLegacyContextTargetFormat() throws Exception {
 		TranslationUnit unit = unit("200", List.of(), TranslationStatus.NOT_STARTED);
 		when(translationUnitStore.loadByCode(COMPOSITE, "200"))

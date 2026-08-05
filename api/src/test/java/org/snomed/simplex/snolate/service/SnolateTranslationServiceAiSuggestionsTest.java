@@ -76,6 +76,22 @@ class SnolateTranslationServiceAiSuggestionsTest {
 	}
 
 	@Test
+	void updateTranslationUnit_normalizesBadCharactersInTerms() throws Exception {
+		String setCode = translationSet.getCompositeSetCode();
+		TranslationUnit unit = new TranslationUnit(
+				new TranslationUnit.MembershipKey("100", REFSET, LANG, COMPOSITE, 0),
+				List.of(), TranslationStatus.NOT_STARTED, new LinkedHashSet<>(Set.of(setCode)));
+		when(translationSearchService.findUnitInSet(setCode, COMPOSITE, "100"))
+				.thenReturn(Optional.of(unit));
+
+		service.updateTranslationUnit(translationSet, "100",
+				List.of("  asma\u00A0cr\u00F3nica\u2013severa  \u200B"), TranslationStatus.FOR_REVIEW);
+
+		assertThat(unit.getTerms()).containsExactly("asma cr\u00F3nica-severa");
+		verify(translationUnitStore).save(unit);
+	}
+
+	@Test
 	void updateTranslationUnit_clearsAiSuggestionsWhenAccepting() throws Exception {
 		String setCode = translationSet.getCompositeSetCode();
 		TranslationUnit unit = new TranslationUnit(

@@ -7,6 +7,8 @@ import {SimplexService} from 'src/app/services/simplex/simplex.service';
 import {
 	buildUpdateBody,
 	normalizeTargetTerms,
+	normalizeTranslationTerm,
+	patchNormalizedTermControl,
 	syncStatusWithTranslationText as syncStatusWithTranslationTextHelper,
 	termsChangedFromLoaded,
 	TranslationUpdateBody
@@ -147,6 +149,11 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 	}
 
 	onTermBlur(unit: ZenUnitState): void {
+		patchNormalizedTermControl(unit.form.get('primaryTerm') as FormControl<string>);
+		for (const ctrl of this.synonymsArray(unit).controls) {
+			patchNormalizedTermControl(ctrl as FormControl<string>);
+		}
+		this.syncUnitStatus(unit);
 		void this.saveUnitIfChanged(unit);
 	}
 
@@ -212,14 +219,15 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 			if (!suggestion) {
 				continue;
 			}
+			const normalizedSuggestion = normalizeTranslationTerm(suggestion);
 			unit.form.patchValue({
-				primaryTerm: suggestion,
+				primaryTerm: normalizedSuggestion,
 				status: 'FOR_REVIEW'
 			});
 			this.syncUnitStatus(unit);
 			unit.acceptingSuggestion = true;
 			this.cdr.detectChanges();
-			await this.performSave(unit, { terms: [suggestion], status: 'FOR_REVIEW' });
+			await this.performSave(unit, { terms: [normalizedSuggestion], status: 'FOR_REVIEW' });
 			if (!unit.saveError) {
 				unit.suggestions = [];
 			} else {
@@ -241,14 +249,15 @@ export class TranslationZenModeComponent implements OnInit, OnDestroy {
 		if (unit.acceptingSuggestion || unit.saving) {
 			return;
 		}
+		const normalizedSuggestion = normalizeTranslationTerm(suggestion);
 		unit.form.patchValue({
-			primaryTerm: suggestion,
+			primaryTerm: normalizedSuggestion,
 			status: 'FOR_REVIEW'
 		});
 		this.syncUnitStatus(unit);
 		unit.acceptingSuggestion = true;
 		this.cdr.detectChanges();
-		void this.performSave(unit, { terms: [suggestion], status: 'FOR_REVIEW' }).then(() => {
+		void this.performSave(unit, { terms: [normalizedSuggestion], status: 'FOR_REVIEW' }).then(() => {
 			if (!unit.saveError) {
 				unit.suggestions = [];
 			}

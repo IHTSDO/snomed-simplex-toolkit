@@ -20,6 +20,7 @@ import { PushToExtensionDialogComponent } from '../push-to-extension-dialog/push
 import { UploadTranslationSetDialogComponent } from '../upload-translation-set-dialog/upload-translation-set-dialog.component';
 import { UpdateConceptListDialogComponent } from '../update-concept-list-dialog/update-concept-list-dialog.component';
 import { TranslationStudioImportJobsComponent } from '../translation-studio-import-jobs/translation-studio-import-jobs.component';
+import { normalizeTranslationTerm } from 'src/app/utils/translation-term-normalizer.util';
 import { defaultLanguageDialectName, displayLanguageDialect, LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_STATUS_RADIO_ORDER, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
 import { countConceptIdsInFile, detectImportColumnMapping, readImportHeaders } from 'src/app/utils/csv-column-mapping.util';
@@ -1298,20 +1299,21 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         if (!this.selectedEdition?.shortName || !this.selectedLabelSet || !unit?.context || this.acceptingSuggestionContext) {
             return;
         }
+        const normalizedSuggestion = normalizeTranslationTerm(suggestion);
         this.acceptingSuggestionContext = unit.context;
         this.simplexService.updateTranslationUnit(
             this.selectedEdition.shortName,
             this.selectedLabelSet.refset,
             this.selectedLabelSet.label,
             unit.context,
-            { terms: [suggestion], status: 'FOR_REVIEW' }
+            { terms: [normalizedSuggestion], status: 'FOR_REVIEW' }
         ).subscribe({
             next: () => {
                 unit.suggestions = [];
                 if (!unit.target) {
                     unit.target = [];
                 }
-                unit.target[0] = suggestion;
+                unit.target[0] = normalizedSuggestion;
                 unit.status = 'FOR_REVIEW';
                 this.acceptingSuggestionContext = null;
             },

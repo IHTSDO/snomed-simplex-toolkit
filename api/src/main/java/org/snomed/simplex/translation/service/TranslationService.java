@@ -42,6 +42,7 @@ import org.snomed.simplex.translation.importer.TranslationCsvFormat;
 import org.snomed.simplex.util.CsvParser;
 import org.snomed.simplex.util.FileUtils;
 import org.snomed.simplex.util.TimerUtil;
+import org.snomed.simplex.util.TranslationTermNormalizer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -64,18 +65,6 @@ import static org.springframework.data.util.Predicates.negate;
 @Service
 public class TranslationService {
 
-	public static final String NON_BREAKING_SPACE_CHARACTER = "\u00A0";
-	public static final String NARROW_NON_BREAKING_SPACE_CHARACTER = "\u202F";
-	public static final String FIGURE_SPACE_CHARACTER = "\u2007";
-	public static final String ZERO_WIDTH_SPACE = "\u200B";
-	public static final String ZERO_WIDTH_NON_JOINER = "\u200C";
-	public static final String ZERO_WIDTH_JOINER = "\u200D";
-	public static final String WORD_JOINER = "\u2060";
-	public static final String ZERO_WIDTH_NON_BREAKING_SPACE = "\uFEFF";
-	public static final String EN_DASH = "–";
-	public static final String EM_DASH = "—";
-	private static final String SPACE = " ";
-	private static final String DASH = "-";
 	private static final int STATUS_SAVE_BATCH_SIZE = 5_000;
 
 
@@ -590,22 +579,7 @@ public class TranslationService {
 	}
 
 	private String replaceBadCharacters(Description description) {
-		String fixedTerm = description.getTerm()
-			// Replace with space
-				.replace(NON_BREAKING_SPACE_CHARACTER, SPACE)
-				.replace(NARROW_NON_BREAKING_SPACE_CHARACTER, SPACE)
-				.replace(FIGURE_SPACE_CHARACTER, SPACE)
-			// Remove characters
-				.replace(ZERO_WIDTH_SPACE, "")
-				.replace(ZERO_WIDTH_NON_JOINER, "")
-				.replace(ZERO_WIDTH_JOINER, "")
-				.replace(WORD_JOINER, "")
-				.replace(ZERO_WIDTH_NON_BREAKING_SPACE, "")
-			// Replace with dash
-				.replace(EN_DASH, DASH)
-				.replace(EM_DASH, DASH);
-		fixedTerm = fixedTerm.replaceAll(" +", " ");// Replace multiple spaces with single
-		fixedTerm = fixedTerm.trim();
+		String fixedTerm = TranslationTermNormalizer.normalize(description.getTerm());
 		if (!fixedTerm.equals(description.getTerm())) {
 			logger.info("Fixed term '{}' > '{}'", description.getTerm(), fixedTerm);
 		}

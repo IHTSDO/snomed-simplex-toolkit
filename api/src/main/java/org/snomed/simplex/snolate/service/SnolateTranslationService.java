@@ -23,6 +23,7 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.util.CsvParser;
 import org.snomed.simplex.util.FileUtils;
+import org.snomed.simplex.util.TranslationTermNormalizer;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -246,14 +247,7 @@ public class SnolateTranslationService {
 	}
 
 	private static List<String> normalizeTranslationTerms(List<String> rawTerms) {
-		if (rawTerms == null) {
-			return List.of();
-		}
-		return rawTerms.stream()
-				.filter(Objects::nonNull)
-				.map(String::trim)
-				.filter(s -> !s.isEmpty())
-				.toList();
+		return TranslationTermNormalizer.normalizeTerms(rawTerms);
 	}
 
 	private static List<String> copyTerms(Optional<TranslationUnit> tu) {

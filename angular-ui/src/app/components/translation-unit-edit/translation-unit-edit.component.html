@@ -258,6 +258,7 @@
 				type="text"
 				formControlName="primaryTerm"
 				autocomplete="off"
+				(blur)="onTermBlur()"
 				[attr.dir]="targetTextDir"
 			/>
 			<app-translation-ai-suggestions
@@ -284,6 +285,7 @@
 					[id]="'syn-' + si"
 					[formControl]="$any(ctrl)"
 					autocomplete="off"
+					(blur)="onTermBlur()"
 					[attr.aria-label]="'Synonym ' + (si + 1)"
 					[attr.dir]="targetTextDir"
 				/>
