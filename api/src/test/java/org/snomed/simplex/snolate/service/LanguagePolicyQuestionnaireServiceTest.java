@@ -104,9 +104,6 @@ public class LanguagePolicyQuestionnaireServiceTest {
 		items.put("q8-acronyms", "NEVER_PREFERRED");
 		items.put("q9-word-order", "ADJECTIVE_BASED");
 		items.put("q10-capitalization", "NATIONAL_STANDARDS");
-		items.put("q12-consistency", "ALWAYS_SAME");
-		items.put("q13-reuse", "REUSE_SIBLINGS");
-		items.put("q14-validation", "true");
 		return items;
 	}
 
@@ -122,10 +119,7 @@ public class LanguagePolicyQuestionnaireServiceTest {
 				"q7-eponyms",
 				"q8-acronyms",
 				"q9-word-order",
-				"q10-capitalization",
-				"q12-consistency",
-				"q13-reuse",
-				"q14-validation"
+				"q10-capitalization"
 		);
 	}
 }

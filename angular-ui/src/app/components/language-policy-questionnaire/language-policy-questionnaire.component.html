@@ -6,16 +6,30 @@
 
 	<div *ngIf="!loading && questionnaire">
 		<p class="intro">
-			Configure the SNOMED CT language translation policy. Select the rules that apply to this dialect, then configure each one.
+            <br/>
+			If you would like to use the automated translation feature this AI translation policy can be used to guide the process. There is one translation policy per language.
 		</p>
-
-		<mat-form-field appearance="outline" class="full-width dialect-name-field">
+        <p class="intro">
+            <br/>
+            First, please provide the name of the target language. If necessary also provide the dialect, for example "Belgian French".
+            <br/>
+            <i>This field is the only mandatory information for the automated process.</i>
+        </p>
+        <mat-form-field appearance="outline" class="full-width dialect-name-field">
 			<mat-label>Language / dialect name</mat-label>
 			<input matInput [(ngModel)]="policy.languageDialectName" name="languageDialectName" required>
-			<mat-hint>Used in AI translation instructions (e.g. "Spanish (Latin America)")</mat-hint>
 		</mat-form-field>
 
-		<div class="policy-sections">
+        <p class="intro">
+            The following sections are optional.
+        </p>
+        <p class="intro">
+            By default the AI will translate SNOMED CT as a clinical terminology. It already knows how to translate your language and will use the golden examples as reference.
+        </p>
+        <p class="intro">
+            Select only the rules that you find are necessary to guide the automated process further.
+        </p>
+        <div class="policy-sections">
 			<div *ngFor="let section of questionnaire.sections" class="policy-section">
 				<h2 class="section-label">{{ section.label }}</h2>
 

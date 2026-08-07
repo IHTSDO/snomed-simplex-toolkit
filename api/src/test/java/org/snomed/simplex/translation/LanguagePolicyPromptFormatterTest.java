@@ -39,7 +39,7 @@ class LanguagePolicyPromptFormatterTest {
 		assertTrue(formatted.contains("Prefer compound words"));
 		assertTrue(formatted.contains("Use technical medical terminology"));
 		assertTrue(formatted.contains("Preferred translation for \"Disorder\": Trastorno"));
-		assertTrue(formatted.contains("Flag translations that violate"));
+		assertTrue(formatted.contains("Follow national orthographic standards"));
 	}
 
 	@Test
@@ -54,7 +54,7 @@ class LanguagePolicyPromptFormatterTest {
 		assertTrue(formatted.contains("Prefer compound words"));
 		assertTrue(formatted.contains("Use technical medical terminology"));
 		assertFalse(formatted.contains("Prefer adjectival forms"));
-		assertFalse(formatted.contains("Flag translations that violate"));
+		assertFalse(formatted.contains("Follow national orthographic standards"));
 	}
 
 	@Test

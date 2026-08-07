@@ -196,8 +196,7 @@
           },
           "options": [
             { "value": "NEVER_PREFERRED", "label": "Never preferred", "prompt": "- Never use acronyms as preferred terms." },
-            { "value": "PREFERRED_IF_DOMINANT", "label": "Preferred if dominant in clinical practice", "prompt": "- Use acronyms as preferred terms when dominant in clinical practice." },
-            { "value": "ALLOWED_AS_SYNONYMS_ONLY", "label": "Allowed only as synonyms", "prompt": "- Allow acronyms only as synonyms, not as preferred terms." }
+            { "value": "PREFERRED_IF_DOMINANT", "label": "Preferred if dominant in clinical practice", "prompt": "- Use acronyms as preferred terms when dominant in clinical practice." }
           ]
         },
         {
@@ -240,7 +239,7 @@
           },
           "options": [
             { "value": "NATIONAL_STANDARDS", "label": "Follow national orthographic standards", "prompt": "- Follow national orthographic standards for capitalization." },
-            { "value": "SNOMED_SPECIFIC", "label": "Use SNOMED-specific capitalization rules", "prompt": "- Use SNOMED-specific capitalization rules." },
+            { "value": "SNOMED_SPECIFIC", "label": "Prefer sentence case with an initial capital", "prompt": "- Use sentence case with an initial capital letter for each description." },
             { "value": "OTHER", "label": "Other", "allowFreeText": true, "freeTextKey": "q10-capitalization-other", "promptTemplate": "- Capitalization: {freeText}" }
           ]
         },
@@ -259,47 +258,6 @@
             ]
           },
           "promptTemplate": "- Hyphenation conventions: {value}"
-        }
-      ]
-    },
-    {
-      "id": "ai-support",
-      "label": "AI Support",
-      "questions": [
-        {
-          "id": "q12-consistency",
-          "type": "choice",
-          "required": true,
-          "title": "Q12. Consistency Preference",
-          "hint": "If several translations are equally correct, should AI:",
-          "options": [
-            { "value": "ALWAYS_SAME", "label": "Always use the same approved wording", "prompt": "- When several translations are equally correct, always use the same approved wording." },
-            { "value": "PREFER_CONSISTENCY", "label": "Prefer consistency but allow variation", "prompt": "- When several translations are equally correct, prefer consistency but allow variation." },
-            { "value": "ALLOW_VARIATION", "label": "Allow natural variation", "prompt": "- When several translations are equally correct, allow natural variation." }
-          ]
-        },
-        {
-          "id": "q13-reuse",
-          "type": "choice",
-          "required": true,
-          "title": "Q13. Existing Translation Reuse",
-          "hint": "Before generating a new translation, should AI:",
-          "options": [
-            { "value": "REUSE_SIBLINGS", "label": "Reuse wording from sibling concepts whenever possible", "prompt": "- Reuse wording from sibling concepts whenever possible before generating new translations." },
-            { "value": "REUSE_PARENTS", "label": "Reuse wording from parent concepts whenever possible", "prompt": "- Reuse wording from parent concepts whenever possible before generating new translations." },
-            { "value": "GENERATE_INDEPENDENTLY", "label": "Generate independently", "prompt": "- Generate translations independently without reusing sibling or parent wording." }
-          ]
-        },
-        {
-          "id": "q14-validation",
-          "type": "boolean",
-          "required": true,
-          "title": "Q14. Translation Validation",
-          "hint": "Should AI flag translations that violate established language policies?",
-          "options": [
-            { "value": "true", "label": "Yes", "prompt": "- Flag translations that violate established language policies." },
-            { "value": "false", "label": "No", "prompt": "" }
-          ]
         }
       ]
     },
