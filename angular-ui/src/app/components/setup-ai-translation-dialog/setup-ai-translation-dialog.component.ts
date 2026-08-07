@@ -205,18 +205,29 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 
 		existingExamples.forEach(example => this.goldenExamples.push(example));
 
+		const usedConceptIds = new Set(
+			this.goldenExamples.map(example => example.conceptId.trim()).filter(Boolean)
+		);
+
 		const remainingSlots = 5 - this.goldenExamples.length;
 		if (remainingSlots > 0 && sampleRows.length > 0) {
-			const startIndex = existingExamples.length;
-			const offset = Math.floor(sampleRows.length / 5);
+			// Skip concepts already in the golden set — otherwise a refill can pick a
+			// duplicate, the UI shows 5 rows, but save collapses to unique keys.
+			const unusedRows = sampleRows.filter(row => {
+				const conceptId = String(row.context || row.key || '').trim();
+				return conceptId && !usedConceptIds.has(conceptId);
+			});
+			const offset = Math.max(1, Math.floor(unusedRows.length / remainingSlots));
 			for (let i = 0; i < remainingSlots; i++) {
-				const row = sampleRows[(startIndex + i) * offset];
+				const row = unusedRows[i * offset];
 				if (row) {
+					const conceptId = String(row.context || row.key || '');
 					this.goldenExamples.push({
-						conceptId: row.context || row.key || '',
+						conceptId,
 						preferredTerm: row.source?.[0] || '',
 						translation: row.target?.[0] || '',
 					});
+					usedConceptIds.add(conceptId.trim());
 				} else {
 					this.pushEmptyExample();
 				}
@@ -290,6 +301,14 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 
 		if (validExamples.length === 0) {
 			this.snackBar.open('Please add at least one golden example', 'Close', { duration: 3000 });
+			return;
+		}
+
+		const uniqueConceptIds = new Set(validExamples.map(example => example.conceptId.trim()));
+		if (uniqueConceptIds.size < validExamples.length) {
+			this.snackBar.open('Duplicate concepts found in golden examples. Please remove duplicates.', 'Close', {
+				duration: 5000
+			});
 			return;
 		}
 
