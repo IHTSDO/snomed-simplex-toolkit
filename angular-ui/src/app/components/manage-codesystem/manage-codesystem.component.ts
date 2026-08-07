@@ -45,9 +45,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const editionSubscription = this.uiService.getSelectedEdition().subscribe(edition => {
       if (edition) {
+        const shortNameChanged = this.edition?.shortName !== edition.shortName;
         this.edition = edition;
-        this.issuesReport = null;
-        this.refreshEdition();
+        if (shortNameChanged) {
+          this.issuesReport = null;
+          this.refreshEdition();
+        }
       }
     });
     this.startRefresh();
@@ -291,10 +294,12 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   async refreshEdition() {
     this.loadingReleaseStatus = true;
     try {
+      this.simplexService.invalidateEditionDetailCache(this.edition.shortName);
       const response = await lastValueFrom(
         this.simplexService.getEdition(this.edition.shortName)
       );
       this.edition = response;
+      this.uiService.setSelectedEdition(this.edition);
       if (this.edition.buildStatus !== 'IN_PROGRESS') {
         this.creatingReleaseCandidate = false;
       }
@@ -302,7 +307,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
         this.finalizingRelease = false;
       }
       await this.refreshIssues();
-      this.activitiesComponent.loadActivities(false);
+      this.activitiesComponent?.loadActivities(false);
       if (this.jobComponent) {
         this.jobComponent.loadJobs(true);
       }

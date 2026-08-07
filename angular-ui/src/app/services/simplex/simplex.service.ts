@@ -114,6 +114,10 @@ export class SimplexService {
     this.clearTranslationsCache(edition);
   }
 
+  public invalidateEditionDetailCache(edition: string): void {
+    this.clearEditionDetailCache(edition);
+  }
+
   public updateValidationSettings(edition: string, ignoreCase: boolean, conceptsMaintainedExternally: boolean): Observable<void> {
     return this.http.put<void>(`api/codesystems/${edition}/validation-settings`, { ignoreCase, conceptsMaintainedExternally })
       .pipe(catchError(this.handleError.bind(this)));
