@@ -120,7 +120,10 @@ export class SimplexService {
 
   public updateValidationSettings(edition: string, ignoreCase: boolean, conceptsMaintainedExternally: boolean): Observable<void> {
     return this.http.put<void>(`api/codesystems/${edition}/validation-settings`, { ignoreCase, conceptsMaintainedExternally })
-      .pipe(catchError(this.handleError.bind(this)));
+      .pipe(
+        tap(() => this.clearEditionDetailCache(edition)),
+        catchError(this.handleError.bind(this))
+      );
   }
 
   public getCodeSystemForBranch(branch: string): Observable<any> {

@@ -333,6 +333,7 @@ public class CodeSystemService {
 				snowstormClient);
 		setCodeSystemMetadata(Branch.SIMPLEX_CONCEPTS_MAINTAINED_EXTERNALLY_METADATA_KEY, Boolean.toString(conceptsMaintainedExternally), codeSystem,
 				snowstormClient);
+		snowstormClient.invalidateCodeSystemCache(codeSystemShortName);
 	}
 
 	private void createModuleOntologyExpression(String moduleId, CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {

@@ -2,13 +2,16 @@ package org.snomed.simplex.service;
 
 import org.junit.jupiter.api.Test;
 import org.snomed.simplex.TestConcepts;
+import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.domain.RefsetMember;
+import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +22,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -197,6 +205,22 @@ class CodeSystemServiceTest {
 				() -> codeSystemService.approveContentForRelease(codeSystem));
 
 		assertEquals("Content is not classified. Reopen editing and run validation.", exception.getMessage());
+	}
+
+	@Test
+	void updateValidationSettings_invalidatesCodeSystemCache() throws ServiceException {
+		SnowstormClient snowstormClient = mock(SnowstormClient.class);
+		CodeSystem codeSystem = releaseReadyCodeSystem();
+		when(snowstormClientFactory.getClient()).thenReturn(snowstormClient);
+		when(snowstormClient.getCodeSystemOrThrow("SNOMEDCT-TEST")).thenReturn(codeSystem);
+
+		codeSystemService.updateValidationSettings("SNOMEDCT-TEST", true, true);
+
+		verify(snowstormClient).upsertBranchMetadata(eq("MAIN/SNOMEDCT-TEST"),
+				eq(Map.of(Branch.SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY, "true")));
+		verify(snowstormClient).upsertBranchMetadata(eq("MAIN/SNOMEDCT-TEST"),
+				eq(Map.of(Branch.SIMPLEX_CONCEPTS_MAINTAINED_EXTERNALLY_METADATA_KEY, "true")));
+		verify(snowstormClient).invalidateCodeSystemCache("SNOMEDCT-TEST");
 	}
 
 	private static CodeSystem releaseReadyCodeSystem() {
