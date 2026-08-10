@@ -55,6 +55,8 @@ public class SnolateTranslationService {
 			TranslationStatus.FOR_REVIEW,
 			TranslationStatus.APPROVED);
 
+	public static final int MAX_AI_GOLDEN_EXAMPLES = 40;
+
 	public static final String CSV_FILE_HAS_NO_HEADER_ROW = "CSV file has no header row.";
 	public static final String CONCEPT_COLUMN = "Concept column";
 	public static final String SPREADSHEET_HAS_NO_HEADER_ROW = "Spreadsheet has no header row.";
@@ -76,6 +78,14 @@ public class SnolateTranslationService {
 		Map<String, String> aiGoldenSet = set.getAiGoldenSet();
 		boolean aiSetupComplete = aiGoldenSet != null && aiGoldenSet.size() >= 5 && aiGoldenSet.values().stream().noneMatch(Strings::isNullOrEmpty);
 		set.setAiSetupComplete(aiSetupComplete);
+	}
+
+	public static void validateAiGoldenSetSize(Map<String, String> aiGoldenSet) throws ServiceExceptionWithStatusCode {
+		if (aiGoldenSet != null && aiGoldenSet.size() > MAX_AI_GOLDEN_EXAMPLES) {
+			throw new ServiceExceptionWithStatusCode(
+					"Golden examples cannot exceed %d.".formatted(MAX_AI_GOLDEN_EXAMPLES),
+					HttpStatus.BAD_REQUEST);
+		}
 	}
 
 	public void applyCounts(SnolateTranslationSet translationSet) {

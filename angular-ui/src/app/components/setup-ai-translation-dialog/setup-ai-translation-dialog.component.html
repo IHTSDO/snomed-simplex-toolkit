@@ -83,7 +83,7 @@
 				</div>
 			</div>
 
-			<button mat-stroked-button color="primary" [disabled]="loadingNewExample" (click)="addExample()" class="add-example-button">
+			<button mat-stroked-button color="primary" [disabled]="loadingNewExample || goldenExamples.length >= maxGoldenExamples" (click)="addExample()" class="add-example-button">
 				<span *ngIf="loadingNewExample" class="loading-content">
 					<mat-spinner diameter="16"></mat-spinner>
 					Loading example...

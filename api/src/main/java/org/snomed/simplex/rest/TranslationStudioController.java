@@ -493,6 +493,7 @@ public class TranslationStudioController {
 			@RequestBody AiSetupRequest request) throws ServiceExceptionWithStatusCode {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+		SnolateTranslationService.validateAiGoldenSetSize(request.aiGoldenSet());
 		translationSet.setAiGoldenSet(request.aiGoldenSet());
 		snolateSetService.updateSet(translationSet);
 	}

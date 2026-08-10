@@ -57,6 +57,7 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 	loadingSuggestions = false;
 	loadingNewExample = false;
 	policySaved = false;
+	readonly maxGoldenExamples = 40;
 	goldenExamples: GoldenExample[] = [];
 	existingPolicy: LanguageTranslationPolicy | null = null;
 
@@ -258,6 +259,11 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 	}
 
 	addExample(): void {
+		if (this.goldenExamples.length >= this.maxGoldenExamples) {
+			this.snackBar.open(`You can add at most ${this.maxGoldenExamples} golden examples`, 'Close', { duration: 4000 });
+			return;
+		}
+
 		const conceptId = prompt('Enter Concept ID:');
 		if (!conceptId?.trim()) {
 			return;
@@ -301,6 +307,11 @@ export class SetupAiTranslationDialogComponent implements OnInit {
 
 		if (validExamples.length === 0) {
 			this.snackBar.open('Please add at least one golden example', 'Close', { duration: 3000 });
+			return;
+		}
+
+		if (validExamples.length > this.maxGoldenExamples) {
+			this.snackBar.open(`You can save at most ${this.maxGoldenExamples} golden examples`, 'Close', { duration: 4000 });
 			return;
 		}
 
