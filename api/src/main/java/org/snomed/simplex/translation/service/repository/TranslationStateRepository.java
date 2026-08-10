@@ -18,7 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
- * Repo to persist TranslationStates - they are a point in time snapshot or backup of a translation for a single language refset/dialect.
+ * Persists Snowstorm translation snapshots for delta-based sync ({langRefsetId}_TERMINOLOGY_SERVER.tsv).
  */
 @Service
 public class TranslationStateRepository {
@@ -39,6 +39,14 @@ public class TranslationStateRepository {
 				}
 			}
 		}
+	}
+
+	public void saveSnowstormSnapshot(String langRefsetId, TranslationState translationState) throws ServiceExceptionWithStatusCode {
+		saveState(langRefsetId, TranslationSourceType.TERMINOLOGY_SERVER, translationState);
+	}
+
+	public TranslationState loadSnowstormSnapshot(String langRefsetId) throws ServiceExceptionWithStatusCode {
+		return loadStateOrBlank(langRefsetId, TranslationSourceType.TERMINOLOGY_SERVER);
 	}
 
 	public void saveState(String langRefsetId, TranslationSourceType source, TranslationState translationState) throws ServiceExceptionWithStatusCode {

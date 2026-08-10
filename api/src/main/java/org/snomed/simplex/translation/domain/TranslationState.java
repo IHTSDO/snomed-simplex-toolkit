@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * Snapshot of a translation of one language refset including a set of concepts and their terms.
  * The terms are an order set with the first one being the PT for the relevant language refset.
- * Used to capture a dump from Snowstorm, the Translation Tool, or another source.
+ * Used to capture a dump from Snowstorm.
  * Used for a diff operation at a later date to discover user intent.
  */
 public class TranslationState {

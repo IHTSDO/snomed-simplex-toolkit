@@ -10,24 +10,24 @@ class TranslationServiceTermMatchTest {
 
 	@Test
 	void orderedTermsMatch_requiresSameOrderIncludingPreferredTerm() {
-		assertThat(TranslationService.orderedTermsMatch(
+		assertThat(TranslationStudioSyncService.orderedTermsMatch(
 				List.of("preferred", "synonym"),
 				List.of("preferred", "synonym"))).isTrue();
-		assertThat(TranslationService.orderedTermsMatch(
+		assertThat(TranslationStudioSyncService.orderedTermsMatch(
 				List.of("synonym", "preferred"),
 				List.of("preferred", "synonym"))).isFalse();
 	}
 
 	@Test
 	void orderedTermsMatch_trimsAndIgnoresBlankEntries() {
-		assertThat(TranslationService.orderedTermsMatch(
+		assertThat(TranslationStudioSyncService.orderedTermsMatch(
 				List.of("  preferred  ", ""),
 				List.of("preferred"))).isTrue();
 	}
 
 	@Test
 	void orderedTermsMatch_emptyListsMatch() {
-		assertThat(TranslationService.orderedTermsMatch(List.of(), List.of())).isTrue();
-		assertThat(TranslationService.orderedTermsMatch(List.of("a"), List.of())).isFalse();
+		assertThat(TranslationStudioSyncService.orderedTermsMatch(List.of(), List.of())).isTrue();
+		assertThat(TranslationStudioSyncService.orderedTermsMatch(List.of("a"), List.of())).isFalse();
 	}
 }

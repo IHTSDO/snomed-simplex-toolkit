@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import static java.lang.Long.parseLong;
 
-public class SnowstormTranslationSource implements TranslationSource {
+public class SnowstormTranslationSource {
 
 	private final SnowstormClient snowstormClient;
 	private final CodeSystem codeSystem;
@@ -41,7 +41,6 @@ public class SnowstormTranslationSource implements TranslationSource {
 		this.languageRefsetId = parseLong(languageRefsetId);
 	}
 
-	@Override
 	public TranslationState readTranslation() throws ServiceExceptionWithStatusCode {
 		try {
 			File tempFile = Files.createTempFile(codeSystem.getShortName() + UUID.randomUUID(), ".zip").toFile();
@@ -81,15 +80,5 @@ public class SnowstormTranslationSource implements TranslationSource {
 		}
 
 		return translationState;
-	}
-
-	@Override
-	public void writeTranslation(TranslationState translationState) {
-		throw new UnsupportedOperationException("Snowstorm writes go through TranslationService.doUploadTranslation");
-	}
-
-	@Override
-	public TranslationSourceType getType() {
-		return TranslationSourceType.TERMINOLOGY_SERVER;
 	}
 }

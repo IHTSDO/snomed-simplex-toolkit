@@ -34,6 +34,7 @@ import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.service.TranslationService;
+import org.snomed.simplex.translation.service.TranslationStudioSyncService;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -54,6 +55,7 @@ public class TranslationStudioController {
 
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final TranslationService translationService;
+	private final TranslationStudioSyncService translationStudioSyncService;
 	private final ContentProcessingJobService jobService;
 	private final SnolateSetService snolateSetService;
 	private final SnolateTranslationService snolateTranslationService;
@@ -62,13 +64,15 @@ public class TranslationStudioController {
 	private final LanguagePolicyQuestionnaireService languagePolicyQuestionnaireService;
 
 	public TranslationStudioController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService,
-			ContentProcessingJobService jobService, SnolateSetService snolateSetService,
+			TranslationStudioSyncService translationStudioSyncService, ContentProcessingJobService jobService,
+			SnolateSetService snolateSetService,
 			SnolateTranslationService snolateTranslationService, TranslationLLMService translationLLMService,
 			LanguageTranslationPolicyService languageTranslationPolicyService,
 			LanguagePolicyQuestionnaireService languagePolicyQuestionnaireService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
+		this.translationStudioSyncService = translationStudioSyncService;
 		this.jobService = jobService;
 		this.snolateSetService = snolateSetService;
 		this.snolateTranslationService = snolateTranslationService;
@@ -400,7 +404,7 @@ public class TranslationStudioController {
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION_STUDIO, ActivityType.UPDATE);
 		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation Studio sync from Snowstorm", refsetId);
 		return jobService.queueContentJob(contentJob, refsetId, activity, job -> {
-			translationService.synchroniseWholeTranslationFromSnowstormToSnolate(theCodeSystem, snowstormClient, languageCode, refsetId);
+			translationStudioSyncService.synchroniseWholeTranslationFromSnowstormToSnolate(theCodeSystem, snowstormClient, languageCode, refsetId);
 			return new ChangeSummary();
 		});
 	}
@@ -423,7 +427,7 @@ public class TranslationStudioController {
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION_STUDIO, ActivityType.SNOLATE_LANGUAGE_INITIALISATION);
 		ContentJob contentJob = new ContentJob(theCodeSystem, "Translation Studio translation setup", refsetId);
 		return jobService.queueContentJob(contentJob, refsetId, activity, job -> {
-			translationService.synchroniseWholeTranslationFromSnowstormToSnolate(theCodeSystem, snowstormClient, languageCode, refsetId);
+			translationStudioSyncService.synchroniseWholeTranslationFromSnowstormToSnolate(theCodeSystem, snowstormClient, languageCode, refsetId);
 			snowstormClient.addSnolateTranslationLanguage(refsetId, languageCode, theCodeSystem);
 			return new ChangeSummary();
 		});
@@ -449,7 +453,7 @@ public class TranslationStudioController {
 
 		return jobService.queueContentJob(pushJob, refsetId, activity, job -> {
 			SnolateTranslationSet set = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-			ChangeSummary summary = translationService.synchroniseSnolateSubsetToSnowstorm(
+			ChangeSummary summary = translationStudioSyncService.synchroniseSnolateSubsetToSnowstorm(
 					theCodeSystem, snowstormClient, set, job, job.getTaskCreationCallable(), includeReadyForReview);
 			set.setLastPulled(new Date());
 			snolateSetService.updateSet(set);

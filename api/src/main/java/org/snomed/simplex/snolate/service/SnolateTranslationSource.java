@@ -3,30 +3,26 @@ package org.snomed.simplex.snolate.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
-import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
-import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
-import org.snomed.simplex.snolate.sets.TranslationUnitOrderSync;
+import org.snomed.simplex.translation.domain.Intent;
+import org.snomed.simplex.translation.domain.TermIntent;
+import org.snomed.simplex.translation.domain.TranslationIntent;
 import org.snomed.simplex.translation.domain.TranslationState;
-import org.snomed.simplex.translation.service.TranslationSource;
-import org.snomed.simplex.translation.service.TranslationSourceType;
+import org.snomed.simplex.translation.service.TranslationStateDiff;
 import org.springframework.http.HttpStatus;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.StreamSupport;
 
 /**
- * Snolate persistence backing for {@link TranslationSource}. Maps {@link TranslationUnit} documents to
- * {@link TranslationState} for {@link org.snomed.simplex.translation.service.TranslationMergeService}.
+ * Reads and updates Snolate {@link TranslationUnit} documents for translation sync.
  */
-public class SnolateTranslationSource implements TranslationSource {
+public class SnolateTranslationSource {
 
 	private static final Logger logger = LoggerFactory.getLogger(SnolateTranslationSource.class);
 
@@ -35,24 +31,16 @@ public class SnolateTranslationSource implements TranslationSource {
 
 	private final SnolateTranslationUnitStore translationUnitStore;
 	private final SnolateTranslationSearchService translationSearchService;
-	private final SnolateTranslationSourceRepository translationSourceRepository;
-	private final String isoLanguageCode;
-	private final String refsetId;
 	private final String compositeLanguageCode;
 
 	public SnolateTranslationSource(SnolateTranslationUnitStore translationUnitStore,
 			SnolateTranslationSearchService translationSearchService,
-			SnolateTranslationSourceRepository translationSourceRepository,
 			String languageCode, String refsetId) {
 		this.translationUnitStore = translationUnitStore;
 		this.translationSearchService = translationSearchService;
-		this.translationSourceRepository = translationSourceRepository;
-		this.isoLanguageCode = languageCode;
-		this.refsetId = refsetId;
 		this.compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
 	}
 
-	@Override
 	public TranslationState readTranslation() throws ServiceExceptionWithStatusCode {
 		TranslationState state = new TranslationState();
 		Map<Long, List<String>> conceptTerms = state.getConceptTerms();
@@ -75,40 +63,43 @@ public class SnolateTranslationSource implements TranslationSource {
 		return state;
 	}
 
-	@Override
-	public void writeTranslation(TranslationState translationState) throws ServiceExceptionWithStatusCode {
-		List<Map.Entry<Long, List<String>>> entries = new ArrayList<>(translationState.getConceptTerms().entrySet());
+	/**
+	 * Apply Snowstorm delta ADD/REMOVE to existing units (language-wide). No-op if unit does not exist.
+	 */
+	public void applyDelta(TranslationIntent delta) {
+		List<Map.Entry<Long, List<TermIntent>>> entries = new ArrayList<>(delta.getTermIntents().entrySet());
 		List<TranslationUnit> saveBuffer = new ArrayList<>();
 		AtomicInteger savedTotal = new AtomicInteger();
 
 		for (int i = 0; i < entries.size(); i += WRITE_LOAD_BATCH_SIZE) {
 			int end = Math.min(i + WRITE_LOAD_BATCH_SIZE, entries.size());
-			List<Map.Entry<Long, List<String>>> chunk = entries.subList(i, end);
+			List<Map.Entry<Long, List<TermIntent>>> chunk = entries.subList(i, end);
 			List<String> codes = chunk.stream().map(e -> e.getKey().toString()).toList();
 			Map<String, TranslationUnit> byCode = translationUnitStore.loadByCodes(compositeLanguageCode, codes);
-			Map<String, org.snomed.simplex.snolate.domain.TranslationSource> sourcesByCode = loadSourcesByCodes(codes);
 
-			for (Map.Entry<Long, List<String>> entry : chunk) {
+			for (Map.Entry<Long, List<TermIntent>> entry : chunk) {
 				String code = entry.getKey().toString();
-				List<String> additions = entry.getValue();
-				TranslationUnit unit = byCode.get(code);
-				if (unit != null) {
-					unit.setTerms(mergeAdditions(unit.getTerms(), additions));
-					saveBuffer.add(unit);
-				} else {
-					saveBuffer.add(newFullUnit(code, additions, sourcesByCode.get(code)));
+				List<TermIntent> termIntents = entry.getValue();
+				if (!hasAdditionsOrRemovals(termIntents)) {
+					continue;
 				}
-				flushSaveBufferIfNeeded(saveBuffer, savedTotal);
+				TranslationUnit unit = byCode.get(code);
+				if (unit == null) {
+					continue;
+				}
+				List<String> updatedTerms = TranslationStateDiff.applyIntent(unit.getTerms(), termIntents);
+				if (!updatedTerms.equals(unit.getTerms())) {
+					unit.setTerms(updatedTerms);
+					saveBuffer.add(unit);
+					flushSaveBufferIfNeeded(saveBuffer, savedTotal);
+				}
 			}
 		}
 		flushSaveBufferRemainder(saveBuffer, savedTotal);
 	}
 
-	private Map<String, org.snomed.simplex.snolate.domain.TranslationSource> loadSourcesByCodes(List<String> codes) {
-		Map<String, org.snomed.simplex.snolate.domain.TranslationSource> sourcesByCode = new HashMap<>();
-		StreamSupport.stream(translationSourceRepository.findAllById(codes).spliterator(), false)
-				.forEach(source -> sourcesByCode.put(source.getCode(), source));
-		return sourcesByCode;
+	private static boolean hasAdditionsOrRemovals(List<TermIntent> termIntents) {
+		return termIntents.stream().anyMatch(ti -> ti.intent() == Intent.ADD || ti.intent() == Intent.REMOVE);
 	}
 
 	private void flushSaveBufferIfNeeded(List<TranslationUnit> saveBuffer, AtomicInteger savedTotal) {
@@ -133,15 +124,6 @@ public class SnolateTranslationSource implements TranslationSource {
 				batchSize, compositeLanguageCode, total);
 	}
 
-	private TranslationUnit newFullUnit(String code, List<String> additions,
-			org.snomed.simplex.snolate.domain.TranslationSource source) {
-		TranslationUnit u = new TranslationUnit(code, compositeLanguageCode, new ArrayList<>(additions), TranslationStatus.APPROVED);
-		u.setRefsetId(refsetId);
-		u.setLanguageCode(isoLanguageCode);
-		TranslationUnitOrderSync.applyIfChanged(u, source);
-		return u;
-	}
-
 	/**
 	 * Merge addition-only terms into the existing list (dedupe, preserve rough ADD ordering from merge).
 	 */
@@ -162,8 +144,4 @@ public class SnolateTranslationSource implements TranslationSource {
 		return merged;
 	}
 
-	@Override
-	public TranslationSourceType getType() {
-		return TranslationSourceType.SNOLATE;
-	}
 }

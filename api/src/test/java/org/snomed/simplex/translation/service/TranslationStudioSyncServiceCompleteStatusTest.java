@@ -6,67 +6,56 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.snomed.simplex.client.SnowstormClientFactory;
-import org.snomed.simplex.client.authoringservices.AuthoringServicesClient;
-import org.snomed.simplex.service.SimpleRefsetService;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.domain.TranslationState;
+import org.snomed.simplex.translation.service.repository.TranslationStateRepository;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class TranslationServiceCompleteStatusTest {
+class TranslationStudioSyncServiceCompleteStatusTest {
 
 	private static final String LANG = "en";
 	private static final String REFSET = "1000123";
 	private static final String COMPOSITE = LANG + "-" + REFSET;
 
 	@Mock
-	private SimpleRefsetService refsetService;
+	private TranslationService translationService;
 	@Mock
-	private SnowstormClientFactory snowstormClientFactory;
+	private TranslationSyncService translationSyncService;
 	@Mock
-	private AuthoringServicesClient authoringServicesClient;
-	@Mock
-	private TranslationMergeService translationMergeService;
+	private TranslationStateRepository translationStateRepository;
 	@Mock
 	private SnolateTranslationUnitStore translationUnitStore;
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
 
-	private TranslationService translationService;
+	private TranslationStudioSyncService syncService;
 	private SnolateTranslationSet translationSet;
 
 	@BeforeEach
 	void setUp() {
-		translationService = new TranslationService(refsetService, snowstormClientFactory, authoringServicesClient,
-				translationMergeService, translationUnitStore, translationSearchService, mock());
+		syncService = new TranslationStudioSyncService(translationService, translationSyncService, translationStateRepository,
+				translationUnitStore, translationSearchService);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
 		translationSet.setLanguageCode(LANG);
 	}
 
 	@Test
-	void markPulledUnitsComplete_setsCompleteForUnitsWithTermsOnly() throws Exception {
+	void markPulledUnitsComplete_setsCompleteForUnitsWithTermsOnly() {
 		String setCode = translationSet.getCompositeSetCode();
 		TranslationUnit translated = unit("100", List.of("term"), TranslationStatus.APPROVED, setCode);
 		TranslationUnit shell = unit("200", List.of(), TranslationStatus.NOT_STARTED, setCode);
@@ -78,7 +67,7 @@ class TranslationServiceCompleteStatusTest {
 			return null;
 		}).when(translationSearchService).forEachUnitInSet(eq(setCode), eq(COMPOSITE), any());
 
-		invokeMarkPulledUnitsComplete(translationSet, true);
+		syncService.markPulledUnitsComplete(translationSet, true);
 
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -91,7 +80,7 @@ class TranslationServiceCompleteStatusTest {
 	}
 
 	@Test
-	void markPulledUnitsComplete_excludesForReviewWhenNotIncluded() throws Exception {
+	void markPulledUnitsComplete_excludesForReviewWhenNotIncluded() {
 		String setCode = translationSet.getCompositeSetCode();
 		TranslationUnit approved = unit("100", List.of("approved"), TranslationStatus.APPROVED, setCode);
 		TranslationUnit forReview = unit("200", List.of("for review"), TranslationStatus.FOR_REVIEW, setCode);
@@ -103,7 +92,7 @@ class TranslationServiceCompleteStatusTest {
 			return null;
 		}).when(translationSearchService).forEachUnitInSet(eq(setCode), eq(COMPOSITE), any());
 
-		invokeMarkPulledUnitsComplete(translationSet, false);
+		syncService.markPulledUnitsComplete(translationSet, false);
 
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -116,7 +105,7 @@ class TranslationServiceCompleteStatusTest {
 	}
 
 	@Test
-	void markSnowstormMatchingUnitsComplete_marksMatchingNonNeedsEditUnits() throws Exception {
+	void markSnowstormMatchingUnitsComplete_marksMatchingNonNeedsEditUnits() {
 		TranslationState snowstormState = new TranslationState();
 		snowstormState.getConceptTerms().put(100L, List.of("preferred", "syn"));
 		snowstormState.getConceptTerms().put(200L, List.of("match"));
@@ -138,7 +127,7 @@ class TranslationServiceCompleteStatusTest {
 			return null;
 		}).when(translationSearchService).forEachUnitByCompositeLanguageCode(eq(COMPOSITE), any());
 
-		invokeMarkSnowstormMatchingUnitsComplete(COMPOSITE, snowstormState);
+		syncService.markSnowstormMatchingUnitsComplete(COMPOSITE, snowstormState);
 
 		@SuppressWarnings("unchecked")
 		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -153,20 +142,5 @@ class TranslationServiceCompleteStatusTest {
 	private TranslationUnit unit(String code, List<String> terms, TranslationStatus status, String setCode) {
 		return new TranslationUnit(new TranslationUnit.MembershipKey(code, REFSET, LANG, COMPOSITE, 0), terms, status,
 				new LinkedHashSet<>(Set.of(setCode)));
-	}
-
-	private void invokeMarkPulledUnitsComplete(SnolateTranslationSet set, boolean includeReadyForReview) throws Exception {
-		Method method = TranslationService.class.getDeclaredMethod("markPulledUnitsComplete", SnolateTranslationSet.class,
-				boolean.class);
-		method.setAccessible(true);
-		method.invoke(translationService, set, includeReadyForReview);
-	}
-
-	private void invokeMarkSnowstormMatchingUnitsComplete(String compositeLanguageCode, TranslationState snowstormState)
-			throws Exception {
-		Method method = TranslationService.class.getDeclaredMethod("markSnowstormMatchingUnitsComplete", String.class,
-				TranslationState.class);
-		method.setAccessible(true);
-		method.invoke(translationService, compositeLanguageCode, snowstormState);
 	}
 }

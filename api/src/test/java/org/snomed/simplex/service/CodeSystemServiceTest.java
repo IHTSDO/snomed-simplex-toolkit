@@ -27,7 +27,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -216,10 +215,10 @@ class CodeSystemServiceTest {
 
 		codeSystemService.updateValidationSettings("SNOMEDCT-TEST", true, true);
 
-		verify(snowstormClient).upsertBranchMetadata(eq("MAIN/SNOMEDCT-TEST"),
-				eq(Map.of(Branch.SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY, "true")));
-		verify(snowstormClient).upsertBranchMetadata(eq("MAIN/SNOMEDCT-TEST"),
-				eq(Map.of(Branch.SIMPLEX_CONCEPTS_MAINTAINED_EXTERNALLY_METADATA_KEY, "true")));
+		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST",
+				Map.of(Branch.SIMPLEX_VALIDATION_IGNORE_CASE_METADATA_KEY, "true"));
+		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST",
+				Map.of(Branch.SIMPLEX_CONCEPTS_MAINTAINED_EXTERNALLY_METADATA_KEY, "true"));
 		verify(snowstormClient).invalidateCodeSystemCache("SNOMEDCT-TEST");
 	}
 

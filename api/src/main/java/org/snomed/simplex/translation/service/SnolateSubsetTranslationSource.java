@@ -12,19 +12,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Snolate translation state limited to concepts in a snolate translation set (subset).
+ * Read-only Snolate translation state for concepts in a translation set.
  */
-public class SnolateSubsetTranslationSource implements TranslationSource {
+public class SnolateSubsetTranslationSource {
 
 	private final SnolateTranslationSearchService translationSearchService;
 	private final String compositeLanguageCode;
 	private final String compositeSetCode;
 	private final boolean includeReadyForReview;
-
-	public SnolateSubsetTranslationSource(SnolateTranslationSearchService translationSearchService, String languageCode, String refsetId,
-			String compositeSetCode) {
-		this(translationSearchService, languageCode, refsetId, compositeSetCode, true);
-	}
 
 	public SnolateSubsetTranslationSource(SnolateTranslationSearchService translationSearchService, String languageCode, String refsetId,
 			String compositeSetCode, boolean includeReadyForReview) {
@@ -34,7 +29,6 @@ public class SnolateSubsetTranslationSource implements TranslationSource {
 		this.includeReadyForReview = includeReadyForReview;
 	}
 
-	@Override
 	public TranslationState readTranslation() throws ServiceExceptionWithStatusCode {
 		TranslationState state = new TranslationState();
 		Map<Long, List<String>> conceptTerms = state.getConceptTerms();
@@ -48,20 +42,10 @@ public class SnolateSubsetTranslationSource implements TranslationSource {
 			} catch (NumberFormatException e) {
 				throw new ServiceExceptionWithStatusCode(
 						"Snolate translation unit has non-numeric code: %s".formatted(unit.getCode()),
-						HttpStatus.INTERNAL_SERVER_ERROR, e);
+						HttpStatus.INTERNAL_SERVER_ERROR);
 			}
 		}
 		return state;
-	}
-
-	@Override
-	public void writeTranslation(TranslationState translationState) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public TranslationSourceType getType() {
-		return TranslationSourceType.SNOLATE_SUBSET;
 	}
 
 	private boolean shouldIncludeUnit(TranslationUnit unit) {
