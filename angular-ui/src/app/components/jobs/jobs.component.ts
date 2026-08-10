@@ -626,6 +626,18 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     return this.artifact && this.artifact.type === 'translation' && this.artifact.isSnolate;
   }
 
+  isFoundationEnglishRefset(): boolean {
+    if (!this.artifact || this.artifact.type !== 'translation') {
+      return false;
+    }
+    // Refset IDs for Foundation English synonym refsets
+    const FOUNDATION_ENGLISH_REFSETS = [
+      '900000000000509007', // US English Language Refset
+      '900000000000508004'  // GB English Language Refset
+    ];
+    return FOUNDATION_ENGLISH_REFSETS.includes(this.artifact.refsetId);
+  }
+
   shouldDisableTranslationStudioLinking(): boolean {
     return this.hasTranslationStudioActivity || this.saving;
   }

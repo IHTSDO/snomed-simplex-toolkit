@@ -3,7 +3,7 @@
     <br>
     <!-- Integrated options for translation artifacts -->
     <div *ngIf="artifact?.type === 'translation' && !shouldDisableEditing() && !loadingActivities">
-        <h5 *ngIf="!isTranslationStudioLinked()">
+        <h5 *ngIf="!isTranslationStudioLinked() && !isFoundationEnglishRefset()">
             Upload content below, or
             <a href="javascript:void(0)" (click)="linkToTranslationStudio()" [class.disabled]="shouldDisableTranslationStudioLinking()">add this language to Translation Studio</a>
             <mat-icon *ngIf="hasTranslationStudioActivityFailed"
