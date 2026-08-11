@@ -19,7 +19,6 @@ import org.snomed.simplex.translation.domain.TranslationIntent;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.repository.TranslationStateRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,7 +51,6 @@ public class TranslationStudioSyncService {
 		this.translationSearchService = translationSearchService;
 	}
 
-	@Transactional
 	public void synchroniseWholeTranslationFromSnowstormToSnolate(CodeSystem codeSystem, SnowstormClient snowstormClient,
 			String languageCode, String refsetId) throws ServiceExceptionWithStatusCode {
 
