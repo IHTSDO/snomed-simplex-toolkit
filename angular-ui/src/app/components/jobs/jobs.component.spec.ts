@@ -18,4 +18,16 @@ describe('JobsComponent', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('should identify Foundation English refsets by refsetId input', () => {
+    component.artifact = { type: 'translation', conceptId: '900000000000509007' };
+    component.refsetId = '900000000000509007';
+    expect(component.isFoundationEnglishRefset()).toBeTrue();
+
+    component.refsetId = '900000000000508004';
+    expect(component.isFoundationEnglishRefset()).toBeTrue();
+
+    component.refsetId = '123456789012345678';
+    expect(component.isFoundationEnglishRefset()).toBeFalse();
+  });
 });

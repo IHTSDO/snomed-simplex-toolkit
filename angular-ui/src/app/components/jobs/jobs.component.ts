@@ -635,7 +635,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       '900000000000509007', // US English Language Refset
       '900000000000508004'  // GB English Language Refset
     ];
-    return FOUNDATION_ENGLISH_REFSETS.includes(this.artifact.refsetId);
+    return FOUNDATION_ENGLISH_REFSETS.includes(this.refsetId);
   }
 
   shouldDisableTranslationStudioLinking(): boolean {
