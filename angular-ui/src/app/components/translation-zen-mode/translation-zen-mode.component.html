@@ -149,11 +149,13 @@
 				*ngIf="hasPageAiSuggestions() || acceptingAllSuggestions"
 				mat-stroked-button
 				type="button"
-				class="zen-paging__btn zen-paging__btn--accept-all"
+				class="zen-paging__btn"
 				(click)="acceptAllAiSuggestions()"
 				[disabled]="loading || acceptingAllSuggestions || !hasPageAiSuggestions()">
-				<mat-spinner *ngIf="acceptingAllSuggestions" class="zen-paging__btn-spinner" diameter="18"></mat-spinner>
-				Accept all suggestions
+				<span class="zen-paging__btn-content">
+					<mat-spinner *ngIf="acceptingAllSuggestions" class="zen-paging__btn-spinner" diameter="18"></mat-spinner>
+					Accept all suggestions
+				</span>
 			</button>
 			<button
 				*ngIf="hasStatusFilter()"
