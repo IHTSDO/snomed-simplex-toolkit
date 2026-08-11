@@ -49,6 +49,8 @@ public class ActivityService {
 		repository.deleteAllByActivityType("REMOVE_CONTENT_APPROVAL");
 		repository.deleteAllByActivityType("ADD_CONTENT_APPROVAL");
 		repository.deleteAllByActivityType("START_BUILD");
+		repository.deleteAllByActivityType("WEBLATE_SNOMED_UPGRADE");
+		repository.deleteAllByActivityType("WEBLATE_SNOMED_INITIALISATION");
 
 		if (endActivitiesOnStartup) {
 			// End activities that can't recover
