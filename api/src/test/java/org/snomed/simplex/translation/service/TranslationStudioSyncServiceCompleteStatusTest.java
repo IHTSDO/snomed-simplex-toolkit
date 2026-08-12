@@ -6,10 +6,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.repository.TranslationStateRepository;
@@ -22,7 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TranslationStudioSyncServiceCompleteStatusTest {
@@ -41,6 +45,8 @@ class TranslationStudioSyncServiceCompleteStatusTest {
 	private SnolateTranslationUnitStore translationUnitStore;
 	@Mock
 	private SnolateTranslationSearchService translationSearchService;
+	@Mock
+	private SnolateTranslationSourceRepository translationSourceRepository;
 
 	private TranslationStudioSyncService syncService;
 	private SnolateTranslationSet translationSet;
@@ -48,7 +54,7 @@ class TranslationStudioSyncServiceCompleteStatusTest {
 	@BeforeEach
 	void setUp() {
 		syncService = new TranslationStudioSyncService(translationService, translationSyncService, translationStateRepository,
-				translationUnitStore, translationSearchService);
+				translationUnitStore, translationSearchService, translationSourceRepository);
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
 		translationSet.setLanguageCode(LANG);
@@ -137,6 +143,69 @@ class TranslationStudioSyncServiceCompleteStatusTest {
 		assertThat(saved).allMatch(u -> u.getStatus() == TranslationStatus.COMPLETE);
 		assertThat(needsEditMatch.getStatus()).isEqualTo(TranslationStatus.NEEDS_EDIT);
 		assertThat(mismatch.getStatus()).isEqualTo(TranslationStatus.FOR_REVIEW);
+	}
+
+	@Test
+	void createMissingUnitsFromSnowstorm_createsUnitWithSnowstormTermsAndCompleteStatus() {
+		TranslationState snowstormState = new TranslationState();
+		snowstormState.getConceptTerms().put(100L, List.of("preferred", "syn"));
+
+		when(translationUnitStore.loadByCodes(COMPOSITE, List.of("100"))).thenReturn(Map.of());
+		when(translationSourceRepository.findAllById(List.of("100")))
+				.thenReturn(List.of(new TranslationSource("100", "Asthma", 42)));
+
+		syncService.createMissingUnitsFromSnowstorm(LANG, REFSET, snowstormState);
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
+		verify(translationUnitStore).saveAll(captor.capture());
+		List<TranslationUnit> saved = new ArrayList<>(captor.getValue());
+		assertThat(saved).hasSize(1);
+		TranslationUnit unit = saved.get(0);
+		assertThat(unit.getCode()).isEqualTo("100");
+		assertThat(unit.getTerms()).containsExactly("preferred", "syn");
+		assertThat(unit.getStatus()).isEqualTo(TranslationStatus.COMPLETE);
+		assertThat(unit.getMemberOf()).isEmpty();
+		assertThat(unit.getOrder()).isEqualTo(42);
+		assertThat(unit.getCompositeLanguageCode()).isEqualTo(COMPOSITE);
+	}
+
+	@Test
+	void createMissingUnitsFromSnowstorm_skipsWhenUnitAlreadyExists() {
+		TranslationState snowstormState = new TranslationState();
+		snowstormState.getConceptTerms().put(100L, List.of("term"));
+
+		TranslationUnit existing = unit("100", List.of("existing"), TranslationStatus.APPROVED, "set");
+		when(translationUnitStore.loadByCodes(COMPOSITE, List.of("100"))).thenReturn(Map.of("100", existing));
+
+		syncService.createMissingUnitsFromSnowstorm(LANG, REFSET, snowstormState);
+
+		verify(translationUnitStore, never()).saveAll(any());
+	}
+
+	@Test
+	void createMissingUnitsFromSnowstorm_skipsWhenNoTranslationSource() {
+		TranslationState snowstormState = new TranslationState();
+		snowstormState.getConceptTerms().put(100L, List.of("term"));
+
+		when(translationUnitStore.loadByCodes(COMPOSITE, List.of("100"))).thenReturn(Map.of());
+		when(translationSourceRepository.findAllById(List.of("100"))).thenReturn(List.of());
+
+		syncService.createMissingUnitsFromSnowstorm(LANG, REFSET, snowstormState);
+
+		verify(translationUnitStore, never()).saveAll(any());
+	}
+
+	@Test
+	void createMissingUnitsFromSnowstorm_skipsWhenSnowstormTermsEmpty() {
+		TranslationState snowstormState = new TranslationState();
+		snowstormState.getConceptTerms().put(100L, List.of());
+		snowstormState.getConceptTerms().put(200L, List.of("  ", ""));
+
+		syncService.createMissingUnitsFromSnowstorm(LANG, REFSET, snowstormState);
+
+		verify(translationUnitStore, never()).saveAll(any());
+		verify(translationSourceRepository, never()).findAllById(any());
 	}
 
 	private TranslationUnit unit(String code, List<String> terms, TranslationStatus status, String setCode) {
