@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 3.0.1 Release (August 2026)
+## 3.0.2 Release (August 2026)
 Major release replacing Weblate with Elasticsearch-backed Translation Studio (Snolate), plus translation workflow enhancements, release pipeline fixes, and dependency updates.
 
 ### Breaking
