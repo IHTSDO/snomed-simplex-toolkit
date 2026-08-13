@@ -73,6 +73,13 @@ public class SnowstormClientFactory {
 		}
 	}
 
+	public void invalidateAllCodeSystemCaches() {
+		clientCache.asMap().values().forEach(SnowstormClient::invalidateAllCodeSystemCaches);
+		if (derivativesClient != null) {
+			derivativesClient.invalidateAllCodeSystemCaches();
+		}
+	}
+
 	private static String getAuthToken() throws ServiceExceptionWithStatusCode {
 		String authenticationToken = SecurityUtil.getAuthenticationToken();
 		if (authenticationToken == null || authenticationToken.isEmpty()) {

@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpServerErrorException;
 
+import java.time.Duration;
 import java.util.*;
 
 @Service
@@ -26,6 +27,9 @@ public class SecurityService {
 
 	@Value("${permission.admin.group}")
 	private String adminGroup;
+
+	@Value("${ims-security.role-cache.ttl:1h}")
+	private Duration roleCacheTtl;
 
 	private final SnowstormClientFactory snowstormClientFactory;
 
@@ -57,13 +61,13 @@ public class SecurityService {
 				authentication.getAuthorities().stream().anyMatch(group -> group.getAuthority().equals(adminGroup));
 	}
 
-	public boolean hasPermission(Authentication authentication, String role, String codesystem) {
+	public synchronized boolean hasPermission(Authentication authentication, String role, String codesystem) {
 		if (!rolesEnabled) {
 			return true;
 		}
 
 		String principal = (String) authentication.getPrincipal();
-		if (!userCodesystemRoleCache.containsKey(principal)) {
+		if (isCacheMiss(principal, codesystem)) {
 			try {
 				SnowstormClient client = snowstormClientFactory.getClient();
 				CodeSystem codeSystem = client.getCodeSystemOrThrow(codesystem);
@@ -79,12 +83,33 @@ public class SecurityService {
 				return false;
 			}
 		}
-		Map<String, Set<String>> codesystemsRolesMap = userCodesystemRoleCache.getOrDefault(principal, Collections.emptyMap());
-		Set<String> singleCodesystemRoles = codesystemsRolesMap.getOrDefault(codesystem, Collections.emptySet());
+		Set<String> singleCodesystemRoles = getCachedRoles(principal, codesystem);
 		boolean userHasRole = singleCodesystemRoles.contains(role);
 		if (!userHasRole) {
 			logger.info("User {} does not have required role {} on codesystem {}", principal, role, codesystem);
 		}
 		return userHasRole;
+	}
+
+	public synchronized void expireRoleCaches() {
+		if (!rolesEnabled) {
+			return;
+		}
+		snowstormClientFactory.invalidateAllCodeSystemCaches();
+		userCodesystemRoleCache.clear();
+		logger.debug("Expired role and Snowstorm CodeSystem caches (scheduled maintenance, ttl={})", roleCacheTtl);
+	}
+
+	private boolean isCacheMiss(String principal, String codesystem) {
+		Map<String, Set<String>> codesystemRoleCache = userCodesystemRoleCache.get(principal);
+		if (codesystemRoleCache == null) {
+			return true;
+		}
+		return !codesystemRoleCache.containsKey(codesystem);
+	}
+
+	private Set<String> getCachedRoles(String principal, String codesystem) {
+		Map<String, Set<String>> codesystemRoleCache = userCodesystemRoleCache.getOrDefault(principal, Collections.emptyMap());
+		return codesystemRoleCache.getOrDefault(codesystem, Collections.emptySet());
 	}
 }

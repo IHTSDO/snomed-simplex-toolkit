@@ -342,6 +342,10 @@ public class SnowstormClient {
 		codeSystemCache.remove(codeSystemShortName);
 	}
 
+	public void invalidateAllCodeSystemCaches() {
+		codeSystemCache.clear();
+	}
+
 	public void setAuthorPermissions(CodeSystem newCodeSystem, String groupName) {
 		Map<String, List<String>> params = new HashMap<>();
 		params.put("userGroups", List.of(groupName));
