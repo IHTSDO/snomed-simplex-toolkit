@@ -3,8 +3,17 @@ package org.snomed.simplex.snolate.sets;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.SnowstormClientFactory;
+import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.rest.pojos.DeleteEmptyShellUnitsResponse;
+import org.snomed.simplex.rest.pojos.DeleteEmptyShellUnitsResponse.DeleteEmptyShellUnitsByRefset;
+import org.snomed.simplex.rest.pojos.RepairTranslationSetSizesResponse;
 import org.snomed.simplex.rest.pojos.RepairTranslationUnitIdsResponse;
+import org.snomed.simplex.service.ServiceHelper;
+import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -25,16 +34,22 @@ public class SnolateTranslationUnitMigrationService {
 	private final SnolateTranslationSearchService translationSearchService;
 	private final SnolateTranslationUnitRepository translationUnitRepository;
 	private final SnolateTranslationSourceRepository translationSourceRepository;
+	private final SnowstormClientFactory snowstormClientFactory;
+	private final SnolateSetService snolateSetService;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public SnolateTranslationUnitMigrationService(SnolateSetRepository snolateSetRepository,
 			SnolateTranslationSearchService translationSearchService,
 			SnolateTranslationUnitRepository translationUnitRepository,
-			SnolateTranslationSourceRepository translationSourceRepository) {
+			SnolateTranslationSourceRepository translationSourceRepository,
+			SnowstormClientFactory snowstormClientFactory,
+			SnolateSetService snolateSetService) {
 		this.snolateSetRepository = snolateSetRepository;
 		this.translationSearchService = translationSearchService;
 		this.translationUnitRepository = translationUnitRepository;
 		this.translationSourceRepository = translationSourceRepository;
+		this.snowstormClientFactory = snowstormClientFactory;
+		this.snolateSetService = snolateSetService;
 	}
 
 	public RepairTranslationUnitIdsResponse repairTranslationUnitIds(@Nullable String codeSystem) {
@@ -93,6 +108,55 @@ public class SnolateTranslationUnitMigrationService {
 				orphansDeleted,
 				unchanged,
 				warnings.size() > MAX_WARNINGS_IN_RESPONSE ? warnings.subList(0, MAX_WARNINGS_IN_RESPONSE) : warnings);
+	}
+
+	public DeleteEmptyShellUnitsResponse deleteEmptyShellUnits(String codeSystem) throws ServiceExceptionWithStatusCode {
+		ServiceHelper.requiredParameter("codeSystem", codeSystem);
+		if (codeSystem.isBlank()) {
+			throw new ServiceExceptionWithStatusCode("Parameter 'codeSystem' is required.", HttpStatus.BAD_REQUEST);
+		}
+
+		logger.info("Starting empty shell translation unit deletion for {}", codeSystem);
+		CodeSystem edition = snowstormClientFactory.getClient().getCodeSystemOrThrow(codeSystem);
+		Map<String, String> translationLanguages = edition.getTranslationLanguages();
+		if (translationLanguages == null || translationLanguages.isEmpty()) {
+			logger.info("No translation language refsets for {}; nothing to delete", codeSystem);
+			RepairTranslationSetSizesResponse setSizeRepair = snolateSetService.repairSetSizes(codeSystem);
+			return new DeleteEmptyShellUnitsResponse(0, 0, List.of(), setSizeRepair);
+		}
+
+		List<DeleteEmptyShellUnitsByRefset> byRefset = new ArrayList<>();
+		int totalDeleted = 0;
+		for (Map.Entry<String, String> entry : translationLanguages.entrySet()) {
+			String refsetId = entry.getKey();
+			String languageCode = entry.getValue();
+			String compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
+			List<String> toDelete = new ArrayList<>();
+			translationSearchService.forEachUnitByCompositeLanguageCode(compositeLanguageCode, unit -> {
+				if (isEmptyShell(unit)) {
+					String id = unit.getId();
+					if (id == null || id.isBlank()) {
+						id = TranslationUnit.canonicalDocumentId(compositeLanguageCode, unit.getCode());
+					}
+					toDelete.add(id);
+				}
+			});
+			deleteInChunks(toDelete);
+			if (!toDelete.isEmpty()) {
+				logger.info("Deleted {} empty shell translation units for {}", toDelete.size(), compositeLanguageCode);
+			}
+			byRefset.add(new DeleteEmptyShellUnitsByRefset(refsetId, languageCode, toDelete.size()));
+			totalDeleted += toDelete.size();
+		}
+
+		RepairTranslationSetSizesResponse setSizeRepair = snolateSetService.repairSetSizes(codeSystem);
+		logger.info("Empty shell translation unit deletion complete for {}: {} language refsets, {} units deleted",
+				codeSystem, byRefset.size(), totalDeleted);
+		return new DeleteEmptyShellUnitsResponse(byRefset.size(), totalDeleted, byRefset, setSizeRepair);
+	}
+
+	static boolean isEmptyShell(TranslationUnit unit) {
+		return !unit.hasTermContent() && unit.getStatus() == TranslationStatus.NOT_STARTED;
 	}
 
 	private void appendWarnings(List<String> target, List<String> groupWarnings) {

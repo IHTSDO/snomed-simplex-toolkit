@@ -3,9 +3,11 @@ package org.snomed.simplex.rest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.rest.pojos.DeleteEmptyShellUnitsResponse;
 import org.snomed.simplex.rest.pojos.RepairTranslationSetSizesResponse;
 import org.snomed.simplex.rest.pojos.RepairTranslationUnitIdsResponse;
 import org.snomed.simplex.rest.pojos.TranslationToolUpdatePlan;
+import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.snolate.service.SnolateSnomedUpgradeService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitMigrationService;
@@ -59,5 +61,16 @@ public class TranslationStudioManagementController {
 	@PreAuthorize("hasPermission('ADMIN', '')")
 	public RepairTranslationUnitIdsResponse repairTranslationUnitIds(@RequestParam(required = false) String codeSystem) {
 		return translationUnitMigrationService.repairTranslationUnitIds(codeSystem);
+	}
+
+	@PostMapping("delete-empty-shell-units")
+	@Operation(summary = "Delete empty shell translation units for a CodeSystem.",
+			description = "Removes TranslationUnit documents with no terms and NOT_STARTED status across all "
+					+ "language refsets on the edition, then recalculates translation set sizes.")
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public DeleteEmptyShellUnitsResponse deleteEmptyShellUnits(@RequestParam String codeSystem)
+			throws ServiceExceptionWithStatusCode {
+		ServiceHelper.requiredParameter("codeSystem", codeSystem);
+		return translationUnitMigrationService.deleteEmptyShellUnits(codeSystem);
 	}
 }
