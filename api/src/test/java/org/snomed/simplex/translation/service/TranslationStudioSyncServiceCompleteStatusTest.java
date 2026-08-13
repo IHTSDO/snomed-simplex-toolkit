@@ -146,6 +146,30 @@ class TranslationStudioSyncServiceCompleteStatusTest {
 	}
 
 	@Test
+	void markSnowstormMatchingUnitsComplete_marksCompleteWhenSynonymOrderDiffers() {
+		TranslationState snowstormState = new TranslationState();
+		snowstormState.getConceptTerms().put(100L, List.of("preferred", "synA", "synB"));
+
+		TranslationUnit reorderedSynonyms = unit("100", List.of("preferred", "synB", "synA"), TranslationStatus.APPROVED, "set");
+
+		doAnswer(invocation -> {
+			Consumer<TranslationUnit> consumer = invocation.getArgument(1);
+			consumer.accept(reorderedSynonyms);
+			return null;
+		}).when(translationSearchService).forEachUnitByCompositeLanguageCode(eq(COMPOSITE), any());
+
+		syncService.markSnowstormMatchingUnitsComplete(COMPOSITE, snowstormState);
+
+		@SuppressWarnings("unchecked")
+		ArgumentCaptor<Collection<TranslationUnit>> captor = ArgumentCaptor.forClass(Collection.class);
+		verify(translationUnitStore).saveAll(captor.capture());
+		List<TranslationUnit> saved = new ArrayList<>(captor.getValue());
+		assertThat(saved).hasSize(1);
+		assertThat(saved.get(0).getCode()).isEqualTo("100");
+		assertThat(saved.get(0).getStatus()).isEqualTo(TranslationStatus.COMPLETE);
+	}
+
+	@Test
 	void createMissingUnitsFromSnowstorm_createsUnitWithSnowstormTermsAndCompleteStatus() {
 		TranslationState snowstormState = new TranslationState();
 		snowstormState.getConceptTerms().put(100L, List.of("preferred", "syn"));

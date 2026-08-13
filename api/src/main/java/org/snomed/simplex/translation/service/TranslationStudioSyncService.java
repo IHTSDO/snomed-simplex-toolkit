@@ -24,6 +24,7 @@ import org.snomed.simplex.translation.service.repository.TranslationStateReposit
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -221,7 +222,22 @@ public class TranslationStudioSyncService {
 	}
 
 	static boolean orderedTermsMatch(List<String> snolateTerms, List<String> snowstormTerms) {
-		return normalizeOrderedTerms(snolateTerms).equals(normalizeOrderedTerms(snowstormTerms));
+		List<String> snolate = normalizeOrderedTerms(snolateTerms);
+		List<String> snowstorm = normalizeOrderedTerms(snowstormTerms);
+		if (snolate.isEmpty() || snowstorm.isEmpty()) {
+			return snolate.isEmpty() && snowstorm.isEmpty();
+		}
+		if (!snolate.get(0).equals(snowstorm.get(0))) {
+			return false;
+		}
+		return sortedCopy(snolate.subList(1, snolate.size()))
+				.equals(sortedCopy(snowstorm.subList(1, snowstorm.size())));
+	}
+
+	private static List<String> sortedCopy(List<String> terms) {
+		List<String> sorted = new ArrayList<>(terms);
+		Collections.sort(sorted);
+		return sorted;
 	}
 
 	private static List<String> normalizeOrderedTerms(List<String> terms) {
