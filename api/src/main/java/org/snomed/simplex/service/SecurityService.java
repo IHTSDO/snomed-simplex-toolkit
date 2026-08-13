@@ -13,7 +13,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpServerErrorException;
 
-import java.util.*;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class SecurityService {
@@ -27,9 +32,12 @@ public class SecurityService {
 	@Value("${permission.admin.group}")
 	private String adminGroup;
 
+	@Value("${ims-security.role-cache.ttl:1h}")
+	private Duration roleCacheTtl;
+
 	private final SnowstormClientFactory snowstormClientFactory;
 
-	private final Map<String, Map<String, Set<String>>> userCodesystemRoleCache;
+	private final Map<String, Map<String, CachedCodeSystemRoles>> userCodesystemRoleCache;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -41,9 +49,12 @@ public class SecurityService {
 	public synchronized void updateUserRolePermissionCache(List<CodeSystem> codeSystems) {
 		SecurityContext context = SecurityContextHolder.getContext();
 		Authentication authentication = context.getAuthentication();
-		Map<String, Set<String>> codesystemRoleCache = userCodesystemRoleCache.computeIfAbsent((String) authentication.getPrincipal(), i -> new HashMap<>());
+		Map<String, CachedCodeSystemRoles> codesystemRoleCache = userCodesystemRoleCache.computeIfAbsent(
+				(String) authentication.getPrincipal(), i -> new HashMap<>());
+		long expiresAt = System.currentTimeMillis() + roleCacheTtl.toMillis();
 		for (CodeSystem codeSystem : codeSystems) {
-			codesystemRoleCache.put(codeSystem.getShortName(), codeSystem.getUserRoles());
+			codesystemRoleCache.put(codeSystem.getShortName(),
+					new CachedCodeSystemRoles(codeSystem.getUserRoles(), expiresAt));
 		}
 	}
 
@@ -63,7 +74,7 @@ public class SecurityService {
 		}
 
 		String principal = (String) authentication.getPrincipal();
-		if (!userCodesystemRoleCache.containsKey(principal)) {
+		if (isCacheMissOrExpired(principal, codesystem)) {
 			try {
 				SnowstormClient client = snowstormClientFactory.getClient();
 				CodeSystem codeSystem = client.getCodeSystemOrThrow(codesystem);
@@ -79,12 +90,32 @@ public class SecurityService {
 				return false;
 			}
 		}
-		Map<String, Set<String>> codesystemsRolesMap = userCodesystemRoleCache.getOrDefault(principal, Collections.emptyMap());
-		Set<String> singleCodesystemRoles = codesystemsRolesMap.getOrDefault(codesystem, Collections.emptySet());
+		Set<String> singleCodesystemRoles = getCachedRoles(principal, codesystem);
 		boolean userHasRole = singleCodesystemRoles.contains(role);
 		if (!userHasRole) {
 			logger.info("User {} does not have required role {} on codesystem {}", principal, role, codesystem);
 		}
 		return userHasRole;
+	}
+
+	private boolean isCacheMissOrExpired(String principal, String codesystem) {
+		Map<String, CachedCodeSystemRoles> codesystemRoleCache = userCodesystemRoleCache.get(principal);
+		if (codesystemRoleCache == null) {
+			return true;
+		}
+		CachedCodeSystemRoles cached = codesystemRoleCache.get(codesystem);
+		return cached == null || cached.isExpired();
+	}
+
+	private Set<String> getCachedRoles(String principal, String codesystem) {
+		Map<String, CachedCodeSystemRoles> codesystemRoleCache = userCodesystemRoleCache.getOrDefault(principal, Collections.emptyMap());
+		CachedCodeSystemRoles cached = codesystemRoleCache.get(codesystem);
+		return cached != null ? cached.roles() : Collections.emptySet();
+	}
+
+	private record CachedCodeSystemRoles(Set<String> roles, long expiresAtEpochMs) {
+		boolean isExpired() {
+			return System.currentTimeMillis() >= expiresAtEpochMs;
+		}
 	}
 }
