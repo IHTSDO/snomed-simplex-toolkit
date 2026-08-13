@@ -54,6 +54,7 @@ import {MatSelectModule} from '@angular/material/select';
 import {JobsComponent} from './components/jobs/jobs.component';
 import {TimeAgoPipe} from './pipes/timeAgo/time-ago.pipe';
 import {ConceptsListComponent} from './components/artifacts/concepts-list/concepts-list.component';
+import {CustomConceptDialogComponent} from './components/artifacts/custom-concept-dialog/custom-concept-dialog.component';
 import {MatPaginatorModule} from '@angular/material/paginator';
 import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatRadioModule} from '@angular/material/radio';
@@ -130,6 +131,7 @@ import {ConfigService} from "./services/config/config.service";
         JobsComponent,
         TimeAgoPipe,
         ConceptsListComponent,
+        CustomConceptDialogComponent,
         LegalAgreementComponent,
         TimelineComponent,
         ValidationResultsComponent,

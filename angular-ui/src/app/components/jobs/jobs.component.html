@@ -70,53 +70,64 @@
 </div>
 
 <div *ngIf="selectedFileType == 'conceptsSpreadsheet' && !shouldDisableEditing()">
-    <ng-container *ngIf="!conceptsMaintainedExternally(); else externalConceptSteps">
-        <div class="step-row">
-            <span class="step-number">1</span>
-            Download existing concepts as a spreadsheet
-            <button mat-flat-button color="primary" id="downloadConceptsSpreadsheet" (click)="downloadConceptsSpreadsheet()" [disabled]="downloadConceptFileDisabled">
-                <span>Download</span>
-            </button>
-        </div>
-        <div class="step-row">
-            <span class="step-number">2</span>
-            Edit concepts details in the spreadsheet
-        </div>
-        <div class="step-row">
-            <span class="step-number">3</span>
-            Upload a new version of the spreadsheet
-            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
-            <div class="file-selection">
-                <button mat-flat-button color="primary" (click)="fileInput.click()">Choose File</button>
-                <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
-            </div>
-            <div class="upload-btn">
-                <button mat-flat-button color="accent" (click)="uploadFile(artifact.conceptId, artifact.type, selectedFileType)" *ngIf="selectedFile">
-                    Upload data
+    <p class="concepts-editor-hint">
+        Use the concept list above to create, edit, or inactivate individual concepts.
+        Spreadsheet import and export below is intended for bulk changes.
+    </p>
+
+    <mat-expansion-panel class="bulk-spreadsheet-panel">
+        <mat-expansion-panel-header>
+            <mat-panel-title>Bulk import / export (spreadsheet)</mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <ng-container *ngIf="!conceptsMaintainedExternally(); else externalConceptSteps">
+            <div class="step-row">
+                <span class="step-number">1</span>
+                Download existing concepts as a spreadsheet
+                <button mat-flat-button color="primary" id="downloadConceptsSpreadsheet" (click)="downloadConceptsSpreadsheet()" [disabled]="downloadConceptFileDisabled">
+                    <span>Download</span>
                 </button>
             </div>
-        </div>
-    </ng-container>
-    <ng-template #externalConceptSteps>
-        <div class="step-row">
-            <span class="step-number">1</span>
-            Use a conversion script to create the Simplex upload spreadsheet
-        </div>
-        <div class="step-row">
-            <span class="step-number">2</span>
-            Upload the generated spreadsheet
-            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
-            <div class="file-selection">
-                <button mat-flat-button color="primary" (click)="fileInput.click()">Choose File</button>
-                <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+            <div class="step-row">
+                <span class="step-number">2</span>
+                Edit concept details in the spreadsheet
             </div>
-            <div class="upload-btn">
-                <button mat-flat-button color="accent" (click)="uploadFile(artifact.conceptId, artifact.type, selectedFileType)" *ngIf="selectedFile">
-                    Upload data
-                </button>
+            <div class="step-row">
+                <span class="step-number">3</span>
+                Upload a new version of the spreadsheet
+                <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
+                <div class="file-selection">
+                    <button mat-flat-button color="primary" (click)="fileInput.click()">Choose File</button>
+                    <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+                </div>
+                <div class="upload-btn">
+                    <button mat-flat-button color="accent" (click)="uploadFile(artifact.conceptId, artifact.type, selectedFileType)" *ngIf="selectedFile">
+                        Upload data
+                    </button>
+                </div>
             </div>
-        </div>
-    </ng-template>
+        </ng-container>
+        <ng-template #externalConceptSteps>
+            <div class="step-row">
+                <span class="step-number">1</span>
+                Use a conversion script to create the Simplex upload spreadsheet
+            </div>
+            <div class="step-row">
+                <span class="step-number">2</span>
+                Upload the generated spreadsheet
+                <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
+                <div class="file-selection">
+                    <button mat-flat-button color="primary" (click)="fileInput.click()">Choose File</button>
+                    <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+                </div>
+                <div class="upload-btn">
+                    <button mat-flat-button color="accent" (click)="uploadFile(artifact.conceptId, artifact.type, selectedFileType)" *ngIf="selectedFile">
+                        Upload data
+                    </button>
+                </div>
+            </div>
+        </ng-template>
+    </mat-expansion-panel>
 </div>
 
 <div *ngIf="selectedFileType == 'refsetToolTranslation' && !shouldDisableEditing()">

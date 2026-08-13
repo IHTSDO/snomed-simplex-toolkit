@@ -14,6 +14,10 @@ import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.rest.pojos.CustomConceptDetail;
+import org.snomed.simplex.rest.pojos.CustomConceptLangRefset;
+import org.snomed.simplex.rest.pojos.CustomConceptRequest;
+import org.snomed.simplex.rest.pojos.CustomConceptSaveResponse;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.service.job.DummyChangeMonitor;
@@ -61,6 +65,125 @@ public class CustomConceptService {
 		return snowstormClient.findConceptsByModule(codeSystem, defaultModule, offset, limit);
 	}
 
+	public CustomConceptDetail getCustomConceptDetail(CodeSystem codeSystem, SnowstormClient snowstormClient, String conceptId)
+			throws ServiceException {
+		String defaultModule = codeSystem.getDefaultModuleOrThrow();
+		List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(List.of(Long.parseLong(conceptId)), codeSystem);
+		if (concepts.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("Concept not found.", HttpStatus.NOT_FOUND);
+		}
+		Concept concept = concepts.get(0);
+		if (!defaultModule.equals(concept.getModuleId())) {
+			throw new ServiceExceptionWithStatusCode(
+					"Concept is not in the edition default module and can not be edited using this function.",
+					HttpStatus.BAD_REQUEST);
+		}
+		List<ConceptMini> langRefsets = translationService.listTranslations(codeSystem, snowstormClient);
+		List<String> langRefsetIds = buildLangRefsetIds(langRefsets);
+		SpreadsheetService.ParentConceptReference parent = spreadsheetService.extractStatedParent(concept);
+		Map<String, List<String>> langRefsetTerms = spreadsheetService.mapDescriptionsPerLangRefset(
+				concept.getDescriptions(), langRefsetIds);
+		return new CustomConceptDetail(
+				concept.getConceptId(),
+				concept.isActive(),
+				parent.parentCode(),
+				parent.parentTerm(),
+				langRefsetTerms,
+				buildLangRefsetMetadata(langRefsets));
+	}
+
+	public CustomConceptSaveResponse createCustomConcept(CodeSystem codeSystem, SnowstormClient snowstormClient,
+			CustomConceptRequest request) throws ServiceException {
+		validateCustomConceptRequest(codeSystem, request, null);
+		ConceptIntent intent = toConceptIntent(request, 1);
+		ChangeSummary changeSummary = saveConceptIntent(codeSystem, snowstormClient, intent);
+		String conceptId = request.conceptCode() != null && !request.conceptCode().isBlank()
+				? request.conceptCode().trim()
+				: null;
+		return new CustomConceptSaveResponse(conceptId, changeSummary);
+	}
+
+	public CustomConceptSaveResponse updateCustomConcept(CodeSystem codeSystem, SnowstormClient snowstormClient,
+			String conceptId, CustomConceptRequest request) throws ServiceException {
+		validateCustomConceptRequest(codeSystem, request, conceptId);
+		ConceptIntent intent = toConceptIntent(request, 1);
+		intent.setConceptCode(conceptId);
+		ChangeSummary changeSummary = saveConceptIntent(codeSystem, snowstormClient, intent);
+		return new CustomConceptSaveResponse(conceptId, changeSummary);
+	}
+
+	private ChangeSummary saveConceptIntent(CodeSystem codeSystem, SnowstormClient snowstormClient, ConceptIntent intent)
+			throws ServiceException {
+		List<ConceptMini> langRefsets = translationService.listTranslations(codeSystem, snowstormClient);
+		Set<String> allLangRefsetsInScope = new HashSet<>(langRefsets.stream().map(ConceptMini::getConceptId).toList());
+		allLangRefsetsInScope.add(US_LANG_REFSET);
+		return createUpdateConcepts(codeSystem, List.of(intent), allLangRefsetsInScope,
+				new ContentJob(codeSystem, "Custom concept save", null), snowstormClient);
+	}
+
+	private void validateCustomConceptRequest(CodeSystem codeSystem, CustomConceptRequest request, String existingConceptId)
+			throws ServiceException {
+		if (request == null) {
+			throw new ServiceExceptionWithStatusCode("Request body is required.", HttpStatus.BAD_REQUEST);
+		}
+		if (request.active()) {
+			if (request.parentCode() == null || request.parentCode().isBlank()) {
+				throw new ServiceExceptionWithStatusCode("Parent concept is required.", HttpStatus.BAD_REQUEST);
+			}
+			Map<String, List<String>> terms = request.langRefsetTerms() != null ? request.langRefsetTerms() : Map.of();
+			List<String> usTerms = terms.getOrDefault(US_LANG_REFSET, List.of()).stream()
+					.filter(term -> term != null && !term.isBlank())
+					.map(String::trim)
+					.toList();
+			if (usTerms.isEmpty()) {
+				throw new ServiceExceptionWithStatusCode("US English preferred term is required.", HttpStatus.BAD_REQUEST);
+			}
+		}
+		if (existingConceptId == null && request.conceptCode() != null && !request.conceptCode().isBlank()
+				&& !codeSystem.isConceptsMaintainedExternally()) {
+			throw new ServiceExceptionWithStatusCode(
+					"Pre-assigned concept identifiers are only supported when concepts are maintained externally.",
+					HttpStatus.BAD_REQUEST);
+		}
+	}
+
+	private ConceptIntent toConceptIntent(CustomConceptRequest request, int rowNumber) {
+		ConceptIntent intent = new ConceptIntent(request.parentCode() != null ? request.parentCode().trim() : null, rowNumber);
+		intent.setInactive(!request.active());
+		if (request.conceptCode() != null && !request.conceptCode().isBlank()) {
+			intent.setConceptCode(request.conceptCode().trim());
+		}
+		if (request.langRefsetTerms() != null) {
+			for (Map.Entry<String, List<String>> entry : request.langRefsetTerms().entrySet()) {
+				if (entry.getValue() == null) {
+					continue;
+				}
+				for (String term : entry.getValue()) {
+					if (term != null && !term.isBlank()) {
+						intent.addTerm(term.trim(), entry.getKey());
+					}
+				}
+			}
+		}
+		return intent;
+	}
+
+	private List<String> buildLangRefsetIds(List<ConceptMini> langRefsets) {
+		List<String> langRefsetIds = new ArrayList<>();
+		langRefsetIds.add(US_LANG_REFSET);
+		langRefsetIds.addAll(langRefsets.stream().map(ConceptMini::getConceptId).toList());
+		return langRefsetIds;
+	}
+
+	private List<CustomConceptLangRefset> buildLangRefsetMetadata(List<ConceptMini> langRefsets) {
+		List<CustomConceptLangRefset> metadata = new ArrayList<>();
+		metadata.add(new CustomConceptLangRefset(US_LANG_REFSET, "English, US dialect"));
+		for (ConceptMini langRefset : langRefsets) {
+			metadata.add(new CustomConceptLangRefset(langRefset.getConceptId(), langRefset.getPt().getTerm()));
+		}
+		return metadata;
+	}
+
 	public void downloadSpreadsheet(CodeSystem codeSystem, SnowstormClient snowstormClient, OutputStream outputStream) throws ServiceException {
 		logger.info("Creating custom concept spreadsheet for {}", codeSystem.getShortName());
 		List<ConceptMini> langRefsets = translationService.listTranslations(codeSystem, snowstormClient);
@@ -104,7 +227,7 @@ public class CustomConceptService {
 
 		for (List<ConceptIntent> intents : Lists.partition(conceptIntents, 100)) {
 			logger.info("Processing concept updates, batch of {}, Branch:{}, Job:{}", intents.size(), codeSystem.getWorkingBranchPath(), jobId);
-			Set<String> parentCodes = intents.stream().map(ConceptIntent::getParentCode).filter(not(String::isEmpty)).collect(Collectors.toSet());
+			Set<String> parentCodes = intents.stream().map(ConceptIntent::getParentCode).filter(Objects::nonNull).filter(not(String::isEmpty)).collect(Collectors.toSet());
 			Set<String> existingConceptCodes = intents.stream().map(ConceptIntent::getConceptCode).filter(Objects::nonNull).collect(Collectors.toSet());
 
 			Map<String, Concept> parentConceptMap = snowstormClient.loadBrowserFormatConcepts(parentCodes.stream().map(Long::parseLong).toList(), codeSystem)

@@ -12,6 +12,10 @@ import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.client.domain.Description;
 import org.snomed.simplex.domain.ConceptIntent;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.rest.pojos.CustomConceptDetail;
+import org.snomed.simplex.rest.pojos.CustomConceptRequest;
+import org.snomed.simplex.rest.pojos.CustomConceptSaveResponse;
 import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +29,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
@@ -249,5 +254,95 @@ class CustomConceptServiceTest {
 		assertEquals(1, conceptsSaved.size());
 		assertFalse(conceptsSaved.get(0).isActive());
 		assertEquals(1, changeSummary.getRemoved());
+	}
+
+	@Test
+	void getCustomConceptDetail_mapsParentAndTerms() throws Exception {
+		String dummyModule = "101000003010";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+
+		Concept existingConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
+		existingConcept.setModuleId(dummyModule);
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(List.of(429926006L), codeSystem))
+				.thenReturn(List.of(existingConcept));
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem)))
+				.thenReturn(List.of(existingConcept));
+
+		CustomConceptDetail detail = customConceptService.getCustomConceptDetail(codeSystem, mockSnowstormClient, "429926006");
+
+		assertEquals("429926006", detail.conceptId());
+		assertTrue(detail.active());
+		assertNotNull(detail.langRefsetTerms().get(Concepts.US_LANG_REFSET));
+		assertFalse(detail.langRefsets().isEmpty());
+	}
+
+	@Test
+	void getCustomConceptDetail_rejectsOtherModule() throws Exception {
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule("101000003010");
+
+		Concept existingConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
+		existingConcept.setModuleId("999999999999");
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(List.of(429926006L), codeSystem))
+				.thenReturn(List.of(existingConcept));
+
+		assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> customConceptService.getCustomConceptDetail(codeSystem, mockSnowstormClient, "429926006"));
+	}
+
+	@Test
+	void createCustomConcept_delegatesToCreateUpdateConcepts() throws Exception {
+		String dummyModule = "101000003010";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+
+		Concept parentConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem)))
+				.thenReturn(List.of(parentConcept));
+
+		Map<String, List<String>> terms = Map.of(Concepts.US_LANG_REFSET, List.of("New custom concept"));
+		CustomConceptRequest request = new CustomConceptRequest("429926006", true, null, terms);
+
+		CustomConceptSaveResponse response = customConceptService.createCustomConcept(codeSystem, mockSnowstormClient, request);
+
+		Mockito.verify(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptListCaptor.capture(), Mockito.eq(codeSystem));
+		assertEquals(1, conceptListCaptor.getValue().size());
+		assertEquals(1, response.changeSummary().getAdded());
+	}
+
+	@Test
+	void updateCustomConcept_inactivatesExistingConcept() throws Exception {
+		String dummyModule = "101000003010";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+
+		Concept existingConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
+		existingConcept.setModuleId(dummyModule);
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem)))
+				.thenReturn(List.of(existingConcept));
+
+		CustomConceptRequest request = new CustomConceptRequest(null, false, null, Map.of());
+
+		CustomConceptSaveResponse response = customConceptService.updateCustomConcept(codeSystem, mockSnowstormClient,
+				"429926006", request);
+
+		Mockito.verify(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptListCaptor.capture(), Mockito.eq(codeSystem));
+		assertFalse(conceptListCaptor.getValue().get(0).isActive());
+		assertEquals(1, response.changeSummary().getRemoved());
+	}
+
+	@Test
+	void createCustomConcept_requiresUsEnglishTerm() {
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule("101000003010");
+
+		CustomConceptRequest request = new CustomConceptRequest("429926006", true, null, Map.of());
+
+		assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> customConceptService.createCustomConcept(codeSystem, mockSnowstormClient, request));
 	}
 }

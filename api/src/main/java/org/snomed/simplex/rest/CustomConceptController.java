@@ -13,6 +13,10 @@ import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.domain.activity.ComponentType;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.rest.pojos.CustomConceptDetail;
+import org.snomed.simplex.rest.pojos.CustomConceptRequest;
+import org.snomed.simplex.rest.pojos.CustomConceptSaveResponse;
+import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.ContentProcessingJobService;
 import org.snomed.simplex.service.CustomConceptService;
 import org.snomed.simplex.service.job.AsyncJob;
@@ -32,11 +36,14 @@ public class CustomConceptController {
 	private final CustomConceptService customConceptService;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final ContentProcessingJobService jobService;
+	private final ActivityService activityService;
 
-	public CustomConceptController(CustomConceptService customConceptService, SnowstormClientFactory snowstormClientFactory, ContentProcessingJobService jobService) {
+	public CustomConceptController(CustomConceptService customConceptService, SnowstormClientFactory snowstormClientFactory,
+			ContentProcessingJobService jobService, ActivityService activityService) {
 		this.customConceptService = customConceptService;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.jobService = jobService;
+		this.activityService = activityService;
 	}
 
 	@GetMapping
@@ -48,6 +55,38 @@ public class CustomConceptController {
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		return customConceptService.findCustomConcepts(theCodeSystem, snowstormClient, offset, limit);
+	}
+
+	@GetMapping("/{conceptId}")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	@Operation(summary = "Load a custom concept for editing.")
+	public CustomConceptDetail getCustomConcept(@PathVariable String codeSystem, @PathVariable String conceptId)
+			throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return customConceptService.getCustomConceptDetail(theCodeSystem, snowstormClient, conceptId);
+	}
+
+	@PostMapping
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	@Operation(summary = "Create a custom concept.")
+	public CustomConceptSaveResponse createCustomConcept(@PathVariable String codeSystem,
+			@RequestBody CustomConceptRequest request) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return activityService.runActivity(codeSystem, ComponentType.CUSTOM_CONCEPTS, ActivityType.CREATE,
+				() -> customConceptService.createCustomConcept(theCodeSystem, snowstormClient, request));
+	}
+
+	@PutMapping("/{conceptId}")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	@Operation(summary = "Update or inactivate a custom concept.")
+	public CustomConceptSaveResponse updateCustomConcept(@PathVariable String codeSystem, @PathVariable String conceptId,
+			@RequestBody CustomConceptRequest request) throws ServiceException {
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return activityService.runActivity(codeSystem, ComponentType.CUSTOM_CONCEPTS, ActivityType.UPDATE,
+				() -> customConceptService.updateCustomConcept(theCodeSystem, snowstormClient, conceptId, request));
 	}
 
 	@GetMapping(path = "/spreadsheet", produces="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

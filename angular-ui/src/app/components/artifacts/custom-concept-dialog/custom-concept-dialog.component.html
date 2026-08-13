@@ -1,0 +1,80 @@
+<h2 mat-dialog-title>{{ dialogTitle }}</h2>
+<mat-dialog-content>
+	<div class="dialog-content" [formGroup]="form">
+		<div *ngIf="loading" class="loading-wrap">
+			<mat-spinner diameter="32"></mat-spinner>
+		</div>
+
+		<ng-container *ngIf="!loading">
+			<mat-slide-toggle formControlName="active" *ngIf="isEditMode" class="active-toggle">
+				Active
+			</mat-slide-toggle>
+
+			<div class="field-section" *ngIf="form.get('active')?.value">
+				<h3>Parent concept</h3>
+				<app-autocomplete-binding
+					*ngIf="parentBinding"
+					[binding]="parentBinding"
+					[term]="parentTerm"
+					(selectionChange)="onParentSelectionChange($event)">
+				</app-autocomplete-binding>
+				<p class="field-hint" *ngIf="!parentBinding">Branch path not available for concept search.</p>
+			</div>
+
+			<mat-form-field appearance="outline" class="full-width"
+				*ngIf="conceptsMaintainedExternally && !isEditMode && form.get('active')?.value">
+				<mat-label>Concept identifier (optional)</mat-label>
+				<input matInput formControlName="conceptCode">
+				<mat-hint>Only used when concepts are maintained externally.</mat-hint>
+			</mat-form-field>
+
+			<mat-form-field appearance="outline" class="full-width" *ngIf="isEditMode">
+				<mat-label>Concept identifier</mat-label>
+				<input matInput formControlName="conceptCode" readonly>
+			</mat-form-field>
+
+			<ng-container *ngIf="form.get('active')?.value">
+				<div formGroupName="langRefsets">
+					<div class="field-section" *ngFor="let refset of langRefsets" [formGroupName]="refset.refsetId">
+						<h3>{{ refset.label }}</h3>
+						<mat-form-field appearance="outline" class="full-width">
+							<mat-label>Preferred term</mat-label>
+							<input matInput formControlName="preferred">
+							<mat-error *ngIf="refset.refsetId === '900000000000509007'">Required</mat-error>
+						</mat-form-field>
+
+						<div formArrayName="synonyms" class="synonyms-list">
+							<div *ngFor="let _ of synonymsArray(refset.refsetId).controls; let i = index" class="synonym-row">
+								<mat-form-field appearance="outline" class="full-width">
+									<mat-label>Synonym {{ i + 1 }}</mat-label>
+									<input matInput [formControlName]="i">
+								</mat-form-field>
+								<button mat-icon-button type="button" (click)="removeSynonym(refset.refsetId, i)"
+									aria-label="Remove synonym">
+									<mat-icon>close</mat-icon>
+								</button>
+							</div>
+						</div>
+						<button mat-stroked-button type="button" (click)="addSynonym(refset.refsetId)">
+							Add synonym
+						</button>
+					</div>
+				</div>
+			</ng-container>
+
+			<p class="field-hint" *ngIf="isEditMode && !form.get('active')?.value">
+				Saving will inactivate this concept.
+			</p>
+		</ng-container>
+	</div>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+	<button mat-button type="button" (click)="onCancel()" [disabled]="saving">Cancel</button>
+	<button mat-flat-button color="primary" type="button" (click)="onSubmit()" [disabled]="!canSubmit()">
+		<span *ngIf="!saving">Save</span>
+		<span class="loading-content" *ngIf="saving">
+			<mat-spinner diameter="20"></mat-spinner>
+			Saving...
+		</span>
+	</button>
+</mat-dialog-actions>

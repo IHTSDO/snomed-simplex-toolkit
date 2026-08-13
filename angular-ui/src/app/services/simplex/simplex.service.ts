@@ -339,6 +339,30 @@ export class SimplexService {
     return this.http.get(url).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public getCustomConcept(edition: string, conceptId: string): Observable<any> {
+    const id = encodeURIComponent(conceptId.trim());
+    return this.http.get(`api/${edition}/concepts/${id}`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public createCustomConcept(edition: string, body: {
+    parentCode: string;
+    active: boolean;
+    conceptCode?: string | null;
+    langRefsetTerms: Record<string, string[]>;
+  }): Observable<any> {
+    return this.http.post(`api/${edition}/concepts`, body).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public updateCustomConcept(edition: string, conceptId: string, body: {
+    parentCode?: string | null;
+    active: boolean;
+    conceptCode?: string | null;
+    langRefsetTerms?: Record<string, string[]>;
+  }): Observable<any> {
+    const id = encodeURIComponent(conceptId.trim());
+    return this.http.put(`api/${edition}/concepts/${id}`, body).pipe(catchError(this.handleError.bind(this)));
+  }
+
   public startValidation(edition: string): Observable<any> {
     return this.http.post(`api/codesystems/${edition}/validate`, null).pipe(catchError(this.handleError.bind(this)));
   }

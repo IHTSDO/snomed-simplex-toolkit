@@ -1,0 +1,52 @@
+.dialog-content {
+	min-width: min(640px, 90vw);
+	max-width: 720px;
+}
+
+.loading-wrap {
+	display: flex;
+	justify-content: center;
+	padding: 2rem;
+}
+
+.full-width {
+	width: 100%;
+}
+
+.field-section {
+	margin-top: 1rem;
+}
+
+.field-section h3 {
+	margin: 0 0 0.5rem;
+	font-size: 0.95rem;
+	font-weight: 600;
+}
+
+.field-hint {
+	color: rgba(0, 0, 0, 0.6);
+	font-size: 0.875rem;
+}
+
+.active-toggle {
+	display: block;
+	margin-bottom: 1rem;
+}
+
+.synonyms-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.synonym-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.25rem;
+}
+
+.loading-content {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}

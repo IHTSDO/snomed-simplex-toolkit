@@ -303,6 +303,33 @@ public class SpreadsheetService {
 		return message;
 	}
 
+	public record ParentConceptReference(String parentCode, String parentTerm) {
+	}
+
+	public ParentConceptReference extractStatedParent(Concept concept) {
+		String parentId = "";
+		String parentFSN = "";
+		if (concept.getClassAxioms() != null) {
+			for (Axiom classAxiom : concept.getClassAxioms()) {
+				if (classAxiom.getRelationships() == null) {
+					continue;
+				}
+				for (Relationship relationship : classAxiom.getRelationships()) {
+					if (relationship.getTypeId().equals(IS_A) && relationship.getTarget() != null) {
+						parentId = relationship.getTarget().getConceptId();
+						DescriptionMini fsn = relationship.getTarget().getFsn();
+						parentFSN = fsn != null ? fsn.getTerm() : "";
+					}
+				}
+			}
+		}
+		return new ParentConceptReference(parentId, parentFSN);
+	}
+
+	public Map<String, List<String>> mapDescriptionsPerLangRefset(List<Description> descriptions, List<String> langRefsetIds) {
+		return getDescriptionsPerLangRefset(descriptions, langRefsetIds);
+	}
+
 	private static Map<String, List<String>> getDescriptionsPerLangRefset(List<Description> descriptions, List<String> langRefsetIds) {
 		Map<String, List<String>> descriptionsPerLangRefset = new HashMap<>();
 		for (String langRefsetId : langRefsetIds) {

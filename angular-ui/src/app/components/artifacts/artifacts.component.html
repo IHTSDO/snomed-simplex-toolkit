@@ -117,7 +117,12 @@
                         </div>
                     </div>
 
-                    <app-concepts-list #conceptsList *ngIf="selectedArtifact.type === 'concepts'" [edition]="edition"></app-concepts-list>
+                    <app-concepts-list #conceptsList *ngIf="selectedArtifact.type === 'concepts'"
+                        [edition]="edition"
+                        [editionDetails]="editionDetails"
+                        [editable]="editionDetails?.editionStatus == 'AUTHORING'"
+                        (conceptsChanged)="refreshArtifacts()">
+                    </app-concepts-list>
                     <app-jobs [refsetId]="selectedArtifact.conceptId" [artifact]="selectedArtifact" [edition]="edition" [editionDetails]="editionDetails" (jobCompleted)="refreshArtifacts()"
                     *ngIf="editionDetails?.editionStatus == 'AUTHORING'">
                     </app-jobs>
