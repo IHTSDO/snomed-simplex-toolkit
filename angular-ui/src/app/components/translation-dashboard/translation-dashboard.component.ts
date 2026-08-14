@@ -23,7 +23,18 @@ import { TranslationStudioImportJobsComponent } from '../translation-studio-impo
 import { normalizeTranslationTerm } from 'src/app/utils/translation-term-normalizer.util';
 import { defaultLanguageDialectName, displayLanguageDialect, LanguagePolicyRow } from 'src/app/models/language-translation-policy.model';
 import { translationStatusLabel, translationStatusRadioLabel, TRANSLATION_STATUS_RADIO_ORDER, TRANSLATION_SET_STATUS_SUMMARY_ORDER, TRANSLATION_CONCEPT_STATUS_FILTER_ORDER } from 'src/app/utils/translation-status-label';
-import { countConceptIdsInFile, detectImportColumnMapping, readImportHeaders } from 'src/app/utils/csv-column-mapping.util';
+import {
+	applySheetSelection,
+	buildHeaderRowOptions,
+	applyHeaderRowIndex,
+	countConceptIdsInFile,
+	detectImportColumnMapping,
+	isSpreadsheetFile,
+	readCsvHeaders,
+	readSpreadsheetSample,
+	HeaderRowOption,
+	SpreadsheetFileSample
+} from 'src/app/utils/csv-column-mapping.util';
 import { isTranslationSetBusy, isTranslationSetEditable, isTranslationSetInProgress, translationSetLifecycleStatusLabel } from 'src/app/utils/translation-set-status';
 import { parseTranslationStatusFilter, parseTranslationEnglishSearch, parseTranslationTargetSearch, effectiveTranslationTermSearch, mergeTranslationStudioQueryParams } from 'src/app/utils/translation-studio-query-params';
 import { textDirection, TextDirection } from 'src/app/utils/language-direction';
@@ -116,6 +127,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     conceptPreviewCount = 0;
     conceptPreviewInvalidRows = 0;
     conceptPreviewDuplicateRows = 0;
+    spreadsheetSample: SpreadsheetFileSample | null = null;
+    selectedSheetName = '';
+    headerRowIndex = 0;
+    headerRowOptions: HeaderRowOption[] = [];
     readonly conceptFileStatusOptions = TRANSLATION_STATUS_RADIO_ORDER.map((status) => ({
         value: status,
         label: translationStatusRadioLabel(status)
@@ -141,17 +156,26 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
     get canSubmitCreateForm(): boolean {
         if (this.eclInputMethod === 'file') {
+            const hasConceptPreview = this.isConceptFileSpreadsheet || this.conceptPreviewCount > 0;
             return !!this.form.get('translation')?.valid
                 && !!this.form.get('name')?.valid
                 && !!this.form.get('label')?.value
                 && !!this.selectedConceptFile
                 && !!this.conceptFileConceptColumn
-                && this.conceptPreviewCount > 0
+                && hasConceptPreview
                 && (this.conceptFileTermColumns.length === 0 || !!this.conceptFileImportStatus)
                 && !this.parsingConceptFile
                 && !this.previewingConceptFile;
         }
         return this.form.valid;
+    }
+
+    get isConceptFileSpreadsheet(): boolean {
+        return !!this.selectedConceptFile && isSpreadsheetFile(this.selectedConceptFile);
+    }
+
+    get showSpreadsheetSheetPicker(): boolean {
+        return (this.spreadsheetSample?.sheets.length ?? 0) > 1;
     }
 
     get conceptFileTermColumnCountLabel(): string {
@@ -660,22 +684,35 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.conceptFileHeaders = [];
         this.conceptFileConceptColumn = '';
         this.conceptFileTermColumns = [];
+        this.spreadsheetSample = null;
+        this.selectedSheetName = '';
+        this.headerRowIndex = 0;
         this.resetConceptFilePreview();
 
         try {
-            this.conceptFileHeaders = await readImportHeaders(file);
-            if (this.conceptFileHeaders.length === 0) {
-                throw new Error('No header row found');
+            if (isSpreadsheetFile(file)) {
+                this.spreadsheetSample = await readSpreadsheetSample(file);
+                const initialSheet = this.spreadsheetSample.sheets[0];
+                if (!initialSheet || initialSheet.headers.length === 0) {
+                    throw new Error('No header row found');
+                }
+                this.applySpreadsheetSheetSelection(initialSheet.name);
+            } else {
+                this.conceptFileHeaders = await readCsvHeaders(file);
+                if (this.conceptFileHeaders.length === 0) {
+                    throw new Error('No header row found');
+                }
+                const mapping = detectImportColumnMapping(this.conceptFileHeaders);
+                this.conceptFileConceptColumn = mapping.conceptColumn;
+                this.conceptFileTermColumns = [...mapping.termColumns];
             }
-            const mapping = detectImportColumnMapping(this.conceptFileHeaders);
-            this.conceptFileConceptColumn = mapping.conceptColumn;
-            this.conceptFileTermColumns = [...mapping.termColumns];
 
             const baseName = file.name.replace(/\.[^.]+$/, '').trim();
             if (baseName && !this.form.get('name')?.value) {
                 this.form.patchValue({ name: baseName });
             }
 
+            this.parsingConceptFile = false;
             await this.refreshConceptFilePreview();
         } catch (error) {
             console.error('Failed to read file headers:', error);
@@ -689,6 +726,58 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         }
     }
 
+    async onConceptFileSheetChange(): Promise<void> {
+        if (!this.spreadsheetSample || !this.selectedSheetName) {
+            return;
+        }
+        try {
+            this.applySpreadsheetSheetSelection(this.selectedSheetName);
+            await this.refreshConceptFilePreview();
+        } catch (error) {
+            console.error('Failed to read spreadsheet sheet:', error);
+            this.snackBar.open('Failed to read the selected sheet.', 'Close', {
+                duration: 8000
+            });
+        }
+    }
+
+    async onConceptFileHeaderRowChange(): Promise<void> {
+        if (!this.spreadsheetSample || !this.selectedSheetName) {
+            return;
+        }
+        try {
+            this.applySpreadsheetHeaderMapping();
+            await this.refreshConceptFilePreview();
+        } catch (error) {
+            console.error('Failed to apply header row:', error);
+            this.snackBar.open('Failed to apply the selected header row.', 'Close', {
+                duration: 8000
+            });
+        }
+    }
+
+    private applySpreadsheetSheetSelection(sheetName: string): void {
+        if (!this.spreadsheetSample) {
+            return;
+        }
+        const sheet = applySheetSelection(this.spreadsheetSample, sheetName);
+        this.selectedSheetName = sheet.name;
+        this.headerRowIndex = sheet.headerRowIndex;
+        this.headerRowOptions = buildHeaderRowOptions(sheet.rows);
+        this.applySpreadsheetHeaderMapping();
+    }
+
+    private applySpreadsheetHeaderMapping(): void {
+        if (!this.spreadsheetSample || !this.selectedSheetName) {
+            return;
+        }
+        const sheet = applyHeaderRowIndex(this.spreadsheetSample, this.selectedSheetName, this.headerRowIndex);
+        this.conceptFileHeaders = [...sheet.headers];
+        const mapping = detectImportColumnMapping(this.conceptFileHeaders);
+        this.conceptFileConceptColumn = mapping.conceptColumn;
+        this.conceptFileTermColumns = [...mapping.termColumns];
+    }
+
     async onConceptFileConceptColumnChange(): Promise<void> {
         await this.refreshConceptFilePreview();
     }
@@ -700,7 +789,18 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         }
         this.previewingConceptFile = true;
         try {
-            const preview = await countConceptIdsInFile(this.selectedConceptFile, this.conceptFileConceptColumn);
+            const spreadsheetOptions = this.isConceptFileSpreadsheet && this.spreadsheetSample
+                ? {
+                    sample: this.spreadsheetSample,
+                    sheetName: this.selectedSheetName,
+                    headerRowIndex: this.headerRowIndex
+                }
+                : undefined;
+            const preview = await countConceptIdsInFile(
+                this.selectedConceptFile,
+                this.conceptFileConceptColumn,
+                spreadsheetOptions
+            );
             this.conceptPreviewCount = preview.conceptCount;
             this.conceptPreviewInvalidRows = preview.invalidRows;
             this.conceptPreviewDuplicateRows = preview.duplicateRows;
@@ -725,6 +825,10 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.conceptFileConceptColumn = '';
         this.conceptFileTermColumns = [];
         this.conceptFileImportStatus = 'FOR_REVIEW';
+        this.spreadsheetSample = null;
+        this.selectedSheetName = '';
+        this.headerRowIndex = 0;
+        this.headerRowOptions = [];
         this.parsingConceptFile = false;
         this.previewingConceptFile = false;
         this.resetConceptFilePreview();
@@ -979,7 +1083,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             this.conceptFileConceptColumn,
             description,
             termColumns,
-            status
+            status,
+            this.isConceptFileSpreadsheet ? this.selectedSheetName : undefined,
+            this.isConceptFileSpreadsheet ? this.headerRowIndex : undefined
         ).subscribe(
             () => {
                 this.snackBar.open('Translation set is being created', 'Dismiss', {

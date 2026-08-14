@@ -14,9 +14,16 @@ import {
 	translationStatusRadioLabel
 } from 'src/app/utils/translation-status-label';
 import {
+	applySheetSelection,
+	applyHeaderRowIndex,
+	buildHeaderRowOptions,
 	countConceptIdsInFile,
 	detectImportColumnMapping,
-	readImportHeaders
+	isSpreadsheetFile,
+	readCsvHeaders,
+	readSpreadsheetSample,
+	HeaderRowOption,
+	SpreadsheetFileSample
 } from 'src/app/utils/csv-column-mapping.util';
 
 export interface UpdateConceptListDialogData {
@@ -59,6 +66,10 @@ export class UpdateConceptListDialogComponent {
 	conceptPreviewCount = 0;
 	conceptPreviewInvalidRows = 0;
 	conceptPreviewDuplicateRows = 0;
+	spreadsheetSample: SpreadsheetFileSample | null = null;
+	selectedSheetName = '';
+	headerRowIndex = 0;
+	headerRowOptions: HeaderRowOption[] = [];
 
 	readonly statusOptions = TRANSLATION_STATUS_RADIO_ORDER.map((status) => ({
 		value: status,
@@ -72,10 +83,19 @@ export class UpdateConceptListDialogComponent {
 		private simplexService: SimplexService
 	) {}
 
+	get isSpreadsheet(): boolean {
+		return !!this.selectedFile && isSpreadsheetFile(this.selectedFile);
+	}
+
+	get showSpreadsheetSheetPicker(): boolean {
+		return (this.spreadsheetSample?.sheets.length ?? 0) > 1;
+	}
+
 	get canSubmit(): boolean {
+		const hasConceptPreview = this.isSpreadsheet || this.conceptPreviewCount > 0;
 		return !!this.selectedFile
 			&& !!this.conceptColumn
-			&& this.conceptPreviewCount > 0
+			&& hasConceptPreview
 			&& (this.termColumns.length === 0 || !!this.selectedStatus)
 			&& !this.loading
 			&& !this.parsingHeaders
@@ -107,16 +127,30 @@ export class UpdateConceptListDialogComponent {
 		this.headers = [];
 		this.conceptColumn = '';
 		this.termColumns = [];
+		this.spreadsheetSample = null;
+		this.selectedSheetName = '';
+		this.headerRowIndex = 0;
 		this.resetConceptPreview();
 
 		try {
-			this.headers = await readImportHeaders(file);
-			if (this.headers.length === 0) {
-				throw new Error('No header row found');
+			if (isSpreadsheetFile(file)) {
+				this.spreadsheetSample = await readSpreadsheetSample(file);
+				const initialSheet = this.spreadsheetSample.sheets[0];
+				if (!initialSheet || initialSheet.headers.length === 0) {
+					throw new Error('No header row found');
+				}
+				this.applySpreadsheetSheetSelection(initialSheet.name);
+			} else {
+				this.headers = await readCsvHeaders(file);
+				if (this.headers.length === 0) {
+					throw new Error('No header row found');
+				}
+				const mapping = detectImportColumnMapping(this.headers);
+				this.conceptColumn = mapping.conceptColumn;
+				this.termColumns = [...mapping.termColumns];
 			}
-			const mapping = detectImportColumnMapping(this.headers);
-			this.conceptColumn = mapping.conceptColumn;
-			this.termColumns = [...mapping.termColumns];
+
+			this.parsingHeaders = false;
 			await this.refreshConceptPreview();
 		} catch (error) {
 			console.error('Failed to read file headers:', error);
@@ -131,6 +165,36 @@ export class UpdateConceptListDialogComponent {
 		}
 	}
 
+	async onSheetChange(): Promise<void> {
+		if (!this.spreadsheetSample || !this.selectedSheetName) {
+			return;
+		}
+		try {
+			this.applySpreadsheetSheetSelection(this.selectedSheetName);
+			await this.refreshConceptPreview();
+		} catch (error) {
+			console.error('Failed to read spreadsheet sheet:', error);
+			this.snackBar.open('Failed to read the selected sheet.', 'Close', {
+				duration: 8000
+			});
+		}
+	}
+
+	async onHeaderRowChange(): Promise<void> {
+		if (!this.spreadsheetSample || !this.selectedSheetName) {
+			return;
+		}
+		try {
+			this.applySpreadsheetHeaderMapping();
+			await this.refreshConceptPreview();
+		} catch (error) {
+			console.error('Failed to apply header row:', error);
+			this.snackBar.open('Failed to apply the selected header row.', 'Close', {
+				duration: 8000
+			});
+		}
+	}
+
 	async onConceptColumnChange(): Promise<void> {
 		await this.refreshConceptPreview();
 	}
@@ -142,7 +206,14 @@ export class UpdateConceptListDialogComponent {
 		}
 		this.previewingConcepts = true;
 		try {
-			const preview = await countConceptIdsInFile(this.selectedFile, this.conceptColumn);
+			const spreadsheetOptions = this.isSpreadsheet && this.spreadsheetSample
+				? {
+					sample: this.spreadsheetSample,
+					sheetName: this.selectedSheetName,
+					headerRowIndex: this.headerRowIndex
+				}
+				: undefined;
+			const preview = await countConceptIdsInFile(this.selectedFile, this.conceptColumn, spreadsheetOptions);
 			this.conceptPreviewCount = preview.conceptCount;
 			this.conceptPreviewInvalidRows = preview.invalidRows;
 			this.conceptPreviewDuplicateRows = preview.duplicateRows;
@@ -174,7 +245,9 @@ export class UpdateConceptListDialogComponent {
 			this.selectedFile,
 			this.conceptColumn,
 			termColumns,
-			status
+			status,
+			this.isSpreadsheet ? this.selectedSheetName : undefined,
+			this.isSpreadsheet ? this.headerRowIndex : undefined
 		).subscribe({
 			next: (job) => {
 				this.loading = false;
@@ -198,6 +271,28 @@ export class UpdateConceptListDialogComponent {
 				});
 			}
 		});
+	}
+
+	private applySpreadsheetSheetSelection(sheetName: string): void {
+		if (!this.spreadsheetSample) {
+			return;
+		}
+		const sheet = applySheetSelection(this.spreadsheetSample, sheetName);
+		this.selectedSheetName = sheet.name;
+		this.headerRowIndex = sheet.headerRowIndex;
+		this.headerRowOptions = buildHeaderRowOptions(sheet.rows);
+		this.applySpreadsheetHeaderMapping();
+	}
+
+	private applySpreadsheetHeaderMapping(): void {
+		if (!this.spreadsheetSample || !this.selectedSheetName) {
+			return;
+		}
+		const sheet = applyHeaderRowIndex(this.spreadsheetSample, this.selectedSheetName, this.headerRowIndex);
+		this.headers = [...sheet.headers];
+		const mapping = detectImportColumnMapping(this.headers);
+		this.conceptColumn = mapping.conceptColumn;
+		this.termColumns = [...mapping.termColumns];
 	}
 
 	private resetConceptPreview(): void {

@@ -133,6 +133,22 @@
                         </div>
 
                         <div class="mapping-section" *ngIf="conceptFileHeaders.length > 0">
+                            <mat-form-field *ngIf="showSpreadsheetSheetPicker">
+                                <mat-label>Sheet</mat-label>
+                                <mat-select [(ngModel)]="selectedSheetName" [ngModelOptions]="{standalone: true}"
+                                            [disabled]="saving" (selectionChange)="onConceptFileSheetChange()">
+                                    <mat-option *ngFor="let sheet of spreadsheetSample?.sheets" [value]="sheet.name">{{ sheet.name }}</mat-option>
+                                </mat-select>
+                            </mat-form-field>
+
+                            <mat-form-field *ngIf="isConceptFileSpreadsheet">
+                                <mat-label>Header row</mat-label>
+                                <mat-select [(ngModel)]="headerRowIndex" [ngModelOptions]="{standalone: true}"
+                                            [disabled]="saving" (selectionChange)="onConceptFileHeaderRowChange()">
+                                    <mat-option *ngFor="let option of headerRowOptions" [value]="option.index">{{ option.label }}</mat-option>
+                                </mat-select>
+                            </mat-form-field>
+
                             <mat-form-field>
                                 <mat-label>Concept code column</mat-label>
                                 <mat-select [(ngModel)]="conceptFileConceptColumn" [ngModelOptions]="{standalone: true}"
@@ -153,6 +169,9 @@
                                 {{ conceptPreviewCount }} concept{{ conceptPreviewCount === 1 ? '' : 's' }} found
                                 <span *ngIf="conceptPreviewDuplicateRows > 0">({{ conceptPreviewDuplicateRows }} duplicate{{ conceptPreviewDuplicateRows === 1 ? '' : 's' }} skipped)</span>
                                 <span *ngIf="conceptPreviewInvalidRows > 0">({{ conceptPreviewInvalidRows }} invalid row{{ conceptPreviewInvalidRows === 1 ? '' : 's' }} skipped)</span>
+                            </p>
+                            <p class="mapping-hint" *ngIf="isConceptFileSpreadsheet">
+                                Preview based on first rows of file; full validation runs on submit.
                             </p>
                             <p class="mapping-hint">
                                 Concepts not present in the Translation Studio language index will be skipped during set creation.

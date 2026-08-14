@@ -145,7 +145,8 @@ public class TranslationStudioController {
 	public SnolateTranslationSet createSetFromFile(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@RequestParam MultipartFile file, @RequestParam String name, @RequestParam String label,
 			@RequestParam(required = false) String description, @RequestParam String conceptColumn,
-			@RequestParam(required = false) List<String> termColumns, @RequestParam(required = false) String status)
+			@RequestParam(required = false) List<String> termColumns, @RequestParam(required = false) String status,
+			@RequestParam(required = false) String sheetName, @RequestParam(required = false) Integer headerRowIndex)
 			throws ServiceException, IOException {
 
 		rejectFoundationEnglishLangRefset(refsetId);
@@ -168,7 +169,7 @@ public class TranslationStudioController {
 		ConceptListParseResult parseResult;
 		try (var inputStream = contentJob.getInputStream()) {
 			parseResult = snolateTranslationService.parseConceptIdsFromFile(inputStream,
-					contentJob.getInputFileOriginalName(), conceptColumn);
+					contentJob.getInputFileOriginalName(), conceptColumn, sheetName, headerRowIndex);
 		}
 		if (parseResult.conceptIds().isEmpty()) {
 			throw new ServiceExceptionWithStatusCode("File contains no valid concept IDs.", HttpStatus.BAD_REQUEST);
@@ -188,7 +189,7 @@ public class TranslationStudioController {
 			if (!termColumnList.isEmpty()) {
 				changeSummary = snolateTranslationService.importTranslationSetFile(currentSet, job.getInputStream(),
 						job.getInputFileOriginalName(), conceptColumn, termColumnList, importStatus,
-						OutsideSetBehavior.SKIP);
+						OutsideSetBehavior.SKIP, sheetName, headerRowIndex);
 			}
 			return changeSummary;
 		});
@@ -202,7 +203,8 @@ public class TranslationStudioController {
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public AsyncJob updateConceptListFromFile(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@PathVariable String label, @RequestParam MultipartFile file, @RequestParam String conceptColumn,
-			@RequestParam(required = false) List<String> termColumns, @RequestParam(required = false) String status)
+			@RequestParam(required = false) List<String> termColumns, @RequestParam(required = false) String status,
+			@RequestParam(required = false) String sheetName, @RequestParam(required = false) Integer headerRowIndex)
 			throws ServiceException, IOException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
@@ -227,7 +229,7 @@ public class TranslationStudioController {
 		ConceptListParseResult parseResult;
 		try (var inputStream = contentJob.getInputStream()) {
 			parseResult = snolateTranslationService.parseConceptIdsFromFile(inputStream,
-					contentJob.getInputFileOriginalName(), conceptColumn);
+					contentJob.getInputFileOriginalName(), conceptColumn, sheetName, headerRowIndex);
 		}
 		if (parseResult.conceptIds().isEmpty()) {
 			throw new ServiceExceptionWithStatusCode("File contains no valid concept IDs.", HttpStatus.BAD_REQUEST);
@@ -245,7 +247,7 @@ public class TranslationStudioController {
 			}
 			return snolateTranslationService.importTranslationSetFile(currentSet, job.getInputStream(),
 					job.getInputFileOriginalName(), conceptColumn, termColumnList, importStatus,
-					OutsideSetBehavior.SKIP);
+					OutsideSetBehavior.SKIP, sheetName, headerRowIndex);
 		});
 	}
 
@@ -329,7 +331,8 @@ public class TranslationStudioController {
 	public AsyncJob uploadSetCsv(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@PathVariable String label, @RequestParam MultipartFile file,
 			@RequestParam String conceptColumn, @RequestParam List<String> termColumns, @RequestParam String status,
-			@RequestParam(required = false, defaultValue = "SKIP") String outsideSetBehavior)
+			@RequestParam(required = false, defaultValue = "SKIP") String outsideSetBehavior,
+			@RequestParam(required = false) String sheetName, @RequestParam(required = false) Integer headerRowIndex)
 			throws ServiceException, IOException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
@@ -351,7 +354,7 @@ public class TranslationStudioController {
 		return jobService.queueContentJob(contentJob, refsetId, activity,
 				job -> snolateTranslationService.importTranslationSetFile(
 						translationSet, job.getInputStream(), job.getInputFileOriginalName(), conceptColumn,
-						termColumnList, importStatus, outsideSet));
+						termColumnList, importStatus, outsideSet, sheetName, headerRowIndex));
 	}
 
 	@GetMapping("{refsetId}/sets/{label}/units/{conceptId}")

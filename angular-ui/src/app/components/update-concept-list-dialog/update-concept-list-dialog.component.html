@@ -16,6 +16,20 @@
         </div>
 
         <div class="mapping-section" *ngIf="headers.length > 0">
+            <mat-form-field appearance="outline" class="mapping-field" *ngIf="showSpreadsheetSheetPicker">
+                <mat-label>Sheet</mat-label>
+                <mat-select [(ngModel)]="selectedSheetName" [disabled]="loading" (selectionChange)="onSheetChange()">
+                    <mat-option *ngFor="let sheet of spreadsheetSample?.sheets" [value]="sheet.name">{{ sheet.name }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="mapping-field" *ngIf="isSpreadsheet">
+                <mat-label>Header row</mat-label>
+                <mat-select [(ngModel)]="headerRowIndex" [disabled]="loading" (selectionChange)="onHeaderRowChange()">
+                    <mat-option *ngFor="let option of headerRowOptions" [value]="option.index">{{ option.label }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+
             <mat-form-field appearance="outline" class="mapping-field">
                 <mat-label>Concept code column</mat-label>
                 <mat-select [(ngModel)]="conceptColumn" [disabled]="loading" (selectionChange)="onConceptColumnChange()">
@@ -38,6 +52,9 @@
                 {{ conceptPreviewCount }} concept{{ conceptPreviewCount === 1 ? '' : 's' }} found
                 <span *ngIf="conceptPreviewDuplicateRows > 0">({{ conceptPreviewDuplicateRows }} duplicate{{ conceptPreviewDuplicateRows === 1 ? '' : 's' }} skipped)</span>
                 <span *ngIf="conceptPreviewInvalidRows > 0">({{ conceptPreviewInvalidRows }} invalid row{{ conceptPreviewInvalidRows === 1 ? '' : 's' }} skipped)</span>
+            </p>
+            <p class="mapping-hint" *ngIf="isSpreadsheet">
+                Preview based on first rows of file; full validation runs on submit.
             </p>
         </div>
 

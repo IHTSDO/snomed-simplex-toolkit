@@ -187,6 +187,241 @@ export function isSpreadsheetFile(file: File): boolean {
 	return name.endsWith('.xlsx');
 }
 
+export const DEFAULT_SPREADSHEET_SAMPLE_ROWS = 10;
+
+export interface SpreadsheetSheetSample {
+	name: string;
+	rows: string[][];
+	headerRowIndex: number;
+	headers: string[];
+}
+
+export interface SpreadsheetFileSample {
+	sheets: SpreadsheetSheetSample[];
+}
+
+export interface SpreadsheetCountOptions {
+	sheetName?: string;
+	headerRowIndex?: number;
+	sample?: SpreadsheetFileSample;
+}
+
+export function countFilledCells(row: string[]): number {
+	return row.filter((cell) => String(cell ?? '').trim().length > 0).length;
+}
+
+const HEADER_WIDTH_TOLERANCE = 1;
+const GENERIC_HEADER_TOKEN = /\b(code|id|term|type|field|name|status|source|notes)\b/i;
+const URL_PATTERN = /^https?:\/\//i;
+
+export interface HeaderRowOption {
+	index: number;
+	label: string;
+}
+
+export function rowWidthMatches(headerCount: number, dataCount: number, tolerance: number = HEADER_WIDTH_TOLERANCE): boolean {
+	return dataCount >= headerCount - tolerance && dataCount <= headerCount + tolerance;
+}
+
+export function countSnomedIdCells(row: string[]): number {
+	return row.filter((cell) => parseSnomedConceptId(String(cell ?? '')) !== null).length;
+}
+
+export function countUrlCells(row: string[]): number {
+	return row.filter((cell) => URL_PATTERN.test(String(cell ?? '').trim())).length;
+}
+
+function isLabelLikeCell(value: string): boolean {
+	const trimmed = value.trim();
+	if (!trimmed) {
+		return false;
+	}
+	if (parseSnomedConceptId(trimmed)) {
+		return false;
+	}
+	if (URL_PATTERN.test(trimmed)) {
+		return false;
+	}
+	if (/^\d+(\.\d+)?([eE][+-]?\d+)?$/.test(trimmed)) {
+		return false;
+	}
+	const alphaMatches = trimmed.match(/[A-Za-z\u00C0-\u024F]/g);
+	const alphaCount = alphaMatches?.length ?? 0;
+	return alphaCount >= Math.max(2, trimmed.length * 0.3);
+}
+
+export function countLabelLikeCells(row: string[]): number {
+	return row.filter((cell) => isLabelLikeCell(String(cell ?? ''))).length;
+}
+
+export function countGenericHeaderTokens(row: string[]): number {
+	return row.filter((cell) => GENERIC_HEADER_TOKEN.test(String(cell ?? ''))).length;
+}
+
+function knownHeaderBonus(row: string[]): number {
+	const headers = extractHeaders(row);
+	let score = 0;
+	for (const header of headers) {
+		const lower = header.toLowerCase().trim();
+		if (KNOWN_CONCEPT_HEADERS.includes(lower as typeof KNOWN_CONCEPT_HEADERS[number])) {
+			score += 10;
+		}
+		if (lower === 'target' || lower === 'pt') {
+			score += 5;
+		}
+	}
+	return score;
+}
+
+function scoreHeaderCandidate(row: string[], filledCount: number): number {
+	let score = 0;
+	score += countLabelLikeCells(row) * 10;
+	score += countGenericHeaderTokens(row) * 3;
+	score += knownHeaderBonus(row);
+	score -= countSnomedIdCells(row) * 15;
+	score -= countUrlCells(row) * 5;
+	if (filledCount >= 3) {
+		score += 2;
+	}
+	return score;
+}
+
+export function detectHeaderRowIndex(rows: string[][]): number {
+	if (rows.length === 0) {
+		return 0;
+	}
+
+	const filledCounts = rows.map(countFilledCells);
+	const candidates: number[] = [];
+
+	for (let rowIndex = 0; rowIndex < rows.length - 1; rowIndex++) {
+		const filledCount = filledCounts[rowIndex];
+		if (filledCount < 2) {
+			continue;
+		}
+		let matchingDataRows = 0;
+		for (let dataRowIndex = rowIndex + 1; dataRowIndex < rows.length; dataRowIndex++) {
+			if (rowWidthMatches(filledCount, filledCounts[dataRowIndex])) {
+				matchingDataRows++;
+			}
+		}
+		if (matchingDataRows >= 1) {
+			candidates.push(rowIndex);
+		}
+	}
+
+	if (candidates.length > 0) {
+		let bestRowIndex = candidates[0];
+		let bestScore = scoreHeaderCandidate(rows[bestRowIndex] ?? [], filledCounts[bestRowIndex]);
+		for (let candidateIndex = 1; candidateIndex < candidates.length; candidateIndex++) {
+			const candidateRowIndex = candidates[candidateIndex];
+			const score = scoreHeaderCandidate(rows[candidateRowIndex] ?? [], filledCounts[candidateRowIndex]);
+			if (score > bestScore) {
+				bestRowIndex = candidateRowIndex;
+				bestScore = score;
+			}
+		}
+		return bestRowIndex;
+	}
+
+	const fallbackRowIndex = filledCounts.findIndex((filledCount) => filledCount >= 2);
+	return fallbackRowIndex >= 0 ? fallbackRowIndex : 0;
+}
+
+export function buildHeaderRowOptions(
+	rows: string[][],
+	maxRows: number = DEFAULT_SPREADSHEET_SAMPLE_ROWS
+): HeaderRowOption[] {
+	const options: HeaderRowOption[] = [];
+	const limit = Math.min(rows.length, maxRows);
+	for (let rowIndex = 0; rowIndex < limit; rowIndex++) {
+		const previewCells = extractHeaders(rows[rowIndex] ?? []).slice(0, 3);
+		let preview = previewCells.length > 0 ? `: ${previewCells.join(', ')}` : '';
+		if (preview.length > 80) {
+			preview = `${preview.slice(0, 77)}…`;
+		}
+		options.push({
+			index: rowIndex,
+			label: `Row ${rowIndex + 1}${preview}`
+		});
+	}
+	return options;
+}
+
+export function applyHeaderRowIndex(
+	sample: SpreadsheetFileSample,
+	sheetName: string,
+	headerRowIndex: number
+): SpreadsheetSheetSample {
+	const sheet = getSheetSample(sample, sheetName);
+	if (!sheet) {
+		throw new Error(`Sheet not found: ${sheetName}`);
+	}
+	const headers = extractHeaders(sheet.rows[headerRowIndex] ?? []);
+	return {
+		...sheet,
+		headerRowIndex,
+		headers
+	};
+}
+
+export function extractHeaders(row: string[]): string[] {
+	if (!row || row.length === 0) {
+		return [];
+	}
+	let end = row.length;
+	while (end > 0 && !String(row[end - 1] ?? '').trim()) {
+		end--;
+	}
+	return row.slice(0, end)
+		.map((header) => String(header ?? '').trim())
+		.filter((header) => header.length > 0);
+}
+
+function normalizeSpreadsheetRow(row: unknown): string[] {
+	if (!Array.isArray(row)) {
+		return [];
+	}
+	return row.map((cell) => String(cell ?? '').trim());
+}
+
+function readSheetSampleRows(sheet: XLSX.WorkSheet, maxRows: number): string[][] {
+	const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
+	return rows.slice(0, maxRows).map((row) => normalizeSpreadsheetRow(row));
+}
+
+function buildSheetSample(name: string, rows: string[][]): SpreadsheetSheetSample {
+	const headerRowIndex = detectHeaderRowIndex(rows);
+	const headers = extractHeaders(rows[headerRowIndex] ?? []);
+	return { name, rows, headerRowIndex, headers };
+}
+
+export async function readSpreadsheetSample(
+	file: File,
+	maxRows: number = DEFAULT_SPREADSHEET_SAMPLE_ROWS
+): Promise<SpreadsheetFileSample> {
+	const buffer = await file.arrayBuffer();
+	const workbook = XLSX.read(buffer, { type: 'array', sheetRows: maxRows });
+	const sheets = workbook.SheetNames.map((name) => {
+		const sheet = workbook.Sheets[name];
+		const rows = readSheetSampleRows(sheet, maxRows);
+		return buildSheetSample(name, rows);
+	});
+	return { sheets };
+}
+
+export function getSheetSample(sample: SpreadsheetFileSample, sheetName: string): SpreadsheetSheetSample | undefined {
+	return sample.sheets.find((sheet) => sheet.name === sheetName);
+}
+
+export function applySheetSelection(sample: SpreadsheetFileSample, sheetName: string): SpreadsheetSheetSample {
+	const sheet = getSheetSample(sample, sheetName);
+	if (!sheet) {
+		throw new Error(`Sheet not found: ${sheetName}`);
+	}
+	return buildSheetSample(sheet.name, sheet.rows);
+}
+
 export async function readCsvHeaders(file: File): Promise<string[]> {
 	const chunk = await file.slice(0, 65536).text();
 	const headerLine = readFirstLine(chunk);
@@ -196,21 +431,8 @@ export async function readCsvHeaders(file: File): Promise<string[]> {
 }
 
 export async function readSpreadsheetHeaders(file: File): Promise<string[]> {
-	const buffer = await file.arrayBuffer();
-	const workbook = XLSX.read(buffer, { type: 'array' });
-	const sheetName = workbook.SheetNames[0];
-	if (!sheetName) {
-		return [];
-	}
-	const sheet = workbook.Sheets[sheetName];
-	const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
-	const headerRow = rows[0];
-	if (!headerRow || !Array.isArray(headerRow)) {
-		return [];
-	}
-	return headerRow
-		.map((header) => String(header ?? '').trim())
-		.filter((header) => header.length > 0);
+	const sample = await readSpreadsheetSample(file);
+	return sample.sheets[0]?.headers ?? [];
 }
 
 export async function readImportHeaders(file: File): Promise<string[]> {
@@ -341,9 +563,13 @@ export interface ConceptIdPreviewResult {
 	duplicateRows: number;
 }
 
-export async function countConceptIdsInFile(file: File, conceptColumn: string): Promise<ConceptIdPreviewResult> {
+export async function countConceptIdsInFile(
+	file: File,
+	conceptColumn: string,
+	spreadsheetOptions?: SpreadsheetCountOptions
+): Promise<ConceptIdPreviewResult> {
 	if (isSpreadsheetFile(file)) {
-		return countConceptIdsInSpreadsheet(file, conceptColumn);
+		return countConceptIdsInSpreadsheet(file, conceptColumn, spreadsheetOptions);
 	}
 	return countConceptIdsInCsv(file, conceptColumn);
 }
@@ -404,19 +630,12 @@ async function countConceptIdsInCsv(file: File, conceptColumn: string): Promise<
 	return { conceptCount, invalidRows, duplicateRows };
 }
 
-async function countConceptIdsInSpreadsheet(file: File, conceptColumn: string): Promise<ConceptIdPreviewResult> {
-	const buffer = await file.arrayBuffer();
-	const workbook = XLSX.read(buffer, { type: 'array', raw: false });
-	const sheetName = workbook.SheetNames[0];
-	if (!sheetName) {
-		return { conceptCount: 0, invalidRows: 0, duplicateRows: 0 };
-	}
-	const sheet = workbook.Sheets[sheetName];
-	const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: '' });
-	const headerRow = rows[0];
-	if (!headerRow || !Array.isArray(headerRow)) {
-		return { conceptCount: 0, invalidRows: 0, duplicateRows: 0 };
-	}
+function countConceptIdsFromSampleRows(
+	rows: string[][],
+	headerRowIndex: number,
+	conceptColumn: string
+): ConceptIdPreviewResult {
+	const headerRow = rows[headerRowIndex] ?? [];
 	const headers = headerRow.map((header) => String(header ?? '').trim());
 	const conceptIndex = headers.indexOf(conceptColumn);
 	if (conceptIndex < 0) {
@@ -427,11 +646,8 @@ async function countConceptIdsInSpreadsheet(file: File, conceptColumn: string): 
 	let conceptCount = 0;
 	let invalidRows = 0;
 	let duplicateRows = 0;
-	for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
-		const row = rows[rowIndex];
-		if (!Array.isArray(row)) {
-			continue;
-		}
+	for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex++) {
+		const row = rows[rowIndex] ?? [];
 		const raw = String(row[conceptIndex] ?? '').trim();
 		if (!raw) {
 			continue;
@@ -449,4 +665,22 @@ async function countConceptIdsInSpreadsheet(file: File, conceptColumn: string): 
 		conceptCount++;
 	}
 	return { conceptCount, invalidRows, duplicateRows };
+}
+
+async function countConceptIdsInSpreadsheet(
+	file: File,
+	conceptColumn: string,
+	spreadsheetOptions?: SpreadsheetCountOptions
+): Promise<ConceptIdPreviewResult> {
+	const sample = spreadsheetOptions?.sample ?? await readSpreadsheetSample(file);
+	const sheetName = spreadsheetOptions?.sheetName ?? sample.sheets[0]?.name;
+	if (!sheetName) {
+		return { conceptCount: 0, invalidRows: 0, duplicateRows: 0 };
+	}
+	const sheet = getSheetSample(sample, sheetName);
+	if (!sheet) {
+		return { conceptCount: 0, invalidRows: 0, duplicateRows: 0 };
+	}
+	const headerRowIndex = spreadsheetOptions?.headerRowIndex ?? sheet.headerRowIndex;
+	return countConceptIdsFromSampleRows(sheet.rows, headerRowIndex, conceptColumn);
 }
