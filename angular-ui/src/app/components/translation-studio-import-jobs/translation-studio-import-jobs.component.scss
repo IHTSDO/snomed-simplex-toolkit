@@ -26,6 +26,38 @@
 	animation: pulse 1.5s ease-in-out infinite;
 }
 
+.result-cell {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.skipped-codes-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.85rem;
+	color: rgba(0, 0, 0, 0.75);
+}
+
+.skipped-codes-label {
+	font-weight: 500;
+}
+
+.skipped-codes-list {
+	word-break: break-all;
+}
+
+.skipped-codes-more {
+	color: rgba(0, 0, 0, 0.55);
+}
+
+.download-skipped-button {
+	align-self: flex-start;
+	padding: 0;
+	min-width: 0;
+}
+
 @keyframes pulse {
 	0%, 100% { opacity: 1; }
 	50% { opacity: 0.5; }

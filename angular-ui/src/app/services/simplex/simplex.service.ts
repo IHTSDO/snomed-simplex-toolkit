@@ -307,7 +307,9 @@ export class SimplexService {
     conceptColumn: string,
     termColumns: string[],
     status: string,
-    outsideSetBehavior: 'SKIP' | 'UPDATE' = 'SKIP'
+    outsideSetBehavior: 'SKIP' | 'UPDATE' = 'SKIP',
+    sheetName?: string,
+    headerRowIndex?: number
   ): Observable<any> {
     const formData = new FormData();
     formData.append('file', file, file.name);
@@ -315,6 +317,7 @@ export class SimplexService {
     termColumns.forEach((column) => formData.append('termColumns', column));
     formData.append('status', status);
     formData.append('outsideSetBehavior', outsideSetBehavior);
+    this.appendSpreadsheetImportOptions(formData, sheetName, headerRowIndex);
     const apiUrl = `api/${edition}/translation-studio/${refsetId}/sets/${label}/csv`;
     return this.http.put(apiUrl, formData).pipe(
       tap(() => this.clearTranslationsCache(edition)),
@@ -385,6 +388,11 @@ export class SimplexService {
       params = params.set('refsetId', refsetId);
     }
     return this.http.get(`api/${edition}/jobs`, { params }).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public downloadTranslationStudioImportSkippedCsv(edition: string, jobId: string): Observable<Blob> {
+    const apiUrl = `api/${edition}/jobs/${encodeURIComponent(jobId)}/skipped-not-found.csv`;
+    return this.http.get(apiUrl, { responseType: 'blob' }).pipe(catchError(this.handleError.bind(this)));
   }
 
   public getActivities(edition: string, offset?: number, limit?: number, componentId?: string): Observable<any> {
@@ -595,7 +603,9 @@ export class SimplexService {
     conceptColumn: string,
     description?: string,
     termColumns?: string[],
-    status?: string
+    status?: string,
+    sheetName?: string,
+    headerRowIndex?: number
   ): Observable<any> {
     const formData = new FormData();
     formData.append('file', file, file.name);
@@ -611,6 +621,7 @@ export class SimplexService {
         formData.append('status', status);
       }
     }
+    this.appendSpreadsheetImportOptions(formData, sheetName, headerRowIndex);
     return this.http.post(`api/${edition}/translation-studio/${refsetId}/sets/from-file`, formData).pipe(
       tap(() => this.clearTranslationsCache(edition)),
       catchError(this.handleError.bind(this))
@@ -624,7 +635,9 @@ export class SimplexService {
     file: File,
     conceptColumn: string,
     termColumns?: string[],
-    status?: string
+    status?: string,
+    sheetName?: string,
+    headerRowIndex?: number
   ): Observable<any> {
     const formData = new FormData();
     formData.append('file', file, file.name);
@@ -635,6 +648,7 @@ export class SimplexService {
         formData.append('status', status);
       }
     }
+    this.appendSpreadsheetImportOptions(formData, sheetName, headerRowIndex);
     return this.http.put(`api/${edition}/translation-studio/${refsetId}/sets/${label}/concept-list`, formData).pipe(
       tap(() => this.clearTranslationsCache(edition)),
       catchError(this.handleError.bind(this))
@@ -732,6 +746,19 @@ export class SimplexService {
       params = params.set('model', model);
     }
     return this.http.get('api/admin/llm-usage', { params }).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  private appendSpreadsheetImportOptions(
+    formData: FormData,
+    sheetName?: string,
+    headerRowIndex?: number
+  ): void {
+    if (sheetName) {
+      formData.append('sheetName', sheetName);
+    }
+    if (headerRowIndex !== undefined && headerRowIndex !== null) {
+      formData.append('headerRowIndex', String(headerRowIndex));
+    }
   }
 
 }

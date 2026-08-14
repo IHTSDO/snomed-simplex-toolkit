@@ -7,6 +7,7 @@ import org.snomed.simplex.service.ProgressMonitor;
 import org.springframework.util.StreamUtils;
 
 import java.io.*;
+import java.util.Date;
 
 public class ContentJob extends AsyncJob implements ProgressMonitor {
 
@@ -19,6 +20,11 @@ public class ContentJob extends AsyncJob implements ProgressMonitor {
 
 	public ContentJob(CodeSystem codeSystem, String display, String refsetId) {
 		super(codeSystem, display);
+		this.refsetId = refsetId;
+	}
+
+	protected ContentJob(CodeSystem codeSystem, String codeSystemShortName, String display, String id, Date created, String refsetId) {
+		super(codeSystem, codeSystemShortName, display, id, created);
 		this.refsetId = refsetId;
 	}
 

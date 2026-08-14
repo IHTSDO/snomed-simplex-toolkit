@@ -1,5 +1,6 @@
 package org.snomed.simplex.service;
 
+import org.ihtsdo.sso.integration.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
@@ -9,6 +10,7 @@ import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.util.ElasticsearchExceptionSupport;
 import org.snomed.simplex.service.job.*;
+import org.snomed.simplex.snolate.service.TranslationStudioImportJobRecordService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContext;
@@ -23,18 +25,23 @@ import java.util.concurrent.Executors;
 @Service
 public class ContentProcessingJobService {
 
+	private static final int TRANSLATION_STUDIO_HISTORY_LIMIT = 50;
+
 	private final Map<String, Map<String, AsyncJob>> codeSystemJobs;
 	private final ExecutorService jobExecutorService;
 	private final SupportRegister supportRegister;
 	private final ActivityService activityService;
+	private final TranslationStudioImportJobRecordService translationStudioImportJobRecordService;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
-	public ContentProcessingJobService(@Value("${job.concurrent.threads}") int nThreads, SupportRegister supportRegister, ActivityService activityService) {
+	public ContentProcessingJobService(@Value("${job.concurrent.threads}") int nThreads, SupportRegister supportRegister,
+			ActivityService activityService, TranslationStudioImportJobRecordService translationStudioImportJobRecordService) {
 		codeSystemJobs = new HashMap<>();
 		jobExecutorService = Executors.newFixedThreadPool(nThreads);
 		this.supportRegister = supportRegister;
 		this.activityService = activityService;
+		this.translationStudioImportJobRecordService = translationStudioImportJobRecordService;
 	}
 
 	public AsyncJob queueContentJob(ContentJob contentJob, String refsetId, Activity activity, AsyncFunction<ContentJob> function) {
@@ -51,10 +58,10 @@ public class ContentProcessingJobService {
 		Runnable onCompleteRunnable) {
 
 		CodeSystem codeSystem = asyncJob.getCodeSystemObject();
-		// Add job to thread limited executor service to be run when there is capacity
 		final SecurityContext userSecurityContext = SecurityContextHolder.getContext();
 
 		asyncJob.setStatus(JobStatus.QUEUED);
+		asyncJob.setUsername(SecurityUtil.getUsername());
 
 		try {
 			activityService.addQueuedContentActivity(activity, asyncJob);
@@ -77,6 +84,13 @@ public class ContentProcessingJobService {
 				supportRegister.handleSystemError(asyncJob, "Unexpected error.", serviceException);
 			} finally {
 				activityService.endAsynchronousActivity(activity);
+				if (asyncJob instanceof TranslationStudioContentJob) {
+					try {
+						translationStudioImportJobRecordService.saveFromJob(asyncJob);
+					} catch (Exception e) {
+						logger.warn("Failed to persist Translation Studio import job {}", asyncJob.getId(), e);
+					}
+				}
 				if (onCompleteRunnable != null) {
 					onCompleteRunnable.run();
 				}
@@ -108,11 +122,25 @@ public class ContentProcessingJobService {
 
 	public AsyncJob getAsyncJob(String codeSystem, String jobId) {
 		synchronized (codeSystemJobs) {
-			return codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).get(jobId);
+			AsyncJob inMemoryJob = codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).get(jobId);
+			if (inMemoryJob != null) {
+				return inMemoryJob;
+			}
 		}
+		return translationStudioImportJobRecordService.findById(codeSystem, jobId)
+				.map(translationStudioImportJobRecordService::toAsyncJob)
+				.orElse(null);
 	}
 
 	public List<AsyncJob> listJobs(String codeSystem, String refsetId, JobType jobType) {
+		List<AsyncJob> jobs = listInMemoryJobs(codeSystem, refsetId, jobType);
+		if (jobType == JobType.TRANSLATION_STUDIO && codeSystem != null) {
+			jobs = mergeTranslationStudioHistory(codeSystem, refsetId, jobs);
+		}
+		return jobs;
+	}
+
+	private List<AsyncJob> listInMemoryJobs(String codeSystem, String refsetId, JobType jobType) {
 		List<AsyncJob> jobs;
 		if (codeSystem != null) {
 			jobs = new ArrayList<>(codeSystemJobs.getOrDefault(codeSystem, Collections.emptyMap()).values());
@@ -126,6 +154,20 @@ public class ContentProcessingJobService {
 				.filter(job -> refsetId == null || (job instanceof ContentJob contentJob && refsetId.equals(contentJob.getRefsetId())))
 				.filter(job -> refsetId == null || jobType != null || job.getJobType() != JobType.TRANSLATION_STUDIO)
 				.sorted(Comparator.comparing(AsyncJob::getCreated).reversed())
+				.toList();
+	}
+
+	private List<AsyncJob> mergeTranslationStudioHistory(String codeSystem, String refsetId, List<AsyncJob> inMemoryJobs) {
+		Map<String, AsyncJob> merged = new LinkedHashMap<>();
+		for (AsyncJob job : inMemoryJobs) {
+			merged.put(job.getId(), job);
+		}
+		for (var record : translationStudioImportJobRecordService.listRecords(codeSystem, refsetId, TRANSLATION_STUDIO_HISTORY_LIMIT)) {
+			merged.putIfAbsent(record.getId(), translationStudioImportJobRecordService.toAsyncJob(record));
+		}
+		return merged.values().stream()
+				.sorted(Comparator.comparing(AsyncJob::getCreated).reversed())
+				.limit(TRANSLATION_STUDIO_HISTORY_LIMIT)
 				.toList();
 	}
 

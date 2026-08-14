@@ -7,7 +7,7 @@ import org.springframework.data.elasticsearch.repository.config.EnableElasticsea
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableScheduling
-@EnableElasticsearchRepositories(basePackages = {"org.snomed.simplex.service", "org.snomed.simplex.snolate.sets"})
+@EnableElasticsearchRepositories(basePackages = {"org.snomed.simplex.service", "org.snomed.simplex.snolate.domain", "org.snomed.simplex.snolate.sets"})
 public class Application extends ApplicationConfig implements CommandLineRunner {
 
 	@Override

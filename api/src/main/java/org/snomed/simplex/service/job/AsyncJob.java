@@ -14,6 +14,7 @@ import static java.lang.String.format;
 public abstract class AsyncJob {
 
 	private final CodeSystem codeSystem;
+	private final String codeSystemShortName;
 	private final String id;
 	private final Date created;
 	private final String display;
@@ -21,12 +22,18 @@ public abstract class AsyncJob {
 	private ChangeSummary changeSummary;
 	private ServiceException serviceException;
 	private String errorMessage;
+	private String username;
 	private SecurityContext securityContext;
 
 	protected AsyncJob(CodeSystem codeSystem, String display) {
+		this(codeSystem, null, display, UUID.randomUUID().toString(), new Date());
+	}
+
+	protected AsyncJob(CodeSystem codeSystem, String codeSystemShortName, String display, String id, Date created) {
 		this.codeSystem = codeSystem;
-		this.id = UUID.randomUUID().toString();
-		this.created = new Date();
+		this.codeSystemShortName = codeSystemShortName;
+		this.id = id;
+		this.created = created;
 		this.display = display;
 	}
 
@@ -39,6 +46,9 @@ public abstract class AsyncJob {
 	}
 
 	public String getCodeSystem() {
+		if (codeSystemShortName != null) {
+			return codeSystemShortName;
+		}
 		return codeSystem != null ? codeSystem.getShortName() : null;
 	}
 
@@ -95,6 +105,14 @@ public abstract class AsyncJob {
 
 	public void setErrorMessage(String errorMessage) {
 		this.errorMessage = errorMessage;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
 	}
 
 	public void setSecurityContext(SecurityContext securityContext) {

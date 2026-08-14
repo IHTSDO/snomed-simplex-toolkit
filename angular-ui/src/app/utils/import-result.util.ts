@@ -4,6 +4,7 @@ export interface ImportChangeSummary {
 	updated?: number;
 	skippedNotFound?: number;
 	skippedOutsideSet?: number;
+	skippedNotFoundCodes?: string[];
 }
 
 export function formatImportResultMessage(summary: ImportChangeSummary | null | undefined): string {

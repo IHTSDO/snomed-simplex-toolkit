@@ -197,6 +197,7 @@ class SnolateTranslationServiceCsvImportTest {
 
 		assertThat(summary.getUpdated()).isZero();
 		assertThat(summary.getSkippedNotFound()).isEqualTo(1);
+		assertThat(summary.getSkippedNotFoundCodes()).containsExactly("999");
 	}
 
 	@Test

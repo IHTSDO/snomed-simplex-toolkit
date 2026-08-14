@@ -293,9 +293,14 @@ public class SnolateTranslationService {
 
 	public ConceptListParseResult parseConceptIdsFromFile(InputStream inputStream, String filename, String conceptColumn)
 			throws ServiceException {
+		return parseConceptIdsFromFile(inputStream, filename, conceptColumn, null, null);
+	}
+
+	public ConceptListParseResult parseConceptIdsFromFile(InputStream inputStream, String filename, String conceptColumn,
+			String sheetName, Integer headerRowIndex) throws ServiceException {
 		org.snomed.simplex.service.ServiceHelper.requiredParameter("conceptColumn", conceptColumn);
 		if (isSpreadsheetFile(filename)) {
-			return parseConceptIdsFromSpreadsheet(inputStream, conceptColumn);
+			return parseConceptIdsFromSpreadsheet(inputStream, conceptColumn, sheetName, headerRowIndex);
 		}
 		return parseConceptIdsFromCsv(inputStream, conceptColumn);
 	}
@@ -328,11 +333,12 @@ public class SnolateTranslationService {
 		}
 	}
 
-	private ConceptListParseResult parseConceptIdsFromSpreadsheet(InputStream inputStream, String conceptColumn)
-			throws ServiceException {
+	private ConceptListParseResult parseConceptIdsFromSpreadsheet(InputStream inputStream, String conceptColumn,
+			String sheetName, Integer headerRowIndex) throws ServiceException {
 		try (XSSFWorkbook workbook = new XSSFWorkbook(inputStream)) {
-			Sheet sheet = workbook.getSheetAt(0);
-			Row headerRow = sheet.getRow(0);
+			Sheet sheet = resolveSheet(workbook, sheetName);
+			int resolvedHeaderRowIndex = resolveHeaderRowIndex(sheet, headerRowIndex);
+			Row headerRow = sheet.getRow(resolvedHeaderRowIndex);
 			if (headerRow == null) {
 				throw new ServiceExceptionWithStatusCode(SPREADSHEET_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
 			}
@@ -341,7 +347,7 @@ public class SnolateTranslationService {
 			int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), CONCEPT_COLUMN);
 			List<String> rawIds = new ArrayList<>();
 			for (Row row : sheet) {
-				if (row.getRowNum() == 0) {
+				if (row.getRowNum() <= resolvedHeaderRowIndex) {
 					continue;
 				}
 				String conceptCode = SpreadsheetService.readSnomedConcept(row, conceptIndex, row.getRowNum() + 1);
@@ -365,9 +371,16 @@ public class SnolateTranslationService {
 	public ChangeSummary importTranslationSetFile(SnolateTranslationSet translationSet, InputStream inputStream,
 			String filename, String conceptColumn, List<String> termColumns, TranslationStatus status,
 			OutsideSetBehavior outsideSetBehavior) throws ServiceException {
+		return importTranslationSetFile(translationSet, inputStream, filename, conceptColumn, termColumns, status,
+				outsideSetBehavior, null, null);
+	}
+
+	public ChangeSummary importTranslationSetFile(SnolateTranslationSet translationSet, InputStream inputStream,
+			String filename, String conceptColumn, List<String> termColumns, TranslationStatus status,
+			OutsideSetBehavior outsideSetBehavior, String sheetName, Integer headerRowIndex) throws ServiceException {
 		if (isSpreadsheetFile(filename)) {
 			return importTranslationSetSpreadsheet(translationSet, inputStream, conceptColumn, termColumns, status,
-					outsideSetBehavior);
+					outsideSetBehavior, sheetName, headerRowIndex);
 		}
 		return importTranslationSetCsv(translationSet, inputStream, conceptColumn, termColumns, status,
 				outsideSetBehavior);
@@ -401,7 +414,7 @@ public class SnolateTranslationService {
 
 	private ChangeSummary importTranslationSetSpreadsheet(SnolateTranslationSet translationSet, InputStream inputStream,
 			String conceptColumn, List<String> termColumns, TranslationStatus status,
-			OutsideSetBehavior outsideSetBehavior) throws ServiceException {
+			OutsideSetBehavior outsideSetBehavior, String sheetName, Integer headerRowIndex) throws ServiceException {
 		validateImportParameters(status, conceptColumn, termColumns);
 
 		String setCode = translationSet.getCompositeSetCode();
@@ -409,9 +422,10 @@ public class SnolateTranslationService {
 		ChangeSummary changeSummary = new ChangeSummary();
 
 		try (XSSFWorkbook workbook = new XSSFWorkbook(inputStream)) {
-			Sheet sheet = workbook.getSheetAt(0);
+			Sheet sheet = resolveSheet(workbook, sheetName);
+			int resolvedHeaderRowIndex = resolveHeaderRowIndex(sheet, headerRowIndex);
 			SpreadsheetImportColumnIndices columns = readSpreadsheetImportColumnIndices(sheet, conceptColumn,
-					termColumns);
+					termColumns, resolvedHeaderRowIndex);
 			logger.info("Starting translation set spreadsheet import for set {}", setCode);
 			importTranslationSetSpreadsheetRows(sheet, columns, setCode, lang, status, outsideSetBehavior,
 					changeSummary);
@@ -430,8 +444,8 @@ public class SnolateTranslationService {
 	}
 
 	private SpreadsheetImportColumnIndices readSpreadsheetImportColumnIndices(Sheet sheet, String conceptColumn,
-			List<String> termColumns) throws ServiceExceptionWithStatusCode {
-		Row headerRow = sheet.getRow(0);
+			List<String> termColumns, int headerRowIndex) throws ServiceExceptionWithStatusCode {
+		Row headerRow = sheet.getRow(headerRowIndex);
 		if (headerRow == null) {
 			throw new ServiceExceptionWithStatusCode(SPREADSHEET_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
 		}
@@ -442,7 +456,7 @@ public class SnolateTranslationService {
 		Map<String, Integer> headerIndex = buildHeaderIndex(headerFields);
 		int conceptIndex = resolveColumnIndex(headerIndex, conceptColumn.trim(), CONCEPT_COLUMN);
 		List<Integer> termColumnIndices = resolveTermColumnIndices(headerIndex, termColumns);
-		return new SpreadsheetImportColumnIndices(conceptIndex, termColumnIndices, headerFields.size());
+		return new SpreadsheetImportColumnIndices(conceptIndex, termColumnIndices, headerFields.size(), headerRowIndex);
 	}
 
 	private static List<String> readSpreadsheetHeaderFields(Row headerRow) {
@@ -471,7 +485,7 @@ public class SnolateTranslationService {
 		for (Map.Entry<String, List<String>> entry : termsByCode.entrySet()) {
 			TranslationUnit unit = unitsByCode.get(entry.getKey());
 			if (unit == null) {
-				changeSummary.incrementSkippedNotFound();
+				changeSummary.recordSkippedNotFound(entry.getKey());
 				logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, entry.getKey(), lang);
 				continue;
 			}
@@ -492,7 +506,7 @@ public class SnolateTranslationService {
 
 		Map<String, List<String>> termsByCode = new LinkedHashMap<>();
 		for (Row row : sheet) {
-			if (row.getRowNum() == 0) {
+			if (row.getRowNum() <= columns.headerRowIndex()) {
 				continue;
 			}
 			List<String> rowFields = readSpreadsheetRowFields(row, row.getRowNum() + 1, columns);
@@ -591,7 +605,7 @@ public class SnolateTranslationService {
 			processImportRow(rowFields, columns, (conceptCode, terms) -> {
 				Optional<TranslationUnit> tuOpt = translationUnitStore.loadByCode(lang, conceptCode);
 				if (tuOpt.isEmpty()) {
-					changeSummary.incrementSkippedNotFound();
+					changeSummary.recordSkippedNotFound(conceptCode);
 					logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, conceptCode, lang);
 					return;
 				}
@@ -639,7 +653,49 @@ public class SnolateTranslationService {
 
 	private record ImportColumnIndices(int conceptIndex, List<Integer> termColumnIndices, char delimiter) {}
 
-	private record SpreadsheetImportColumnIndices(int conceptIndex, List<Integer> termColumnIndices, int columnCount) {}
+	private record SpreadsheetImportColumnIndices(int conceptIndex, List<Integer> termColumnIndices, int columnCount,
+			int headerRowIndex) {}
+
+	private static final int SPREADSHEET_HEADER_DETECTION_MAX_ROWS = 10;
+
+	private static Sheet resolveSheet(XSSFWorkbook workbook, String sheetName) throws ServiceExceptionWithStatusCode {
+		if (sheetName == null || sheetName.isBlank()) {
+			return workbook.getSheetAt(0);
+		}
+		Sheet sheet = workbook.getSheet(sheetName);
+		if (sheet == null) {
+			throw new ServiceExceptionWithStatusCode(
+					"Spreadsheet sheet '" + sheetName + "' was not found.", HttpStatus.BAD_REQUEST);
+		}
+		return sheet;
+	}
+
+	private static int resolveHeaderRowIndex(Sheet sheet, Integer headerRowIndex) throws ServiceExceptionWithStatusCode {
+		if (headerRowIndex != null) {
+			if (headerRowIndex < 0 || sheet.getRow(headerRowIndex) == null) {
+				throw new ServiceExceptionWithStatusCode(SPREADSHEET_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
+			}
+			return headerRowIndex;
+		}
+		return detectHeaderRowIndex(sheet, SPREADSHEET_HEADER_DETECTION_MAX_ROWS);
+	}
+
+	static int detectHeaderRowIndex(Sheet sheet, int maxRows) throws ServiceExceptionWithStatusCode {
+		List<List<String>> rows = readSpreadsheetSampleRows(sheet, maxRows);
+		if (rows.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode(SPREADSHEET_HAS_NO_HEADER_ROW, HttpStatus.BAD_REQUEST);
+		}
+		return SpreadsheetHeaderDetection.detectHeaderRowIndex(rows);
+	}
+
+	private static List<List<String>> readSpreadsheetSampleRows(Sheet sheet, int maxRows) {
+		List<List<String>> rows = new ArrayList<>();
+		for (int rowIndex = 0; rowIndex < maxRows; rowIndex++) {
+			Row row = sheet.getRow(rowIndex);
+			rows.add(row == null ? List.of() : readSpreadsheetHeaderFields(row));
+		}
+		return rows;
+	}
 
 	public void writeTranslationSetCsv(SnolateTranslationSet translationSet, TranslationStatus statusFilter,
 			String languageDisplayName, OutputStream out) throws ServiceException {

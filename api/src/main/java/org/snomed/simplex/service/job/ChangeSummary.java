@@ -1,6 +1,11 @@
 package org.snomed.simplex.service.job;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ChangeSummary {
+
+	public static final int MAX_SKIPPED_NOT_FOUND_CODES = 500;
 
 	private int added;
 	private int updated;
@@ -8,6 +13,7 @@ public class ChangeSummary {
 	private int newTotal;
 	private int skippedNotFound;
 	private int skippedOutsideSet;
+	private List<String> skippedNotFoundCodes = new ArrayList<>();
 
 	public ChangeSummary() {
 	}
@@ -33,6 +39,15 @@ public class ChangeSummary {
 
 	public void incrementSkippedNotFound() {
 		skippedNotFound++;
+	}
+
+	public void recordSkippedNotFound(String conceptCode) {
+		skippedNotFound++;
+		if (conceptCode != null && !conceptCode.isBlank()
+				&& skippedNotFoundCodes.size() < MAX_SKIPPED_NOT_FOUND_CODES
+				&& !skippedNotFoundCodes.contains(conceptCode)) {
+			skippedNotFoundCodes.add(conceptCode);
+		}
 	}
 
 	public void incrementSkippedOutsideSet() {
@@ -67,6 +82,21 @@ public class ChangeSummary {
 		return skippedOutsideSet;
 	}
 
+	public List<String> getSkippedNotFoundCodes() {
+		return skippedNotFoundCodes;
+	}
+
+	public void setSkippedNotFoundCodes(List<String> skippedNotFoundCodes) {
+		this.skippedNotFoundCodes = skippedNotFoundCodes != null ? skippedNotFoundCodes : new ArrayList<>();
+	}
+
+	public void restoreImportCounts(int updated, int skippedNotFound, int skippedOutsideSet, List<String> skippedNotFoundCodes) {
+		this.updated = updated;
+		this.skippedNotFound = skippedNotFound;
+		this.skippedOutsideSet = skippedOutsideSet;
+		setSkippedNotFoundCodes(skippedNotFoundCodes);
+	}
+
 	@Override
 	public String toString() {
 		return "ChangeSummary{" +
@@ -76,6 +106,7 @@ public class ChangeSummary {
 			", newTotal=" + newTotal +
 			", skippedNotFound=" + skippedNotFound +
 			", skippedOutsideSet=" + skippedOutsideSet +
+			", skippedNotFoundCodes=" + skippedNotFoundCodes.size() +
 			'}';
 	}
 }

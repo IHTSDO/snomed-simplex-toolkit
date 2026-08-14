@@ -6,10 +6,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.service.ContentProcessingJobService;
+import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.service.job.AsyncJob;
+import org.snomed.simplex.service.job.ChangeSummary;
 import org.snomed.simplex.service.job.ContentJob;
 import org.snomed.simplex.service.job.JobType;
 import org.snomed.simplex.service.job.TranslationStudioContentJob;
+import org.snomed.simplex.service.test.TestTranslationStudioImportJobRecordRepository;
+import org.snomed.simplex.snolate.domain.TranslationStudioImportJobRecord;
+import org.snomed.simplex.snolate.service.TranslationStudioImportJobRecordService;
+import org.snomed.simplex.domain.JobStatus;
 
 import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
@@ -30,11 +37,14 @@ class ContentProcessingJobServiceTest {
 	@Mock
 	private ActivityService activityService;
 
+	private TestTranslationStudioImportJobRecordRepository importJobRecordRepository;
 	private ContentProcessingJobService service;
 
 	@BeforeEach
 	void setUp() {
-		service = new ContentProcessingJobService(1, supportRegister, activityService);
+		importJobRecordRepository = new TestTranslationStudioImportJobRecordRepository();
+		service = new ContentProcessingJobService(1, supportRegister, activityService,
+				new TranslationStudioImportJobRecordService(importJobRecordRepository));
 	}
 
 	@Test
@@ -68,6 +78,53 @@ class ContentProcessingJobServiceTest {
 
 		assertThat(jobs).hasSize(1);
 		assertThat(jobs.get(0).getDisplay()).isEqualTo("Matching import");
+	}
+
+	@Test
+	void listJobs_mergesPersistedTranslationStudioHistory() throws Exception {
+		TranslationStudioContentJob inMemoryJob = new TranslationStudioContentJob(codeSystem(), "In-memory import", REFSET);
+		inMemoryJob.setStatus(JobStatus.COMPLETE);
+		registerJob(inMemoryJob);
+
+		TranslationStudioImportJobRecord persisted = new TranslationStudioImportJobRecord();
+		persisted.setId("persisted-job");
+		persisted.setCodesystem(EDITION);
+		persisted.setRefsetId(REFSET);
+		persisted.setDisplay("Persisted import");
+		persisted.setUsername("test.user");
+		persisted.setCreated(new java.util.Date(0L));
+		persisted.setStatus(JobStatus.COMPLETE);
+		importJobRecordRepository.save(persisted);
+
+		List<AsyncJob> jobs = service.listJobs(EDITION, null, JobType.TRANSLATION_STUDIO);
+
+		assertThat(jobs).hasSize(2);
+		assertThat(jobs).extracting(AsyncJob::getId).contains(inMemoryJob.getId(), "persisted-job");
+	}
+
+	@Test
+	void getAsyncJob_returnsPersistedTranslationStudioJobWhenNotInMemory() {
+		TranslationStudioImportJobRecord persisted = new TranslationStudioImportJobRecord();
+		persisted.setId("persisted-job");
+		persisted.setCodesystem(EDITION);
+		persisted.setRefsetId(REFSET);
+		persisted.setDisplay("Persisted import");
+		persisted.setUsername("test.user");
+		persisted.setCreated(new java.util.Date(0L));
+		persisted.setStatus(JobStatus.COMPLETE);
+		ChangeSummary changeSummary = new ChangeSummary();
+		changeSummary.recordSkippedNotFound("100");
+		persisted.setUpdated(changeSummary.getUpdated());
+		persisted.setSkippedNotFound(changeSummary.getSkippedNotFound());
+		persisted.setSkippedOutsideSet(changeSummary.getSkippedOutsideSet());
+		persisted.setSkippedNotFoundCodes(changeSummary.getSkippedNotFoundCodes());
+		importJobRecordRepository.save(persisted);
+
+		AsyncJob job = service.getAsyncJob(EDITION, "persisted-job");
+
+		assertThat(job.getDisplay()).isEqualTo("Persisted import");
+		assertThat(job.getUsername()).isEqualTo("test.user");
+		assertThat(job.getChangeSummary().getSkippedNotFoundCodes()).containsExactly("100");
 	}
 
 	private static CodeSystem codeSystem() {
