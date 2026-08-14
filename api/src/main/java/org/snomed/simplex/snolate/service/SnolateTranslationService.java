@@ -477,28 +477,7 @@ public class SnolateTranslationService {
 
 		Map<String, List<String>> termsByCode = parseSpreadsheetTermsByConceptCode(sheet, columns);
 		logger.info("Translation set spreadsheet import parsed {} concept row(s)", termsByCode.size());
-		if (termsByCode.isEmpty()) {
-			return;
-		}
-		Map<String, TranslationUnit> unitsByCode = translationUnitStore.loadByCodes(lang, termsByCode.keySet());
-		List<TranslationUnit> toSave = new ArrayList<>();
-		for (Map.Entry<String, List<String>> entry : termsByCode.entrySet()) {
-			TranslationUnit unit = unitsByCode.get(entry.getKey());
-			if (unit == null) {
-				changeSummary.recordSkippedNotFound(entry.getKey());
-				logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, entry.getKey(), lang);
-				continue;
-			}
-			if (!unit.getMemberOf().contains(setCode) && outsideSetBehavior == OutsideSetBehavior.SKIP) {
-				changeSummary.incrementSkippedOutsideSet();
-				logger.debug("Skipping concept {} not found in translation set {}", entry.getKey(), setCode);
-				continue;
-			}
-			applyTermsAndStatusInMemory(unit, entry.getValue(), status);
-			toSave.add(unit);
-			changeSummary.incrementUpdated();
-		}
-		translationUnitStore.saveAll(toSave);
+		applyImportedTermsByCode(termsByCode, setCode, lang, status, outsideSetBehavior, changeSummary);
 	}
 
 	private Map<String, List<String>> parseSpreadsheetTermsByConceptCode(Sheet sheet,
@@ -521,9 +500,36 @@ public class SnolateTranslationService {
 			if (terms.isEmpty()) {
 				continue;
 			}
-			termsByCode.put(conceptCode, terms);
+			ImportTermsMerger.mergeRowIntoMap(termsByCode, conceptCode, terms);
 		}
 		return termsByCode;
+	}
+
+	private void applyImportedTermsByCode(Map<String, List<String>> termsByCode, String setCode, String lang,
+			TranslationStatus status, OutsideSetBehavior outsideSetBehavior, ChangeSummary changeSummary)
+			throws ServiceExceptionWithStatusCode {
+		if (termsByCode.isEmpty()) {
+			return;
+		}
+		Map<String, TranslationUnit> unitsByCode = translationUnitStore.loadByCodes(lang, termsByCode.keySet());
+		List<TranslationUnit> toSave = new ArrayList<>();
+		for (Map.Entry<String, List<String>> entry : termsByCode.entrySet()) {
+			TranslationUnit unit = unitsByCode.get(entry.getKey());
+			if (unit == null) {
+				changeSummary.recordSkippedNotFound(entry.getKey());
+				logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, entry.getKey(), lang);
+				continue;
+			}
+			if (!unit.getMemberOf().contains(setCode) && outsideSetBehavior == OutsideSetBehavior.SKIP) {
+				changeSummary.incrementSkippedOutsideSet();
+				logger.debug("Skipping concept {} not found in translation set {}", entry.getKey(), setCode);
+				continue;
+			}
+			applyTermsAndStatusInMemory(unit, entry.getValue(), status);
+			toSave.add(unit);
+			changeSummary.incrementUpdated();
+		}
+		translationUnitStore.saveAll(toSave);
 	}
 
 	private List<String> readSpreadsheetRowFields(Row row, int rowNumber, SpreadsheetImportColumnIndices columns)
@@ -600,30 +606,19 @@ public class SnolateTranslationService {
 	private void importTranslationSetRows(BufferedReader reader, String setCode, String lang,
 			ImportColumnIndices columns, TranslationStatus status, OutsideSetBehavior outsideSetBehavior,
 			ChangeSummary changeSummary) throws IOException, ServiceExceptionWithStatusCode {
+		Map<String, List<String>> termsByCode = parseCsvTermsByConceptCode(reader, columns);
+		applyImportedTermsByCode(termsByCode, setCode, lang, status, outsideSetBehavior, changeSummary);
+	}
+
+	private Map<String, List<String>> parseCsvTermsByConceptCode(BufferedReader reader, ImportColumnIndices columns)
+			throws IOException, ServiceExceptionWithStatusCode {
+		Map<String, List<String>> termsByCode = new LinkedHashMap<>();
 		List<String> rowFields;
 		while (!(rowFields = CsvParser.readRow(reader, columns.delimiter())).isEmpty()) {
-			processImportRow(rowFields, columns, (conceptCode, terms) -> {
-				Optional<TranslationUnit> tuOpt = translationUnitStore.loadByCode(lang, conceptCode);
-				if (tuOpt.isEmpty()) {
-					changeSummary.recordSkippedNotFound(conceptCode);
-					logger.debug(SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE, conceptCode, lang);
-					return;
-				}
-				TranslationUnit unit = tuOpt.get();
-				if (!unit.getMemberOf().contains(setCode)) {
-					if (outsideSetBehavior == OutsideSetBehavior.SKIP) {
-						changeSummary.incrementSkippedOutsideSet();
-						logger.debug("Skipping concept {} not found in translation set {}", conceptCode, setCode);
-						return;
-					}
-					applyTermsAndStatusToUnit(unit, terms, status);
-					changeSummary.incrementUpdated();
-					return;
-				}
-				applyTermsAndStatusToUnit(unit, terms, status);
-				changeSummary.incrementUpdated();
-			});
+			processImportRow(rowFields, columns, (conceptCode, terms) ->
+					ImportTermsMerger.mergeRowIntoMap(termsByCode, conceptCode, terms));
 		}
+		return termsByCode;
 	}
 
 	@FunctionalInterface

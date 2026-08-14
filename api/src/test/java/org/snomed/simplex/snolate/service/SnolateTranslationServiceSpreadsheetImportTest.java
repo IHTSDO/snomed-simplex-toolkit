@@ -105,6 +105,32 @@ class SnolateTranslationServiceSpreadsheetImportTest {
 	}
 
 	@Test
+	void importTranslationSetFile_mergesDuplicateConceptRows_firstRowIsPt() throws Exception {
+		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), any()))
+				.thenReturn(Map.of("100", unit));
+
+		byte[] spreadsheet = createSpreadsheetWithDataRows(
+				List.of("Concept Code", "PT"),
+				List.of(
+						List.of("100", "asma"),
+						List.of("100", "asma brônquica"),
+						List.of("100", "asma")));
+
+		ChangeSummary summary = service.importTranslationSetFile(
+				translationSet,
+				new ByteArrayInputStream(spreadsheet),
+				"translations.xlsx",
+				"Concept Code",
+				List.of("PT"),
+				TranslationStatus.FOR_REVIEW);
+
+		assertThat(summary.getUpdated()).isEqualTo(1);
+		assertThat(unit.getTerms()).containsExactly("asma", "asma brônquica");
+		verify(translationUnitStore).saveAll(any());
+	}
+
+	@Test
 	void importTranslationSetFile_importsSpreadsheetWithPreambleRows() throws Exception {
 		TranslationUnit unit = unit("100", List.of(), TranslationStatus.NOT_STARTED);
 		when(translationUnitStore.loadByCodes(eq(COMPOSITE), any()))
@@ -293,6 +319,26 @@ class SnolateTranslationServiceSpreadsheetImportTest {
 			Row dataRow = secondSheet.createRow(1);
 			for (int i = 0; i < values.size(); i++) {
 				dataRow.createCell(i).setCellValue(values.get(i));
+			}
+			workbook.write(out);
+			return out.toByteArray();
+		}
+	}
+
+	private static byte[] createSpreadsheetWithDataRows(List<String> headers, List<List<String>> dataRows)
+			throws Exception {
+		try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+			Sheet sheet = workbook.createSheet();
+			Row headerRow = sheet.createRow(0);
+			for (int i = 0; i < headers.size(); i++) {
+				headerRow.createCell(i).setCellValue(headers.get(i));
+			}
+			for (int rowIndex = 0; rowIndex < dataRows.size(); rowIndex++) {
+				Row dataRow = sheet.createRow(rowIndex + 1);
+				List<String> values = dataRows.get(rowIndex);
+				for (int i = 0; i < values.size(); i++) {
+					dataRow.createCell(i).setCellValue(values.get(i));
+				}
 			}
 			workbook.write(out);
 			return out.toByteArray();

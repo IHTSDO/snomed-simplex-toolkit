@@ -22,11 +22,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -77,8 +78,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_importsTranslationStudioExportFormat() throws Exception {
 		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitStore.loadByCode(COMPOSITE, "100"))
-				.thenReturn(Optional.of(unit));
+		mockUnitsByCode(Map.of("100", unit));
 
 		String csv = """
 				Concept Code,English Term,Spanish Preferred Term,Other Spanish Terms,Status,URL
@@ -94,14 +94,13 @@ class SnolateTranslationServiceCsvImportTest {
 		assertThat(summary.getUpdated()).isEqualTo(1);
 		assertThat(unit.getTerms()).containsExactly("asma", "asma crónica");
 		assertThat(unit.getStatus()).isEqualTo(TranslationStatus.FOR_REVIEW);
-		verify(translationUnitStore).save(unit);
+		verify(translationUnitStore).saveAll(any());
 	}
 
 	@Test
 	void importTranslationSetCsv_normalizesBadCharactersInTerms() throws Exception {
 		TranslationUnit unit = unit("200", List.of(), TranslationStatus.NOT_STARTED);
-		when(translationUnitStore.loadByCode(COMPOSITE, "200"))
-				.thenReturn(Optional.of(unit));
+		mockUnitsByCode(Map.of("200", unit));
 
 		String csv = """
 				context,target
@@ -121,8 +120,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_importsLegacyContextTargetFormat() throws Exception {
 		TranslationUnit unit = unit("200", List.of(), TranslationStatus.NOT_STARTED);
-		when(translationUnitStore.loadByCode(COMPOSITE, "200"))
-				.thenReturn(Optional.of(unit));
+		mockUnitsByCode(Map.of("200", unit));
 
 		String csv = """
 				context,target
@@ -143,8 +141,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_importsTabSeparatedLegacyFormat() throws Exception {
 		TranslationUnit unit = unit("200", List.of(), TranslationStatus.NOT_STARTED);
-		when(translationUnitStore.loadByCode(COMPOSITE, "200"))
-				.thenReturn(Optional.of(unit));
+		mockUnitsByCode(Map.of("200", unit));
 
 		String csv = "context\ttarget\n200\tasma\n";
 		ChangeSummary summary = service.importTranslationSetCsv(
@@ -161,8 +158,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_importsSemicolonSeparatedTranslationStudioFormat() throws Exception {
 		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitStore.loadByCode(COMPOSITE, "100"))
-				.thenReturn(Optional.of(unit));
+		mockUnitsByCode(Map.of("100", unit));
 
 		String csv = """
 				Concept Code;English Term;Spanish Preferred Term;Other Spanish Terms;Status;URL
@@ -181,8 +177,7 @@ class SnolateTranslationServiceCsvImportTest {
 
 	@Test
 	void importTranslationSetCsv_skipsUnknownConceptCodes() throws Exception {
-		when(translationUnitStore.loadByCode(COMPOSITE, "999"))
-				.thenReturn(Optional.empty());
+		mockUnitsByCode(Map.of());
 
 		String csv = """
 				context,target
@@ -203,8 +198,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_skipsConceptOutsideSetWhenSkipBehavior() throws Exception {
 		TranslationUnit unit = unitOutsideSet("300", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitStore.loadByCode(COMPOSITE, "300"))
-				.thenReturn(Optional.of(unit));
+		mockUnitsByCode(Map.of("300", unit));
 
 		String csv = """
 				context,target
@@ -225,8 +219,7 @@ class SnolateTranslationServiceCsvImportTest {
 	@Test
 	void importTranslationSetCsv_updatesConceptOutsideSetWhenUpdateBehavior() throws Exception {
 		TranslationUnit unit = unitOutsideSet("300", List.of("old"), TranslationStatus.NOT_STARTED);
-		when(translationUnitStore.loadByCode(COMPOSITE, "300"))
-				.thenReturn(Optional.of(unit));
+		mockUnitsByCode(Map.of("300", unit));
 
 		String csv = """
 				context,target
@@ -243,7 +236,7 @@ class SnolateTranslationServiceCsvImportTest {
 		assertThat(summary.getUpdated()).isEqualTo(1);
 		assertThat(unit.getTerms()).containsExactly("asma");
 		assertThat(unit.getMemberOf()).doesNotContain(translationSet.getCompositeSetCode());
-		verify(translationUnitStore).save(unit);
+		verify(translationUnitStore).saveAll(any());
 	}
 
 	@Test
@@ -262,6 +255,29 @@ class SnolateTranslationServiceCsvImportTest {
 		assertThat(summary.getUpdated()).isZero();
 		assertThat(summary.getSkippedNotFound()).isZero();
 		assertThat(summary.getSkippedOutsideSet()).isZero();
+	}
+
+	@Test
+	void importTranslationSetCsv_mergesDuplicateConceptRows_firstRowIsPt() throws Exception {
+		TranslationUnit unit = unit("100", List.of("old"), TranslationStatus.NOT_STARTED);
+		mockUnitsByCode(Map.of("100", unit));
+
+		String csv = """
+				context,target
+				100,asma
+				100,asma brônquica
+				100,asma
+				""";
+		ChangeSummary summary = service.importTranslationSetCsv(
+				translationSet,
+				new ByteArrayInputStream(csv.getBytes(StandardCharsets.UTF_8)),
+				"context",
+				List.of("target"),
+				TranslationStatus.FOR_REVIEW);
+
+		assertThat(summary.getUpdated()).isEqualTo(1);
+		assertThat(unit.getTerms()).containsExactly("asma", "asma brônquica");
+		verify(translationUnitStore).saveAll(any());
 	}
 
 	@Test
@@ -288,6 +304,10 @@ class SnolateTranslationServiceCsvImportTest {
 				TranslationStatus.FOR_REVIEW))
 				.isInstanceOf(ServiceExceptionWithStatusCode.class)
 				.hasMessageContaining("Concept column");
+	}
+
+	private void mockUnitsByCode(Map<String, TranslationUnit> unitsByCode) {
+		when(translationUnitStore.loadByCodes(eq(COMPOSITE), any())).thenReturn(unitsByCode);
 	}
 
 	private TranslationUnit unit(String code, List<String> terms, TranslationStatus status) {
