@@ -48,6 +48,28 @@ div.validation-container {
   font-size: 1.1rem;
 }
 
+.fix-instructions {
+  margin: 0 16px 12px;
+  font-size: 1.1rem;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.fix-truncation-warning {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 16px 12px;
+  font-size: 1.1rem;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.fix-truncation-warning mat-icon {
+  flex-shrink: 0;
+}
+
 .elevated {
   box-shadow: 0 0 2px 0 rgba(0, 0, 0, 0.1);
 }
