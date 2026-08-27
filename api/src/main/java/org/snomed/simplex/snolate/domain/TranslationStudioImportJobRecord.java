@@ -49,9 +49,6 @@ public class TranslationStudioImportJobRecord {
 	@Field(type = FieldType.Keyword)
 	private List<String> skippedNotFoundCodes = new ArrayList<>();
 
-	public TranslationStudioImportJobRecord() {
-	}
-
 	public String getId() {
 		return id;
 	}

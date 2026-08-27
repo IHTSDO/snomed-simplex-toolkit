@@ -8,9 +8,9 @@ import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.activity.Activity;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
-import org.snomed.simplex.util.ElasticsearchExceptionSupport;
 import org.snomed.simplex.service.job.*;
 import org.snomed.simplex.snolate.service.TranslationStudioImportJobRecordService;
+import org.snomed.simplex.util.ElasticsearchExceptionSupport;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContext;
@@ -162,8 +162,8 @@ public class ContentProcessingJobService {
 		for (AsyncJob job : inMemoryJobs) {
 			merged.put(job.getId(), job);
 		}
-		for (var record : translationStudioImportJobRecordService.listRecords(codeSystem, refsetId, TRANSLATION_STUDIO_HISTORY_LIMIT)) {
-			merged.putIfAbsent(record.getId(), translationStudioImportJobRecordService.toAsyncJob(record));
+		for (var jobRecord : translationStudioImportJobRecordService.listRecords(codeSystem, refsetId, TRANSLATION_STUDIO_HISTORY_LIMIT)) {
+			merged.putIfAbsent(jobRecord.getId(), translationStudioImportJobRecordService.toAsyncJob(jobRecord));
 		}
 		return merged.values().stream()
 				.sorted(Comparator.comparing(AsyncJob::getCreated).reversed())

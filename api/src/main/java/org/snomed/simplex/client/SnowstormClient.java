@@ -49,6 +49,7 @@ public class SnowstormClient {
 
 	public static final int MAX_PAGE_SIZE = 10_000;
 	public static final String CONCEPT_ENDPOINT = "/%s/concepts/%s";
+	public static final String CODESYSTEMS_ENDPOINT = "/codesystems";
 	public static final String CODESYSTEM_ENDPOINT = "/codesystems/%s";
 	public static final String CODESYSTEMS_VERSIONS_ENDPOINT = "/codesystems/%s/versions";
 	public static final String BRANCH_X_ENDPOINT = "/branches/%s";
@@ -107,7 +108,7 @@ public class SnowstormClient {
 
 	public List<CodeSystem> getCodeSystems(boolean includeDetails) throws ServiceException {
 		try {
-			ResponseEntity<Page<CodeSystem>> response = restTemplate.exchange("/codesystems", HttpMethod.GET, null, responseTypeCodeSystemPage);
+			ResponseEntity<Page<CodeSystem>> response = restTemplate.exchange(CODESYSTEMS_ENDPOINT, HttpMethod.GET, null, responseTypeCodeSystemPage);
 			List<CodeSystem> items = new ArrayList<>();
 			Page<CodeSystem> body = response.getBody();
 			throwIfNull(body, "CodeSystem list");
@@ -232,7 +233,7 @@ public class SnowstormClient {
 
 	private DependantEditionLookup.DependantEdition loadDependantEdition(String parentBranch) {
 		try {
-			String url = UriComponentsBuilder.fromPath("/codesystems")
+			String url = UriComponentsBuilder.fromPath(CODESYSTEMS_ENDPOINT)
 					.queryParam("forBranch", parentBranch)
 					.build()
 					.toUriString();
@@ -345,7 +346,7 @@ public class SnowstormClient {
 			if (dependantCodeSystemVersion != null) {
 				codeSystemCreateRequest.setDependantVersionEffectiveTime(dependantCodeSystemVersion);
 			}
-			restTemplate.exchange("/codesystems", HttpMethod.POST, new HttpEntity<>(codeSystemCreateRequest.setDailyBuildAvailable(true)), CodeSystem.class);
+			restTemplate.exchange(CODESYSTEMS_ENDPOINT, HttpMethod.POST, new HttpEntity<>(codeSystemCreateRequest.setDailyBuildAvailable(true)), CodeSystem.class);
 			CodeSystem codeSystem = restTemplate.getForEntity(format(CODESYSTEM_ENDPOINT, shortName), CodeSystem.class).getBody();
 
 			// Set namespace

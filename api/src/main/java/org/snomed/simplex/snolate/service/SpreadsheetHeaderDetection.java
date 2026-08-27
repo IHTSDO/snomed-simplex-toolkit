@@ -162,7 +162,7 @@ final class SpreadsheetHeaderDetection {
 			return false;
 		}
 		long alphaCount = trimmed.chars()
-				.filter(ch -> Character.isLetter(ch))
+				.filter(Character::isLetter)
 				.count();
 		return alphaCount >= Math.max(2, Math.round(trimmed.length() * 0.3));
 	}

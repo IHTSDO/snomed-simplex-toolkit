@@ -48,24 +48,24 @@ public class TranslationStudioImportJobRecordService {
 		return repository.findByCodesystemAndId(codeSystem, jobId);
 	}
 
-	public AsyncJob toAsyncJob(TranslationStudioImportJobRecord record) {
+	public AsyncJob toAsyncJob(TranslationStudioImportJobRecord jobRecord) {
 		TranslationStudioContentJob job = new TranslationStudioContentJob(
-				record.getCodesystem(), record.getDisplay(), record.getRefsetId(), record.getId(), record.getCreated());
-		job.setUsername(record.getUsername());
-		job.setStatus(record.getStatus());
-		job.setErrorMessage(record.getErrorMessage());
+				jobRecord.getCodesystem(), jobRecord.getDisplay(), jobRecord.getRefsetId(), jobRecord.getId(), jobRecord.getCreated());
+		job.setUsername(jobRecord.getUsername());
+		job.setStatus(jobRecord.getStatus());
+		job.setErrorMessage(jobRecord.getErrorMessage());
 		ChangeSummary changeSummary = new ChangeSummary();
 		changeSummary.restoreImportCounts(
-				record.getUpdated(),
-				record.getSkippedNotFound(),
-				record.getSkippedOutsideSet(),
-				record.getSkippedNotFoundCodes());
+				jobRecord.getUpdated(),
+				jobRecord.getSkippedNotFound(),
+				jobRecord.getSkippedOutsideSet(),
+				jobRecord.getSkippedNotFoundCodes());
 		job.setChangeSummary(changeSummary);
 		return job;
 	}
 
-	public void writeSkippedNotFoundCsv(TranslationStudioImportJobRecord record, OutputStream outputStream) throws IOException {
-		writeSkippedNotFoundCsv(record.getSkippedNotFoundCodes(), record.getUsername(), outputStream);
+	public void writeSkippedNotFoundCsv(TranslationStudioImportJobRecord jobRecord, OutputStream outputStream) throws IOException {
+		writeSkippedNotFoundCsv(jobRecord.getSkippedNotFoundCodes(), jobRecord.getUsername(), outputStream);
 	}
 
 	public void writeSkippedNotFoundCsv(AsyncJob job, OutputStream outputStream) throws IOException {
@@ -94,23 +94,23 @@ public class TranslationStudioImportJobRecordService {
 
 	private static TranslationStudioImportJobRecord toRecord(AsyncJob job) {
 		ContentJob contentJob = (ContentJob) job;
-		TranslationStudioImportJobRecord record = new TranslationStudioImportJobRecord();
-		record.setId(job.getId());
-		record.setCodesystem(job.getCodeSystem());
-		record.setRefsetId(contentJob.getRefsetId());
-		record.setDisplay(job.getDisplay());
-		record.setUsername(job.getUsername());
-		record.setCreated(job.getCreated());
-		record.setStatus(job.getStatus());
-		record.setErrorMessage(job.getErrorMessage());
+		TranslationStudioImportJobRecord jobRecord = new TranslationStudioImportJobRecord();
+		jobRecord.setId(job.getId());
+		jobRecord.setCodesystem(job.getCodeSystem());
+		jobRecord.setRefsetId(contentJob.getRefsetId());
+		jobRecord.setDisplay(job.getDisplay());
+		jobRecord.setUsername(job.getUsername());
+		jobRecord.setCreated(job.getCreated());
+		jobRecord.setStatus(job.getStatus());
+		jobRecord.setErrorMessage(job.getErrorMessage());
 		ChangeSummary changeSummary = job.getChangeSummary();
 		if (changeSummary != null) {
-			record.setUpdated(changeSummary.getUpdated());
-			record.setSkippedNotFound(changeSummary.getSkippedNotFound());
-			record.setSkippedOutsideSet(changeSummary.getSkippedOutsideSet());
-			record.setSkippedNotFoundCodes(new ArrayList<>(changeSummary.getSkippedNotFoundCodes()));
+			jobRecord.setUpdated(changeSummary.getUpdated());
+			jobRecord.setSkippedNotFound(changeSummary.getSkippedNotFound());
+			jobRecord.setSkippedOutsideSet(changeSummary.getSkippedOutsideSet());
+			jobRecord.setSkippedNotFoundCodes(new ArrayList<>(changeSummary.getSkippedNotFoundCodes()));
 		}
-		return record;
+		return jobRecord;
 	}
 
 	static String escapeCsvField(String value) {
