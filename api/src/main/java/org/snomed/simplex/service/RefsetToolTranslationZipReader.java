@@ -105,6 +105,7 @@ public class RefsetToolTranslationZipReader implements TranslationUploadProvider
 					ignoreCaseInImport ? null : Description.CaseSignificance.fromConceptId(split[8]);
 			Description description = new Description(Description.Type.fromConceptId(split[6]), languageCode, split[7],
 					caseSignificance);
+			description.setActive(!"0".equals(split[2]));
 
 			String descriptionId = split[0];
 			if (!descriptionId.matches("\\d+")) {
