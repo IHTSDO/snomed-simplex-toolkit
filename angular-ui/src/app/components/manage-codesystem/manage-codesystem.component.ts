@@ -28,6 +28,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   releases: any[] = [];
   loadingReleaseStatus = false;
   loadingIssues = false;
+  runningAutomaticFixes = false;
   issuesReport: any;
   downloadReleaseCandidateDisabled = false;
   creatingReleaseCandidate = false;
@@ -80,6 +81,44 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
     this.refreshEdition();
     if (this.jobComponent) {
       this.jobComponent.loadJobs(true);
+    }
+  }
+
+  hasAutomaticFixes(): boolean {
+    return this.issuesReport?.fixes?.some((fix: any) => fix.type === 'automatic-fix') ?? false;
+  }
+
+  async runAutomaticFixesAndValidation() {
+    if (this.runningAutomaticFixes || this.isValidationWorkflowInProgress()) {
+      this.alert('Please wait — an operation is already in progress');
+      return;
+    }
+    if (!this.hasAutomaticFixes()) {
+      return;
+    }
+    this.runningAutomaticFixes = true;
+    try {
+      this.alert('Running automatic fixes');
+      await lastValueFrom(
+        this.simplexService.runAutomaticFixes(this.edition.shortName)
+      );
+      this.alert('Automatic fixes complete — starting validation');
+      await lastValueFrom(
+        this.simplexService.startValidation(this.edition.shortName)
+      );
+      this.alert('Validation requested');
+      await this.refreshEdition();
+      if (this.jobComponent) {
+        this.jobComponent.loadJobs(true);
+      }
+    } catch (err: any) {
+      console.error('Automatic fixes failed:', err);
+      const message = err?.error?.message || 'Automatic fixes failed';
+      this.alert(message);
+      await this.refreshEdition();
+    } finally {
+      this.runningAutomaticFixes = false;
+      this.changeDetectorRef.detectChanges();
     }
   }
 

@@ -47,14 +47,18 @@
                             <div *ngIf="edition.editionStatus == 'AUTHORING' && edition.validationStatus && edition.validationStatus != 'UNAVAILABLE'">
                                 <span *ngIf="edition.validationStatus == 'TODO'; else notTodoTemplate">{{ getValidationStatusInfo(edition.validationStatus) }} → <a href="javascript:void(0)" (click)="runValidation()">Run validation</a></span>
                                 <ng-template #notTodoTemplate>
-                                    <span *ngIf="edition.validationStatus != 'UNAVAILABLE' && (edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'">
+                                    <div *ngIf="edition.validationStatus != 'UNAVAILABLE' && (edition.validationStatus == 'COMPLETE' || edition.validationStatus == 'CONTENT_ERROR' || edition.validationStatus == 'CONTENT_WARNING') && edition.classificationStatus == 'COMPLETE'">
                                         Validation has completed and is up to date
-                                    </span>
-                                    <span *ngIf="edition.validationStatus != 'UNAVAILABLE' && (edition.validationStatus == 'STALE' || edition.validationStatus == 'SYSTEM_ERROR' || edition.classificationStatus != 'COMPLETE') && edition.validationStatus != 'IN_PROGRESS' && !isValidationWorkflowInProgress()">
+                                    </div>
+                                    <div *ngIf="edition.editionStatus == 'AUTHORING' && issuesReport && hasAutomaticFixes() && !loadingIssues && !isValidationWorkflowInProgress() && !runningAutomaticFixes">
+                                        Automatic fixes available → <a href="javascript:void(0)" (click)="runAutomaticFixesAndValidation()">Run automatic fixes and validate again</a>
+                                    </div>
+                                    <div *ngIf="runningAutomaticFixes" class="pulse">Running automatic fixes...</div>
+                                    <div *ngIf="edition.validationStatus != 'UNAVAILABLE' && (edition.validationStatus == 'STALE' || edition.validationStatus == 'SYSTEM_ERROR' || edition.classificationStatus != 'COMPLETE') && edition.validationStatus != 'IN_PROGRESS' && !isValidationWorkflowInProgress()">
                                         {{ getValidationStatusInfo(edition.validationStatus) }} →&nbsp;
                                         <a href="javascript:void(0)" (click)="runValidation()">Run validation again</a>
-                                    </span>
-                                    <span *ngIf="isValidationWorkflowInProgress()" class="pulse">Validation is running (classification runs automatically when needed)</span>
+                                    </div>
+                                    <div *ngIf="isValidationWorkflowInProgress()" class="pulse">Validation is running (classification runs automatically when needed)</div>
                                 </ng-template>
                             </div>
                             <div *ngIf="edition.editionStatus == 'AUTHORING' && !edition.validationStatus">

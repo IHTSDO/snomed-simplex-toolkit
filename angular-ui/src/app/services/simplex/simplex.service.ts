@@ -370,6 +370,11 @@ export class SimplexService {
     return this.http.post(`api/codesystems/${edition}/validate`, null).pipe(catchError(this.handleError.bind(this)));
   }
 
+  public runAutomaticFixes(edition: string): Observable<void> {
+    return this.http.post<void>(`api/codesystems/${edition}/validate/run-automatic-fixes`, null)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getJobs(edition: string, filter?: string): Observable<any> {
     if (!filter) {
       return this.http.get(`api/${edition}/jobs`).pipe(catchError(this.handleError.bind(this)));
