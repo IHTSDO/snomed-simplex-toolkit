@@ -15,9 +15,9 @@ public class ValidationFix {
 	private final String instructions;
 	private final Severity severity;
 	private final Set<FixComponent> components;
-	private final int failureCount;
+	private int failureCount;
 
-	public ValidationFix(String id, String title, String instructions, Severity severity, int failureCount) {
+	public ValidationFix(String id, String title, String instructions, Severity severity) {
 		this.id = id;
 		String[] split = id.split("\\.", 2);
 		type = split[0];
@@ -26,7 +26,11 @@ public class ValidationFix {
 		this.instructions = instructions;
 		this.severity = severity;
 		components = new LinkedHashSet<>();
-		this.failureCount = failureCount;
+		this.failureCount = 0;
+	}
+
+	public void addFailureCount(int additionalFailureCount) {
+		failureCount += additionalFailureCount;
 	}
 
 	@JsonIgnore

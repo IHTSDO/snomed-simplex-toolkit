@@ -31,8 +31,8 @@ class ValidationServiceTest {
 	void test() throws IOException {
 		ValidationReport validationReport = objectMapper.readValue(getClass().getResourceAsStream("/rvf-report-for-fix-list.json"), ValidationReport.class);
 		ValidationFixList validationFixList = validationService.getValidationFixList(validationReport, false);
-		assertEquals(21, validationFixList.errorCount());
-		assertEquals(15, validationFixList.warningCount());
+		assertEquals(34, validationFixList.errorCount());
+		assertEquals(22, validationFixList.warningCount());
 		List<ValidationFix> fixes = validationFixList.fixes();
 		assertEquals(5, fixes.size());
 		assertEquals("[automatic-fix - set-description-case-sensitive - WARNING, " +

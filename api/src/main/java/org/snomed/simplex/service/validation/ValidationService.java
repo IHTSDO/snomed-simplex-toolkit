@@ -115,7 +115,8 @@ public class ValidationService {
 		Pair<String, String> titleAndInstructions =
 				validationFixMethodToTitleAndInstructionsMap.getOrDefault(fixId, Pair.of("Unknown fix type", "Unknown fix type"));
 		ValidationFix validationFix = fixesRequired.computeIfAbsent(fixId, i ->
-				new ValidationFix(fixId, titleAndInstructions.getLeft(), titleAndInstructions.getRight(), severity, assertion.failureCount()));
+				new ValidationFix(fixId, titleAndInstructions.getLeft(), titleAndInstructions.getRight(), severity));
+		validationFix.addFailureCount(assertion.failureCount());
 		for (ValidationReport.AssertionIssue issueInstance : assertion.firstNInstances()) {
 			// Components are only added if new componentId is new in the set
 			validationFix.addComponent(new FixComponent(issueInstance.conceptId(), issueInstance.componentId(), assertion.assertionText()));
