@@ -24,9 +24,6 @@ import org.springframework.http.*;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -73,14 +70,8 @@ public class ValidationServiceClient {
 								   @Autowired SpreadsheetService spreadsheetService) {
 		RestTemplateBuilder builder = new RestTemplateBuilder()
 				.rootUri(rvfUrl)
-				.interceptors((request, body, execution) -> {
-					// Add authentication token to RVF request
-					String authenticationToken = SecurityUtil.getAuthenticationToken();
-					request.getHeaders().add("Cookie", authenticationToken);
-					return execution.execute(request, body);
-				})
 				.messageConverters(new MappingJackson2HttpMessageConverter(), new FormHttpMessageConverter(), new ByteArrayHttpMessageConverter())
-				.additionalRequestCustomizers(request -> request.getHeaders().add("Cookie", getAuthenticationToken()));
+				.additionalRequestCustomizers(request -> request.getHeaders().add("Cookie", SecurityUtil.getAuthenticationToken()));
 		this.restTemplate = builder.build();
 		ClientHttpRequestFactorySettings fetchHttpSettings = ClientHttpRequestFactorySettings.defaults()
 				.withConnectTimeout(VALIDATION_FETCH_TIMEOUT)
@@ -94,17 +85,6 @@ public class ValidationServiceClient {
 				.map(String::trim)
 				.filter(s -> !s.isEmpty())
 				.toList();
-	}
-
-	private String getAuthenticationToken() {
-		SecurityContext securityContext = SecurityContextHolder.getContext();
-		if (securityContext != null) {
-			Authentication authentication = securityContext.getAuthentication();
-			if (authentication != null) {
-				return (String) authentication.getCredentials();
-			}
-		}
-		return null;
 		this.failureExportMax = failureExportMax;
 	}
 
@@ -218,4 +198,7 @@ public class ValidationServiceClient {
 		}
 	}
 
+	public List<String> getValidationIgnoreCaseAssertionExclusionList() {
+		return validationIgnoreCaseAssertionExclusionList;
+	}
 }

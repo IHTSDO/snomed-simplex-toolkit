@@ -51,17 +51,18 @@ public class ValidationService {
 		}
 	}
 
-	public ValidationFixList getValidationFixList(ValidationReport validationReport) {
-		return createFixList(validationReport);
+	public ValidationFixList getValidationFixList(ValidationReport validationReport, boolean validationIgnoreCase) {
+		List<String> assertionExclusionList = validationIgnoreCase ? validationServiceClient.getValidationIgnoreCaseAssertionExclusionList() : Collections.emptyList();
+		return createFixList(validationReport, assertionExclusionList);
 	}
 
-	private ValidationFixList createFixList(ValidationReport validationReport) {
+	private ValidationFixList createFixList(ValidationReport validationReport, Collection<String> assertionExclusions) {
 		ValidationReport.TestResult testResult = validationReport.rvfValidationResult().TestResult();
 		Map<String, ValidationFix> fixesRequired = new HashMap<>();
-		buildValidationFixMap(testResult.assertionsFailed(), fixesRequired, Severity.ERROR);
-		int errorCount = fixesRequired.values().stream().mapToInt(ValidationFix::getComponentCount).sum();
-		buildValidationFixMap(testResult.assertionsWarning(), fixesRequired, Severity.WARNING);
-		int warningCount = fixesRequired.values().stream().mapToInt(ValidationFix::getComponentCount).sum();
+		buildValidationFixMap(testResult.assertionsFailed(), fixesRequired, Severity.ERROR, assertionExclusions);
+		int errorCount = fixesRequired.values().stream().mapToInt(ValidationFix::getFailureCount).sum();
+		buildValidationFixMap(testResult.assertionsWarning(), fixesRequired, Severity.WARNING, assertionExclusions);
+		int warningCount = fixesRequired.values().stream().mapToInt(ValidationFix::getFailureCount).sum();
 		warningCount = warningCount - errorCount;
 
 		// Create fix list with the same order as the config map
@@ -82,13 +83,13 @@ public class ValidationService {
 		return new ValidationFixList(errorCount, warningCount, fixList);
 	}
 
-	private void buildValidationFixMap(List<ValidationReport.Assertion> assertions, Map<String, ValidationFix> fixesRequired, Severity severity) {
+	private void buildValidationFixMap(List<ValidationReport.Assertion> assertions, Map<String, ValidationFix> fixesRequired, Severity severity, Collection<String> assertionExclusions) {
 
 		// Sort assertions by order in validation fix map - this gives prioritisation when deduplicating component issues
 		assertions.sort(Comparator.comparingInt(assertion -> assertionSortOrderMap.getOrDefault(assertion.assertionUuid(), Integer.MAX_VALUE)));
 
 		for (ValidationReport.Assertion assertion : assertions) {
-			if (assertion.firstNInstances() == null) {
+			if (assertion.firstNInstances() == null || assertionExclusions.contains(assertion.assertionUuid())) {
 				continue;
 			}
 			String assertionUuid = assertion.assertionUuid();
@@ -114,7 +115,7 @@ public class ValidationService {
 		Pair<String, String> titleAndInstructions =
 				validationFixMethodToTitleAndInstructionsMap.getOrDefault(fixId, Pair.of("Unknown fix type", "Unknown fix type"));
 		ValidationFix validationFix = fixesRequired.computeIfAbsent(fixId, i ->
-				new ValidationFix(fixId, titleAndInstructions.getLeft(), titleAndInstructions.getRight(), severity));
+				new ValidationFix(fixId, titleAndInstructions.getLeft(), titleAndInstructions.getRight(), severity, assertion.failureCount()));
 		for (ValidationReport.AssertionIssue issueInstance : assertion.firstNInstances()) {
 			// Components are only added if new componentId is new in the set
 			validationFix.addComponent(new FixComponent(issueInstance.conceptId(), issueInstance.componentId(), assertion.assertionText()));
@@ -127,19 +128,17 @@ public class ValidationService {
 			throw new ServiceExceptionWithStatusCode("There is no validation report.", HttpStatus.CONFLICT);
 		}
 		ValidationReport validation = validationServiceClient.getValidation(reportUrl);
-		processAutomaticFixes(null, validation, codeSystem.getShortName());
+		processAutomaticFixes(null, validation, codeSystem);
 	}
 
-	public void processAutomaticFixes(AsyncJob job, ValidationReport validationReport, String codeSystem) throws ServiceException {
-		ValidationFixList validationFixList = getValidationFixList(validationReport);
+	public void processAutomaticFixes(AsyncJob job, ValidationReport validationReport, CodeSystem codeSystemObject) throws ServiceException {
+		ValidationFixList validationFixList = getValidationFixList(validationReport, codeSystemObject.isValidationIgnoreCase());
 		List<ValidationFix> automaticFixes = validationFixList.fixes().stream().filter(ValidationFix::isAutomatic).toList();
 		if (!automaticFixes.isEmpty()) {
-			logger.info("Processing {} automatic fixes for codesystem {} : {}", automaticFixes.size(), codeSystem,
+			logger.info("Processing {} automatic fixes for codesystem {} : {}", automaticFixes.size(), codeSystemObject.getShortName(),
 					automaticFixes.stream().map(ValidationFix::getSubtype).toList());
 
 			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
-			CodeSystem codeSystemObject = snowstormClient.getCodeSystemOrThrow(codeSystem);
-
 			for (ValidationFix automaticFix : automaticFixes) {
 				String subtype = automaticFix.getSubtype();
 				if ("set-description-case-sensitive".equals(subtype)) {
@@ -150,7 +149,7 @@ public class ValidationService {
 					supportRegister.handleSystemError(job, String.format("Unrecognised automatic fix type '%s'.", subtype));
 				}
 			}
-			logger.info("Completed processing {} automatic fixes for codesystem {}.", automaticFixes.size(), codeSystem);
+			logger.info("Completed processing {} automatic fixes for codesystem {}.", automaticFixes.size(), codeSystemObject.getShortName());
 		}
 	}
 

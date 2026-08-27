@@ -168,7 +168,7 @@ public class CodeSystemController {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		ValidationReport validationReport = getCompletedValidationReportOrThrow(theCodeSystem);
-		return validationService.getValidationFixList(validationReport);
+		return validationService.getValidationFixList(validationReport, theCodeSystem.isValidationIgnoreCase());
 	}
 
 	@GetMapping(path = "{codeSystem}/validate/spreadsheet", produces="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

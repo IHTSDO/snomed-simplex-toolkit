@@ -14,7 +14,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -29,7 +30,7 @@ class ValidationServiceTest {
 	@Test
 	void test() throws IOException {
 		ValidationReport validationReport = objectMapper.readValue(getClass().getResourceAsStream("/rvf-report-for-fix-list.json"), ValidationReport.class);
-		ValidationFixList validationFixList = validationService.getValidationFixList(validationReport);
+		ValidationFixList validationFixList = validationService.getValidationFixList(validationReport, false);
 		assertEquals(21, validationFixList.errorCount());
 		assertEquals(15, validationFixList.warningCount());
 		List<ValidationFix> fixes = validationFixList.fixes();

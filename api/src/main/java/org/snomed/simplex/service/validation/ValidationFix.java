@@ -2,7 +2,9 @@ package org.snomed.simplex.service.validation;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 
 public class ValidationFix {
 
@@ -13,8 +15,9 @@ public class ValidationFix {
 	private final String instructions;
 	private final Severity severity;
 	private final Set<FixComponent> components;
+	private final int failureCount;
 
-	public ValidationFix(String id, String title, String instructions, Severity severity) {
+	public ValidationFix(String id, String title, String instructions, Severity severity, int failureCount) {
 		this.id = id;
 		String[] split = id.split("\\.", 2);
 		type = split[0];
@@ -23,6 +26,7 @@ public class ValidationFix {
 		this.instructions = instructions;
 		this.severity = severity;
 		components = new LinkedHashSet<>();
+		this.failureCount = failureCount;
 	}
 
 	@JsonIgnore
@@ -60,6 +64,10 @@ public class ValidationFix {
 
 	public int getComponentCount() {
 		return components.size();
+	}
+
+	public int getFailureCount() {
+		return failureCount;
 	}
 
 	@Override
