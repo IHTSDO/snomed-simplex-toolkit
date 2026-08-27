@@ -144,8 +144,8 @@ public class ValidationService {
 				String subtype = automaticFix.getSubtype();
 				if ("set-description-case-sensitive".equals(subtype)) {
 					processAutomaticFixCaseSensitive(automaticFix, snowstormClient, codeSystemObject);
-				} else if ("remove-fsn".equals(subtype)) {
-					processAutomaticFixRemoveFSN(automaticFix, snowstormClient, codeSystemObject);
+				} else if ("remove-unacceptable-descriptions".equals(subtype) || "remove-fsn".equals(subtype)) {
+					processAutomaticFixRemoveDescriptionsWithNoAcceptability(automaticFix, snowstormClient, codeSystemObject);
 				} else {
 					supportRegister.handleSystemError(job, String.format("Unrecognised automatic fix type '%s'.", subtype));
 				}
@@ -172,18 +172,21 @@ public class ValidationService {
 		}
 	}
 
-	private static void processAutomaticFixRemoveFSN(ValidationFix automaticFix, SnowstormClient snowstormClient, CodeSystem codeSystemObject) throws ServiceException {
+	private static void processAutomaticFixRemoveDescriptionsWithNoAcceptability(ValidationFix automaticFix, SnowstormClient snowstormClient, CodeSystem codeSystemObject) throws ServiceException {
 		Map<Long, Set<String>> descriptionsToRemove = new HashMap<>();
 		for (FixComponent component : automaticFix.getComponents()) {
 			descriptionsToRemove.computeIfAbsent(Long.parseLong(component.conceptId()), k -> new HashSet<>())
 					.add(component.componentId());
 		}
 		if (!descriptionsToRemove.isEmpty()) {
-			snowstormClient.bulkChangeDescriptions(descriptionsToRemove,
-					codeSystemObject, description -> {
+			snowstormClient.bulkChangeDescriptions(descriptionsToRemove, codeSystemObject, description ->
+				{
+					if (description.isActive() && description.getAcceptabilityMap().isEmpty()) {
 						description.setRemove(true);
 						return true;
-					}, "Removing redundant FSN descriptions");
+					}
+					return false;
+				}, "Removing descriptions with no acceptability");
 		}
 	}
 }
