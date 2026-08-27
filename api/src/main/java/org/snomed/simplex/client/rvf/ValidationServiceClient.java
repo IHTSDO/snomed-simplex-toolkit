@@ -63,11 +63,13 @@ public class ValidationServiceClient {
 	private final String queuePrefix;
 	private final SpreadsheetService spreadsheetService;
 	private final List<String> validationIgnoreCaseAssertionExclusionList;
+	private final int failureExportMax;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public ValidationServiceClient(@Value("${rvf.url}") String rvfUrl, @Value("${jms.queue.prefix}") String queuePrefix,
 								   @Value("${rvf.validation.ignore-case.assertion-exclusion-list}") String validationIgnoreCaseAssertionExclusionList,
+								   @Value("${rvf.validation.failureExportMax}") int failureExportMax,
 								   @Autowired SpreadsheetService spreadsheetService) {
 		RestTemplateBuilder builder = new RestTemplateBuilder()
 				.rootUri(rvfUrl)
@@ -103,6 +105,7 @@ public class ValidationServiceClient {
 			}
 		}
 		return null;
+		this.failureExportMax = failureExportMax;
 	}
 
 	public URI startValidation(CodeSystem codeSystem, SnowstormClient snowstormClient) throws ServiceException {
@@ -192,7 +195,7 @@ public class ValidationServiceClient {
 		body.add("droolsRulesGroups", ReleaseServiceClient.DROOLS_RULES_GROUP_NAMES);
 		body.add("defaultModuleId", codeSystem.getDefaultModuleOrThrow());
 		body.add("includedModules", codeSystem.getDefaultModuleOrThrow());
-		body.add("failureExportMax", "100");
+		body.add("failureExportMax", Integer.toString(failureExportMax));
 		String storageLocation = RVF_TS + "/Simplex_" + codeSystem.getShortName() + "/" + runId;
 		body.add("storageLocation", storageLocation);
 
