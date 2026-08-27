@@ -192,6 +192,18 @@ nav {
 
     // Right-side toolbar: shared height and vertical centering for toggles
     .navbar-toolbar {
+        .dependency-label {
+            color: $ghost-grey;
+            font-weight: 300;
+            letter-spacing: 0.02rem;
+            white-space: nowrap;
+            margin-right: 10px;
+
+            strong {
+                font-weight: 700;
+            }
+        }
+
         ul.dropdown-nav {
             display: flex;
             align-items: center;

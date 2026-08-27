@@ -126,10 +126,6 @@ export class SimplexService {
       );
   }
 
-  public getCodeSystemForBranch(branch: string): Observable<any> {
-    return this.http.get(`/snowstorm/snomed-ct/codesystems?forBranch=${branch}`).pipe(catchError(this.handleError.bind(this)));
-  }
-
   public getCodeSystemVersions(codeSystem: string): Observable<any> {
     return this.http.get(`/snowstorm/snomed-ct/codesystems/${codeSystem}/versions`).pipe(catchError(this.handleError.bind(this)));
   }

@@ -28,6 +28,12 @@
             </div>
         }
 
+        @if (dependencyInfo) {
+            <span class="dependency-label text-ghost-grey" data-cy="dependency-label">
+                Based on {{ dependencyInfo.parentName }} <strong>{{ dependencyInfo.monthYear }}</strong> ({{ dependencyInfo.effectiveTime }})
+            </span>
+        }
+
         <ul class="dropdown-nav p-0 m-0">
             <li class="nav-item dropdown">
                 <a class="nav-link rounded dropdown-toggle text-end add" id="branchDropdown" data-cy="branch-dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">

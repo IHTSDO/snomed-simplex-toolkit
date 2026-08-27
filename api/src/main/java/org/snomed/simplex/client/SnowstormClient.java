@@ -26,6 +26,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.OutputStream;
 import java.net.URI;
@@ -72,6 +73,7 @@ public class SnowstormClient {
 	private final ObjectMapper objectMapper;
 	private final Map<String, String> workingBranches;
 	private final Map<String, CachedCodeSystem> codeSystemCache;
+	private final DependantEditionLookup dependantEditionLookup;
 	private final int maxFetches;
 
 	private static final Logger logger = LoggerFactory.getLogger(SnowstormClient.class);
@@ -81,6 +83,7 @@ public class SnowstormClient {
 		this.objectMapper = objectMapper;
 		this.workingBranches = new HashMap<>();
 		this.codeSystemCache = new ConcurrentHashMap<>();
+		this.dependantEditionLookup = new DependantEditionLookup();
 
 		if (Strings.isBlank(snowstormUrl)) {
 			throw new IllegalStateException("Snowstorm URL is not yet configured");
@@ -156,6 +159,7 @@ public class SnowstormClient {
 		// Check cache first
 		CachedCodeSystem cached = codeSystemCache.get(codesystemShortName);
 		if (cached != null && isCacheValid(cached)) {
+			ensureDependantEditionInfo(cached.codeSystem);
 			return cached.codeSystem;
 		}
 
@@ -204,9 +208,49 @@ public class SnowstormClient {
 		codeSystem.setEditionStatus(getEditionStatus(branch.getMetadataValue(Branch.EDITION_STATUS_METADATA_KEY)));
 		codeSystem.setTranslationLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_METADATA_KEY));
 		codeSystem.setTranslationSnolateLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_SNOLATE_METADATA_KEY));
+		populateDependantEditionInfo(codeSystem);
 		clearOldMetadata(branch);
 		// Update cache if exists
 		codeSystemCache.put(codeSystem.getShortName(), new CachedCodeSystem(codeSystem, System.currentTimeMillis()));
+	}
+
+	private void populateDependantEditionInfo(CodeSystem codeSystem) {
+		String parentBranch = DependantEditionLookup.getParentBranchPath(codeSystem.getBranchPath());
+		if (parentBranch == null) {
+			return;
+		}
+		DependantEditionLookup.DependantEdition dependantEdition = dependantEditionLookup.resolve(parentBranch, this::loadDependantEdition);
+		DependantEditionLookup.applyDependantEdition(codeSystem, dependantEdition);
+	}
+
+	private void ensureDependantEditionInfo(CodeSystem codeSystem) {
+		if (codeSystem.getDependantEditionName() != null) {
+			return;
+		}
+		populateDependantEditionInfo(codeSystem);
+	}
+
+	private DependantEditionLookup.DependantEdition loadDependantEdition(String parentBranch) {
+		try {
+			String url = UriComponentsBuilder.fromPath("/codesystems")
+					.queryParam("forBranch", parentBranch)
+					.build()
+					.toUriString();
+			ResponseEntity<Page<CodeSystem>> response = restTemplate.exchange(
+					url,
+					HttpMethod.GET,
+					null,
+					responseTypeCodeSystemPage);
+			Page<CodeSystem> body = response.getBody();
+			if (body == null || body.getItems() == null || body.getItems().isEmpty()) {
+				return null;
+			}
+			CodeSystem parentCodeSystem = body.getItems().get(0);
+			return new DependantEditionLookup.DependantEdition(parentCodeSystem.getName(), parentCodeSystem.getShortName());
+		} catch (HttpStatusCodeException e) {
+			logger.warn("Failed to load dependant edition for branch {}", parentBranch, e);
+			return null;
+		}
 	}
 
 	private void clearOldMetadata(Branch branch) {
@@ -340,10 +384,12 @@ public class SnowstormClient {
 
 	public void invalidateCodeSystemCache(String codeSystemShortName) {
 		codeSystemCache.remove(codeSystemShortName);
+		dependantEditionLookup.clear();
 	}
 
 	public void invalidateAllCodeSystemCaches() {
 		codeSystemCache.clear();
+		dependantEditionLookup.clear();
 	}
 
 	public void setAuthorPermissions(CodeSystem newCodeSystem, String groupName) {

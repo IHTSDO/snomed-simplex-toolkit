@@ -40,6 +40,8 @@ public class CodeSystem {
 	private Set<String> userRoles;
 
 	private Integer dependantVersionEffectiveTime;
+	private String dependantEditionName;
+	private String dependantEditionShortName;
 	private String dependencyPackage;
 	private String previousPackage;
 	private String namespace;
@@ -94,6 +96,22 @@ public class CodeSystem {
 
 	public void setDependantVersionEffectiveTime(Integer dependantVersionEffectiveTime) {
 		this.dependantVersionEffectiveTime = dependantVersionEffectiveTime;
+	}
+
+	public String getDependantEditionName() {
+		return dependantEditionName;
+	}
+
+	public void setDependantEditionName(String dependantEditionName) {
+		this.dependantEditionName = dependantEditionName;
+	}
+
+	public String getDependantEditionShortName() {
+		return dependantEditionShortName;
+	}
+
+	public void setDependantEditionShortName(String dependantEditionShortName) {
+		this.dependantEditionShortName = dependantEditionShortName;
 	}
 
 	public List<ConceptMini> getModules() {

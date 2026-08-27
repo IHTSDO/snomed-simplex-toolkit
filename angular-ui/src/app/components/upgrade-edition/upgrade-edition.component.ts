@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, EventEmitter, Input, Output } from '@angu
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom } from 'rxjs';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
-import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
+import { formatEffectiveTimeLabel } from 'src/app/utils/effective-time-format.util';
 
 @Component({
   selector: 'app-upgrade-edition',
@@ -16,14 +16,12 @@ export class UpgradeEditionComponent {
 
   availableUpgrades: any[] = [];
   loadingUpgrades = false;
-  parentEdition: any;
   selectedUpgradeEdition: any;
   lastEditionShortName: string;
   upgradeRequested = false;
 
   constructor(private simplexService: SimplexService,
     private snackBar: MatSnackBar,
-    private uiConfigurationService: UiConfigurationService,
     private changeDetectorRef: ChangeDetectorRef
     ) {}
 
@@ -38,19 +36,18 @@ export class UpgradeEditionComponent {
     }
   }
 
+  formattedDependantVersion(): string | null {
+    return formatEffectiveTimeLabel(this.edition?.dependantVersionEffectiveTime);
+  }
+
   async refreshAvailableUpgrades(edition: any) {
     this.loadingUpgrades = true;
     try {
-      let workingBranchPath = edition.workingBranchPath;
-      let parentBranch = workingBranchPath.substring(
-        0,
-        workingBranchPath.lastIndexOf('/')
-      );
-      const codeSystems = await lastValueFrom(
-        this.simplexService.getCodeSystemForBranch(parentBranch)
-      );
-      this.parentEdition = codeSystems.items[0];
-      let parentCodeSystemShortName = this.parentEdition.shortName;
+      const parentCodeSystemShortName = edition.dependantEditionShortName;
+      if (!parentCodeSystemShortName) {
+        this.availableUpgrades = [];
+        return;
+      }
       const versions = await lastValueFrom(
         this.simplexService.getCodeSystemVersions(parentCodeSystemShortName)
       );

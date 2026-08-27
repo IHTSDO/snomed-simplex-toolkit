@@ -1,8 +1,7 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, ChangeDetectorRef, Input, OnDestroy, OnInit } from '@angular/core';
 import { Subscription, filter, lastValueFrom } from 'rxjs';
 import { User } from '../../models/user';
 import { AuthenticationService } from '../../services/authentication/authentication.service';
-import { Location } from '@angular/common';
 import { LegalAgreementService } from 'src/app/services/legal-agreement/legal-agreement.service';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
@@ -10,21 +9,31 @@ import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { CookieService } from 'ngx-cookie-service';
 import { DrawerService } from "../../services/drawer/drawer.service";
 import { ConfigService, LauncherApp } from "../../services/config/config.service";
+import { formatEffectiveTimeParts } from 'src/app/utils/effective-time-format.util';
+
+export interface DependencyLabelInfo {
+    parentName: string;
+    monthYear: string;
+    effectiveTime: string;
+}
 
 @Component({
     selector: 'app-snomed-navbar',
     templateUrl: './snomed-navbar.component.html',
     styleUrls: ['./snomed-navbar.component.scss']
 })
-export class SnomedNavbarComponent implements OnInit {
+export class SnomedNavbarComponent implements OnInit, OnDestroy {
 
     @Input() selectedEdition: any = null;
+
+    dependencyInfo: DependencyLabelInfo | null = null;
 
     environment: string;
     path: string;
 
     user: User;
     userSubscription: Subscription;
+    selectedEditionSubscription: Subscription;
 
     branches: any;
     branchesSubscription: Subscription;
@@ -53,7 +62,6 @@ export class SnomedNavbarComponent implements OnInit {
 
     constructor(
         private authenticationService: AuthenticationService,
-        private location: Location,
         private legalAgreementService: LegalAgreementService,
         private uiConfigurationService: UiConfigurationService,
         private configService: ConfigService,
@@ -61,7 +69,8 @@ export class SnomedNavbarComponent implements OnInit {
         private router: Router,
         private simplexService: SimplexService,
         private drawerService: DrawerService,
-        private cookieService: CookieService) {
+        private cookieService: CookieService,
+        private changeDetectorRef: ChangeDetectorRef) {
         this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => {
             this.authoringPlatformMode = data;
             this.updateNavSuiteTitle();
@@ -78,6 +87,12 @@ export class SnomedNavbarComponent implements OnInit {
 
     ngOnInit() {
         this.updateNavSuiteTitle();
+        this.selectedEditionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+            if (edition) {
+                this.selectedEdition = edition;
+            }
+            this.loadDependencyLabel(edition);
+        });
         // Listen to navigation events to capture route changes
         this.router.events.pipe(
             filter(event => event instanceof NavigationEnd)
@@ -97,6 +112,10 @@ export class SnomedNavbarComponent implements OnInit {
                 this.loadEditions(null);
             }
         });
+    }
+
+    ngOnDestroy() {
+        this.selectedEditionSubscription?.unsubscribe();
     }
 
     isInHome(): boolean {
@@ -180,11 +199,61 @@ export class SnomedNavbarComponent implements OnInit {
         this.selectedEdition = item;
         this.uiConfigurationService.setSelectedEdition(item);
         this.saveEditionToCookie(item.shortName);
+        this.loadDependencyLabel(item);
         const editionInPath = this.route.firstChild?.snapshot.paramMap.get('edition');
         if (editionInPath === item.shortName) {
             return;
         }
         this.updateEditionInUrl(item.shortName);
+    }
+
+    private loadDependencyLabel(edition: any) {
+        if (!edition?.shortName) {
+            this.dependencyInfo = null;
+            this.changeDetectorRef.detectChanges();
+            return;
+        }
+
+        const requestedShortName = edition.shortName;
+
+        const applyDetail = (detail: any) => {
+            if (detail?.shortName !== requestedShortName) {
+                return;
+            }
+            const timeParts = formatEffectiveTimeParts(detail?.dependantVersionEffectiveTime);
+            if (!detail?.dependantEditionName || !timeParts) {
+                this.dependencyInfo = null;
+            } else {
+                this.dependencyInfo = {
+                    parentName: detail.dependantEditionName,
+                    monthYear: timeParts.monthYear,
+                    effectiveTime: timeParts.effectiveTime
+                };
+            }
+            this.changeDetectorRef.detectChanges();
+        };
+
+        if (edition.dependantEditionName && edition.dependantVersionEffectiveTime != null) {
+            applyDetail(edition);
+            return;
+        }
+
+        this.simplexService.invalidateEditionDetailCache(requestedShortName);
+        lastValueFrom(this.simplexService.getEdition(requestedShortName)).then(
+            (detail) => {
+                applyDetail(detail);
+                if (detail?.shortName === requestedShortName) {
+                    this.uiConfigurationService.setSelectedEdition(detail);
+                }
+            },
+            (error) => {
+                console.error(error);
+                if (this.selectedEdition?.shortName === requestedShortName) {
+                    this.dependencyInfo = null;
+                    this.changeDetectorRef.detectChanges();
+                }
+            }
+        );
     }
 
     private saveEditionToCookie(editionShortName: string): void {
