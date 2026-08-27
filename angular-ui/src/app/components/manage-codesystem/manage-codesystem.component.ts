@@ -28,7 +28,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   releases: any[] = [];
   loadingReleaseStatus = false;
   loadingIssues = false;
-  runningAutomaticFixes = false;
+  automaticFixesWorkflowPhase: 'idle' | 'running-fixes' | 'starting-validation' = 'idle';
   issuesReport: any;
   downloadReleaseCandidateDisabled = false;
   creatingReleaseCandidate = false;
@@ -89,24 +89,26 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   }
 
   async runAutomaticFixesAndValidation() {
-    if (this.runningAutomaticFixes || this.isValidationWorkflowInProgress()) {
+    if (this.automaticFixesWorkflowPhase !== 'idle' || this.isValidationWorkflowInProgress()) {
       this.alert('Please wait — an operation is already in progress');
       return;
     }
     if (!this.hasAutomaticFixes()) {
       return;
     }
-    this.runningAutomaticFixes = true;
+    this.automaticFixesWorkflowPhase = 'running-fixes';
+    this.issuesReport = null;
+    this.changeDetectorRef.detectChanges();
     try {
-      this.alert('Running automatic fixes');
       await lastValueFrom(
         this.simplexService.runAutomaticFixes(this.edition.shortName)
       );
-      this.alert('Automatic fixes complete — starting validation');
+      this.automaticFixesWorkflowPhase = 'starting-validation';
+      this.changeDetectorRef.detectChanges();
       await lastValueFrom(
         this.simplexService.startValidation(this.edition.shortName)
       );
-      this.alert('Validation requested');
+      this.edition.validationStatus = 'IN_PROGRESS';
       await this.refreshEdition();
       if (this.jobComponent) {
         this.jobComponent.loadJobs(true);
@@ -117,7 +119,7 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       this.alert(message);
       await this.refreshEdition();
     } finally {
-      this.runningAutomaticFixes = false;
+      this.automaticFixesWorkflowPhase = 'idle';
       this.changeDetectorRef.detectChanges();
     }
   }
@@ -125,6 +127,11 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
   isValidationWorkflowInProgress(): boolean {
     return this.edition?.validationStatus === 'IN_PROGRESS'
       || this.edition?.classificationStatus === 'IN_PROGRESS';
+  }
+
+  isValidationSubStageBusy(): boolean {
+    return this.automaticFixesWorkflowPhase !== 'idle'
+      || this.isValidationWorkflowInProgress();
   }
 
   isReleaseBuildInProgress(): boolean {
