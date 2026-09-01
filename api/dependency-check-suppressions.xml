@@ -59,11 +59,10 @@
 	</suppress>
 	<!--
 		CVE-2026-66299 affects the WebSocket chat example in Tomcat's examples webapp only.
-		Spring Boot embedded Tomcat does not ship that application. Fixed version 10.1.58 is not
-		yet available on Maven Central; suppress until it can be adopted.
+		Spring Boot embedded Tomcat does not ship that application.
 	-->
 	<suppress>
-		<notes><![CDATA[Not applicable — embedded Tomcat without examples webapp; fix 10.1.58 unavailable]]></notes>
+		<notes><![CDATA[Not applicable — embedded Tomcat without examples webapp]]></notes>
 		<packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat-embed-(core|websocket)@.*$</packageUrl>
 		<cve>CVE-2026-66299</cve>
 	</suppress>

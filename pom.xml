@@ -20,7 +20,7 @@
 	<properties>
 		<!-- snomed-parent-bom property overrides. Remove and reassert when upgrading the BOM. -->
 		<activemq.version>6.2.8</activemq.version>
-		<tomcat-embed.version>10.1.57</tomcat-embed.version>
+		<tomcat-embed.version>10.1.59</tomcat-embed.version>
 		<spring.version>6.2.19</spring.version>
 		<spring-boot.version>3.5.15</spring-boot.version>
 		<spring.security.version>6.5.11</spring.security.version>
@@ -43,10 +43,20 @@
 	<dependencyManagement>
 		<dependencies>
 			<!-- Explicit pins: snomed-parent-bom hardcodes versions or Spring Boot import ignores property overrides -->
-			<!-- tomcat-embed-el is managed by Spring Boot (${tomcat.version}), not snomed BOM (${tomcat-embed.version}) -->
+			<!-- Spring Boot BOM pins Tomcat with hardcoded versions; property overrides alone do not apply -->
+			<dependency>
+				<groupId>org.apache.tomcat.embed</groupId>
+				<artifactId>tomcat-embed-core</artifactId>
+				<version>${tomcat-embed.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.apache.tomcat.embed</groupId>
 				<artifactId>tomcat-embed-el</artifactId>
+				<version>${tomcat-embed.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.tomcat.embed</groupId>
+				<artifactId>tomcat-embed-websocket</artifactId>
 				<version>${tomcat-embed.version}</version>
 			</dependency>
 			<dependency>
