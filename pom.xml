@@ -21,6 +21,7 @@
 		<!-- snomed-parent-bom property overrides. Remove and reassert when upgrading the BOM. -->
 		<activemq.version>6.2.8</activemq.version>
 		<tomcat-embed.version>10.1.59</tomcat-embed.version>
+		<httpclient5.version>5.6.4</httpclient5.version>
 		<spring.version>6.2.19</spring.version>
 		<spring-boot.version>3.5.15</spring-boot.version>
 		<spring.security.version>6.5.11</spring.security.version>
@@ -94,6 +95,11 @@
 				<groupId>org.apache.httpcomponents.core5</groupId>
 				<artifactId>httpcore5-h2</artifactId>
 				<version>${httpcore5.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.httpcomponents.client5</groupId>
+				<artifactId>httpclient5</artifactId>
+				<version>${httpclient5.version}</version>
 			</dependency>
 			<!-- snomed-parent-bom pins springdoc at 2.6.0 -->
 			<dependency>
