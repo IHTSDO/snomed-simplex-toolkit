@@ -66,4 +66,22 @@
 		<packageUrl regex="true">^pkg:maven/org\.apache\.tomcat\.embed/tomcat-embed-(core|websocket)@.*$</packageUrl>
 		<cve>CVE-2026-66299</cve>
 	</suppress>
+	<!--
+		CVE-2026-59313 affects Spring MVC functional web framework SSE endpoints only.
+		This application uses annotation-based controllers and does not expose SSE.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no functional web framework or SSE endpoints]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-59313</cve>
+	</suppress>
+	<!--
+		CVE-2026-59283 is fixed in Spring Framework 6.2.20 (enterprise-only, not on Maven Central)
+		or 7.0.9 (requires Spring Boot 4). Suppress until Spring Boot 4 migration is feasible.
+	-->
+	<suppress>
+		<notes><![CDATA[No OSS fix on Maven Central for Spring Boot 3.x line; requires Spring Boot 4 / Spring 7.0.9]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-59283</cve>
+	</suppress>
 </suppressions>
