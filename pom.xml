@@ -28,7 +28,7 @@
 		<poi.version>5.4.1</poi.version>
 		<gson.version>2.13.2</gson.version>
 		<jackson.version>2.18.9</jackson.version>
-		<elasticsearch.version>8.19.19</elasticsearch.version>
+		<elasticsearch.version>8.19.20</elasticsearch.version>
 		<log4j.version>2.25.5</log4j.version>
 		<commons-lang3.version>3.20.0</commons-lang3.version>
 		<httpcore5.version>5.4.3</httpcore5.version>
@@ -69,6 +69,11 @@
 				<groupId>org.apache.activemq</groupId>
 				<artifactId>activemq-client</artifactId>
 				<version>${activemq.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>co.elastic.clients</groupId>
+				<artifactId>elasticsearch-java</artifactId>
+				<version>${elasticsearch.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.elasticsearch.client</groupId>
