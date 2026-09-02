@@ -23,6 +23,7 @@
 		<cve>CVE-2026-41002</cve>
 		<cve>CVE-2026-41004</cve>
 		<cve>CVE-2026-47894</cve>
+		<cve>CVE-2026-59315</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — vault-config client library, not spring-cloud-config-server]]></notes>
@@ -32,6 +33,7 @@
 		<cve>CVE-2026-41002</cve>
 		<cve>CVE-2026-41004</cve>
 		<cve>CVE-2026-47894</cve>
+		<cve>CVE-2026-59315</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — starter wraps consul-config client, not config-server]]></notes>
@@ -41,6 +43,7 @@
 		<cve>CVE-2026-41002</cve>
 		<cve>CVE-2026-41004</cve>
 		<cve>CVE-2026-47894</cve>
+		<cve>CVE-2026-59315</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — starter wraps vault-config client, not config-server]]></notes>
@@ -50,6 +53,15 @@
 		<cve>CVE-2026-41002</cve>
 		<cve>CVE-2026-41004</cve>
 		<cve>CVE-2026-47894</cve>
+		<cve>CVE-2026-59315</cve>
+	</suppress>
+	<!--
+		False positive: CVE-2026-54285 affects @opentelemetry/javascript (W3CBaggagePropagator), not opentelemetry-java.
+	-->
+	<suppress>
+		<notes><![CDATA[False positive — OpenTelemetry JavaScript client CVE, not opentelemetry-java]]></notes>
+		<packageUrl regex="true">^pkg:maven/io\.opentelemetry/opentelemetry-(api|context|sdk|exporter).*@.*$</packageUrl>
+		<cve>CVE-2026-54285</cve>
 	</suppress>
 	<!--
 		False positive: CVE-2026-54399 and CVE-2026-54428 affect org.apache.httpcomponents.core5:httpcore5 only.
@@ -89,6 +101,24 @@
 		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
 		<cve>CVE-2026-47892</cve>
 		<cve>CVE-2026-47893</cve>
+	</suppress>
+	<!--
+		CVE-2026-59280 affects FreeMarker view resolution via SpringTemplateLoader only.
+		This application does not use FreeMarker templates.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no FreeMarker integration]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-59280</cve>
+	</suppress>
+	<!--
+		CVE-2026-59314 affects Content-Disposition built from untrusted input when the connector
+		does not reject CRLF. Embedded Tomcat (default) already rejects such characters per Spring advisory.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — embedded Tomcat rejects CRLF in response headers]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-59314</cve>
 	</suppress>
 	<!--
 		CVE-2026-59283 is fixed in Spring Framework 6.2.20 (enterprise-only, not on Maven Central)
