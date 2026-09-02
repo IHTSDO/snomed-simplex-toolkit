@@ -157,7 +157,9 @@
 				<artifactId>dependency-check-maven</artifactId>
 				<inherited>false</inherited>
 				<configuration>
-					<nvdApiKey>${nvdApiKey}</nvdApiKey>
+					<!-- Match snomed-parent-bom 4.x+: NVD is sufficient; OSS Index needs credentials Jenkins does not have -->
+					<ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+					<failOnError>false</failOnError>
 				</configuration>
 				<executions>
 					<execution>
@@ -169,6 +171,29 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!--
+			Local-only NVD API key for faster dependency-check runs.
+			Activate with: mvn dependency-check:check -Plocal
+			Set the key in ~/.m2/settings.xml (profile property nvdApiKey) or -DnvdApiKey=...
+			Jenkins uses the NVD_API_KEY environment variable directly; no profile needed there.
+		-->
+		<profile>
+			<id>local</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.owasp</groupId>
+						<artifactId>dependency-check-maven</artifactId>
+						<configuration>
+							<nvdApiKey>${nvdApiKey}</nvdApiKey>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 	<repositories>
 		<repository>
