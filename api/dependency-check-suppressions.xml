@@ -22,6 +22,7 @@
 		<cve>CVE-2026-40982</cve>
 		<cve>CVE-2026-41002</cve>
 		<cve>CVE-2026-41004</cve>
+		<cve>CVE-2026-47894</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — vault-config client library, not spring-cloud-config-server]]></notes>
@@ -30,6 +31,7 @@
 		<cve>CVE-2026-40982</cve>
 		<cve>CVE-2026-41002</cve>
 		<cve>CVE-2026-41004</cve>
+		<cve>CVE-2026-47894</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — starter wraps consul-config client, not config-server]]></notes>
@@ -38,6 +40,7 @@
 		<cve>CVE-2026-40982</cve>
 		<cve>CVE-2026-41002</cve>
 		<cve>CVE-2026-41004</cve>
+		<cve>CVE-2026-47894</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — starter wraps vault-config client, not config-server]]></notes>
@@ -46,6 +49,7 @@
 		<cve>CVE-2026-40982</cve>
 		<cve>CVE-2026-41002</cve>
 		<cve>CVE-2026-41004</cve>
+		<cve>CVE-2026-47894</cve>
 	</suppress>
 	<!--
 		False positive: CVE-2026-54399 and CVE-2026-54428 affect org.apache.httpcomponents.core5:httpcore5 only.
@@ -76,6 +80,17 @@
 		<cve>CVE-2026-59313</cve>
 	</suppress>
 	<!--
+		CVE-2026-47892 affects WebFlux functional endpoint CORS pre-flight authorization only.
+		CVE-2026-47893 affects Spring WebSocket handshake error handling only.
+		This application uses annotation-based MVC and does not expose WebFlux or WebSocket endpoints.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — annotation-based MVC only, no WebFlux or WebSocket]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47892</cve>
+		<cve>CVE-2026-47893</cve>
+	</suppress>
+	<!--
 		CVE-2026-59283 is fixed in Spring Framework 6.2.20 (enterprise-only, not on Maven Central)
 		or 7.0.9 (requires Spring Boot 4). Suppress until Spring Boot 4 migration is feasible.
 	-->
@@ -83,5 +98,14 @@
 		<notes><![CDATA[No OSS fix on Maven Central for Spring Boot 3.x line; requires Spring Boot 4 / Spring 7.0.9]]></notes>
 		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
 		<cve>CVE-2026-59283</cve>
+	</suppress>
+	<!--
+		CVE-2026-59270 affects Spring Security embedded UnboundID LDAP (UnboundIdContainer) only.
+		This application uses IMS SSO and does not run an embedded LDAP server.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no embedded UnboundID LDAP server]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.security/.*@.*$</packageUrl>
+		<cve>CVE-2026-59270</cve>
 	</suppress>
 </suppressions>
