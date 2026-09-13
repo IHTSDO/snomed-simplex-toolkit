@@ -161,6 +161,7 @@ public class SnowstormClient {
 		CachedCodeSystem cached = codeSystemCache.get(codesystemShortName);
 		if (cached != null && isCacheValid(cached)) {
 			ensureDependantEditionInfo(cached.codeSystem);
+			refreshBranchDerivedState(cached.codeSystem);
 			return cached.codeSystem;
 		}
 
@@ -183,17 +184,29 @@ public class SnowstormClient {
 	}
 
 	private void addCodeSystemBranchInfo(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		String branchPath = codeSystem.getBranchPath();
-		Branch branch = getBranchOrThrow(branchPath);
-		codeSystem.setBranchObject(branch);
+		Branch branch = getBranchOrThrow(codeSystem.getBranchPath());
+		applyBranchDerivedState(codeSystem, branch);
 		String defaultModule = branch.getDefaultModule();
-		codeSystem.setContentHeadTimestamp(branch.getHeadTimestamp());
 		codeSystem.setDefaultModule(defaultModule);
 		if (defaultModule != null) {
 			String pt = getPT(codeSystem, defaultModule).orElse(null);
 			codeSystem.setDefaultModuleDisplay(pt);
 		}
 		codeSystem.setSimplexWorkingBranch(workingBranches.get(codeSystem.getShortName()));
+		populateDependantEditionInfo(codeSystem);
+		clearOldMetadata(branch);
+		// Update cache if exists
+		codeSystemCache.put(codeSystem.getShortName(), new CachedCodeSystem(codeSystem, System.currentTimeMillis()));
+	}
+
+	private void refreshBranchDerivedState(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		Branch branch = getBranchOrThrow(codeSystem.getBranchPath());
+		applyBranchDerivedState(codeSystem, branch);
+	}
+
+	private void applyBranchDerivedState(CodeSystem codeSystem, Branch branch) {
+		codeSystem.setBranchObject(branch);
+		codeSystem.setContentHeadTimestamp(branch.getHeadTimestamp());
 		codeSystem.setNamespace(branch.getMetadataValue(Branch.DEFAULT_NAMESPACE_METADATA_KEY));
 		codeSystem.setClassified("true".equals(branch.getMetadataValue(Branch.CLASSIFIED_METADATA_KEY)));
 		codeSystem.setShowCustomConcepts("true".equals(branch.getMetadataValue(Branch.SHOW_CUSTOM_CONCEPTS)));
@@ -209,10 +222,6 @@ public class SnowstormClient {
 		codeSystem.setEditionStatus(getEditionStatus(branch.getMetadataValue(Branch.EDITION_STATUS_METADATA_KEY)));
 		codeSystem.setTranslationLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_METADATA_KEY));
 		codeSystem.setTranslationSnolateLanguages(getTranslationLanguages(branch, Branch.SIMPLEX_TRANSLATION_SNOLATE_METADATA_KEY));
-		populateDependantEditionInfo(codeSystem);
-		clearOldMetadata(branch);
-		// Update cache if exists
-		codeSystemCache.put(codeSystem.getShortName(), new CachedCodeSystem(codeSystem, System.currentTimeMillis()));
 	}
 
 	private void populateDependantEditionInfo(CodeSystem codeSystem) {

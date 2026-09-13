@@ -9,9 +9,11 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.rvf.ValidationServiceClient;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.SupportRegister;
+import org.snomed.simplex.service.job.ExternalServiceJob;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.spy;
@@ -60,6 +62,19 @@ class ValidateJobServiceTest {
 		validateJobService.addValidationStatus(codeSystem);
 
 		assertEquals(CodeSystemValidationStatus.TODO, codeSystem.getValidationStatus());
+	}
+
+	@Test
+	void addValidationStatus_completeJobWithOlderHead_isStale() throws ServiceException {
+		CodeSystem codeSystem = new CodeSystem("Test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setContentHeadTimestamp(200L);
+		ExternalServiceJob job = new ExternalServiceJob(codeSystem, "Validation", "MAIN/SNOMEDCT-TEST", 100L);
+		job.setStatus(JobStatus.COMPLETE);
+		when(validateJobService.getLatestJob("SNOMEDCT-TEST")).thenReturn(job);
+
+		validateJobService.addValidationStatus(codeSystem);
+
+		assertEquals(CodeSystemValidationStatus.STALE, codeSystem.getValidationStatus());
 	}
 
 	private static CodeSystem codeSystemWithReport(String reportUrl) {
