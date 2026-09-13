@@ -69,5 +69,5 @@ Important properties:
 - Translation sources implement `TranslationSource` interface; `TranslationMergeService` combines them
 - Background jobs use `@EnableAsync` and `ServiceCallable`
 - Security integrates with SNOMED IMS; admin group is `simplex-admin`
-- AI translation uses LangChain4J with OpenAI (GPT-4o-mini for fast, GPT-4o for quality)
+- AI translation uses LangChain4J with OpenAI (GPT-5.6 Terra Fast for suggestions, GPT-5.6 Terra for batch)
 - Frontend uses RxJS observables throughout; Angular Material for UI

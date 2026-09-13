@@ -18,21 +18,26 @@ import static org.mockito.Mockito.when;
 
 class LlmUsageServiceTest {
 
+	private static final String FAST_MODEL = "model-a";
+	private static final String GOOD_MODEL = "model-b";
+	private static final String GOOD_MODEL_FAST_BILLING = "model-b-fast";
+
 	private final LlmUsageDailyRepository repository = mock(LlmUsageDailyRepository.class);
 	private final OpenAiPricingConfig pricingConfig = testPricingConfig();
 	private final LlmUsageService service = new LlmUsageService(repository, null, null, pricingConfig);
 
 	private static OpenAiPricingConfig testPricingConfig() {
 		OpenAiPricingConfig config = new OpenAiPricingConfig();
-		config.getModels().put("gpt-5.4", new OpenAiPricingConfig.ModelRates(2.50, 15.00));
-		config.getModels().put("gpt-5.4-mini", new OpenAiPricingConfig.ModelRates(0.75, 4.50));
+		config.getModels().put(FAST_MODEL, new OpenAiPricingConfig.ModelRates(1.0, 2.0));
+		config.getModels().put(GOOD_MODEL, new OpenAiPricingConfig.ModelRates(3.0, 4.0));
+		config.getModels().put(GOOD_MODEL_FAST_BILLING, new OpenAiPricingConfig.ModelRates(6.0, 8.0));
 		return config;
 	}
 
 	@Test
 	void documentIdIncludesCodesystemModelAndDate() {
-		assertEquals("SNOMEDCT-ES|gpt-5.4-mini|2026-07-02",
-				LlmUsageService.documentId("SNOMEDCT-ES", "gpt-5.4-mini", "2026-07-02"));
+		assertEquals("SNOMEDCT-ES|model-a|2026-07-02",
+				LlmUsageService.documentId("SNOMEDCT-ES", FAST_MODEL, "2026-07-02"));
 	}
 
 	@Test
@@ -53,9 +58,9 @@ class LlmUsageServiceTest {
 		String yesterdayString = LlmUsageService.formatDate(today.minusDays(1));
 
 		List<LlmUsageDaily> records = List.of(
-				new LlmUsageDaily("1", "SNOMEDCT-ES", "gpt-5.4-mini", "openai", todayString, 100, 50, 2, 25),
-				new LlmUsageDaily("2", "SNOMEDCT-ES", "gpt-5.4", "openai", todayString, 200, 80, 1, 10),
-				new LlmUsageDaily("3", "SNOMEDCT-DE", "gpt-5.4-mini", "openai", yesterdayString, 30, 10, 1, 5)
+				new LlmUsageDaily("1", "SNOMEDCT-ES", FAST_MODEL, "openai", todayString, 100, 50, 2, 25),
+				new LlmUsageDaily("2", "SNOMEDCT-ES", GOOD_MODEL, "openai", todayString, 200, 80, 1, 10),
+				new LlmUsageDaily("3", "SNOMEDCT-DE", FAST_MODEL, "openai", yesterdayString, 30, 10, 1, 5)
 		);
 
 		when(repository.findByDateGreaterThanEqualAndDateLessThanEqualOrderByDateDesc(anyString(), anyString()))
@@ -72,20 +77,20 @@ class LlmUsageServiceTest {
 		assertEquals(2, summary.getByModel().size());
 
 		LlmUsageByModel fastModel = summary.getByModel().stream()
-				.filter(item -> "gpt-5.4-mini".equals(item.getModel()))
+				.filter(item -> FAST_MODEL.equals(item.getModel()))
 				.findFirst()
 				.orElseThrow();
 		assertEquals(130, fastModel.getInputTokens());
 		assertEquals(60, fastModel.getOutputTokens());
 		assertEquals(3, fastModel.getRequestCount());
 		assertEquals(30, fastModel.getConceptsTranslated());
-		assertEquals(0.0003675, fastModel.getCostUsd(), 1e-9);
+		assertEquals(pricingConfig.calculateCostUsd(FAST_MODEL, 130, 60), fastModel.getCostUsd(), 1e-9);
 
 		LlmUsageByModel goodModel = summary.getByModel().stream()
-				.filter(item -> "gpt-5.4".equals(item.getModel()))
+				.filter(item -> GOOD_MODEL.equals(item.getModel()))
 				.findFirst()
 				.orElseThrow();
-		assertEquals(0.0017, goodModel.getCostUsd(), 1e-9);
+		assertEquals(pricingConfig.calculateCostUsd(GOOD_MODEL, 200, 80), goodModel.getCostUsd(), 1e-9);
 		assertEquals(10, goodModel.getConceptsTranslated());
 
 		assertEquals(3, summary.getDailyBreakdown().size());
@@ -100,15 +105,15 @@ class LlmUsageServiceTest {
 		String startString = LlmUsageService.formatDate(today.minusDays(6));
 
 		when(repository.findByCodesystemAndModelAndDateGreaterThanEqualAndDateLessThanEqualOrderByDateDesc(
-				"SNOMEDCT-ES", "gpt-5.4-mini", startString, todayString))
+				"SNOMEDCT-ES", FAST_MODEL, startString, todayString))
 				.thenReturn(List.of(
-						new LlmUsageDaily("1", "SNOMEDCT-ES", "gpt-5.4-mini", "openai", todayString, 10, 5, 1, 3)
+						new LlmUsageDaily("1", "SNOMEDCT-ES", FAST_MODEL, "openai", todayString, 10, 5, 1, 3)
 				));
 
-		LlmUsageSummary summary = service.getSummary(LlmUsagePeriod.WEEK, "SNOMEDCT-ES", "gpt-5.4-mini");
+		LlmUsageSummary summary = service.getSummary(LlmUsagePeriod.WEEK, "SNOMEDCT-ES", FAST_MODEL);
 
 		assertEquals("SNOMEDCT-ES", summary.getCodesystem());
-		assertEquals("gpt-5.4-mini", summary.getModel());
+		assertEquals(FAST_MODEL, summary.getModel());
 		assertEquals(10, summary.getInputTokens());
 		assertEquals(3, summary.getConceptsTranslated());
 		assertEquals(1, summary.getByModel().size());
@@ -118,7 +123,7 @@ class LlmUsageServiceTest {
 	@Test
 	void getSummaryAllTimeUsesRepositoryWithoutDateFilter() throws ServiceExceptionWithStatusCode {
 		when(repository.findAllByOrderByDateDesc()).thenReturn(List.of(
-				new LlmUsageDaily("1", "SNOMEDCT-ES", "gpt-5.4-mini", "openai", "2024-01-01", 5, 2, 1)
+				new LlmUsageDaily("1", "SNOMEDCT-ES", FAST_MODEL, "openai", "2024-01-01", 5, 2, 1)
 		));
 
 		LlmUsageSummary summary = service.getSummary(LlmUsagePeriod.ALL, null, null);
@@ -129,28 +134,58 @@ class LlmUsageServiceTest {
 	}
 
 	@Test
-	void getSummaryCalculatesCostForDatedModelNames() throws ServiceExceptionWithStatusCode {
+	void getSummaryAggregatesBillingModelsSeparately() throws ServiceExceptionWithStatusCode {
 		LocalDate today = LlmUsageService.currentUtcLocalDate();
 		String todayString = LlmUsageService.formatDate(today);
 
 		when(repository.findByDateGreaterThanEqualAndDateLessThanEqualOrderByDateDesc(anyString(), anyString()))
 				.thenReturn(List.of(
-						new LlmUsageDaily("1", "SNOMEDCT-ES", "gpt-5.4-2026-03-05", "openai", todayString, 200, 80, 1, 12),
-						new LlmUsageDaily("2", "SNOMEDCT-ES", "gpt-5.4-mini-2026-03-17", "openai", todayString, 130, 60, 1, 8)
+						new LlmUsageDaily("1", "SNOMEDCT-ES", GOOD_MODEL, "openai", todayString, 200, 80, 1, 10),
+						new LlmUsageDaily("2", "SNOMEDCT-ES", GOOD_MODEL_FAST_BILLING, "openai", todayString, 130, 60, 2, 25)
 				));
 
 		LlmUsageSummary summary = service.getSummary(LlmUsagePeriod.WEEK, null, null);
 
-		LlmUsageByModel datedGoodModel = summary.getByModel().stream()
-				.filter(item -> "gpt-5.4-2026-03-05".equals(item.getModel()))
-				.findFirst()
-				.orElseThrow();
-		assertEquals(0.0017, datedGoodModel.getCostUsd(), 1e-9);
+		assertEquals(2, summary.getByModel().size());
 
-		LlmUsageByModel datedMiniModel = summary.getByModel().stream()
-				.filter(item -> "gpt-5.4-mini-2026-03-17".equals(item.getModel()))
+		LlmUsageByModel standardModel = summary.getByModel().stream()
+				.filter(item -> GOOD_MODEL.equals(item.getModel()))
 				.findFirst()
 				.orElseThrow();
-		assertEquals(0.0003675, datedMiniModel.getCostUsd(), 1e-9);
+		assertEquals(pricingConfig.calculateCostUsd(GOOD_MODEL, 200, 80), standardModel.getCostUsd(), 1e-9);
+
+		LlmUsageByModel fastBillingModel = summary.getByModel().stream()
+				.filter(item -> GOOD_MODEL_FAST_BILLING.equals(item.getModel()))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(pricingConfig.calculateCostUsd(GOOD_MODEL_FAST_BILLING, 130, 60), fastBillingModel.getCostUsd(), 1e-9);
+	}
+
+	@Test
+	void getSummaryCalculatesCostForDatedModelNames() throws ServiceExceptionWithStatusCode {
+		LocalDate today = LlmUsageService.currentUtcLocalDate();
+		String todayString = LlmUsageService.formatDate(today);
+		String datedGoodModel = GOOD_MODEL + "-2026-03-05";
+		String datedFastModel = FAST_MODEL + "-2026-03-17";
+
+		when(repository.findByDateGreaterThanEqualAndDateLessThanEqualOrderByDateDesc(anyString(), anyString()))
+				.thenReturn(List.of(
+						new LlmUsageDaily("1", "SNOMEDCT-ES", datedGoodModel, "openai", todayString, 200, 80, 1, 12),
+						new LlmUsageDaily("2", "SNOMEDCT-ES", datedFastModel, "openai", todayString, 130, 60, 1, 8)
+				));
+
+		LlmUsageSummary summary = service.getSummary(LlmUsagePeriod.WEEK, null, null);
+
+		LlmUsageByModel datedGood = summary.getByModel().stream()
+				.filter(item -> datedGoodModel.equals(item.getModel()))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(pricingConfig.calculateCostUsd(datedGoodModel, 200, 80), datedGood.getCostUsd(), 1e-9);
+
+		LlmUsageByModel datedFast = summary.getByModel().stream()
+				.filter(item -> datedFastModel.equals(item.getModel()))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(pricingConfig.calculateCostUsd(datedFastModel, 130, 60), datedFast.getCostUsd(), 1e-9);
 	}
 }

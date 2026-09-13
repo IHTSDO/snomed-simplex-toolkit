@@ -10,6 +10,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.service.LlmUsageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -24,22 +25,42 @@ public class LLMService {
 	private final LlmUsageService llmUsageService;
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
+	@Autowired
 	public LLMService(
 			@Value("${openai.api-key}") String apiKey,
 			@Value("${openai.fast.model-name}") String fastModelName,
+			@Value("${openai.fast.service-tier:}") String fastServiceTier,
+			@Value("${openai.fast.billing-model-name:}") String fastBillingModelName,
 			@Value("${openai.good.model-name}") String goodModelName,
+			@Value("${openai.good.service-tier:}") String goodServiceTier,
+			@Value("${openai.good.billing-model-name:}") String goodBillingModelName,
 			LlmUsageService llmUsageService) {
 
 		this.llmUsageService = llmUsageService;
-		fastModel = configureModel(getOpenAiChatModel(apiKey, fastModelName), fastModelName);
-		goodModel = configureModel(getOpenAiChatModel(apiKey, goodModelName), goodModelName);
+		fastModel = configureModel(
+				getOpenAiChatModel(apiKey, fastModelName, fastServiceTier),
+				fastModelName,
+				billingModelName(fastBillingModelName, fastModelName));
+		goodModel = configureModel(
+				getOpenAiChatModel(apiKey, goodModelName, goodServiceTier),
+				goodModelName,
+				billingModelName(goodBillingModelName, goodModelName));
 	}
 
-	private static OpenAiChatModel getOpenAiChatModel(String apiKey, String modelName) {
+	LLMService(LlmUsageService llmUsageService, ConfiguredChatModel fastModel, ConfiguredChatModel goodModel) {
+		this.llmUsageService = llmUsageService;
+		this.fastModel = fastModel;
+		this.goodModel = goodModel;
+	}
+
+	private static OpenAiChatModel getOpenAiChatModel(String apiKey, String modelName, String serviceTier) {
 		OpenAiChatModel.OpenAiChatModelBuilder modelBuilder = OpenAiChatModel.builder()
 				.apiKey(apiKey)
 				.modelName(modelName)
 				.timeout(Duration.ofMinutes(2));
+		if (serviceTier != null && !serviceTier.isBlank()) {
+			modelBuilder.serviceTier(serviceTier);
+		}
 		if (!modelName.startsWith("gpt-5")) {
 			modelBuilder
 					.maxTokens(500)
@@ -49,9 +70,16 @@ public class LLMService {
 		return modelBuilder.build();
 	}
 
-	private static ConfiguredChatModel configureModel(ChatModel model, String configuredModelName) {
+	private static ConfiguredChatModel configureModel(ChatModel model, String configuredModelName, String billingModelName) {
 		String provider = providerSlug(model.provider());
-		return new ConfiguredChatModel(model, configuredModelName, provider);
+		return new ConfiguredChatModel(model, configuredModelName, billingModelName, provider);
+	}
+
+	private static String billingModelName(String configuredBillingModelName, String modelName) {
+		if (configuredBillingModelName != null && !configuredBillingModelName.isBlank()) {
+			return configuredBillingModelName;
+		}
+		return modelName;
 	}
 
 	public String chat(String message, boolean fast, LlmCallContext context) {
@@ -82,7 +110,7 @@ public class LLMService {
 		int outputTokens = usage != null && usage.outputTokenCount() != null ? usage.outputTokenCount() : 0;
 		llmUsageService.recordUsage(new LlmUsageRecord(
 				context.codesystem(),
-				resolveModelName(configuredModel, response),
+				configuredModel.billingModelName(),
 				configuredModel.provider(),
 				inputTokens,
 				outputTokens,
@@ -108,6 +136,6 @@ public class LLMService {
 		return fast ? fastModel : goodModel;
 	}
 
-	private record ConfiguredChatModel(ChatModel model, String modelName, String provider) {
+	record ConfiguredChatModel(ChatModel model, String modelName, String billingModelName, String provider) {
 	}
 }
