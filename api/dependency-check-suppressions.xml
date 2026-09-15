@@ -24,6 +24,9 @@
 		<cve>CVE-2026-41004</cve>
 		<cve>CVE-2026-47894</cve>
 		<cve>CVE-2026-59315</cve>
+		<cve>CVE-2026-22739</cve>
+		<cve>CVE-2026-47837</cve>
+		<cve>CVE-2026-47836</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — vault-config client library, not spring-cloud-config-server]]></notes>
@@ -34,6 +37,9 @@
 		<cve>CVE-2026-41004</cve>
 		<cve>CVE-2026-47894</cve>
 		<cve>CVE-2026-59315</cve>
+		<cve>CVE-2026-22739</cve>
+		<cve>CVE-2026-47837</cve>
+		<cve>CVE-2026-47836</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — starter wraps consul-config client, not config-server]]></notes>
@@ -44,6 +50,9 @@
 		<cve>CVE-2026-41004</cve>
 		<cve>CVE-2026-47894</cve>
 		<cve>CVE-2026-59315</cve>
+		<cve>CVE-2026-22739</cve>
+		<cve>CVE-2026-47837</cve>
+		<cve>CVE-2026-47836</cve>
 	</suppress>
 	<suppress>
 		<notes><![CDATA[False positive — starter wraps vault-config client, not config-server]]></notes>
@@ -54,6 +63,9 @@
 		<cve>CVE-2026-41004</cve>
 		<cve>CVE-2026-47894</cve>
 		<cve>CVE-2026-59315</cve>
+		<cve>CVE-2026-22739</cve>
+		<cve>CVE-2026-47837</cve>
+		<cve>CVE-2026-47836</cve>
 	</suppress>
 	<!--
 		False positive: CVE-2026-54285 affects @opentelemetry/javascript (W3CBaggagePropagator), not opentelemetry-java.
@@ -121,6 +133,74 @@
 		<cve>CVE-2026-59314</cve>
 	</suppress>
 	<!--
+		CVE-2026-47884 affects XsltView with wildcard /** mapping and dynamic view names only.
+		This application does not use XsltView.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no XsltView usage]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47884</cve>
+	</suppress>
+	<!--
+		CVE-2026-47890 affects Server-Sent Events with view fragments only.
+		This application does not expose SSE endpoints.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no SSE endpoints]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47890</cve>
+	</suppress>
+	<!--
+		CVE-2026-47891 affects WebFlux applications using the Aalto XML processor only.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — annotation-based MVC only, no WebFlux or Aalto XML]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47891</cve>
+	</suppress>
+	<!--
+		CVE-2026-47885 affects PartEventHttpMessageReader in Spring WebFlux only.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — annotation-based MVC only, no WebFlux]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47885</cve>
+	</suppress>
+	<!--
+		CVE-2026-47886 affects applications that evaluate user-supplied SpEL expressions.
+		This application does not evaluate user-supplied SpEL.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no user-supplied SpEL evaluation]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47886</cve>
+	</suppress>
+	<!--
+		CVE-2026-47888 affects Spring RSocket applications only.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no RSocket endpoints]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47888</cve>
+	</suppress>
+	<!--
+		CVE-2026-47889 affects WebFlux applications on the Jetty 12 Core reactive adapter only.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — embedded Tomcat MVC, no WebFlux on Jetty 12]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47889</cve>
+	</suppress>
+	<!--
+		CVE-2026-59282 is fixed in Spring Framework 6.2.20 (enterprise-only, not on Maven Central)
+		or 7.0.9 (requires Spring Boot 4). Suppress until Spring Boot 4 migration is feasible.
+	-->
+	<suppress>
+		<notes><![CDATA[No OSS fix on Maven Central for Spring Boot 3.x line; requires Spring Boot 4 / Spring 7.0.9]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-59282</cve>
+	</suppress>
+	<!--
 		CVE-2026-59283 is fixed in Spring Framework 6.2.20 (enterprise-only, not on Maven Central)
 		or 7.0.9 (requires Spring Boot 4). Suppress until Spring Boot 4 migration is feasible.
 	-->
@@ -137,5 +217,14 @@
 		<notes><![CDATA[Not applicable — no embedded UnboundID LDAP server]]></notes>
 		<packageUrl regex="true">^pkg:maven/org\.springframework\.security/.*@.*$</packageUrl>
 		<cve>CVE-2026-59270</cve>
+	</suppress>
+	<!--
+		CVE-2026-47841 affects WebAuthn with required user verification and a distributed HTTP session store.
+		This application uses IMS SSO and does not use WebAuthn or distributed sessions.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — IMS SSO only, no WebAuthn or distributed session store]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.security/.*@.*$</packageUrl>
+		<cve>CVE-2026-47841</cve>
 	</suppress>
 </suppressions>
