@@ -1,10 +1,10 @@
 package org.snomed.simplex.service.external;
 
+import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
-import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemBuildStatus;
 import org.snomed.simplex.client.domain.CodeSystemVersion;
@@ -20,10 +20,9 @@ import org.snomed.simplex.service.job.ExternalServiceJob;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-
 import static org.snomed.simplex.service.CodeSystemService.clearBuildStatus;
-import static org.snomed.simplex.service.CodeSystemService.setCodeSystemMetadata;
+import static org.snomed.simplex.service.CodeSystemService.setReleaseBuildInProgress;
+import static org.snomed.simplex.service.CodeSystemService.setReleaseBuildStatus;
 
 @Service
 public class ReleaseCandidateJobService extends ExternalFunctionJobService<String> {
@@ -63,9 +62,7 @@ public class ReleaseCandidateJobService extends ExternalFunctionJobService<Strin
 		SRSBuild releaseBuild = releaseServiceClient.buildProduct(codeSystem, effectiveTime);
 		String releaseBuildUrl = releaseBuild.url();
 		job.setLink(releaseBuildUrl);
-		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(),
-				Map.of(Branch.LATEST_BUILD_METADATA_KEY, releaseBuildUrl,
-						Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name()));
+		setReleaseBuildInProgress(codeSystem, releaseBuildUrl, snowstormClient);
 
 		return releaseBuildUrl;
 	}
@@ -123,7 +120,15 @@ public class ReleaseCandidateJobService extends ExternalFunctionJobService<Strin
 			return;
 		}
 		String buildUrl = codeSystem.getLatestReleaseCandidateBuild();
-		if (buildUrl == null || isJobBeingMonitored(buildUrl)) {
+		if (Strings.isBlank(buildUrl)) {
+			Activity openActivity = activityService.findLatestByCodeSystemAndActivityType(
+					codeSystem.getShortName(), ActivityType.BUILD_RELEASE);
+			if (openActivity != null && openActivity.getEndDate() == null) {
+				return;
+			}
+			return;
+		}
+		if (isJobBeingMonitored(buildUrl)) {
 			return;
 		}
 
@@ -145,7 +150,7 @@ public class ReleaseCandidateJobService extends ExternalFunctionJobService<Strin
 		}
 
 		if (buildStatus == CodeSystemBuildStatus.COMPLETE) {
-			setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, buildStatus.name(), codeSystem, snowstormClient);
+			setReleaseBuildStatus(codeSystem, buildStatus, snowstormClient);
 			endOpenBuildReleaseActivity(codeSystem.getShortName(), false);
 		} else {
 			clearBuildStatus(codeSystem, snowstormClient);
@@ -167,7 +172,7 @@ public class ReleaseCandidateJobService extends ExternalFunctionJobService<Strin
 		try {
 			SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 			CodeSystem codeSystem = snowstormClient.getCodeSystemOrThrow(job.getCodeSystem());
-			setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, buildStatus.name(), codeSystem, snowstormClient);
+			setReleaseBuildStatus(codeSystem, buildStatus, snowstormClient);
 			return true;
 		} catch (ServiceException e) {
 			supportRegister.handleSystemError(job, "Failed to update build status in branch metadata", e);

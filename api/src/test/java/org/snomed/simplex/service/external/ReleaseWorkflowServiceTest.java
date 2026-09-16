@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.snomed.simplex.domain.activity.ComponentType.CODE_SYSTEM;
@@ -113,9 +114,10 @@ class ReleaseWorkflowServiceTest {
 
 		releaseWorkflowService.startReleaseCandidate(CODE_SYSTEM_SHORT_NAME, EFFECTIVE_TIME);
 
-		verify(snowstormClient).invalidateCodeSystemCache(CODE_SYSTEM_SHORT_NAME);
+		verify(snowstormClient, times(2)).invalidateCodeSystemCache(CODE_SYSTEM_SHORT_NAME);
 		verify(snowstormClient).upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
-				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name()));
+				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name(),
+				Branch.LATEST_BUILD_METADATA_KEY, ""));
 		verify(releaseServiceClient).getCreateProduct(codeSystem, packageConfiguration);
 		verify(activityService).startExternalServiceActivity(codeSystem, CODE_SYSTEM, ActivityType.BUILD_RELEASE,
 				releaseCandidateJobService, EFFECTIVE_TIME);
@@ -137,7 +139,11 @@ class ReleaseWorkflowServiceTest {
 				() -> releaseWorkflowService.startReleaseCandidate(CODE_SYSTEM_SHORT_NAME, EFFECTIVE_TIME));
 
 		verify(snowstormClient).upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
+				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name(),
+				Branch.LATEST_BUILD_METADATA_KEY, ""));
+		verify(snowstormClient).upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
 				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name()));
+		verify(snowstormClient, times(3)).invalidateCodeSystemCache(CODE_SYSTEM_SHORT_NAME);
 		verify(activityService, never()).startExternalServiceActivity(any(), any(), any(), any(), any());
 	}
 

@@ -314,10 +314,35 @@ public class CodeSystemService {
 		setEditionStatus(codeSystem, EditionStatus.MAINTENANCE, snowstormClient);
 	}
 
+	public static void markReleaseBuildStarting(CodeSystem codeSystem, SnowstormClient snowstormClient) {
+		codeSystem.setBuildStatus(CodeSystemBuildStatus.IN_PROGRESS);
+		codeSystem.setLatestReleaseCandidateBuild(null);
+		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
+				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name(),
+				Branch.LATEST_BUILD_METADATA_KEY, ""));
+		snowstormClient.invalidateCodeSystemCache(codeSystem.getShortName());
+	}
+
+	public static void setReleaseBuildInProgress(CodeSystem codeSystem, String releaseBuildUrl, SnowstormClient snowstormClient) {
+		codeSystem.setBuildStatus(CodeSystemBuildStatus.IN_PROGRESS);
+		codeSystem.setLatestReleaseCandidateBuild(releaseBuildUrl);
+		snowstormClient.upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
+				Branch.LATEST_BUILD_METADATA_KEY, releaseBuildUrl,
+				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name()));
+		snowstormClient.invalidateCodeSystemCache(codeSystem.getShortName());
+	}
+
+	public static void setReleaseBuildStatus(CodeSystem codeSystem, CodeSystemBuildStatus buildStatus, SnowstormClient snowstormClient) {
+		codeSystem.setBuildStatus(buildStatus);
+		setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, buildStatus.name(), codeSystem, snowstormClient);
+		snowstormClient.invalidateCodeSystemCache(codeSystem.getShortName());
+	}
+
 	public static void clearBuildStatus(CodeSystem codeSystem, SnowstormClient snowstormClient) {
 		CodeSystemBuildStatus newStatus = CodeSystemBuildStatus.TODO;
 		codeSystem.setBuildStatus(newStatus);
 		setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, newStatus.name(), codeSystem, snowstormClient);
+		snowstormClient.invalidateCodeSystemCache(codeSystem.getShortName());
 	}
 
 	public static void setCodeSystemMetadata(String key, String value, CodeSystem codeSystem, SnowstormClient snowstormClient) {

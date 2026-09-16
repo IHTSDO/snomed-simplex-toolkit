@@ -6,6 +6,7 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.CodeSystemBuildStatus;
 import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.domain.Concepts;
@@ -204,6 +205,36 @@ class CodeSystemServiceTest {
 				() -> codeSystemService.approveContentForRelease(codeSystem));
 
 		assertEquals("Content is not classified. Reopen editing and run validation.", exception.getMessage());
+	}
+
+	@Test
+	void markReleaseBuildStarting_clearsLatestBuildAndInvalidatesCache() {
+		SnowstormClient snowstormClient = mock(SnowstormClient.class);
+		CodeSystem codeSystem = releaseReadyCodeSystem();
+		codeSystem.setLatestReleaseCandidateBuild("https://release.example/old-build");
+
+		CodeSystemService.markReleaseBuildStarting(codeSystem, snowstormClient);
+
+		assertEquals(CodeSystemBuildStatus.IN_PROGRESS, codeSystem.getBuildStatus());
+		assertEquals(null, codeSystem.getLatestReleaseCandidateBuild());
+		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST", Map.of(
+				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name(),
+				Branch.LATEST_BUILD_METADATA_KEY, ""));
+		verify(snowstormClient).invalidateCodeSystemCache("SNOMEDCT-TEST");
+	}
+
+	@Test
+	void clearBuildStatus_invalidatesCodeSystemCache() {
+		SnowstormClient snowstormClient = mock(SnowstormClient.class);
+		CodeSystem codeSystem = releaseReadyCodeSystem();
+		codeSystem.setBuildStatus(CodeSystemBuildStatus.IN_PROGRESS);
+
+		CodeSystemService.clearBuildStatus(codeSystem, snowstormClient);
+
+		assertEquals(CodeSystemBuildStatus.TODO, codeSystem.getBuildStatus());
+		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST",
+				Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name()));
+		verify(snowstormClient).invalidateCodeSystemCache("SNOMEDCT-TEST");
 	}
 
 	@Test

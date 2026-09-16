@@ -80,6 +80,7 @@ class ReleaseCandidateJobServiceTest {
 		assertTrue(complete);
 		verify(supportRegister).handleSystemError(job, "SRS build failed with status FAILED_PRE_CONDITIONS.");
 		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST", Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name()));
+		verify(snowstormClient).invalidateCodeSystemCache(CODE_SYSTEM_SHORT_NAME);
 	}
 
 	@Test
@@ -115,6 +116,37 @@ class ReleaseCandidateJobServiceTest {
 		assertEquals(JobStatus.COMPLETE, job.getStatus());
 		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST",
 				Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.COMPLETE.name()));
+		verify(snowstormClient).invalidateCodeSystemCache(CODE_SYSTEM_SHORT_NAME);
+	}
+
+	@Test
+	void recoverOrphanedBuild_inProgressWithBlankBuildUrl_doesNothing() throws ServiceException {
+		CodeSystem codeSystem = codeSystemWithBranch();
+		codeSystem.setBuildStatus(CodeSystemBuildStatus.IN_PROGRESS);
+		codeSystem.setLatestReleaseCandidateBuild("");
+
+		releaseCandidateJobService.recoverOrphanedBuild(codeSystem, snowstormClient);
+
+		verify(releaseServiceClient, never()).getBuild(any());
+		verify(snowstormClient, never()).upsertBranchMetadata(any(), any());
+		verify(activityService, never()).endAsynchronousActivity(any());
+	}
+
+	@Test
+	void recoverOrphanedBuild_inProgressWithOpenActivityAndNoBuildUrl_doesNothing() throws ServiceException {
+		CodeSystem codeSystem = codeSystemWithBranch();
+		codeSystem.setBuildStatus(CodeSystemBuildStatus.IN_PROGRESS);
+		codeSystem.setLatestReleaseCandidateBuild(null);
+
+		Activity openActivity = new Activity("user", CODE_SYSTEM_SHORT_NAME, CODE_SYSTEM, ActivityType.BUILD_RELEASE);
+		when(activityService.findLatestByCodeSystemAndActivityType(CODE_SYSTEM_SHORT_NAME, ActivityType.BUILD_RELEASE))
+				.thenReturn(openActivity);
+
+		releaseCandidateJobService.recoverOrphanedBuild(codeSystem, snowstormClient);
+
+		verify(releaseServiceClient, never()).getBuild(any());
+		verify(snowstormClient, never()).upsertBranchMetadata(any(), any());
+		verify(activityService, never()).endAsynchronousActivity(any());
 	}
 
 	@Test
@@ -135,6 +167,7 @@ class ReleaseCandidateJobServiceTest {
 
 		verify(snowstormClient).upsertBranchMetadata("MAIN/SNOMEDCT-TEST",
 				Map.of(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name()));
+		verify(snowstormClient).invalidateCodeSystemCache(CODE_SYSTEM_SHORT_NAME);
 		ArgumentCaptor<Activity> activityCaptor = ArgumentCaptor.forClass(Activity.class);
 		verify(activityService).endAsynchronousActivity(activityCaptor.capture());
 		assertTrue(activityCaptor.getValue().isError());

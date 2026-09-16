@@ -4,7 +4,6 @@ import org.apache.logging.log4j.util.Strings;
 import org.jspecify.annotations.NonNull;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
-import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemBuildStatus;
 import org.snomed.simplex.client.domain.EditionStatus;
@@ -76,7 +75,7 @@ public class ReleaseWorkflowService {
 			throw new ServiceExceptionWithStatusCode("Organisation name and contact details must be set before creating a build.", HttpStatus.CONFLICT);
 		}
 
-		setCodeSystemMetadata(Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.IN_PROGRESS.name(), codeSystem, snowstormClient);
+		markReleaseBuildStarting(codeSystem, snowstormClient);
 
 		try {
 			releaseServiceClient.getCreateProduct(codeSystem, packageConfiguration);
