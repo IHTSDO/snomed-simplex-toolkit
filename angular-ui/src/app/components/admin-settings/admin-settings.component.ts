@@ -10,6 +10,8 @@ import { SimplexService } from 'src/app/services/simplex/simplex.service';
 })
 export class AdminSettingsComponent implements OnInit {
 
+  adminTabIndex = 0;
+
   roles: string[] = [];
   loading = false;
   loadingEditions = false;

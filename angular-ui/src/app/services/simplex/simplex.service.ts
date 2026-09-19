@@ -738,6 +738,18 @@ export class SimplexService {
     return this.http.get(`api/${edition}/jobs/${id}`)
   }
 
+  public getAdminConceptForEditor(codeSystem: string, conceptId: string): Observable<any> {
+    const id = encodeURIComponent(conceptId.trim());
+    return this.http.get(`api/admin/${encodeURIComponent(codeSystem)}/concepts/${id}`)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public updateAdminConceptDescriptions(codeSystem: string, conceptId: string, body: { descriptions: any[] }): Observable<any> {
+    const id = encodeURIComponent(conceptId.trim());
+    return this.http.put(`api/admin/${encodeURIComponent(codeSystem)}/concepts/${id}`, body)
+      .pipe(catchError(this.handleError.bind(this)));
+  }
+
   public getLlmUsage(period: string, codesystem?: string, model?: string): Observable<any> {
     let params = new HttpParams().set('period', period);
     if (codesystem) {

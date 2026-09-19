@@ -77,6 +77,7 @@ import {EditionActivitiesComponent} from './components/edition-activities/editio
 import {ElapsedPipe} from './pipes/elapsed/elapsed.pipe';
 import {DownloadReleasesComponent} from './components/download-releases/download-releases.component';
 import {AdminSettingsComponent} from './components/admin-settings/admin-settings.component';
+import {AdminConceptEditorComponent} from './components/admin-concept-editor/admin-concept-editor.component';
 import {CommonModule} from '@angular/common';
 import {MatDialogModule} from '@angular/material/dialog';
 import {TranslationDashboardComponent} from './components/translation-dashboard/translation-dashboard.component';
@@ -141,6 +142,7 @@ import {ConfigService} from "./services/config/config.service";
         EditionActivitiesComponent,
         DownloadReleasesComponent,
         AdminSettingsComponent,
+        AdminConceptEditorComponent,
         TranslationDashboardComponent,
         TranslationStudioImportJobsComponent,
         TranslationUnitEditComponent,
