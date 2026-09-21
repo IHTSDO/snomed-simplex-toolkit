@@ -117,6 +117,7 @@ class AdminConceptEditorServiceTest {
 		);
 		when(snowstormClient.loadBrowserFormatConcepts(any(), eq(codeSystem))).thenReturn(List.of(concept));
 		when(translationService.listTranslations(codeSystem, snowstormClient)).thenReturn(List.of());
+		when(translationService.guessCaseSignificance(eq("New synonym"), any())).thenReturn(Description.CaseSignificance.CASE_INSENSITIVE);
 
 		AdminConceptUpdateRequest request = new AdminConceptUpdateRequest(List.of(
 				new AdminConceptDescriptionDto("1", "Finding (finding)", "FSN", "en", true, false,
@@ -135,6 +136,29 @@ class AdminConceptEditorServiceTest {
 				.orElseThrow();
 		assertEquals("101000003010", added.getModuleId());
 		assertEquals(Description.Type.SYNONYM, added.getType());
+	}
+
+	@Test
+	void applyDescriptionEdits_delegatesCaseSignificanceWhenUnreleasedTermChanges() throws Exception {
+		Description unreleased = description("1", "Old term (finding)", Description.Type.FSN, true, false);
+		Concept concept = conceptWithDescriptions(unreleased);
+		when(snowstormClient.loadBrowserFormatConcepts(any(), eq(codeSystem))).thenReturn(List.of(concept));
+		when(translationService.listTranslations(codeSystem, snowstormClient)).thenReturn(List.of());
+		when(translationService.guessCaseSignificance(eq("New term (finding)"), any()))
+				.thenReturn(Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE);
+
+		AdminConceptUpdateRequest request = new AdminConceptUpdateRequest(List.of(
+				new AdminConceptDescriptionDto("1", "New term (finding)", "FSN", "en", true, false,
+						"101000003010", null, Map.of(Concepts.US_LANG_REFSET, "PREFERRED"))
+		));
+
+		service.applyDescriptionEdits(codeSystem, snowstormClient, "123456789", request);
+
+		verify(translationService).guessCaseSignificance(eq("New term (finding)"), any());
+		ArgumentCaptor<Concept> conceptCaptor = ArgumentCaptor.forClass(Concept.class);
+		verify(snowstormClient).updateConcept(conceptCaptor.capture(), eq(codeSystem));
+		Description saved = conceptCaptor.getValue().getDescriptions().get(0);
+		assertEquals(Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE, saved.getCaseSignificance());
 	}
 
 	private static Concept conceptWithDescriptions(Description... descriptions) {

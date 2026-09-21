@@ -903,6 +903,12 @@ public class TranslationService {
 				&& "target".equals(headerFields.get(1));
 	}
 
+	public Description.CaseSignificance guessCaseSignificance(String term, List<Description> otherDescriptions) {
+		List<Description> descriptions = otherDescriptions != null ? otherDescriptions : List.of();
+		boolean titleCaseUsed = isTitleCaseUsed(List.of(descriptions));
+		return guessCaseSignificance(term, titleCaseUsed, descriptions);
+	}
+
 	protected Description.CaseSignificance guessCaseSignificance(String term, boolean titleCaseUsed, List<Description> otherDescriptions) {
 		if (term.isEmpty()) {
 			return CASE_INSENSITIVE;

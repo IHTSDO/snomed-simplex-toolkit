@@ -102,6 +102,15 @@ class TranslationServiceTest {
 	}
 
 	@Test
+	void guessCaseSignificance_infersTitleCaseFromConceptDescriptions() {
+		List<Description> conceptDescriptions = List.of(
+				new Description(Description.Type.FSN, "en", "Clinical finding (finding)", CASE_INSENSITIVE)
+		);
+		assertEquals(INITIAL_CHARACTER_CASE_INSENSITIVE,
+				service.guessCaseSignificance("Neisseria meningitidis gruppe Z", conceptDescriptions));
+	}
+
+	@Test
 	void testBlankHeader() throws ServiceException {
 		SnowstormClient client = snowstormClientFactory.getClient();
 		try {

@@ -22,16 +22,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static org.snomed.simplex.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
-import static org.snomed.simplex.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
 
 @Service
 public class AdminConceptEditorService {
@@ -127,7 +123,7 @@ public class AdminConceptEditorService {
 		} else {
 			if (!Objects.equals(normalizeTerm(existing.getTerm()), normalizeTerm(newTerm))) {
 				existing.setTerm(newTerm);
-				existing.setCaseSignificance(guessCaseSignificance(newTerm, allDescriptions));
+				existing.setCaseSignificance(translationService.guessCaseSignificance(newTerm, allDescriptions));
 			}
 		}
 
@@ -150,7 +146,7 @@ public class AdminConceptEditorService {
 			type = Description.Type.valueOf(dto.type());
 		}
 		String lang = resolveLanguageForNewDescription(dto, translationLanguages);
-		Description description = new Description(type, lang, term, guessCaseSignificance(term, concept.getDescriptions()));
+		Description description = new Description(type, lang, term, translationService.guessCaseSignificance(term, concept.getDescriptions()));
 		description.setModuleId(defaultModule);
 		description.setActive(true);
 		applyAcceptabilityMap(description, dto.acceptabilityMap());
@@ -308,15 +304,6 @@ public class AdminConceptEditorService {
 
 	private static String normalizeTerm(String term) {
 		return term == null ? "" : term.trim();
-	}
-
-	private Description.CaseSignificance guessCaseSignificance(String term, List<Description> otherDescriptions) {
-		if (term == null || term.length() < 2) {
-			return CASE_INSENSITIVE;
-		}
-		String termWithoutFirstChar = term.substring(1);
-		return termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT))
-				? CASE_INSENSITIVE : ENTIRE_TERM_CASE_SENSITIVE;
 	}
 
 }
