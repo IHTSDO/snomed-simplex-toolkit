@@ -59,6 +59,8 @@ class SnowstormClientCacheRefreshTest {
 		CodeSystem codeSystem = new CodeSystem("Test", SHORT_NAME, BRANCH_PATH);
 		codeSystem.setContentHeadTimestamp(contentHeadTimestamp);
 		codeSystem.setClassified(classified);
+		codeSystem.setDependantEditionName("International");
+		codeSystem.setDependantEditionShortName("SNOMEDCT");
 		return codeSystem;
 	}
 
