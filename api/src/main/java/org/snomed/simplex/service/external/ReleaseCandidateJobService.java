@@ -121,11 +121,6 @@ public class ReleaseCandidateJobService extends ExternalFunctionJobService<Strin
 		}
 		String buildUrl = codeSystem.getLatestReleaseCandidateBuild();
 		if (Strings.isBlank(buildUrl)) {
-			Activity openActivity = activityService.findLatestByCodeSystemAndActivityType(
-					codeSystem.getShortName(), ActivityType.BUILD_RELEASE);
-			if (openActivity != null && openActivity.getEndDate() == null) {
-				return;
-			}
 			return;
 		}
 		if (isJobBeingMonitored(buildUrl)) {

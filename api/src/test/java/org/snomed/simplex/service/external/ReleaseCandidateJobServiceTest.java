@@ -133,23 +133,6 @@ class ReleaseCandidateJobServiceTest {
 	}
 
 	@Test
-	void recoverOrphanedBuild_inProgressWithOpenActivityAndNoBuildUrl_doesNothing() throws ServiceException {
-		CodeSystem codeSystem = codeSystemWithBranch();
-		codeSystem.setBuildStatus(CodeSystemBuildStatus.IN_PROGRESS);
-		codeSystem.setLatestReleaseCandidateBuild(null);
-
-		Activity openActivity = new Activity("user", CODE_SYSTEM_SHORT_NAME, CODE_SYSTEM, ActivityType.BUILD_RELEASE);
-		when(activityService.findLatestByCodeSystemAndActivityType(CODE_SYSTEM_SHORT_NAME, ActivityType.BUILD_RELEASE))
-				.thenReturn(openActivity);
-
-		releaseCandidateJobService.recoverOrphanedBuild(codeSystem, snowstormClient);
-
-		verify(releaseServiceClient, never()).getBuild(any());
-		verify(snowstormClient, never()).upsertBranchMetadata(any(), any());
-		verify(activityService, never()).endAsynchronousActivity(any());
-	}
-
-	@Test
 	void recoverOrphanedBuild_terminalFailure_clearsStatusAndEndsActivity() throws ServiceException {
 		CodeSystem codeSystem = codeSystemWithBranch();
 		codeSystem.setBuildStatus(CodeSystemBuildStatus.IN_PROGRESS);
