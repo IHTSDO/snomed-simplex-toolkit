@@ -21,16 +21,18 @@ public class RF2LoadingComponentFactoryWithPT extends ComponentStoreComponentFac
 	}
 
 	@Override
-	public void newDescriptionState(String id, String effectiveTime, String active, String moduleId, String conceptId, String languageCode, String typeId, String term, String caseSignificanceId) {
-		super.newDescriptionState(id, effectiveTime, active, moduleId, conceptId, languageCode, typeId, term, caseSignificanceId);
+	public void newDescriptionState(String filename, long lineNumber, String id, String effectiveTime, String active, String moduleId, String conceptId,
+			String languageCode, String typeId, String term, String caseSignificanceId) {
+		super.newDescriptionState(filename, lineNumber, id, effectiveTime, active, moduleId, conceptId, languageCode, typeId, term, caseSignificanceId);
 		if ("1".equals(active) && Concepts.SYNONYM.equals(typeId)) {
 			synonymIds.add(Long.parseLong(id));
 		}
 	}
 
 	@Override
-	public void newReferenceSetMemberState(String filename, String[] fieldNames, String id, String effectiveTime, String active, String moduleId, String refsetId, String referencedComponentId, String... otherValues) {
-		super.newReferenceSetMemberState(filename, fieldNames, id, effectiveTime, active, moduleId, refsetId, referencedComponentId, otherValues);
+	public void newReferenceSetMemberState(String filename, long lineNumber, String[] fieldNames, String id, String effectiveTime, String active, String moduleId,
+			String refsetId, String referencedComponentId, String... otherValues) {
+		super.newReferenceSetMemberState(filename, lineNumber, fieldNames, id, effectiveTime, active, moduleId, refsetId, referencedComponentId, otherValues);
 		long descriptionId = Long.parseLong(referencedComponentId);
 		if ("1".equals(active) && languageRefsetId.equals(refsetId) && Concepts.PREFERRED.equals(otherValues[0]) && synonymIds.contains(descriptionId)) {
 			preferredSynonymIds.add(descriptionId);

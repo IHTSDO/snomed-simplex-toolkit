@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>org.snomed</groupId>
 		<artifactId>snomed-parent-bom</artifactId>
-		<version>3.14.1</version>
+		<version>4.0.3</version>
 	</parent>
 
 	<groupId>org.snomed.simplex</groupId>
@@ -19,19 +19,16 @@
 
 	<properties>
 		<!-- snomed-parent-bom property overrides. Remove and reassert when upgrading the BOM. -->
-		<activemq.version>6.2.8</activemq.version>
+		<activemq.version>6.3.2</activemq.version>
 		<tomcat-embed.version>10.1.59</tomcat-embed.version>
 		<httpclient5.version>5.6.4</httpclient5.version>
-		<spring.version>6.2.19</spring.version>
 		<spring-boot.version>3.5.16</spring-boot.version>
-		<spring.security.version>6.5.11</spring.security.version>
 		<poi.version>5.4.1</poi.version>
 		<gson.version>2.13.2</gson.version>
 		<jackson.version>2.18.9</jackson.version>
 		<elasticsearch.version>8.19.20</elasticsearch.version>
 		<log4j.version>2.25.5</log4j.version>
 		<commons-lang3.version>3.20.0</commons-lang3.version>
-		<httpcore5.version>5.4.3</httpcore5.version>
 
 		<!-- Application-specific versions -->
 		<langchain4j.version>1.4.0</langchain4j.version>
@@ -60,21 +57,7 @@
 				<artifactId>tomcat-embed-websocket</artifactId>
 				<version>${tomcat-embed.version}</version>
 			</dependency>
-			<dependency>
-				<groupId>org.apache.activemq</groupId>
-				<artifactId>activemq-broker</artifactId>
-				<version>${activemq.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.apache.activemq</groupId>
-				<artifactId>activemq-client</artifactId>
-				<version>${activemq.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>co.elastic.clients</groupId>
-				<artifactId>elasticsearch-java</artifactId>
-				<version>${elasticsearch.version}</version>
-			</dependency>
+			<!-- spring-data-elasticsearch pins rest-client below ${elasticsearch.version} -->
 			<dependency>
 				<groupId>org.elasticsearch.client</groupId>
 				<artifactId>elasticsearch-rest-client</artifactId>
@@ -90,16 +73,6 @@
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-lang3</artifactId>
 				<version>${commons-lang3.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.apache.httpcomponents.core5</groupId>
-				<artifactId>httpcore5</artifactId>
-				<version>${httpcore5.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>org.apache.httpcomponents.core5</groupId>
-				<artifactId>httpcore5-h2</artifactId>
-				<version>${httpcore5.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>org.apache.httpcomponents.client5</groupId>

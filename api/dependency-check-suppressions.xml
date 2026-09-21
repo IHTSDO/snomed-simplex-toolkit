@@ -1,15 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
 	<!--
-		False positive: CVE-2026-0994 affects Python google.protobuf.json_format.ParseDict only.
-		Dependency-Check maps the CPE to protobuf-java via the shared protobuf product name.
-	-->
-	<suppress>
-		<notes><![CDATA[False positive — Python json_format.ParseDict only, not protobuf-java]]></notes>
-		<packageUrl regex="true">^pkg:maven/com\.google\.protobuf/protobuf-java@.*$</packageUrl>
-		<cve>CVE-2026-0994</cve>
-	</suppress>
-	<!--
 		False positive: CVE-2026-40981, CVE-2026-40982, CVE-2026-41002, CVE-2026-41004 apply to Spring Cloud Config Server.
 		Dependency-Check attaches cpe:vmware:spring_cloud_config to spring-cloud-consul-config and
 		spring-cloud-vault-config because they share the Spring Cloud train version; this repo does not

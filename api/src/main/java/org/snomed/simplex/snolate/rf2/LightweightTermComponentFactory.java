@@ -26,8 +26,8 @@ public class LightweightTermComponentFactory extends ImpotentComponentFactory {
 	}
 
 	@Override
-	public void newDescriptionState(String id, String effectiveTime, String active, String moduleId, String conceptId, String languageCode, String typeId,
-			String term, String caseSignificanceId) {
+	public void newDescriptionState(String filename, long lineNumber, String id, String effectiveTime, String active, String moduleId, String conceptId,
+			String languageCode, String typeId, String term, String caseSignificanceId) {
 
 		if ("1".equals(active) && typeId.equals(Concepts.SYNONYM) && (languageFilter == null || languageFilter.equals(languageCode))) {
 			long descriptionId = parseLong(id);
@@ -38,8 +38,8 @@ public class LightweightTermComponentFactory extends ImpotentComponentFactory {
 	}
 
 	@Override
-	public void newReferenceSetMemberState(String filename, String[] fieldNames, String id, String effectiveTime, String active, String moduleId, String refsetId,
-			String referencedComponentId, String... otherValues) {
+	public void newReferenceSetMemberState(String filename, long lineNumber, String[] fieldNames, String id, String effectiveTime, String active, String moduleId,
+			String refsetId, String referencedComponentId, String... otherValues) {
 
 		if ("1".equals(active) && languageRefsetId.equals(parseLong(refsetId))) {
 			descriptionMap.getOrDefault(parseLong(referencedComponentId), DUMMY_TERM).addAcceptability(languageRefsetId, parseLong(otherValues[0]));

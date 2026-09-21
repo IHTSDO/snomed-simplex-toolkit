@@ -6,7 +6,7 @@ A web application for authoring and managing SNOMED CT terminology extensions. I
 
 Two-module Maven project:
 
-- `api/` — Spring Boot 3 backend (Java 17)
+- `api/` — Spring Boot 3 backend (Java 25)
 - `angular-ui/` — Angular 18 frontend
 
 **Key backend packages:**
