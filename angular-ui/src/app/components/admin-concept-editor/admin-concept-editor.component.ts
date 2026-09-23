@@ -101,7 +101,15 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
     if (!this.detail) {
       return [];
     }
-    return this.detail.langRefsets.filter(refset => refset.languageCode === description.lang);
+    return this.detail.langRefsets.filter(refset =>
+      refset.languageCode === description.lang ||
+      this.hasAcceptabilityInRefset(description, refset.refsetId)
+    );
+  }
+
+  private hasAcceptabilityInRefset(description: AdminConceptDescription, refsetId: string): boolean {
+    const value = description.acceptabilityMap?.[refsetId];
+    return value === 'PREFERRED' || value === 'ACCEPTABLE';
   }
 
   acceptabilityLabel(description: AdminConceptDescription, refsetId: string): string {

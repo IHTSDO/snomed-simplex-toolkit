@@ -103,4 +103,88 @@ describe('AdminConceptEditorComponent', () => {
 
     cy.get('.acceptability-button--conflict').should('have.length.at.least', 2);
   });
+
+  const belgianFrenchRefsetId = '21000220103';
+
+  it('shows language refset on wrong-language description when acceptability exists', () => {
+    const wrongLangDetail = {
+      ...mockDetail,
+      langRefsets: [
+        { refsetId: '900000000000509007', label: 'US English', languageCode: 'en' },
+        { refsetId: belgianFrenchRefsetId, label: 'Belgian French', languageCode: 'fr' }
+      ],
+      descriptions: [
+        {
+          descriptionId: '444',
+          term: 'English term on wrong refset',
+          type: 'SYNONYM',
+          lang: 'en',
+          active: true,
+          released: false,
+          acceptabilityMap: { [belgianFrenchRefsetId]: 'PREFERRED' }
+        }
+      ]
+    };
+
+    cy.mount(AdminConceptEditorComponent, {
+      componentProperties: {
+        editions: [{ shortName: 'SNOMEDCT-TEST' }],
+        selectedEdition: 'SNOMEDCT-TEST',
+        detail: wrongLangDetail
+      },
+      providers: [
+        {
+          provide: SimplexService,
+          useValue: {
+            getAdminConceptForEditor: () => of(wrongLangDetail),
+            updateAdminConceptDescriptions: () => of(wrongLangDetail)
+          }
+        }
+      ]
+    });
+
+    cy.contains('button', 'Belgian French: Pref').should('exist');
+    cy.contains('button', 'US English:').should('exist');
+  });
+
+  it('hides language refset on wrong-language description without acceptability', () => {
+    const wrongLangNoAcceptabilityDetail = {
+      ...mockDetail,
+      langRefsets: [
+        { refsetId: '900000000000509007', label: 'US English', languageCode: 'en' },
+        { refsetId: belgianFrenchRefsetId, label: 'Belgian French', languageCode: 'fr' }
+      ],
+      descriptions: [
+        {
+          descriptionId: '555',
+          term: 'English synonym',
+          type: 'SYNONYM',
+          lang: 'en',
+          active: true,
+          released: false,
+          acceptabilityMap: {}
+        }
+      ]
+    };
+
+    cy.mount(AdminConceptEditorComponent, {
+      componentProperties: {
+        editions: [{ shortName: 'SNOMEDCT-TEST' }],
+        selectedEdition: 'SNOMEDCT-TEST',
+        detail: wrongLangNoAcceptabilityDetail
+      },
+      providers: [
+        {
+          provide: SimplexService,
+          useValue: {
+            getAdminConceptForEditor: () => of(wrongLangNoAcceptabilityDetail),
+            updateAdminConceptDescriptions: () => of(wrongLangNoAcceptabilityDetail)
+          }
+        }
+      ]
+    });
+
+    cy.contains('button', 'Belgian French:').should('not.exist');
+    cy.contains('button', 'US English: —').should('exist');
+  });
 });
