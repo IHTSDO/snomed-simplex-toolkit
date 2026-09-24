@@ -68,6 +68,8 @@ public class SnowstormClient {
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<ConceptMini>> responseTypeConceptMiniPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<Long>> responseTypeSCTIDPage = new ParameterizedTypeReference<>(){};
+	private final ParameterizedTypeReference<SnowstormContentPage<BrowserDescriptionSearchResult>> responseTypeBrowserDescriptionPage =
+			new ParameterizedTypeReference<>(){};
 
 	private final RestTemplate restTemplate;
 	private final RestTemplate restTemplateRf2Export;
@@ -989,6 +991,105 @@ public class SnowstormClient {
 			List<Concept> concepts = loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
 			bulkChangeDescriptionBatch(conceptDescriptionIdMap, codeSystem, processDescription, changeForLogMessage, concepts);
 		}
+	}
+
+	public SnowstormContentPage<BrowserDescriptionSearchResult> getBrowserDescriptions(
+			CodeSystem codeSystem, String moduleId, long descriptionTypeId, String languageCode, int offset, int limit)
+			throws ServiceExceptionWithStatusCode {
+
+		try {
+			UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromPath(format("/browser/%s/descriptions", codeSystem.getWorkingBranchPath()))
+					.queryParam("type", descriptionTypeId)
+					.queryParam("module", moduleId)
+					.queryParam("active", true)
+					.queryParam("offset", offset)
+					.queryParam("limit", limit);
+			if (languageCode != null && !languageCode.isBlank()) {
+				urlBuilder.queryParam("language", languageCode.trim().toLowerCase());
+			}
+			String url = urlBuilder.toUriString();
+			ResponseEntity<SnowstormContentPage<BrowserDescriptionSearchResult>> response =
+					restTemplate.exchange(url, HttpMethod.GET, null, responseTypeBrowserDescriptionPage);
+			SnowstormContentPage<BrowserDescriptionSearchResult> body = response.getBody();
+			throwIfNull(body, "browser descriptions");
+			return body;
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "fetch browser descriptions");
+		}
+	}
+
+	public LinkedHashSet<Long> collectActiveFsnConceptIds(CodeSystem codeSystem, String moduleId, String languageCode)
+			throws ServiceExceptionWithStatusCode {
+
+		long fsnTypeId = Long.parseLong(FSN.getConceptId());
+		String normalizedLanguage = normalizeLanguageCode(languageCode);
+		LinkedHashSet<Long> conceptIds = new LinkedHashSet<>();
+		int offset = 0;
+		SnowstormContentPage<BrowserDescriptionSearchResult> page =
+				getBrowserDescriptions(codeSystem, moduleId, fsnTypeId, normalizedLanguage, offset, MAX_PAGE_SIZE);
+		List<BrowserDescriptionSearchResult> items = page.getItems();
+		for (BrowserDescriptionSearchResult row : items) {
+			ConceptMini concept = row.getConcept();
+			if (concept != null && concept.getConceptId() != null) {
+				conceptIds.add(Long.parseLong(concept.getConceptId()));
+			}
+		}
+		return conceptIds;
+	}
+
+	private static String normalizeLanguageCode(String languageCode) {
+		if (languageCode == null || languageCode.isBlank()) {
+			return null;
+		}
+		return languageCode.trim().toLowerCase();
+	}
+
+	public FsnBulkRemovalStats bulkRemoveDescriptionsMatching(CodeSystem codeSystem, Collection<Long> conceptIds,
+			Predicate<Description> shouldRemove, String changeForLogMessage) throws ServiceException {
+
+		FsnBulkRemovalStats totalStats = new FsnBulkRemovalStats();
+		if (conceptIds == null || conceptIds.isEmpty()) {
+			return totalStats;
+		}
+		List<Long> conceptIdList = conceptIds instanceof List<Long> list ? list : new ArrayList<>(conceptIds);
+		for (List<Long> conceptIdBatch : Lists.partition(conceptIdList, 200)) {
+			totalStats.add(bulkRemoveDescriptionsBatch(codeSystem, conceptIdBatch, shouldRemove, changeForLogMessage));
+		}
+		return totalStats;
+	}
+
+	private FsnBulkRemovalStats bulkRemoveDescriptionsBatch(CodeSystem codeSystem, List<Long> conceptIdBatch,
+			Predicate<Description> shouldRemove, String changeForLogMessage) throws ServiceException {
+
+		FsnBulkRemovalStats batchStats = new FsnBulkRemovalStats();
+		List<Concept> concepts = loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
+		List<Concept> conceptsToSave = new ArrayList<>();
+		for (Concept concept : concepts) {
+			boolean conceptChanged = false;
+			for (Description description : concept.getDescriptions()) {
+				if (!shouldRemove.test(description)) {
+					continue;
+				}
+				DescriptionRemoval.Outcome outcome = DescriptionRemoval.markForRemoval(description);
+				switch (outcome) {
+					case INACTIVATED -> batchStats.incrementFsnInactivated();
+					case DELETED -> batchStats.incrementFsnDeleted();
+					case UNCHANGED -> batchStats.incrementFsnSkipped();
+				}
+				if (outcome != DescriptionRemoval.Outcome.UNCHANGED) {
+					conceptChanged = true;
+				}
+			}
+			if (conceptChanged) {
+				conceptsToSave.add(concept);
+				batchStats.incrementConceptsUpdated();
+			}
+		}
+		if (!conceptsToSave.isEmpty()) {
+			logger.info("{} on {} concepts.", changeForLogMessage, conceptsToSave.size());
+			createUpdateBrowserFormatConcepts(conceptsToSave, codeSystem);
+		}
+		return batchStats;
 	}
 
 	private void bulkChangeDescriptionBatch(Map<Long, Set<String>> conceptDescriptionIdMap, CodeSystem codeSystem,
