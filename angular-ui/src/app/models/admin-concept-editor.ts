@@ -29,8 +29,22 @@ export interface AdminConceptEditorDetail {
   ptTerm?: string;
   descriptions: AdminConceptDescription[];
   langRefsets: AdminConceptLangRefset[];
+  internationalModuleIds: string[];
 }
+
+export type DescriptionModuleKind = 'extension' | 'international' | 'other';
 
 export interface AdminConceptUpdateRequest {
   descriptions: AdminConceptDescription[];
+}
+
+export interface AdminConceptEditorPanelState {
+  panelId: string;
+  conceptId: string;
+  loading: boolean;
+  saving: boolean;
+  dirty: boolean;
+  detail: AdminConceptEditorDetail | null;
+  newSynonymRefsetId: string;
+  newSynonymTerm: string;
 }

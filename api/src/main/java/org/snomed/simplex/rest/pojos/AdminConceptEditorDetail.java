@@ -11,6 +11,7 @@ public record AdminConceptEditorDetail(
 		String fsnTerm,
 		String ptTerm,
 		List<AdminConceptDescriptionDto> descriptions,
-		List<AdminConceptLangRefsetDto> langRefsets
+		List<AdminConceptLangRefsetDto> langRefsets,
+		List<String> internationalModuleIds
 ) {
 }

@@ -13,84 +13,19 @@
     <input matInput [(ngModel)]="conceptIdInput" (keyup.enter)="loadConcept()" data-cy="admin-concept-id-input">
   </mat-form-field>
 
-  <button mat-stroked-button type="button" (click)="loadConcept()" [disabled]="loading || !selectedEdition || !conceptIdInput?.trim()"
+  <button mat-stroked-button type="button" (click)="loadConcept()" [disabled]="!selectedEdition || !conceptIdInput?.trim()"
     data-cy="admin-concept-load">
     Load
   </button>
-
-  <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="!canSave()" data-cy="admin-concept-save">
-    <span *ngIf="!saving">Save</span>
-    <span *ngIf="saving">Saving…</span>
-  </button>
 </div>
 
-<div *ngIf="loading" class="loading-panel">
-  <mat-spinner [diameter]="40"></mat-spinner>
+<div class="concept-editor-panels">
+  <app-admin-concept-editor-panel
+    *ngFor="let panel of panels; trackBy: trackPanel"
+    [panel]="panel"
+    [editionShortName]="selectedEdition"
+    [editionDisplayName]="selectedEditionDisplayName"
+    (saveAndClose)="saveAndClose($event)"
+    (dismiss)="dismissPanel($event)">
+  </app-admin-concept-editor-panel>
 </div>
-
-<ng-container *ngIf="!loading && detail">
-  <div class="concept-header">
-    <div class="concept-header-id">{{ detail.conceptId }}</div>
-    <div class="concept-header-fsn">{{ detail.fsnTerm || '—' }}</div>
-    <div class="concept-header-meta">
-      Module {{ detail.moduleId }}
-      <span *ngIf="!detail.conceptActive"> · Inactive concept</span>
-    </div>
-  </div>
-
-  <div class="description-list">
-    <div *ngFor="let description of detail.descriptions; let i = index"
-      class="description-row"
-      [class.description-row--inactive]="!description.active"
-      [attr.data-cy]="'admin-concept-description-' + i">
-
-      <mat-slide-toggle
-        [checked]="description.active"
-        (change)="description.active = $event.checked; onDescriptionChange()"
-        matTooltip="Unreleased descriptions are removed when inactivated; released descriptions are marked inactive">
-      </mat-slide-toggle>
-
-      <span class="type-badge">{{ typeLabel(description.type) }}</span>
-
-      <mat-form-field appearance="outline" class="term-field" subscriptSizing="dynamic">
-        <mat-label>Term</mat-label>
-        <textarea matInput rows="1"
-          [(ngModel)]="description.term"
-          (ngModelChange)="onDescriptionChange()"
-          [readonly]="description.released"
-          [attr.data-cy]="description.released ? 'admin-concept-term-readonly' : 'admin-concept-term-editable'">
-        </textarea>
-      </mat-form-field>
-
-      <div class="acceptability-group">
-        <span class="lang-code">{{ description.lang }}</span>
-        <button mat-stroked-button type="button" class="acceptability-button"
-          [class.acceptability-button--conflict]="isPreferredSynonymConflict(description, refset.refsetId)"
-          *ngFor="let refset of applicableLangRefsets(description)"
-          (click)="cycleAcceptability(description, refset.refsetId)"
-          [matTooltip]="refset.label">
-          {{ refset.label }}: {{ acceptabilityLabel(description, refset.refsetId) }}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div class="add-synonym-panel">
-    <h4>Add synonym</h4>
-    <div class="add-synonym-row">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic">
-        <mat-label>Language refset</mat-label>
-        <mat-select [(value)]="newSynonymRefsetId">
-          <mat-option *ngFor="let refset of detail.langRefsets" [value]="refset.refsetId">
-            {{ refset.label }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline" class="new-term-field" subscriptSizing="dynamic">
-        <mat-label>Term</mat-label>
-        <input matInput [(ngModel)]="newSynonymTerm" (keyup.enter)="addSynonym()">
-      </mat-form-field>
-      <button mat-stroked-button type="button" (click)="addSynonym()">Add</button>
-    </div>
-  </div>
-</ng-container>

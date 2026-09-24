@@ -1,5 +1,7 @@
 package org.snomed.simplex.client.domain;
 
+import java.util.List;
+
 public class Concepts {
 
 	private Concepts() {
@@ -48,5 +50,11 @@ public class Concepts {
 
 	// 900000000000012004 |SNOMED CT model component module (core metadata concept)|
 	public static final String MODEL_MODULE = "900000000000012004";
+
+	public static List<String> internationalModuleIds() {
+		return INTERNATIONAL_MODULE_IDS;
+	}
+
+	private static final List<String> INTERNATIONAL_MODULE_IDS = List.of(CORE_MODULE, MODEL_MODULE);
 
 }

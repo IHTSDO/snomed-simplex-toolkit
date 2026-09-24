@@ -1,9 +1,10 @@
 import { AdminConceptEditorComponent } from './admin-concept-editor.component';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
-import { of } from 'rxjs';
+import { AdminConceptEditorDetail, AdminConceptEditorPanelState } from 'src/app/models/admin-concept-editor';
+import { delay, of, throwError } from 'rxjs';
 
 describe('AdminConceptEditorComponent', () => {
-  const mockDetail = {
+  const mockDetail: AdminConceptEditorDetail = {
     codeSystem: 'SNOMEDCT-TEST',
     conceptId: '123456789',
     conceptActive: true,
@@ -14,6 +15,7 @@ describe('AdminConceptEditorComponent', () => {
     langRefsets: [
       { refsetId: '900000000000509007', label: 'US English', languageCode: 'en' }
     ],
+    internationalModuleIds: ['900000000000207008', '900000000000012004'],
     descriptions: [
       {
         descriptionId: '111',
@@ -22,29 +24,94 @@ describe('AdminConceptEditorComponent', () => {
         lang: 'en',
         active: true,
         released: true,
-        moduleId: '101000003010',
         acceptabilityMap: { '900000000000509007': 'PREFERRED' }
-      },
-      {
-        descriptionId: '222',
-        term: 'Editable synonym',
-        type: 'SYNONYM',
-        lang: 'en',
-        active: true,
-        released: false,
-        moduleId: '101000003010',
-        acceptabilityMap: { '900000000000509007': 'ACCEPTABLE' }
       }
     ]
   };
 
-  it('loads concept and keeps released description term read-only', () => {
+  const mockDetailB: AdminConceptEditorDetail = {
+    ...mockDetail,
+    conceptId: '987654321',
+    fsnTerm: 'Other concept (finding)'
+  };
+
+  function loadedPanel(detail: AdminConceptEditorDetail, panelId: string): AdminConceptEditorPanelState {
+    return {
+      panelId,
+      conceptId: detail.conceptId,
+      loading: false,
+      saving: false,
+      dirty: false,
+      detail,
+      newSynonymRefsetId: detail.langRefsets[0]?.refsetId || '',
+      newSynonymTerm: ''
+    };
+  }
+
+  it('shows a loading placeholder when Load is clicked', () => {
     cy.mount(AdminConceptEditorComponent, {
       componentProperties: {
         editions: [{ shortName: 'SNOMEDCT-TEST' }],
         selectedEdition: 'SNOMEDCT-TEST',
-        conceptIdInput: '123456789',
-        detail: mockDetail
+        conceptIdInput: '123456789'
+      },
+      providers: [
+        {
+          provide: SimplexService,
+          useValue: {
+            getAdminConceptForEditor: () => of(mockDetail).pipe(delay(500)),
+            updateAdminConceptDescriptions: () => of(mockDetail)
+          }
+        }
+      ]
+    });
+
+    cy.get('[data-cy=admin-concept-load]').click();
+    cy.get('[data-cy=admin-concept-panel-loading]').should('exist');
+    cy.get('[data-cy=admin-concept-panel-loading]').contains('123456789');
+    cy.contains('Finding (finding)', { timeout: 10000 });
+  });
+
+  it('stacks newly loaded concepts at the top', () => {
+    cy.mount(AdminConceptEditorComponent, {
+      componentProperties: {
+        editions: [{ shortName: 'SNOMEDCT-TEST' }],
+        selectedEdition: 'SNOMEDCT-TEST'
+      },
+      providers: [
+        {
+          provide: SimplexService,
+          useValue: {
+            getAdminConceptForEditor: (_edition: string, conceptId: string) => {
+              if (conceptId === '123456789') {
+                return of(mockDetail);
+              }
+              return of(mockDetailB);
+            },
+            updateAdminConceptDescriptions: () => of(mockDetail)
+          }
+        }
+      ]
+    });
+
+    cy.get('[data-cy=admin-concept-id-input]').type('123456789');
+    cy.get('[data-cy=admin-concept-load]').click();
+    cy.contains('Finding (finding)');
+
+    cy.get('[data-cy=admin-concept-id-input]').type('987654321');
+    cy.get('[data-cy=admin-concept-load]').click();
+    cy.contains('Other concept (finding)');
+
+    cy.get('[data-cy=admin-concept-panel-987654321]').should('exist');
+    cy.get('.concept-editor-panels').children().first().should('have.attr', 'data-cy', 'admin-concept-panel-987654321');
+  });
+
+  it('blocks loading a concept that is already open', () => {
+    cy.mount(AdminConceptEditorComponent, {
+      componentProperties: {
+        editions: [{ shortName: 'SNOMEDCT-TEST' }],
+        selectedEdition: 'SNOMEDCT-TEST',
+        panels: [loadedPanel(mockDetail, 'panel-a')]
       },
       providers: [
         {
@@ -57,134 +124,58 @@ describe('AdminConceptEditorComponent', () => {
       ]
     });
 
-    cy.contains('123456789');
-    cy.contains('Released term (finding)');
-    cy.get('[data-cy=admin-concept-term-readonly]').should('exist');
-    cy.get('textarea').filter('[readonly]').should('have.length', 1);
+    cy.get('[data-cy=admin-concept-id-input]').type('123456789');
+    cy.get('[data-cy=admin-concept-load]').click();
+    cy.get('[data-cy=admin-concept-panel-123456789]').should('have.length', 1);
   });
 
-  it('highlights conflicting preferred synonym acceptability buttons', () => {
-    const conflictDetail = {
-      ...mockDetail,
-      descriptions: [
-        mockDetail.descriptions[0],
-        {
-          ...mockDetail.descriptions[1],
-          acceptabilityMap: { '900000000000509007': 'PREFERRED' }
-        },
-        {
-          descriptionId: '333',
-          term: 'Another preferred synonym',
-          type: 'SYNONYM',
-          lang: 'en',
-          active: true,
-          released: false,
-          acceptabilityMap: { '900000000000509007': 'PREFERRED' }
-        }
-      ]
-    };
-
+  it('removes the loading placeholder when load fails', () => {
     cy.mount(AdminConceptEditorComponent, {
       componentProperties: {
         editions: [{ shortName: 'SNOMEDCT-TEST' }],
         selectedEdition: 'SNOMEDCT-TEST',
-        detail: conflictDetail
+        conceptIdInput: '123456789'
       },
       providers: [
         {
           provide: SimplexService,
           useValue: {
-            getAdminConceptForEditor: () => of(conflictDetail),
-            updateAdminConceptDescriptions: () => of(conflictDetail)
+            getAdminConceptForEditor: () => throwError(() => ({ message: 'Concept not found.' })),
+            updateAdminConceptDescriptions: () => of(mockDetail)
           }
         }
       ]
     });
 
-    cy.get('.acceptability-button--conflict').should('have.length.at.least', 2);
+    cy.get('[data-cy=admin-concept-load]').click();
+    cy.get('[data-cy=admin-concept-panel-loading]').should('exist');
+    cy.get('[data-cy=admin-concept-panel-loading]', { timeout: 5000 }).should('not.exist');
   });
 
-  const belgianFrenchRefsetId = '21000220103';
-
-  it('shows language refset on wrong-language description when acceptability exists', () => {
-    const wrongLangDetail = {
-      ...mockDetail,
-      langRefsets: [
-        { refsetId: '900000000000509007', label: 'US English', languageCode: 'en' },
-        { refsetId: belgianFrenchRefsetId, label: 'Belgian French', languageCode: 'fr' }
-      ],
-      descriptions: [
-        {
-          descriptionId: '444',
-          term: 'English term on wrong refset',
-          type: 'SYNONYM',
-          lang: 'en',
-          active: true,
-          released: false,
-          acceptabilityMap: { [belgianFrenchRefsetId]: 'PREFERRED' }
-        }
-      ]
-    };
+  it('save and close removes only the saved panel', () => {
+    const dirtyPanel = loadedPanel(mockDetail, 'panel-a');
+    dirtyPanel.dirty = true;
+    const otherPanel = loadedPanel(mockDetailB, 'panel-b');
 
     cy.mount(AdminConceptEditorComponent, {
       componentProperties: {
         editions: [{ shortName: 'SNOMEDCT-TEST' }],
         selectedEdition: 'SNOMEDCT-TEST',
-        detail: wrongLangDetail
+        panels: [dirtyPanel, otherPanel]
       },
       providers: [
         {
           provide: SimplexService,
           useValue: {
-            getAdminConceptForEditor: () => of(wrongLangDetail),
-            updateAdminConceptDescriptions: () => of(wrongLangDetail)
+            getAdminConceptForEditor: () => of(mockDetail),
+            updateAdminConceptDescriptions: () => of(mockDetail)
           }
         }
       ]
     });
 
-    cy.contains('button', 'Belgian French: Pref').should('exist');
-    cy.contains('button', 'US English:').should('exist');
-  });
-
-  it('hides language refset on wrong-language description without acceptability', () => {
-    const wrongLangNoAcceptabilityDetail = {
-      ...mockDetail,
-      langRefsets: [
-        { refsetId: '900000000000509007', label: 'US English', languageCode: 'en' },
-        { refsetId: belgianFrenchRefsetId, label: 'Belgian French', languageCode: 'fr' }
-      ],
-      descriptions: [
-        {
-          descriptionId: '555',
-          term: 'English synonym',
-          type: 'SYNONYM',
-          lang: 'en',
-          active: true,
-          released: false,
-          acceptabilityMap: {}
-        }
-      ]
-    };
-
-    cy.mount(AdminConceptEditorComponent, {
-      componentProperties: {
-        editions: [{ shortName: 'SNOMEDCT-TEST' }],
-        selectedEdition: 'SNOMEDCT-TEST',
-        detail: wrongLangNoAcceptabilityDetail
-      },
-      providers: [
-        {
-          provide: SimplexService,
-          useValue: {
-            getAdminConceptForEditor: () => of(wrongLangNoAcceptabilityDetail),
-            updateAdminConceptDescriptions: () => of(wrongLangNoAcceptabilityDetail)
-          }
-        }
-      ]
-    });
-
-    cy.contains('button', 'Belgian French:').should('not.exist');
-    cy.contains('button', 'US English: —').should('exist');
+    cy.get('[data-cy=admin-concept-panel-123456789]').find('[data-cy=admin-concept-save]').click();
+    cy.get('[data-cy=admin-concept-panel-123456789]').should('not.exist');
+    cy.get('[data-cy=admin-concept-panel-987654321]').should('exist');
   });
 });

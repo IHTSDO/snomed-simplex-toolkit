@@ -1,0 +1,183 @@
+.concept-editor-panel {
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.concept-editor-panel-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 2rem;
+}
+
+.concept-editor-panel-placeholder-id {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.concept-header {
+  margin-bottom: 1rem;
+  padding: 12px 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.concept-header-id {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.concept-header-fsn {
+  margin-top: 4px;
+  font-size: 1rem;
+}
+
+.concept-header-meta {
+  margin-top: 4px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9rem;
+}
+
+.description-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.description-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+}
+
+.description-row--inactive {
+  opacity: 0.65;
+}
+
+.type-badge {
+  min-width: 36px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.description-row mat-slide-toggle {
+  margin-top: 2px;
+}
+
+.term-field {
+  flex: 1 1 280px;
+  min-width: 200px;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+
+  ::ng-deep .mat-mdc-text-field-wrapper {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  ::ng-deep .mat-mdc-form-field-infix {
+    min-height: auto;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  ::ng-deep textarea.mat-mdc-input-element {
+    margin: 0;
+    padding: 2px 0;
+    line-height: 1.35;
+    min-height: 1.35em;
+    field-sizing: content;
+  }
+}
+
+.acceptability-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 240px;
+}
+
+.lang-code {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.6);
+  min-width: 24px;
+}
+
+.module-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.module-dot--international {
+  background: #1976d2;
+}
+
+.module-dot--extension {
+  background: #ffc107;
+}
+
+.module-dot--other {
+  background: #9c27b0;
+}
+
+.acceptability-button {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acceptability-button--conflict {
+  border-color: #b00020;
+  color: #b00020;
+  background: rgba(176, 0, 32, 0.08);
+}
+
+.add-synonym-panel {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+
+  h4 {
+    margin: 0 0 12px;
+  }
+}
+
+.add-synonym-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.new-term-field {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.concept-editor-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}

@@ -71,6 +71,7 @@ class AdminConceptEditorServiceTest {
 		AdminConceptEditorDetail detail = service.loadForEditor(codeSystem, snowstormClient, "123456789");
 
 		assertEquals(List.of("1", "3", "2"), detail.descriptions().stream().map(AdminConceptDescriptionDto::descriptionId).toList());
+		assertEquals(List.of(Concepts.CORE_MODULE, Concepts.MODEL_MODULE), detail.internationalModuleIds());
 	}
 
 	@Test

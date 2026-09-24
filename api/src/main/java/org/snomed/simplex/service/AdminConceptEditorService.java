@@ -218,7 +218,8 @@ public class AdminConceptEditorService {
 				fsnTerm,
 				ptTerm,
 				descriptionDtos,
-				langRefsets);
+				langRefsets,
+				Concepts.internationalModuleIds());
 	}
 
 	private AdminConceptDescriptionDto toDescriptionDto(Description description) {

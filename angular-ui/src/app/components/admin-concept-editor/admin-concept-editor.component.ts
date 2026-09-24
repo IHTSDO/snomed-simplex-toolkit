@@ -3,10 +3,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription, lastValueFrom } from 'rxjs';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import {
-  AdminAcceptability,
-  AdminConceptDescription,
   AdminConceptEditorDetail,
-  AdminConceptLangRefset
+  AdminConceptEditorPanelState
 } from 'src/app/models/admin-concept-editor';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
@@ -22,14 +20,8 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
   selectedEdition = '';
   private editionSubscription?: Subscription;
   conceptIdInput = '';
-  loading = false;
-  saving = false;
-  dirty = false;
 
-  detail: AdminConceptEditorDetail | null = null;
-
-  newSynonymRefsetId = '';
-  newSynonymTerm = '';
+  panels: AdminConceptEditorPanelState[] = [];
 
   constructor(
     private simplexService: SimplexService,
@@ -49,154 +41,84 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
     this.editionSubscription?.unsubscribe();
   }
 
+  trackPanel(_index: number, panel: AdminConceptEditorPanelState): string {
+    return panel.panelId;
+  }
+
+  get selectedEditionDisplayName(): string {
+    const edition = this.editions.find(e => e.shortName === this.selectedEdition);
+    return edition?.name ?? this.selectedEdition;
+  }
+
   loadConcept(): void {
     const conceptId = this.conceptIdInput?.trim();
     if (!this.selectedEdition || !conceptId) {
       this.snackBar.open('Select an edition and enter a concept ID.', 'Dismiss', { duration: 5000 });
       return;
     }
-    this.loading = true;
+    if (this.panels.some(p => p.conceptId === conceptId)) {
+      this.snackBar.open('That concept is already open in an editor panel.', 'Dismiss', { duration: 5000 });
+      return;
+    }
+
+    const panelId = crypto.randomUUID();
+    const panel: AdminConceptEditorPanelState = {
+      panelId,
+      conceptId,
+      loading: true,
+      saving: false,
+      dirty: false,
+      detail: null,
+      newSynonymRefsetId: '',
+      newSynonymTerm: ''
+    };
+    this.panels = [panel, ...this.panels];
+    this.conceptIdInput = '';
+
     lastValueFrom(this.simplexService.getAdminConceptForEditor(this.selectedEdition, conceptId)).then(
       (detail: AdminConceptEditorDetail) => {
-        this.detail = detail;
-        this.conceptIdInput = detail.conceptId;
-        this.dirty = false;
-        this.loading = false;
-        if (!this.newSynonymRefsetId && detail.langRefsets.length) {
-          this.newSynonymRefsetId = detail.langRefsets[0].refsetId;
+        const loaded = this.panels.find(p => p.panelId === panelId);
+        if (!loaded) {
+          return;
+        }
+        loaded.loading = false;
+        loaded.detail = detail;
+        loaded.conceptId = detail.conceptId;
+        if (detail.langRefsets.length) {
+          loaded.newSynonymRefsetId = detail.langRefsets[0].refsetId;
         }
       },
       (error) => {
-        this.loading = false;
+        this.panels = this.panels.filter(p => p.panelId !== panelId);
         this.snackBar.open(this.errorMessage(error), 'Dismiss', { duration: 8000 });
       }
     );
   }
 
-  save(): void {
-    if (!this.detail || !this.selectedEdition) {
+  saveAndClose(panel: AdminConceptEditorPanelState): void {
+    if (!panel.detail || !this.selectedEdition) {
       return;
     }
-    this.saving = true;
-    const body = { descriptions: this.detail.descriptions };
-    lastValueFrom(this.simplexService.updateAdminConceptDescriptions(this.selectedEdition, this.detail.conceptId, body)).then(
-      (detail: AdminConceptEditorDetail) => {
-        this.detail = detail;
-        this.dirty = false;
-        this.saving = false;
+    panel.saving = true;
+    const body = { descriptions: panel.detail.descriptions };
+    lastValueFrom(this.simplexService.updateAdminConceptDescriptions(
+      this.selectedEdition,
+      panel.detail.conceptId,
+      body
+    )).then(
+      () => {
+        this.panels = this.panels.filter(p => p.panelId !== panel.panelId);
         this.snackBar.open('Concept descriptions saved.', 'Dismiss', { duration: 4000 });
       },
       (error) => {
-        this.saving = false;
+        panel.saving = false;
         this.snackBar.open(this.errorMessage(error), 'Dismiss', { duration: 8000 });
       }
     );
   }
 
-  onDescriptionChange(): void {
-    this.dirty = true;
-  }
-
-  applicableLangRefsets(description: AdminConceptDescription): AdminConceptLangRefset[] {
-    if (!this.detail) {
-      return [];
-    }
-    return this.detail.langRefsets.filter(refset =>
-      refset.languageCode === description.lang ||
-      this.hasAcceptabilityInRefset(description, refset.refsetId)
-    );
-  }
-
-  private hasAcceptabilityInRefset(description: AdminConceptDescription, refsetId: string): boolean {
-    const value = description.acceptabilityMap?.[refsetId];
-    return value === 'PREFERRED' || value === 'ACCEPTABLE';
-  }
-
-  acceptabilityLabel(description: AdminConceptDescription, refsetId: string): string {
-    const value = description.acceptabilityMap?.[refsetId];
-    if (value === 'PREFERRED') {
-      return 'Pref';
-    }
-    if (value === 'ACCEPTABLE') {
-      return 'Acc';
-    }
-    return '—';
-  }
-
-  isPreferredSynonymConflict(description: AdminConceptDescription, refsetId: string): boolean {
-    if (!this.detail || !description.active || description.type !== 'SYNONYM') {
-      return false;
-    }
-    if (description.acceptabilityMap?.[refsetId] !== 'PREFERRED') {
-      return false;
-    }
-    const preferredSynonymCount = this.detail.descriptions.filter(d =>
-      d.active &&
-      d.type === 'SYNONYM' &&
-      d.acceptabilityMap?.[refsetId] === 'PREFERRED'
-    ).length;
-    return preferredSynonymCount > 1;
-  }
-
-  cycleAcceptability(description: AdminConceptDescription, refsetId: string): void {
-    if (!description.acceptabilityMap) {
-      description.acceptabilityMap = {};
-    }
-    const current = description.acceptabilityMap[refsetId];
-    let next: AdminAcceptability | undefined;
-    if (!current) {
-      next = 'PREFERRED';
-    } else if (current === 'PREFERRED') {
-      next = 'ACCEPTABLE';
-    } else {
-      next = undefined;
-    }
-    if (next) {
-      description.acceptabilityMap[refsetId] = next;
-    } else {
-      delete description.acceptabilityMap[refsetId];
-    }
-    this.dirty = true;
-  }
-
-  addSynonym(): void {
-    if (!this.detail) {
-      return;
-    }
-    const term = this.newSynonymTerm?.trim();
-    if (!term || !this.newSynonymRefsetId) {
-      this.snackBar.open('Enter a term and select a language refset.', 'Dismiss', { duration: 5000 });
-      return;
-    }
-    const refset = this.detail.langRefsets.find(r => r.refsetId === this.newSynonymRefsetId);
-    const lang = refset?.languageCode || 'en';
-    const description: AdminConceptDescription = {
-      descriptionId: null,
-      term,
-      type: 'SYNONYM',
-      lang,
-      active: true,
-      released: false,
-      acceptabilityMap: { [this.newSynonymRefsetId]: 'ACCEPTABLE' }
-    };
-    this.detail.descriptions = [...this.detail.descriptions, description];
-    this.newSynonymTerm = '';
-    this.dirty = true;
-  }
-
-  typeLabel(type: string | undefined): string {
-    switch (type) {
-      case 'FSN':
-        return 'FSN';
-      case 'TEXT_DEFINITION':
-        return 'Def';
-      default:
-        return 'Syn';
-    }
-  }
-
-  canSave(): boolean {
-    return !!this.detail && this.dirty && !this.loading && !this.saving;
+  dismissPanel(panel: AdminConceptEditorPanelState): void {
+    this.panels = this.panels.filter(p => p.panelId !== panel.panelId);
   }
 
   private errorMessage(error: any): string {
