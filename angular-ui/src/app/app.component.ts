@@ -39,6 +39,7 @@ export class AppComponent implements OnInit {
 
     selectedEdition: any = null;
     showLegalModal: boolean = false;
+    authoringPlatformMode = false;
 
     constructor(private envService: EnvService,
                 private toastr: ToastrService,
@@ -57,11 +58,19 @@ export class AppComponent implements OnInit {
 
     async ngOnInit() {
         this.uiConfigurationService.getAuthoringPlatformMode().subscribe(data => {
-            if (data) {
-                this.titleService.setTitle('Translation Studio');
-            } else {
-                this.titleService.setTitle('Simplex');
-            }
+            this.authoringPlatformMode = data;
+            this.updateDocumentTitle();
+        });
+
+        this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
+            this.selectedEdition = edition;
+            this.updateDocumentTitle();
+        });
+
+        this.router.events.pipe(
+            filter(event => event instanceof NavigationEnd)
+        ).subscribe(() => {
+            this.updateDocumentTitle();
         });
 
         this.environment = this.envService.env;
@@ -132,7 +141,10 @@ export class AppComponent implements OnInit {
           (editions) => {
             // remove editions with empty name
             editions.items = editions.items.filter((item) => item.name);
-            if (editions.items.length > 0) { this.selectedEdition = editions.items[0] }
+            if (editions.items.length > 0) {
+                this.selectedEdition = editions.items[0];
+                this.updateDocumentTitle();
+            }
           },
           (error) => {
             this.snackBar.open('Failed to load editions', 'Dismiss', {
@@ -150,6 +162,19 @@ export class AppComponent implements OnInit {
         } else {
             this.showLegalModal = false;
             this.loadFirstEdition();
+        }
+    }
+
+    private updateDocumentTitle(): void {
+        const base =
+            this.router.url.includes('/translation-studio') || this.authoringPlatformMode
+                ? 'Translation Studio'
+                : 'Simplex';
+        const editionName = this.selectedEdition?.name;
+        if (editionName) {
+            this.titleService.setTitle(`${base} - ${editionName}`);
+        } else {
+            this.titleService.setTitle(base);
         }
     }
 }
