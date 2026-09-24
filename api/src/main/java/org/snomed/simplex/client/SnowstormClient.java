@@ -68,6 +68,7 @@ public class SnowstormClient {
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<ConceptMini>> responseTypeConceptMiniPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<Long>> responseTypeSCTIDPage = new ParameterizedTypeReference<>(){};
+	private final ParameterizedTypeReference<Page<String>> responseTypeConceptIdPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<SnowstormContentPage<BrowserDescriptionSearchResult>> responseTypeBrowserDescriptionPage =
 			new ParameterizedTypeReference<>(){};
 
@@ -717,27 +718,59 @@ public class SnowstormClient {
 		return termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? CASE_INSENSITIVE : ENTIRE_TERM_CASE_SENSITIVE;
 	}
 
-	public List<ConceptMini> findAllConceptsByModule(CodeSystem codeSystem, String module) {
+	public List<ConceptMini> findAllConceptsByModule(CodeSystem codeSystem, String module) throws ServiceException {
 		List<ConceptMini> completeList = new ArrayList<>();
-		int offset = 0;
-		int limit = 1000;
-		int loadedSize;
+		String searchAfter = null;
+		SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
+		List<ConceptMini> pageItems;
 		do {
-			Page<ConceptMini> page = findConceptsByModule(codeSystem, module, offset, limit);
-			List<ConceptMini> list = page.getItems();
-			loadedSize = list.size();
-			completeList.addAll(list);
-			offset += limit;
-		} while (loadedSize == 1000);
+			guard.beforeFetch(searchAfter);
+			Page<ConceptMini> page = findConceptsByModulePage(codeSystem, module, searchAfter, MAX_PAGE_SIZE);
+			pageItems = page.getItems() != null ? page.getItems() : List.of();
+			completeList.addAll(pageItems);
+			if (pageItems.size() < MAX_PAGE_SIZE) {
+				break;
+			}
+			guard.afterFullPage(searchAfter, page.getSearchAfter());
+			searchAfter = page.getSearchAfter();
+		} while (!Strings.isBlank(searchAfter));
 		return completeList;
 	}
 
-	public Page<ConceptMini> findConceptsByModule(CodeSystem codeSystem, String module, int offset, int limit) {
-		ParameterizedTypeReference<Page<ConceptMini>> listOfConceptMinisType = new ParameterizedTypeReference<>() {};
-		ResponseEntity<Page<ConceptMini>> exchange = restTemplate.exchange(
-				format("/%s/concepts?module=%s&offset=%s&limit=%s", codeSystem.getWorkingBranchPath(), module, offset, limit), HttpMethod.GET, null,
-				listOfConceptMinisType);
-		return exchange.getBody();
+	public Page<ConceptMini> findConceptsByModule(CodeSystem codeSystem, String module, int offset, int limit) throws ServiceExceptionWithStatusCode {
+		try {
+			ResponseEntity<Page<ConceptMini>> exchange = restTemplate.exchange(
+					format("/%s/concepts?module=%s&offset=%s&limit=%s", codeSystem.getWorkingBranchPath(), module, offset, limit),
+					HttpMethod.GET, null, responseTypeConceptMiniPage);
+			return exchange.getBody();
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "fetch concepts by module");
+		}
+	}
+
+	private Page<ConceptMini> findConceptsByModulePage(CodeSystem codeSystem, String module, String searchAfter, int limit)
+			throws ServiceExceptionWithStatusCode {
+		UriComponentsBuilder builder = UriComponentsBuilder.fromPath(format("/%s/concepts", codeSystem.getWorkingBranchPath()))
+				.queryParam("module", module)
+				.queryParam("limit", limit);
+		appendConceptSearchPagination(builder, searchAfter);
+		return fetchConceptMiniPage(builder);
+	}
+
+	public LinkedHashSet<String> collectConceptIdsInModule(CodeSystem codeSystem, String moduleId) throws ServiceException {
+		return collectAllConceptIds(() -> UriComponentsBuilder.fromPath(format("/%s/concepts", codeSystem.getWorkingBranchPath()))
+				.queryParam("module", moduleId)
+				.queryParam("returnIdOnly", true));
+	}
+
+	public LinkedHashSet<String> collectConceptIdsWithUsPreferredActiveEnFsn(CodeSystem codeSystem, String conceptModuleId)
+			throws ServiceException {
+		return collectAllConceptIds(() -> UriComponentsBuilder.fromPath(format("/%s/concepts", codeSystem.getWorkingBranchPath()))
+				.queryParam("module", conceptModuleId)
+				.queryParam("returnIdOnly", true)
+				.queryParam("termActive", true)
+				.queryParam("descriptionType", FSN.getConceptId())
+				.queryParam("language", "en"));
 	}
 
 	public Supplier<ConceptMini> getConceptSortedHierarchyStream(String branch, String focusConcept) {
@@ -1019,22 +1052,79 @@ public class SnowstormClient {
 	}
 
 	public LinkedHashSet<Long> collectActiveFsnConceptIds(CodeSystem codeSystem, String moduleId, String languageCode)
-			throws ServiceExceptionWithStatusCode {
+			throws ServiceException {
 
-		long fsnTypeId = Long.parseLong(FSN.getConceptId());
 		String normalizedLanguage = normalizeLanguageCode(languageCode);
 		LinkedHashSet<Long> conceptIds = new LinkedHashSet<>();
-		int offset = 0;
-		SnowstormContentPage<BrowserDescriptionSearchResult> page =
-				getBrowserDescriptions(codeSystem, moduleId, fsnTypeId, normalizedLanguage, offset, MAX_PAGE_SIZE);
-		List<BrowserDescriptionSearchResult> items = page.getItems();
-		for (BrowserDescriptionSearchResult row : items) {
-			ConceptMini concept = row.getConcept();
-			if (concept != null && concept.getConceptId() != null) {
-				conceptIds.add(Long.parseLong(concept.getConceptId()));
+		for (String conceptId : collectAllConceptIds(() -> {
+			UriComponentsBuilder builder = UriComponentsBuilder.fromPath(format("/%s/concepts", codeSystem.getWorkingBranchPath()))
+					.queryParam("module", moduleId)
+					.queryParam("returnIdOnly", true)
+					.queryParam("activeFilter", true)
+					.queryParam("termActive", true)
+					.queryParam("descriptionType", FSN.getConceptId());
+			if (normalizedLanguage != null) {
+				builder.queryParam("language", normalizedLanguage);
 			}
+			return builder;
+		})) {
+			conceptIds.add(Long.parseLong(conceptId));
 		}
 		return conceptIds;
+	}
+
+	private LinkedHashSet<String> collectAllConceptIds(Supplier<UriComponentsBuilder> queryFactory) throws ServiceException {
+		LinkedHashSet<String> conceptIds = new LinkedHashSet<>();
+		String searchAfter = null;
+		SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
+		List<String> pageItems;
+		do {
+			guard.beforeFetch(searchAfter);
+			Page<String> page = fetchConceptIdPage(queryFactory, searchAfter, MAX_PAGE_SIZE);
+			pageItems = page.getItems() != null ? page.getItems() : List.of();
+			conceptIds.addAll(pageItems);
+			if (pageItems.size() < MAX_PAGE_SIZE) {
+				break;
+			}
+			guard.afterFullPage(searchAfter, page.getSearchAfter());
+			searchAfter = page.getSearchAfter();
+		} while (!Strings.isBlank(searchAfter));
+		return conceptIds;
+	}
+
+	private Page<String> fetchConceptIdPage(Supplier<UriComponentsBuilder> queryFactory, String searchAfter, int limit)
+			throws ServiceExceptionWithStatusCode {
+
+		UriComponentsBuilder builder = queryFactory.get();
+		builder.queryParam("limit", limit);
+		appendConceptSearchPagination(builder, searchAfter);
+		try {
+			ResponseEntity<Page<String>> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, responseTypeConceptIdPage);
+			Page<String> body = response.getBody();
+			throwIfNull(body, "concept id search");
+			return body;
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "fetch concept ids");
+		}
+	}
+
+	private Page<ConceptMini> fetchConceptMiniPage(UriComponentsBuilder builder) throws ServiceExceptionWithStatusCode {
+		try {
+			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, responseTypeConceptMiniPage);
+			Page<ConceptMini> body = response.getBody();
+			throwIfNull(body, "concept search");
+			return body;
+		} catch (HttpStatusCodeException e) {
+			throw getServiceException(e, "fetch concepts");
+		}
+	}
+
+	private static void appendConceptSearchPagination(UriComponentsBuilder builder, String searchAfter) {
+		if (!Strings.isBlank(searchAfter)) {
+			builder.queryParam("searchAfter", searchAfter);
+		} else {
+			builder.queryParam("offset", 0);
+		}
 	}
 
 	private static String normalizeLanguageCode(String languageCode) {

@@ -6,14 +6,19 @@ import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.FsnBulkRemovalStats;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.Description;
+import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.DeleteFsnDescriptionsResult;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -24,15 +29,30 @@ public class AdminFsnDeletionService {
 
 	private static final Logger logger = LoggerFactory.getLogger(AdminFsnDeletionService.class);
 
+	public Page<ConceptMini> findConceptsWithoutActiveEnFsn(CodeSystem codeSystem, SnowstormClient snowstormClient,
+			int offset, int limit) throws ServiceException {
+
+		String moduleId = requireDefaultModuleId(codeSystem);
+		LinkedHashSet<String> inModule = snowstormClient.collectConceptIdsInModule(codeSystem, moduleId);
+		LinkedHashSet<String> withUsPreferredEnFsn = snowstormClient.collectConceptIdsWithUsPreferredActiveEnFsn(codeSystem, moduleId);
+		List<String> missing = inModule.stream()
+				.filter(id -> !withUsPreferredEnFsn.contains(id))
+				.sorted(Comparator.comparingLong(Long::parseLong))
+				.toList();
+
+		int fromIndex = Math.min(offset, missing.size());
+		int toIndex = Math.min(offset + limit, missing.size());
+		List<ConceptMini> pageItems = new ArrayList<>();
+		for (String conceptId : missing.subList(fromIndex, toIndex)) {
+			pageItems.add(snowstormClient.getConceptMini(conceptId, codeSystem));
+		}
+		return new Page<>(pageItems, (long) missing.size());
+	}
+
 	public DeleteFsnDescriptionsResult deleteAllFsnDescriptions(CodeSystem codeSystem, SnowstormClient snowstormClient,
 			boolean dryRun, String languageCode) throws ServiceException {
 
-		String moduleId = codeSystem.getDefaultModule();
-		if (Strings.isBlank(moduleId)) {
-			throw new ServiceExceptionWithStatusCode(
-					"CodeSystem %s has no default module.".formatted(codeSystem.getShortName()),
-					HttpStatus.BAD_REQUEST);
-		}
+		String moduleId = requireDefaultModuleId(codeSystem);
 
 		String normalizedLanguage = normalizeLanguageCode(languageCode);
 		LinkedHashSet<Long> conceptIds = snowstormClient.collectActiveFsnConceptIds(codeSystem, moduleId, normalizedLanguage);
@@ -67,6 +87,16 @@ public class AdminFsnDeletionService {
 				stats.getFsnInactivated(),
 				stats.getFsnDeleted(),
 				stats.getFsnSkipped());
+	}
+
+	private static String requireDefaultModuleId(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		String moduleId = codeSystem.getDefaultModule();
+		if (Strings.isBlank(moduleId)) {
+			throw new ServiceExceptionWithStatusCode(
+					"CodeSystem %s has no default module.".formatted(codeSystem.getShortName()),
+					HttpStatus.BAD_REQUEST);
+		}
+		return moduleId;
 	}
 
 	private static String normalizeLanguageCode(String languageCode) {

@@ -9,13 +9,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.snomed.simplex.client.FsnBulkRemovalStats;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.Description;
+import org.snomed.simplex.client.domain.DescriptionMini;
+import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.DeleteFsnDescriptionsResult;
 import org.springframework.http.HttpStatus;
 
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,6 +44,44 @@ class AdminFsnDeletionServiceTest {
 		service = new AdminFsnDeletionService();
 		codeSystem = new CodeSystem("Test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
 		codeSystem.setDefaultModule("101000003010");
+	}
+
+	@Test
+	void findConceptsWithoutActiveEnFsn_returnsDefaultModuleConceptsMissingUsPreferredEnFsn() throws Exception {
+		when(snowstormClient.collectConceptIdsInModule(codeSystem, "101000003010"))
+				.thenReturn(new LinkedHashSet<>(Set.of("100", "200", "300")));
+		when(snowstormClient.collectConceptIdsWithUsPreferredActiveEnFsn(codeSystem, "101000003010"))
+				.thenReturn(new LinkedHashSet<>(Set.of("200")));
+
+		ConceptMini concept100 = conceptMini("100", "Concept one");
+		when(snowstormClient.getConceptMini("100", codeSystem)).thenReturn(concept100);
+
+		Page<ConceptMini> page = service.findConceptsWithoutActiveEnFsn(codeSystem, snowstormClient, 0, 1);
+
+		assertEquals(2L, page.getTotal());
+		assertEquals(1, page.getItems().size());
+		assertEquals("100", page.getItems().get(0).getConceptId());
+	}
+
+	@Test
+	void findConceptsWithoutActiveEnFsn_slicesResultsByOffsetAndLimit() throws Exception {
+		when(snowstormClient.collectConceptIdsInModule(codeSystem, "101000003010"))
+				.thenReturn(new LinkedHashSet<>(Set.of("100", "300")));
+		when(snowstormClient.collectConceptIdsWithUsPreferredActiveEnFsn(codeSystem, "101000003010"))
+				.thenReturn(new LinkedHashSet<>());
+
+		ConceptMini concept300 = conceptMini("300", "Concept three");
+		when(snowstormClient.getConceptMini("300", codeSystem)).thenReturn(concept300);
+
+		Page<ConceptMini> page = service.findConceptsWithoutActiveEnFsn(codeSystem, snowstormClient, 1, 1);
+
+		assertEquals(2L, page.getTotal());
+		assertEquals(1, page.getItems().size());
+		assertEquals("300", page.getItems().get(0).getConceptId());
+	}
+
+	private static ConceptMini conceptMini(String conceptId, String term) {
+		return new ConceptMini(conceptId, new DescriptionMini(term, "en"));
 	}
 
 	@Test
