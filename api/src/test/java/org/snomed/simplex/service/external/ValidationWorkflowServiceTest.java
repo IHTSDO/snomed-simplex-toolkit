@@ -10,6 +10,7 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ActivityService;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -105,6 +107,18 @@ class ValidationWorkflowServiceTest {
 	}
 
 	@Test
+	void startValidation_missingRvfMetadata_throwsBeforeJobQueued() throws Exception {
+		CodeSystem codeSystem = codeSystem(true);
+		when(snowstormClient.getCodeSystemOrThrow("SNOMEDCT-TEST")).thenReturn(codeSystem);
+		doThrow(new ServiceExceptionWithStatusCode("Cannot start validation: dependencyPackage missing.", HttpStatus.CONFLICT,
+				JobStatus.USER_CONTENT_ERROR)).when(codeSystemService).assertReadyForRvfValidation(codeSystem);
+
+		assertThrows(ServiceExceptionWithStatusCode.class, () -> validationWorkflowService.startValidation("SNOMEDCT-TEST"));
+
+		verify(activityService, never()).startExternalServiceActivity(any(), any(), any(), any(), any());
+	}
+
+	@Test
 	void startValidation_classificationInProgressWhenNotClassified_throwsConflict() throws Exception {
 		CodeSystem codeSystem = codeSystem(false);
 		codeSystem.setClassificationStatus(CodeSystemClassificationStatus.IN_PROGRESS);
@@ -119,6 +133,10 @@ class ValidationWorkflowServiceTest {
 	private static CodeSystem codeSystem(boolean classified) {
 		CodeSystem codeSystem = new CodeSystem("Test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
 		codeSystem.setClassified(classified);
+		codeSystem.setDefaultModule("11000336109");
+		codeSystem.setDependantVersionEffectiveTime(20260101);
+		codeSystem.setDependantEditionShortName("SNOMEDCT");
+		codeSystem.setDependencyPackage("SnomedCT_InternationalRF2_PRODUCTION_20260101T120000Z.zip");
 		return codeSystem;
 	}
 

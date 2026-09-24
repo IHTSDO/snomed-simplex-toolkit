@@ -291,6 +291,10 @@ public class CodeSystem {
 		return latestVersion;
 	}
 
+	public void setLatestVersion(CodeSystemVersion latestVersion) {
+		this.latestVersion = latestVersion;
+	}
+
 	public EditionStatus getEditionStatus() {
 		return editionStatus;
 	}

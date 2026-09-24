@@ -7,11 +7,13 @@ import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.Branch;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.CodeSystemBuildStatus;
+import org.snomed.simplex.client.domain.CodeSystemVersion;
 import org.snomed.simplex.client.domain.CodeSystemClassificationStatus;
 import org.snomed.simplex.client.domain.CodeSystemValidationStatus;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.client.domain.RefsetMember;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CreateCodeSystemRequest;
@@ -260,5 +262,56 @@ class CodeSystemServiceTest {
 		codeSystem.setClassificationStatus(CodeSystemClassificationStatus.COMPLETE);
 		codeSystem.setValidationStatus(CodeSystemValidationStatus.COMPLETE);
 		return codeSystem;
+	}
+
+	@Test
+	void assertReadyForRvfValidation_rootBranch_doesNotRequireDependencyPackage() throws ServiceExceptionWithStatusCode {
+		CodeSystem codeSystem = new CodeSystem("International", "SNOMEDCT", "MAIN");
+		codeSystem.setDefaultModule("900000000000207008");
+
+		codeSystemService.assertReadyForRvfValidation(codeSystem);
+	}
+
+	@Test
+	void assertReadyForRvfValidation_extensionWithoutDependencyPackage_throwsConflict() {
+		CodeSystem codeSystem = new CodeSystem("El Salvador Edition", "SNOMEDCT-SV", "MAIN/SNOMEDCT-ES/SNOMEDCT-SV");
+		codeSystem.setDefaultModule("11000336109");
+		codeSystem.setDependantEditionShortName("SNOMEDCT-ES");
+		codeSystem.setDependantVersionEffectiveTime(20260210);
+
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> codeSystemService.assertReadyForRvfValidation(codeSystem));
+
+		assertEquals(HttpStatus.CONFLICT.value(), exception.getStatusCode());
+		assertEquals(JobStatus.USER_CONTENT_ERROR, exception.getJobStatus());
+		assertTrue(exception.getMessage().contains("dependencyPackage"));
+		assertTrue(exception.getMessage().contains("SNOMEDCT-ES"));
+	}
+
+	@Test
+	void assertReadyForRvfValidation_extensionWithDependencyPackage_passes() throws ServiceExceptionWithStatusCode {
+		CodeSystem codeSystem = new CodeSystem("El Salvador Edition", "SNOMEDCT-SV", "MAIN/SNOMEDCT-ES/SNOMEDCT-SV");
+		codeSystem.setDefaultModule("11000336109");
+		codeSystem.setDependantEditionShortName("SNOMEDCT-ES");
+		codeSystem.setDependantVersionEffectiveTime(20260210);
+		codeSystem.setDependencyPackage("SnomedCT_SpanishEditionRF2_20260210.zip");
+
+		codeSystemService.assertReadyForRvfValidation(codeSystem);
+	}
+
+	@Test
+	void assertReadyForRvfValidation_publishedVersionWithoutReleasePackage_throwsConflict() {
+		CodeSystem codeSystem = new CodeSystem("Test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule("11000336109");
+		codeSystem.setDependantVersionEffectiveTime(20260101);
+		codeSystem.setDependencyPackage("SnomedCT_InternationalRF2_PRODUCTION_20260101T120000Z.zip");
+		codeSystem.setLatestVersion(new CodeSystemVersion(20260701, "2026-07-01", null, "MAIN/SNOMEDCT-TEST/2026-07-01", 20260101));
+
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> codeSystemService.assertReadyForRvfValidation(codeSystem));
+
+		assertEquals(HttpStatus.CONFLICT.value(), exception.getStatusCode());
+		assertEquals(JobStatus.USER_CONTENT_ERROR, exception.getJobStatus());
+		assertTrue(exception.getMessage().contains("Latest release package is not set"));
 	}
 }

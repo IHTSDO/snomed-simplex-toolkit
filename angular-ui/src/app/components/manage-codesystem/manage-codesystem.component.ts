@@ -74,13 +74,18 @@ export class ManageCodesystemComponent implements OnInit, OnDestroy {
       return;
     }
     this.alert('Requesting validation');
-    await lastValueFrom(
-      this.simplexService.startValidation(this.edition.shortName)
-    );
-    this.alert('Validation requested');
-    this.refreshEdition();
-    if (this.jobComponent) {
-      this.jobComponent.loadJobs(true);
+    try {
+      await lastValueFrom(
+        this.simplexService.startValidation(this.edition.shortName)
+      );
+      this.alert('Validation requested');
+      this.refreshEdition();
+      if (this.jobComponent) {
+        this.jobComponent.loadJobs(true);
+      }
+    } catch (err: any) {
+      const message = err?.error?.message || 'Validation could not be started';
+      this.alert(message);
     }
   }
 

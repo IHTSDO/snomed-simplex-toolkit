@@ -55,6 +55,8 @@ public class ValidationWorkflowService {
 			throw new ServiceExceptionWithStatusCode("Classification is already in progress.", HttpStatus.CONFLICT);
 		}
 
+		codeSystemService.assertReadyForRvfValidation(codeSystem);
+
 		ExternalServiceJob validationJob = activityService.startExternalServiceActivity(
 				codeSystem, CODE_SYSTEM, ActivityType.VALIDATE, validateJobService, null);
 

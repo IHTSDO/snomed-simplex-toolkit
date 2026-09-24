@@ -1,6 +1,7 @@
 package org.snomed.simplex.service;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.tomcat.util.http.fileupload.util.Streams;
 import org.ihtsdo.otf.resourcemanager.ResourceManager;
 import org.slf4j.Logger;
@@ -11,6 +12,7 @@ import org.snomed.simplex.client.domain.*;
 import org.snomed.simplex.client.srs.ReleaseServiceClient;
 import org.snomed.simplex.client.srs.domain.SRSBuild;
 import org.snomed.simplex.config.VersionedPackagesResourceManagerConfiguration;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.PackageConfiguration;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
@@ -275,6 +277,52 @@ public class CodeSystemService {
 		ensureValidationAndClassificationReady(codeSystem);
 		clearBuildStatus(codeSystem, snowstormClient);
 		setEditionStatus(codeSystem, EditionStatus.RELEASE, snowstormClient);
+	}
+
+	/**
+	 * Ensures branch metadata and code system fields required by RVF are present before starting validation.
+	 */
+	public void assertReadyForRvfValidation(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		codeSystem.getDefaultModuleOrThrow();
+
+		CodeSystemVersion latestVersion = codeSystem.getLatestVersion();
+		if (latestVersion != null && latestVersion.releasePackage() == null) {
+			throw new ServiceExceptionWithStatusCode("Failed to start validation. Latest release package is not set.",
+					HttpStatus.CONFLICT, JobStatus.USER_CONTENT_ERROR);
+		}
+
+		if (getParentBranchPath(codeSystem.getBranchPath()) == null) {
+			return;
+		}
+
+		if (codeSystem.getDependantVersionEffectiveTime() == null) {
+			throw new ServiceExceptionWithStatusCode(
+					"Cannot start validation for %s: dependant version effective time is not set.".formatted(codeSystem.getShortName()),
+					HttpStatus.CONFLICT, JobStatus.USER_CONTENT_ERROR);
+		}
+
+		if (Strings.isBlank(codeSystem.getDependencyPackage())) {
+			String parentEdition = codeSystem.getDependantEditionShortName();
+			String parentLabel = parentEdition != null ? parentEdition : getParentBranchPath(codeSystem.getBranchPath());
+			throw new ServiceExceptionWithStatusCode(
+					("Cannot start validation for %s: branch metadata 'dependencyPackage' is missing. " +
+							"RVF requires the full RF2 package for %s (dependant version %s). " +
+							"Ensure the terminology server has set dependencyPackage on branch %s.")
+							.formatted(codeSystem.getShortName(), parentLabel, codeSystem.getDependantVersionEffectiveTime(),
+									codeSystem.getBranchPath()),
+					HttpStatus.CONFLICT, JobStatus.USER_CONTENT_ERROR);
+		}
+	}
+
+	private static String getParentBranchPath(String branchPath) {
+		if (branchPath == null) {
+			return null;
+		}
+		int lastSlash = branchPath.lastIndexOf('/');
+		if (lastSlash <= 0) {
+			return null;
+		}
+		return branchPath.substring(0, lastSlash);
 	}
 
 	private static void ensureValidationAndClassificationReady(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
