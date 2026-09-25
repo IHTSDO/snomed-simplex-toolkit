@@ -23,7 +23,7 @@
 
         <mat-slide-toggle
           [checked]="description.active"
-          (change)="description.active = $event.checked; onDescriptionChange()"
+          (change)="onDescriptionActiveChange(description, $event.checked)"
           matTooltip="Unreleased descriptions are removed when inactivated; released descriptions are marked inactive">
         </mat-slide-toggle>
 
@@ -58,9 +58,16 @@
       </div>
     </div>
 
-    <div class="add-synonym-panel">
-      <h4>Add synonym</h4>
-      <div class="add-synonym-row">
+    <div class="add-description-panel">
+      <h4>Add description</h4>
+      <div class="add-description-row">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Type</mat-label>
+          <mat-select [(value)]="panel.newDescriptionType" data-cy="admin-concept-new-description-type">
+            <mat-option value="SYNONYM">Synonym</mat-option>
+            <mat-option value="FSN">FSN</mat-option>
+          </mat-select>
+        </mat-form-field>
         <mat-form-field appearance="outline" subscriptSizing="dynamic">
           <mat-label>Language refset</mat-label>
           <mat-select [(value)]="panel.newSynonymRefsetId">
@@ -71,9 +78,12 @@
         </mat-form-field>
         <mat-form-field appearance="outline" class="new-term-field" subscriptSizing="dynamic">
           <mat-label>Term</mat-label>
-          <input matInput [(ngModel)]="panel.newSynonymTerm" (keyup.enter)="addSynonym()">
+          <input matInput [(ngModel)]="panel.newSynonymTerm" (keyup.enter)="addDescription()"
+            data-cy="admin-concept-new-description-term">
         </mat-form-field>
-        <button mat-stroked-button type="button" (click)="addSynonym()">Add</button>
+        <button mat-stroked-button type="button" (click)="addDescription()" data-cy="admin-concept-add-description">
+          Add
+        </button>
       </div>
     </div>
   </ng-container>

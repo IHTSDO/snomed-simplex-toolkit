@@ -47,4 +47,32 @@ export interface AdminConceptEditorPanelState {
   detail: AdminConceptEditorDetail | null;
   newSynonymRefsetId: string;
   newSynonymTerm: string;
+  newDescriptionType: AdminDescriptionType;
+}
+
+/** Matches AdminConceptEditorService DESCRIPTION_DISPLAY_ORDER on the API. */
+function descriptionTypeSortKey(type: AdminDescriptionType | string | undefined): number {
+  switch (type) {
+    case 'FSN':
+      return 0;
+    case 'SYNONYM':
+      return 1;
+    case 'TEXT_DEFINITION':
+      return 2;
+    default:
+      return 99;
+  }
+}
+
+export function sortAdminConceptDescriptions(descriptions: AdminConceptDescription[]): AdminConceptDescription[] {
+  return [...descriptions].sort((a, b) => {
+    if (a.active !== b.active) {
+      return a.active ? -1 : 1;
+    }
+    const typeDiff = descriptionTypeSortKey(a.type) - descriptionTypeSortKey(b.type);
+    if (typeDiff !== 0) {
+      return typeDiff;
+    }
+    return (a.term || '').localeCompare(b.term || '', undefined, { sensitivity: 'base' });
+  });
 }

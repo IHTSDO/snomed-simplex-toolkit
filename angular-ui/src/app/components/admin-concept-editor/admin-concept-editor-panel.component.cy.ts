@@ -50,6 +50,7 @@ describe('AdminConceptEditorPanelComponent', () => {
       detail,
       newSynonymRefsetId: detail.langRefsets[0]?.refsetId || '',
       newSynonymTerm: '',
+      newDescriptionType: 'SYNONYM',
       ...overrides
     };
   }
@@ -112,6 +113,30 @@ describe('AdminConceptEditorPanelComponent', () => {
 
     cy.get('.module-dot--other').trigger('mouseenter');
     cy.get('.mat-mdc-tooltip').should('contain.text', '11000279109');
+  });
+
+  it('adds a new FSN description with preferred acceptability', () => {
+    const panel = loadedPanel(mockDetail);
+    cy.mount(AdminConceptEditorPanelComponent, {
+      componentProperties: { panel }
+    });
+
+    cy.get('[data-cy=admin-concept-new-description-type]').click();
+    cy.get('mat-option').contains('FSN').click();
+    cy.get('[data-cy=admin-concept-new-description-term]').type('New FSN (finding)');
+    cy.get('[data-cy=admin-concept-add-description]').click();
+
+    const refsetId = mockDetail.langRefsets[0].refsetId;
+    const added = panel.detail!.descriptions.find(d => d.term === 'New FSN (finding)');
+    expect(added?.type).to.eq('FSN');
+    expect(added?.acceptabilityMap[refsetId]).to.eq('PREFERRED');
+    expect(panel.detail!.descriptions[0].term).to.eq('New FSN (finding)');
+
+    cy.get('[data-cy=admin-concept-description-0]').within(() => {
+      cy.get('.type-badge').should('contain.text', 'FSN');
+      cy.contains('New FSN (finding)');
+      cy.contains('button', 'US English: Pref').should('exist');
+    });
   });
 
   it('keeps released description term read-only', () => {

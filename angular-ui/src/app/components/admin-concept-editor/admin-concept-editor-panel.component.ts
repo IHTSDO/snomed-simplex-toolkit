@@ -5,7 +5,8 @@ import {
   AdminConceptDescription,
   AdminConceptEditorPanelState,
   AdminConceptLangRefset,
-  DescriptionModuleKind
+  DescriptionModuleKind,
+  sortAdminConceptDescriptions
 } from 'src/app/models/admin-concept-editor';
 
 @Component({
@@ -25,6 +26,14 @@ export class AdminConceptEditorPanelComponent {
   constructor(private snackBar: MatSnackBar) { }
 
   onDescriptionChange(): void {
+    this.panel.dirty = true;
+  }
+
+  onDescriptionActiveChange(description: AdminConceptDescription, active: boolean): void {
+    description.active = active;
+    if (this.panel.detail) {
+      this.panel.detail.descriptions = sortAdminConceptDescriptions(this.panel.detail.descriptions);
+    }
     this.panel.dirty = true;
   }
 
@@ -90,7 +99,7 @@ export class AdminConceptEditorPanelComponent {
     this.panel.dirty = true;
   }
 
-  addSynonym(): void {
+  addDescription(): void {
     if (!this.panel.detail) {
       return;
     }
@@ -101,17 +110,22 @@ export class AdminConceptEditorPanelComponent {
     }
     const refset = this.panel.detail.langRefsets.find(r => r.refsetId === this.panel.newSynonymRefsetId);
     const lang = refset?.languageCode || 'en';
+    const type = this.panel.newDescriptionType || 'SYNONYM';
+    const acceptability: AdminAcceptability = type === 'FSN' ? 'PREFERRED' : 'ACCEPTABLE';
     const description: AdminConceptDescription = {
       descriptionId: null,
       term,
-      type: 'SYNONYM',
+      type,
       lang,
       active: true,
       released: false,
       moduleId: this.panel.detail.defaultModuleId,
-      acceptabilityMap: { [this.panel.newSynonymRefsetId]: 'ACCEPTABLE' }
+      acceptabilityMap: { [this.panel.newSynonymRefsetId]: acceptability }
     };
-    this.panel.detail.descriptions = [...this.panel.detail.descriptions, description];
+    this.panel.detail.descriptions = sortAdminConceptDescriptions([
+      ...this.panel.detail.descriptions,
+      description
+    ]);
     this.panel.newSynonymTerm = '';
     this.panel.dirty = true;
   }

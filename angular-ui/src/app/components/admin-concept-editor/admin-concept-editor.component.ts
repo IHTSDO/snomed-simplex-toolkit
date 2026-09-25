@@ -4,7 +4,8 @@ import { Subscription, lastValueFrom } from 'rxjs';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import {
   AdminConceptEditorDetail,
-  AdminConceptEditorPanelState
+  AdminConceptEditorPanelState,
+  sortAdminConceptDescriptions
 } from 'src/app/models/admin-concept-editor';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 
@@ -70,7 +71,8 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
       dirty: false,
       detail: null,
       newSynonymRefsetId: '',
-      newSynonymTerm: ''
+      newSynonymTerm: '',
+      newDescriptionType: 'SYNONYM'
     };
     this.panels = [panel, ...this.panels];
     this.conceptIdInput = '';
@@ -82,7 +84,10 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
           return;
         }
         loaded.loading = false;
-        loaded.detail = detail;
+        loaded.detail = {
+          ...detail,
+          descriptions: sortAdminConceptDescriptions(detail.descriptions)
+        };
         loaded.conceptId = detail.conceptId;
         if (detail.langRefsets.length) {
           loaded.newSynonymRefsetId = detail.langRefsets[0].refsetId;

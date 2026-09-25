@@ -44,7 +44,8 @@ describe('AdminConceptEditorComponent', () => {
       dirty: false,
       detail,
       newSynonymRefsetId: detail.langRefsets[0]?.refsetId || '',
-      newSynonymTerm: ''
+      newSynonymTerm: '',
+      newDescriptionType: 'SYNONYM'
     };
   }
 
