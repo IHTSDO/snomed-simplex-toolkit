@@ -14,6 +14,7 @@ export type TranslationSetDownloadStatusFilter =
 	| 'NOT_STARTED'
 	| 'NEEDS_EDIT'
 	| 'APPROVED'
+	| 'COMPLETE'
 	| 'ALL';
 
 export interface DownloadTranslationSetDialogData {
@@ -55,6 +56,7 @@ export class DownloadTranslationSetDialogComponent {
 		{ value: 'NOT_STARTED', label: translationStatusRadioLabel('NOT_STARTED'), statusParam: 'NOT_STARTED' },
 		{ value: 'NEEDS_EDIT', label: translationStatusRadioLabel('NEEDS_EDIT'), statusParam: 'NEEDS_EDIT' },
 		{ value: 'APPROVED', label: translationStatusRadioLabel('APPROVED'), statusParam: 'APPROVED' },
+		{ value: 'COMPLETE', label: translationStatusRadioLabel('COMPLETE'), statusParam: 'COMPLETE' },
 		{ value: 'ALL', label: 'All concepts', statusParam: null }
 	];
 
@@ -134,6 +136,8 @@ export class DownloadTranslationSetDialogComponent {
 				return 'ready-for-review';
 			case 'APPROVED':
 				return 'ready-to-push';
+			case 'COMPLETE':
+				return 'pushed';
 		}
 	}
 }
