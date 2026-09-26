@@ -6,6 +6,7 @@ import {
   AdminConceptEditorPanelState,
   AdminConceptLangRefset,
   DescriptionModuleKind,
+  defaultAcceptabilityForNewDescription,
   sortAdminConceptDescriptions
 } from 'src/app/models/admin-concept-editor';
 
@@ -31,6 +32,9 @@ export class AdminConceptEditorPanelComponent {
 
   onDescriptionActiveChange(description: AdminConceptDescription, active: boolean): void {
     description.active = active;
+    if (!active) {
+      description.acceptabilityMap = {};
+    }
     if (this.panel.detail) {
       this.panel.detail.descriptions = sortAdminConceptDescriptions(this.panel.detail.descriptions);
     }
@@ -79,6 +83,9 @@ export class AdminConceptEditorPanelComponent {
   }
 
   cycleAcceptability(description: AdminConceptDescription, refsetId: string): void {
+    if (!description.active) {
+      return;
+    }
     if (!description.acceptabilityMap) {
       description.acceptabilityMap = {};
     }
@@ -111,7 +118,12 @@ export class AdminConceptEditorPanelComponent {
     const refset = this.panel.detail.langRefsets.find(r => r.refsetId === this.panel.newSynonymRefsetId);
     const lang = refset?.languageCode || 'en';
     const type = this.panel.newDescriptionType || 'SYNONYM';
-    const acceptability: AdminAcceptability = type === 'FSN' ? 'PREFERRED' : 'ACCEPTABLE';
+    const acceptability = defaultAcceptabilityForNewDescription(
+      type,
+      this.panel.newSynonymRefsetId,
+      this.panel.detail.langRefsets,
+      this.panel.detail.descriptions
+    );
     const description: AdminConceptDescription = {
       descriptionId: null,
       term,

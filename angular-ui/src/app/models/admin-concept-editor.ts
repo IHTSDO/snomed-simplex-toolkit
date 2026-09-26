@@ -76,3 +76,32 @@ export function sortAdminConceptDescriptions(descriptions: AdminConceptDescripti
     return (a.term || '').localeCompare(b.term || '', undefined, { sensitivity: 'base' });
   });
 }
+
+function isActiveSynonymInLangRefset(
+  description: AdminConceptDescription,
+  refsetId: string,
+  languageCode: string | undefined
+): boolean {
+  if (!description.active || description.type !== 'SYNONYM') {
+    return false;
+  }
+  const acceptability = description.acceptabilityMap?.[refsetId];
+  if (acceptability === 'PREFERRED' || acceptability === 'ACCEPTABLE') {
+    return true;
+  }
+  return languageCode != null && description.lang === languageCode;
+}
+
+export function defaultAcceptabilityForNewDescription(
+  type: AdminDescriptionType,
+  refsetId: string,
+  langRefsets: AdminConceptLangRefset[],
+  descriptions: AdminConceptDescription[]
+): AdminAcceptability {
+  if (type === 'FSN') {
+    return 'PREFERRED';
+  }
+  const languageCode = langRefsets.find(r => r.refsetId === refsetId)?.languageCode;
+  const synonymsInRefset = descriptions.filter(d => isActiveSynonymInLangRefset(d, refsetId, languageCode));
+  return synonymsInRefset.length === 0 ? 'PREFERRED' : 'ACCEPTABLE';
+}

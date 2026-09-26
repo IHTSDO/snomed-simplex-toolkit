@@ -115,6 +115,39 @@ describe('AdminConceptEditorPanelComponent', () => {
     cy.get('.mat-mdc-tooltip').should('contain.text', '11000279109');
   });
 
+  it('adds a new synonym as acceptable when another synonym exists in the refset', () => {
+    const panel = loadedPanel(mockDetail);
+    cy.mount(AdminConceptEditorPanelComponent, {
+      componentProperties: { panel }
+    });
+
+    cy.get('[data-cy=admin-concept-new-description-term]').type('Another synonym');
+    cy.get('[data-cy=admin-concept-add-description]').click();
+
+    const refsetId = mockDetail.langRefsets[0].refsetId;
+    const added = panel.detail!.descriptions.find(d => d.term === 'Another synonym');
+    expect(added?.type).to.eq('SYNONYM');
+    expect(added?.acceptabilityMap[refsetId]).to.eq('ACCEPTABLE');
+  });
+
+  it('adds the first synonym in a refset as preferred', () => {
+    const fsnOnlyDetail: AdminConceptEditorDetail = {
+      ...mockDetail,
+      descriptions: [mockDetail.descriptions[0]]
+    };
+    const panel = loadedPanel(fsnOnlyDetail);
+    cy.mount(AdminConceptEditorPanelComponent, {
+      componentProperties: { panel }
+    });
+
+    cy.get('[data-cy=admin-concept-new-description-term]').type('First synonym');
+    cy.get('[data-cy=admin-concept-add-description]').click();
+
+    const refsetId = mockDetail.langRefsets[0].refsetId;
+    const added = panel.detail!.descriptions.find(d => d.term === 'First synonym');
+    expect(added?.acceptabilityMap[refsetId]).to.eq('PREFERRED');
+  });
+
   it('adds a new FSN description with preferred acceptability', () => {
     const panel = loadedPanel(mockDetail);
     cy.mount(AdminConceptEditorPanelComponent, {
@@ -137,6 +170,25 @@ describe('AdminConceptEditorPanelComponent', () => {
       cy.contains('New FSN (finding)');
       cy.contains('button', 'US English: Pref').should('exist');
     });
+  });
+
+  it('clears acceptability when a description is inactivated', () => {
+    const panel = loadedPanel(mockDetail);
+    cy.mount(AdminConceptEditorPanelComponent, {
+      componentProperties: { panel }
+    });
+
+    cy.get('[data-cy=admin-concept-description-1]').within(() => {
+      cy.contains('Editable synonym');
+      cy.contains('button', 'US English: Acc');
+      cy.get('mat-slide-toggle').click();
+      cy.contains('button', 'US English: —');
+      cy.get('button.acceptability-button').should('be.disabled');
+    });
+
+    const synonym = panel.detail!.descriptions.find(d => d.descriptionId === '222');
+    expect(synonym?.active).to.eq(false);
+    expect(synonym?.acceptabilityMap).to.deep.eq({});
   });
 
   it('keeps released description term read-only', () => {

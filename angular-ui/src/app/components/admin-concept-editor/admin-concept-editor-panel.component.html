@@ -50,6 +50,7 @@
           <button mat-stroked-button type="button" class="acceptability-button"
             [class.acceptability-button--conflict]="isPreferredSynonymConflict(description, refset.refsetId)"
             *ngFor="let refset of applicableLangRefsets(description)"
+            [disabled]="!description.active"
             (click)="cycleAcceptability(description, refset.refsetId)"
             [matTooltip]="refset.label">
             {{ refset.label }}: {{ acceptabilityLabel(description, refset.refsetId) }}

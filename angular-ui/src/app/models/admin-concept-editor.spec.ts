@@ -1,4 +1,9 @@
-import { AdminConceptDescription, sortAdminConceptDescriptions } from './admin-concept-editor';
+import {
+  AdminConceptDescription,
+  AdminConceptLangRefset,
+  defaultAcceptabilityForNewDescription,
+  sortAdminConceptDescriptions
+} from './admin-concept-editor';
 
 function desc(overrides: Partial<AdminConceptDescription> & Pick<AdminConceptDescription, 'term' | 'type'>): AdminConceptDescription {
   return {
@@ -9,6 +14,32 @@ function desc(overrides: Partial<AdminConceptDescription> & Pick<AdminConceptDes
     ...overrides
   };
 }
+
+const usRefset: AdminConceptLangRefset = {
+  refsetId: '900000000000509007',
+  label: 'US English',
+  languageCode: 'en'
+};
+
+describe('defaultAcceptabilityForNewDescription', () => {
+  it('always prefers a new FSN', () => {
+    expect(defaultAcceptabilityForNewDescription('FSN', usRefset.refsetId, [usRefset], [
+      desc({ term: 'Existing synonym', type: 'SYNONYM', acceptabilityMap: { [usRefset.refsetId]: 'PREFERRED' } })
+    ])).toBe('PREFERRED');
+  });
+
+  it('prefers the first synonym in a language refset', () => {
+    expect(defaultAcceptabilityForNewDescription('SYNONYM', usRefset.refsetId, [usRefset], [
+      desc({ term: 'FSN only', type: 'FSN', acceptabilityMap: { [usRefset.refsetId]: 'PREFERRED' } })
+    ])).toBe('PREFERRED');
+  });
+
+  it('marks an additional synonym as acceptable', () => {
+    expect(defaultAcceptabilityForNewDescription('SYNONYM', usRefset.refsetId, [usRefset], [
+      desc({ term: 'First synonym', type: 'SYNONYM', acceptabilityMap: { [usRefset.refsetId]: 'PREFERRED' } })
+    ])).toBe('ACCEPTABLE');
+  });
+});
 
 describe('sortAdminConceptDescriptions', () => {
   it('sorts active FSNs before active synonyms and inactive descriptions last', () => {
