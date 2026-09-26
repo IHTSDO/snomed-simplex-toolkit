@@ -218,4 +218,59 @@
 		<packageUrl regex="true">^pkg:maven/org\.springframework\.security/.*@.*$</packageUrl>
 		<cve>CVE-2026-47841</cve>
 	</suppress>
+	<!--
+		CVE-2026-41707 affects DPoPProofJwtDecoderFactory replay handling only.
+		This application uses IMS header authentication and does not use DPoP.
+		Fixed in Spring Security 6.5.12, which is enterprise-only and not on Maven Central.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no DPoP; no OSS fix on Spring Boot 3.x line (6.5.12 enterprise-only)]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.security/.*@.*$</packageUrl>
+		<cve>CVE-2026-41707</cve>
+	</suppress>
+	<!--
+		CVE-2026-47842 affects deterministic AES/CBC encryption via AesBytesEncryptor or deprecated Encryptors APIs.
+		This application does not use those APIs.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no AesBytesEncryptor or Encryptors usage]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.security/.*@.*$</packageUrl>
+		<cve>CVE-2026-47842</cve>
+	</suppress>
+	<!--
+		CVE-2026-59276 affects Digest auth, KeyBasedPersistenceTokenService, Password4j encoders,
+		and in-memory OAuth2 authorization server token lookups. This application uses IMS SSO only.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — IMS SSO only, no Digest/OAuth2 auth server/password4j encoders]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework\.security/.*@.*$</packageUrl>
+		<cve>CVE-2026-59276</cve>
+	</suppress>
+	<!--
+		CVE-2026-47883 affects UrlHandlerFilter open redirects with very broad URL patterns.
+		This application does not register UrlHandlerFilter.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — UrlHandlerFilter not configured]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47883</cve>
+	</suppress>
+	<!--
+		CVE-2026-47887 affects UrlFileNameViewController open redirects without a configured prefix.
+		This application does not use UrlFileNameViewController.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — no UrlFileNameViewController]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-47887</cve>
+	</suppress>
+	<!--
+		CVE-2026-59281 affects rendering HTML field errors from Errors.getFieldErrors() with escaping enabled.
+		This application exposes JSON REST APIs and does not render Spring MVC form error views.
+	-->
+	<suppress>
+		<notes><![CDATA[Not applicable — JSON REST API only, no HTML form error rendering]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.springframework/.*@.*$</packageUrl>
+		<cve>CVE-2026-59281</cve>
+	</suppress>
 </suppressions>
