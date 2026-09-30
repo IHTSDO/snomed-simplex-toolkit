@@ -42,6 +42,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import static org.snomed.simplex.client.rvf.ValidationReportKnownFalsePositiveFilter.apply;
+import static org.snomed.simplex.client.rvf.ValidationReportKnownFalsePositiveFilter.parseRules;
+
 import static org.snomed.simplex.client.SnowstormClient.ExportType.DELTA;
 
 @Service
@@ -60,12 +63,14 @@ public class ValidationServiceClient {
 	private final String queuePrefix;
 	private final SpreadsheetService spreadsheetService;
 	private final List<String> validationIgnoreCaseAssertionExclusionList;
+	private final List<ValidationReportKnownFalsePositiveFilter.FullComponentFalsePositiveRule> knownFalsePositiveFullComponentRules;
 	private final int failureExportMax;
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	public ValidationServiceClient(@Value("${rvf.url}") String rvfUrl, @Value("${jms.queue.prefix}") String queuePrefix,
 								   @Value("${rvf.validation.ignore-case.assertion-exclusion-list}") String validationIgnoreCaseAssertionExclusionList,
+								   @Value("${rvf.validation.known-false-positive-full-component-rules:}") String knownFalsePositiveFullComponentRules,
 								   @Value("${rvf.validation.failureExportMax}") int failureExportMax,
 								   @Autowired SpreadsheetService spreadsheetService) {
 		RestTemplateBuilder builder = new RestTemplateBuilder()
@@ -85,6 +90,7 @@ public class ValidationServiceClient {
 				.map(String::trim)
 				.filter(s -> !s.isEmpty())
 				.toList();
+		this.knownFalsePositiveFullComponentRules = parseRules(knownFalsePositiveFullComponentRules);
 		this.failureExportMax = failureExportMax;
 	}
 
@@ -125,7 +131,8 @@ public class ValidationServiceClient {
 
 	public ValidationReport getValidation(String validationUrl) throws ServiceException {
 		try {
-			return restTemplateFetchValidation.getForEntity(validationUrl, ValidationReport.class).getBody();
+			ValidationReport report = restTemplateFetchValidation.getForEntity(validationUrl, ValidationReport.class).getBody();
+			return apply(report, knownFalsePositiveFullComponentRules);
 		} catch (RestClientException e) {
 			throw new ServiceException("Failed to fetch RVF validation report.", e);
 		}
