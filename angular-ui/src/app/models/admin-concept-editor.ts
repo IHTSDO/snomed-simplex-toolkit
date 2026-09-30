@@ -105,3 +105,46 @@ export function defaultAcceptabilityForNewDescription(
   const synonymsInRefset = descriptions.filter(d => isActiveSynonymInLangRefset(d, refsetId, languageCode));
   return synonymsInRefset.length === 0 ? 'PREFERRED' : 'ACCEPTABLE';
 }
+
+export function partitionPanelsBySaving(panels: AdminConceptEditorPanelState[]): {
+  nonSaving: AdminConceptEditorPanelState[];
+  saving: AdminConceptEditorPanelState[];
+} {
+  const nonSaving: AdminConceptEditorPanelState[] = [];
+  const saving: AdminConceptEditorPanelState[] = [];
+  for (const panel of panels) {
+    if (panel.saving) {
+      saving.push(panel);
+    } else {
+      nonSaving.push(panel);
+    }
+  }
+  return { nonSaving, saving };
+}
+
+export function orderPanelsNonSavingThenSaving(panels: AdminConceptEditorPanelState[]): AdminConceptEditorPanelState[] {
+  const { nonSaving, saving } = partitionPanelsBySaving(panels);
+  return [...nonSaving, ...saving];
+}
+
+export function insertPanelInNonSavingSection(
+  panels: AdminConceptEditorPanelState[],
+  newPanel: AdminConceptEditorPanelState
+): AdminConceptEditorPanelState[] {
+  const { nonSaving, saving } = partitionPanelsBySaving(panels);
+  return [...nonSaving, newPanel, ...saving];
+}
+
+export function movePanelToSavingTail(
+  panels: AdminConceptEditorPanelState[],
+  panelId: string
+): AdminConceptEditorPanelState[] {
+  const panel = panels.find(p => p.panelId === panelId);
+  if (!panel) {
+    return [...panels];
+  }
+  panel.saving = true;
+  const rest = panels.filter(p => p.panelId !== panelId);
+  const { nonSaving, saving } = partitionPanelsBySaving(rest);
+  return [...nonSaving, ...saving, panel];
+}

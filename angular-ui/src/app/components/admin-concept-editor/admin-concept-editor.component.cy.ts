@@ -68,12 +68,13 @@ describe('AdminConceptEditorComponent', () => {
     });
 
     cy.get('[data-cy=admin-concept-load]').click();
+    cy.get('[data-cy=admin-concept-id-input]').should('have.value', '').and('be.focused');
     cy.get('[data-cy=admin-concept-panel-loading]').should('exist');
     cy.get('[data-cy=admin-concept-panel-loading]').contains('123456789');
     cy.contains('Finding (finding)', { timeout: 10000 });
   });
 
-  it('stacks newly loaded concepts at the top', () => {
+  it('appends newly loaded concepts below existing panels', () => {
     cy.mount(AdminConceptEditorComponent, {
       componentProperties: {
         editions: [{ shortName: 'SNOMEDCT-TEST' }],
@@ -104,7 +105,7 @@ describe('AdminConceptEditorComponent', () => {
     cy.contains('Other concept (finding)');
 
     cy.get('[data-cy=admin-concept-panel-987654321]').should('exist');
-    cy.get('.concept-editor-panels').children().first().should('have.attr', 'data-cy', 'admin-concept-panel-987654321');
+    cy.get('.concept-editor-panels').children().last().should('have.attr', 'data-cy', 'admin-concept-panel-987654321');
   });
 
   it('blocks loading a concept that is already open', () => {
@@ -151,6 +152,63 @@ describe('AdminConceptEditorComponent', () => {
     cy.get('[data-cy=admin-concept-load]').click();
     cy.get('[data-cy=admin-concept-panel-loading]').should('exist');
     cy.get('[data-cy=admin-concept-panel-loading]', { timeout: 5000 }).should('not.exist');
+  });
+
+  it('moves the saving panel below non-saving panels', () => {
+    const dirtyPanel = loadedPanel(mockDetail, 'panel-a');
+    dirtyPanel.dirty = true;
+    const otherPanel = loadedPanel(mockDetailB, 'panel-b');
+
+    cy.mount(AdminConceptEditorComponent, {
+      componentProperties: {
+        editions: [{ shortName: 'SNOMEDCT-TEST' }],
+        selectedEdition: 'SNOMEDCT-TEST',
+        panels: [dirtyPanel, otherPanel]
+      },
+      providers: [
+        {
+          provide: SimplexService,
+          useValue: {
+            getAdminConceptForEditor: () => of(mockDetail),
+            updateAdminConceptDescriptions: () => of(mockDetail).pipe(delay(500))
+          }
+        }
+      ]
+    });
+
+    cy.get('[data-cy=admin-concept-panel-123456789]').find('[data-cy=admin-concept-save]').click();
+    cy.get('.concept-editor-panels').children().first().should('have.attr', 'data-cy', 'admin-concept-panel-987654321');
+    cy.get('.concept-editor-panels').children().last().should('have.attr', 'data-cy', 'admin-concept-panel-123456789');
+    cy.get('[data-cy=admin-concept-panel-123456789]').contains('Saving…');
+  });
+
+  it('loads a new concept above saving panels', () => {
+    const savingPanel = loadedPanel(mockDetail, 'panel-a');
+    savingPanel.saving = true;
+
+    cy.mount(AdminConceptEditorComponent, {
+      componentProperties: {
+        editions: [{ shortName: 'SNOMEDCT-TEST' }],
+        selectedEdition: 'SNOMEDCT-TEST',
+        panels: [savingPanel]
+      },
+      providers: [
+        {
+          provide: SimplexService,
+          useValue: {
+            getAdminConceptForEditor: (_edition: string, conceptId: string) =>
+              conceptId === '987654321' ? of(mockDetailB) : of(mockDetail),
+            updateAdminConceptDescriptions: () => of(mockDetail)
+          }
+        }
+      ]
+    });
+
+    cy.get('[data-cy=admin-concept-id-input]').type('987654321');
+    cy.get('[data-cy=admin-concept-load]').click();
+    cy.contains('Other concept (finding)');
+    cy.get('.concept-editor-panels').children().first().should('have.attr', 'data-cy', 'admin-concept-panel-987654321');
+    cy.get('.concept-editor-panels').children().last().should('have.attr', 'data-cy', 'admin-concept-panel-123456789');
   });
 
   it('save and close removes only the saved panel', () => {

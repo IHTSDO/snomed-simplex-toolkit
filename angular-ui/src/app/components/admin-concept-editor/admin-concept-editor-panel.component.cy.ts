@@ -264,6 +264,18 @@ describe('AdminConceptEditorPanelComponent', () => {
 
     cy.contains('button', 'Belgian French: Pref').should('exist');
     cy.contains('button', 'US English:').should('exist');
+    cy.contains('button', 'Belgian French: Pref').should('have.class', 'acceptability-button--lang-mismatch');
+    cy.contains('button', 'US English:').should('not.have.class', 'acceptability-button--lang-mismatch');
+  });
+
+  it('does not highlight matching description and refset languages', () => {
+    cy.mount(AdminConceptEditorPanelComponent, {
+      componentProperties: {
+        panel: loadedPanel(mockDetail)
+      }
+    });
+
+    cy.contains('button', 'US English: Acc').should('not.have.class', 'acceptability-button--lang-mismatch');
   });
 
   it('hides language refset on wrong-language description without acceptability', () => {

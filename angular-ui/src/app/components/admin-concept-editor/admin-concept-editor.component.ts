@@ -1,10 +1,13 @@
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, ElementRef, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription, lastValueFrom } from 'rxjs';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import {
   AdminConceptEditorDetail,
   AdminConceptEditorPanelState,
+  insertPanelInNonSavingSection,
+  movePanelToSavingTail,
+  orderPanelsNonSavingThenSaving,
   sortAdminConceptDescriptions
 } from 'src/app/models/admin-concept-editor';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
@@ -23,6 +26,8 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
   conceptIdInput = '';
 
   panels: AdminConceptEditorPanelState[] = [];
+
+  @ViewChild('conceptIdInputRef') conceptIdInputRef?: ElementRef<HTMLInputElement>;
 
   constructor(
     private simplexService: SimplexService,
@@ -74,8 +79,9 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
       newSynonymTerm: '',
       newDescriptionType: 'SYNONYM'
     };
-    this.panels = [panel, ...this.panels];
+    this.panels = insertPanelInNonSavingSection(this.panels, panel);
     this.conceptIdInput = '';
+    this.focusConceptIdInput();
 
     lastValueFrom(this.simplexService.getAdminConceptForEditor(this.selectedEdition, conceptId)).then(
       (detail: AdminConceptEditorDetail) => {
@@ -104,7 +110,7 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
     if (!panel.detail || !this.selectedEdition) {
       return;
     }
-    panel.saving = true;
+    this.panels = movePanelToSavingTail(this.panels, panel.panelId);
     const body = { descriptions: panel.detail.descriptions };
     lastValueFrom(this.simplexService.updateAdminConceptDescriptions(
       this.selectedEdition,
@@ -117,6 +123,7 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
       },
       (error) => {
         panel.saving = false;
+        this.panels = orderPanelsNonSavingThenSaving(this.panels);
         this.snackBar.open(this.errorMessage(error), 'Dismiss', { duration: 8000 });
       }
     );
@@ -124,6 +131,10 @@ export class AdminConceptEditorComponent implements OnInit, OnDestroy {
 
   dismissPanel(panel: AdminConceptEditorPanelState): void {
     this.panels = this.panels.filter(p => p.panelId !== panel.panelId);
+  }
+
+  private focusConceptIdInput(): void {
+    setTimeout(() => this.conceptIdInputRef?.nativeElement.focus());
   }
 
   private errorMessage(error: any): string {

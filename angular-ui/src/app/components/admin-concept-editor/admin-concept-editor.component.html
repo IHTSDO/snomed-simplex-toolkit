@@ -10,7 +10,8 @@
 
   <mat-form-field appearance="outline" class="concept-id-field" subscriptSizing="dynamic">
     <mat-label>Concept ID</mat-label>
-    <input matInput [(ngModel)]="conceptIdInput" (keyup.enter)="loadConcept()" data-cy="admin-concept-id-input">
+    <input matInput #conceptIdInputRef [(ngModel)]="conceptIdInput" (keyup.enter)="loadConcept()"
+      data-cy="admin-concept-id-input">
   </mat-form-field>
 
   <button mat-stroked-button type="button" (click)="loadConcept()" [disabled]="!selectedEdition || !conceptIdInput?.trim()"

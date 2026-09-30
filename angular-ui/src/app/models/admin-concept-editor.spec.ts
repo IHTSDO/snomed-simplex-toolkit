@@ -1,7 +1,11 @@
 import {
   AdminConceptDescription,
+  AdminConceptEditorPanelState,
   AdminConceptLangRefset,
   defaultAcceptabilityForNewDescription,
+  insertPanelInNonSavingSection,
+  movePanelToSavingTail,
+  orderPanelsNonSavingThenSaving,
   sortAdminConceptDescriptions
 } from './admin-concept-editor';
 
@@ -20,6 +24,44 @@ const usRefset: AdminConceptLangRefset = {
   label: 'US English',
   languageCode: 'en'
 };
+
+function panel(id: string, saving = false): AdminConceptEditorPanelState {
+  return {
+    panelId: id,
+    conceptId: id,
+    loading: false,
+    saving,
+    dirty: false,
+    detail: null,
+    newSynonymRefsetId: '',
+    newSynonymTerm: '',
+    newDescriptionType: 'SYNONYM'
+  };
+}
+
+describe('panel ordering', () => {
+  it('inserts a new panel before saving panels', () => {
+    const ordered = insertPanelInNonSavingSection(
+      [panel('a'), panel('saving', true)],
+      panel('b')
+    );
+    expect(ordered.map(p => p.panelId)).toEqual(['a', 'b', 'saving']);
+  });
+
+  it('moves a panel to the saving tail', () => {
+    const panels = [panel('a'), panel('b')];
+    const ordered = movePanelToSavingTail(panels, 'a');
+    expect(ordered.map(p => p.panelId)).toEqual(['b', 'a']);
+    expect(ordered[1].saving).toBe(true);
+  });
+
+  it('reorders failed save back to non-saving at the end', () => {
+    const a = panel('a');
+    a.saving = true;
+    const ordered = orderPanelsNonSavingThenSaving([panel('b'), a]);
+    expect(ordered.map(p => p.panelId)).toEqual(['b', 'a']);
+  });
+});
 
 describe('defaultAcceptabilityForNewDescription', () => {
   it('always prefers a new FSN', () => {

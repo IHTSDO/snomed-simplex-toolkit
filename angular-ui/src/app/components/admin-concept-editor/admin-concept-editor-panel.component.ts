@@ -67,6 +67,10 @@ export class AdminConceptEditorPanelComponent {
     return '—';
   }
 
+  isLangRefsetMismatch(description: AdminConceptDescription, refset: AdminConceptLangRefset): boolean {
+    return description.lang !== refset.languageCode;
+  }
+
   isPreferredSynonymConflict(description: AdminConceptDescription, refsetId: string): boolean {
     if (!this.panel.detail || !description.active || description.type !== 'SYNONYM') {
       return false;

@@ -48,6 +48,7 @@
             [matTooltip]="moduleDotTooltip(description)"
             aria-hidden="true"></span>
           <button mat-stroked-button type="button" class="acceptability-button"
+            [class.acceptability-button--lang-mismatch]="isLangRefsetMismatch(description, refset)"
             [class.acceptability-button--conflict]="isPreferredSynonymConflict(description, refset.refsetId)"
             *ngFor="let refset of applicableLangRefsets(description)"
             [disabled]="!description.active"
