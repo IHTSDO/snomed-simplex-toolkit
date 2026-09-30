@@ -17,8 +17,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -33,8 +33,8 @@ public class AdminFsnDeletionService {
 			int offset, int limit) throws ServiceException {
 
 		String moduleId = requireDefaultModuleId(codeSystem);
-		LinkedHashSet<String> inModule = snowstormClient.collectConceptIdsInModule(codeSystem, moduleId);
-		LinkedHashSet<String> withUsPreferredEnFsn = snowstormClient.collectConceptIdsWithUsPreferredActiveEnFsn(codeSystem, moduleId);
+		Set<String> inModule = snowstormClient.collectConceptIdsInModule(codeSystem, moduleId);
+		Set<String> withUsPreferredEnFsn = snowstormClient.collectConceptIdsWithUsPreferredActiveEnFsn(codeSystem, moduleId);
 		List<String> missing = inModule.stream()
 				.filter(id -> !withUsPreferredEnFsn.contains(id))
 				.sorted(Comparator.comparingLong(Long::parseLong))
@@ -55,7 +55,7 @@ public class AdminFsnDeletionService {
 		String moduleId = requireDefaultModuleId(codeSystem);
 
 		String normalizedLanguage = normalizeLanguageCode(languageCode);
-		LinkedHashSet<Long> conceptIds = snowstormClient.collectActiveFsnConceptIds(codeSystem, moduleId, normalizedLanguage);
+		Set<Long> conceptIds = snowstormClient.collectActiveFsnConceptIds(codeSystem, moduleId, normalizedLanguage);
 		int conceptsWithFsn = conceptIds.size();
 		if (normalizedLanguage == null) {
 			logger.info("Found {} concepts with active FSN in module {} on branch {}.",

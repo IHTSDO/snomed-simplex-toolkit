@@ -49,6 +49,10 @@ public class SnowstormClient {
 
 	public static final int MAX_PAGE_SIZE = 10_000;
 	public static final String CONCEPT_ENDPOINT = "/%s/concepts/%s";
+	public static final String CONCEPTS_COLLECTION_ENDPOINT = "/%s/concepts";
+	public static final String QUERY_PARAM_MODULE = "module";
+	public static final String QUERY_PARAM_LIMIT = "limit";
+	public static final String QUERY_PARAM_RETURN_ID_ONLY = "returnIdOnly";
 	public static final String CODESYSTEMS_ENDPOINT = "/codesystems";
 	public static final String CODESYSTEM_ENDPOINT = "/codesystems/%s";
 	public static final String CODESYSTEMS_VERSIONS_ENDPOINT = "/codesystems/%s/versions";
@@ -69,8 +73,6 @@ public class SnowstormClient {
 	private final ParameterizedTypeReference<Page<ConceptMini>> responseTypeConceptMiniPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<Long>> responseTypeSCTIDPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<String>> responseTypeConceptIdPage = new ParameterizedTypeReference<>(){};
-	private final ParameterizedTypeReference<SnowstormContentPage<BrowserDescriptionSearchResult>> responseTypeBrowserDescriptionPage =
-			new ParameterizedTypeReference<>(){};
 
 	private final RestTemplate restTemplate;
 	private final RestTemplate restTemplateRf2Export;
@@ -739,9 +741,13 @@ public class SnowstormClient {
 
 	public Page<ConceptMini> findConceptsByModule(CodeSystem codeSystem, String module, int offset, int limit) throws ServiceExceptionWithStatusCode {
 		try {
+			String url = UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
+					.queryParam(QUERY_PARAM_MODULE, module)
+					.queryParam("offset", offset)
+					.queryParam(QUERY_PARAM_LIMIT, limit)
+					.toUriString();
 			ResponseEntity<Page<ConceptMini>> exchange = restTemplate.exchange(
-					format("/%s/concepts?module=%s&offset=%s&limit=%s", codeSystem.getWorkingBranchPath(), module, offset, limit),
-					HttpMethod.GET, null, responseTypeConceptMiniPage);
+					url, HttpMethod.GET, null, responseTypeConceptMiniPage);
 			return exchange.getBody();
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "fetch concepts by module");
@@ -750,24 +756,24 @@ public class SnowstormClient {
 
 	private Page<ConceptMini> findConceptsByModulePage(CodeSystem codeSystem, String module, String searchAfter, int limit)
 			throws ServiceExceptionWithStatusCode {
-		UriComponentsBuilder builder = UriComponentsBuilder.fromPath(format("/%s/concepts", codeSystem.getWorkingBranchPath()))
-				.queryParam("module", module)
-				.queryParam("limit", limit);
+		UriComponentsBuilder builder = UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
+				.queryParam(QUERY_PARAM_MODULE, module)
+				.queryParam(QUERY_PARAM_LIMIT, limit);
 		appendConceptSearchPagination(builder, searchAfter);
 		return fetchConceptMiniPage(builder);
 	}
 
-	public LinkedHashSet<String> collectConceptIdsInModule(CodeSystem codeSystem, String moduleId) throws ServiceException {
-		return collectAllConceptIds(() -> UriComponentsBuilder.fromPath(format("/%s/concepts", codeSystem.getWorkingBranchPath()))
-				.queryParam("module", moduleId)
-				.queryParam("returnIdOnly", true));
+	public Set<String> collectConceptIdsInModule(CodeSystem codeSystem, String moduleId) throws ServiceException {
+		return collectAllConceptIds(() -> UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
+				.queryParam(QUERY_PARAM_MODULE, moduleId)
+				.queryParam(QUERY_PARAM_RETURN_ID_ONLY, true));
 	}
 
-	public LinkedHashSet<String> collectConceptIdsWithUsPreferredActiveEnFsn(CodeSystem codeSystem, String conceptModuleId)
+	public Set<String> collectConceptIdsWithUsPreferredActiveEnFsn(CodeSystem codeSystem, String conceptModuleId)
 			throws ServiceException {
-		return collectAllConceptIds(() -> UriComponentsBuilder.fromPath(format("/%s/concepts", codeSystem.getWorkingBranchPath()))
-				.queryParam("module", conceptModuleId)
-				.queryParam("returnIdOnly", true)
+		return collectAllConceptIds(() -> UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
+				.queryParam(QUERY_PARAM_MODULE, conceptModuleId)
+				.queryParam(QUERY_PARAM_RETURN_ID_ONLY, true)
 				.queryParam("termActive", true)
 				.queryParam("descriptionType", FSN.getConceptId())
 				.queryParam("language", "en"));
@@ -823,7 +829,7 @@ public class SnowstormClient {
 					Map<String, Object> searchRequest = new HashMap<>();
 					searchRequest.put("form", "inferred");
 					searchRequest.put("eclFilter", ecl);
-					searchRequest.put("limit", MAX_PAGE_SIZE);
+					searchRequest.put(QUERY_PARAM_LIMIT, MAX_PAGE_SIZE);
 					searchRequest.put("searchAfter", searchAfter);
 					searchRequest.put("includeLeafFlag", true);
 
@@ -1026,40 +1032,15 @@ public class SnowstormClient {
 		}
 	}
 
-	public SnowstormContentPage<BrowserDescriptionSearchResult> getBrowserDescriptions(
-			CodeSystem codeSystem, String moduleId, long descriptionTypeId, String languageCode, int offset, int limit)
-			throws ServiceExceptionWithStatusCode {
-
-		try {
-			UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromPath(format("/browser/%s/descriptions", codeSystem.getWorkingBranchPath()))
-					.queryParam("type", descriptionTypeId)
-					.queryParam("module", moduleId)
-					.queryParam("active", true)
-					.queryParam("offset", offset)
-					.queryParam("limit", limit);
-			if (languageCode != null && !languageCode.isBlank()) {
-				urlBuilder.queryParam("language", languageCode.trim().toLowerCase());
-			}
-			String url = urlBuilder.toUriString();
-			ResponseEntity<SnowstormContentPage<BrowserDescriptionSearchResult>> response =
-					restTemplate.exchange(url, HttpMethod.GET, null, responseTypeBrowserDescriptionPage);
-			SnowstormContentPage<BrowserDescriptionSearchResult> body = response.getBody();
-			throwIfNull(body, "browser descriptions");
-			return body;
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "fetch browser descriptions");
-		}
-	}
-
-	public LinkedHashSet<Long> collectActiveFsnConceptIds(CodeSystem codeSystem, String moduleId, String languageCode)
+	public Set<Long> collectActiveFsnConceptIds(CodeSystem codeSystem, String moduleId, String languageCode)
 			throws ServiceException {
 
 		String normalizedLanguage = normalizeLanguageCode(languageCode);
 		LinkedHashSet<Long> conceptIds = new LinkedHashSet<>();
 		for (String conceptId : collectAllConceptIds(() -> {
-			UriComponentsBuilder builder = UriComponentsBuilder.fromPath(format("/%s/concepts", codeSystem.getWorkingBranchPath()))
-					.queryParam("module", moduleId)
-					.queryParam("returnIdOnly", true)
+			UriComponentsBuilder builder = UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
+					.queryParam(QUERY_PARAM_MODULE, moduleId)
+					.queryParam(QUERY_PARAM_RETURN_ID_ONLY, true)
 					.queryParam("activeFilter", true)
 					.queryParam("termActive", true)
 					.queryParam("descriptionType", FSN.getConceptId());
@@ -1073,7 +1054,7 @@ public class SnowstormClient {
 		return conceptIds;
 	}
 
-	private LinkedHashSet<String> collectAllConceptIds(Supplier<UriComponentsBuilder> queryFactory) throws ServiceException {
+	private Set<String> collectAllConceptIds(Supplier<UriComponentsBuilder> queryFactory) throws ServiceException {
 		LinkedHashSet<String> conceptIds = new LinkedHashSet<>();
 		String searchAfter = null;
 		SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
@@ -1096,7 +1077,7 @@ public class SnowstormClient {
 			throws ServiceExceptionWithStatusCode {
 
 		UriComponentsBuilder builder = queryFactory.get();
-		builder.queryParam("limit", limit);
+		builder.queryParam(QUERY_PARAM_LIMIT, limit);
 		appendConceptSearchPagination(builder, searchAfter);
 		try {
 			ResponseEntity<Page<String>> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, responseTypeConceptIdPage);
@@ -1117,6 +1098,10 @@ public class SnowstormClient {
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "fetch concepts");
 		}
+	}
+
+	private static String conceptsCollectionPath(CodeSystem codeSystem) {
+		return format(CONCEPTS_COLLECTION_ENDPOINT, codeSystem.getWorkingBranchPath());
 	}
 
 	private static void appendConceptSearchPagination(UriComponentsBuilder builder, String searchAfter) {
