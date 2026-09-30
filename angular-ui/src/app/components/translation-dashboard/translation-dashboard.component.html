@@ -303,7 +303,7 @@
                                         Run AI Translation
                                     </button>
                                     @if(!authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
-                                        <button mat-menu-item (click)="pullFromTranslationStudio()" [disabled]="isTranslationSetBusy(selectedLabelSet.status)">
+                                        <button mat-menu-item (click)="pullFromTranslationStudio()" [disabled]="isTranslationSetBusy(selectedLabelSet.status) || selectedEdition?.editionStatus != 'AUTHORING'">
                                             <mat-icon class="large-icon">cloud_download</mat-icon>
                                             Push into extension
                                         </button>
@@ -797,7 +797,7 @@
             Run AI Translation
         </button>
         @if(!authoringPlatformMode && set.status !== 'FAILED') {
-            <button mat-menu-item (click)="pullFromTranslationStudio(set)" [disabled]="isTranslationSetBusy(set.status)">
+            <button mat-menu-item (click)="pullFromTranslationStudio(set)" [disabled]="isTranslationSetBusy(set.status) || selectedEdition?.editionStatus != 'AUTHORING'">
                 <mat-icon class="large-icon">cloud_download</mat-icon>
                 Push into extension
             </button>

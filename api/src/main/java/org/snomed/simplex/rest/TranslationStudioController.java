@@ -443,6 +443,7 @@ public class TranslationStudioController {
 
 		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		requireAuthoringEdition(theCodeSystem);
 
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION_STUDIO, ActivityType.UPDATE);
 		final ContentJob pushJob = new ContentJob(theCodeSystem, "Translation Studio push to Snowstorm", refsetId);

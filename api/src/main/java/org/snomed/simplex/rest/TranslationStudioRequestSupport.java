@@ -1,6 +1,8 @@
 package org.snomed.simplex.rest;
 
 import org.jspecify.annotations.NonNull;
+import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.client.domain.EditionStatus;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.service.OutsideSetBehavior;
@@ -14,6 +16,17 @@ class TranslationStudioRequestSupport {
 	static final int MAX_DESCRIPTION_LENGTH = 2000;
 
 	private TranslationStudioRequestSupport() {
+	}
+
+	static void requireAuthoringEdition(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		if (codeSystem.getEditionStatus() != EditionStatus.AUTHORING) {
+			EditionStatus status = codeSystem.getEditionStatus();
+			String statusLabel = status != null ? status.getDisplay() : "unknown";
+			throw new ServiceExceptionWithStatusCode(
+					"Pushing translations into the extension is only allowed while the release cycle is in Authoring status (current status: %s)."
+							.formatted(statusLabel),
+					HttpStatus.CONFLICT);
+		}
 	}
 
 	static void rejectFoundationEnglishLangRefset(String refsetId) throws ServiceExceptionWithStatusCode {

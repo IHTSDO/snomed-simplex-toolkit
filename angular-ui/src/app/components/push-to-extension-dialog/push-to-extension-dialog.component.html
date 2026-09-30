@@ -5,6 +5,15 @@
             Push translations from <strong>{{ data.setName }}</strong> into the extension.
         </p>
 
+        @if (!loadingEdition && editionStatus !== 'AUTHORING') {
+            <p class="edit-blocked-message">
+                Content editing is closed. Push into extension is only available while the release cycle is in Authoring status.
+                @if (editionStatus) {
+                    <span class="status-detail">(Current status: {{ editionStatus }})</span>
+                }
+            </p>
+        }
+
         <mat-checkbox
             class="include-option"
             [(ngModel)]="includeReadyForReview"
@@ -27,7 +36,7 @@
 
 <mat-dialog-actions align="end">
     <button mat-button (click)="onCancel()" [disabled]="loading">Cancel</button>
-    <button mat-raised-button color="primary" [disabled]="loading" (click)="onPush()">
+    <button mat-raised-button color="primary" [disabled]="!canPush()" (click)="onPush()">
         <span *ngIf="loading" class="loading-content">
             <mat-spinner diameter="20"></mat-spinner>
             Pushing...

@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
@@ -33,8 +33,10 @@ export interface PushToExtensionDialogData {
 	templateUrl: './push-to-extension-dialog.component.html',
 	styleUrl: './push-to-extension-dialog.component.scss'
 })
-export class PushToExtensionDialogComponent {
+export class PushToExtensionDialogComponent implements OnInit {
 	loading = false;
+	loadingEdition = true;
+	editionStatus: string | undefined;
 	includeReadyForReview = false;
 
 	readonly readyForReviewLabel = translationStatusRadioLabel('FOR_REVIEW');
@@ -46,6 +48,23 @@ export class PushToExtensionDialogComponent {
 		private snackBar: MatSnackBar,
 		private simplexService: SimplexService
 	) {}
+
+	ngOnInit(): void {
+		this.simplexService.getEdition(this.data.edition).subscribe({
+			next: (edition) => {
+				this.editionStatus = edition?.editionStatus;
+				this.loadingEdition = false;
+			},
+			error: () => {
+				this.loadingEdition = false;
+				this.snackBar.open('Failed to load release cycle status', 'Close', { duration: 5000 });
+			}
+		});
+	}
+
+	canPush(): boolean {
+		return !this.loadingEdition && !this.loading && this.editionStatus === 'AUTHORING';
+	}
 
 	readyForReviewCount(): number {
 		return this.data.statusCounts?.['FOR_REVIEW'] ?? 0;
@@ -60,6 +79,9 @@ export class PushToExtensionDialogComponent {
 	}
 
 	onPush(): void {
+		if (!this.canPush()) {
+			return;
+		}
 		this.loading = true;
 		this.simplexService.pushToSnowstorm(
 			this.data.edition,

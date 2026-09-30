@@ -24,6 +24,20 @@
   font-size: 0.9em;
 }
 
+.edit-blocked-message {
+  margin: 0 0 16px;
+  color: rgb(149, 27, 27);
+  font-size: 0.95em;
+  line-height: 1.4;
+}
+
+.status-detail {
+  display: block;
+  margin-top: 4px;
+  color: rgba(0, 0, 0, 0.6);
+  font-style: italic;
+}
+
 .loading-content {
   display: flex;
   align-items: center;
