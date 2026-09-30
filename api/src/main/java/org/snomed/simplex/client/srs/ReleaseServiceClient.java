@@ -38,6 +38,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -126,10 +127,10 @@ public class ReleaseServiceClient {
 	public SRSProduct getCreateProduct(CodeSystem codeSystem, PackageConfiguration packageConfiguration) throws ServiceException {
 		SRSProduct product = getProduct(codeSystem);
 		if (product == null) {
-			getClient().postForEntity(
+			callVoid("creating release product", client -> client.postForEntity(
 					String.format("/centers/%s/products", releaseCenter),
 					new CreateProductRequest(getProductName(codeSystem.getShortName())),
-					Void.class);
+					Void.class));
 		}
 		return updateProductConfiguration(codeSystem, packageConfiguration);
 	}
@@ -182,9 +183,9 @@ public class ReleaseServiceClient {
 		updateRequest.setDefaultModuleId(codeSystem.getDefaultModule());
 		updateRequest.setModuleIds(codeSystem.getDefaultModule());
 
-		getClient().put(
+		callVoid("updating release product configuration", client -> client.put(
 				String.format("/centers/%s/products/%s/configuration", releaseCenter, getProductName(codeSystem.getShortName())),
-				updateRequest);
+				updateRequest));
 		return getProduct(codeSystem);
 	}
 
@@ -194,10 +195,9 @@ public class ReleaseServiceClient {
 
 	public SRSProduct getProduct(CodeSystem codeSystem) throws ServiceException {
 		try {
-			ResponseEntity<SRSProduct> forEntity = getClient().getForEntity(
+			return call("loading release product", client -> client.getForEntity(
 					String.format("/centers/%s/products/%s", releaseCenter, getProductName(codeSystem.getShortName())),
-					SRSProduct.class);
-			return forEntity.getBody();
+					SRSProduct.class).getBody());
 		} catch (HttpClientErrorException.NotFound e) {
 			return null;
 		}
@@ -300,7 +300,7 @@ public class ReleaseServiceClient {
 			HttpHeaders headers = getUploadHeaders();
 			MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 			body.add("file", new FileSystemResource(manifestFile));
-			getClient().exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), Void.class);
+			callVoid("uploading release manifest", client -> client.exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), Void.class));
 		} catch (IOException e) {
 			throw new ServiceException("Failed to serialise generated manifest for upload.", e);
 		} finally {
@@ -327,13 +327,13 @@ public class ReleaseServiceClient {
 		HttpHeaders headers = getUploadHeaders();
 		MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 		body.add("file", new FileSystemResource(file));
-		getClient().exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), Void.class);
+		callVoid("uploading release delta file", client -> client.exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), Void.class));
 	}
 
 	public void prepareInputFiles(SRSBuild releaseBuild, CodeSystem codeSystem) throws ServiceException {
 		String url = format("/centers/%s/products/%s/builds/%s/inputfiles/prepare",
 				releaseCenter, getProductName(codeSystem), releaseBuild.id());
-		getClient().exchange(url, HttpMethod.POST, null, Void.class);
+		callVoid("preparing release build input files", client -> client.exchange(url, HttpMethod.POST, null, Void.class));
 	}
 
 	private static HttpHeaders getUploadHeaders() {
@@ -345,28 +345,23 @@ public class ReleaseServiceClient {
 	private void scheduleBuild(SRSBuild build, CodeSystem codeSystem) throws ServiceException {
 		String url = format("/centers/%s/products/%s/builds/%s/schedule",
 				releaseCenter, getProductName(codeSystem), build.id());
-		getClient().postForEntity(url, null, Void.class);
+		callVoid("scheduling release build", client -> client.postForEntity(url, null, Void.class));
 	}
 
 	public SRSBuild getBuild(String buildUrl) throws ServiceException {
-		return getClient().getForEntity(buildUrl, SRSBuild.class).getBody();
+		return call("loading release build status", client -> client.getForEntity(buildUrl, SRSBuild.class).getBody());
 	}
 
 	public SRSBuild createBuild(CodeSystem codeSystem, String effectiveTime) throws ServiceException {
 		String productName = getProductName(codeSystem);
 		String url = format("/centers/%s/products/%s/builds", releaseCenter, productName);
 		CreateBuildRequest createBuildRequest = new CreateBuildRequest(effectiveTime, releaseCenterBranch);
-		ResponseEntity<SRSBuild> response = getClient().exchange(url, HttpMethod.POST, new HttpEntity<>(createBuildRequest), SRSBuild.class);
-		return response.getBody();
+		return call("creating release build", client -> client.exchange(url, HttpMethod.POST, new HttpEntity<>(createBuildRequest), SRSBuild.class).getBody());
 	}
 
 	public void publishBuild(SRSBuild build) throws ServiceException {
-		try {
-			String url = "%s/publish".formatted(build.url());
-			getClient().exchange(url, HttpMethod.POST, null, Void.class);
-		} catch (RestClientException | IllegalArgumentException e) {
-			throw new ServiceException("Release Service publish build request failed.", e);
-		}
+		String url = "%s/publish".formatted(build.url());
+		callVoid("publishing release build", client -> client.exchange(url, HttpMethod.POST, null, Void.class));
 	}
 
 	public String getReleasePackageFilename(String buildUrl) throws ServiceException {
@@ -378,21 +373,21 @@ public class ReleaseServiceClient {
 		String url = getReleaseCandidatePackageUrl(buildUrl);
 
 		String filename = url.substring(url.lastIndexOf("/") + 1);
-		return getClient().execute(url, HttpMethod.GET,
+		return call("downloading release candidate package", client -> client.execute(url, HttpMethod.GET,
 				httpRequest -> httpRequest.getHeaders().add("Accept", "application/zip"), httpResponse -> {
 					File tempFile = File.createTempFile("release-candidate-download" + UUID.randomUUID(), "tmp");
 					try (InputStream inputStream = httpResponse.getBody()) {
 						Streams.copy(inputStream, new FileOutputStream(tempFile), true);
 					}
 					return Pair.of(filename, tempFile);
-				});
+				}));
 	}
 
 	public String getReleaseCandidatePackageUrl(String buildUrl) throws ServiceException {
-		RestTemplate client = getClient();
 		String outputFilesUrl = "%s/outputfiles".formatted(buildUrl);
 		ParameterizedTypeReference<List<OutputFile>> responseType = new ParameterizedTypeReference<>() {};
-		ResponseEntity<List<OutputFile>> outputFiles = client.exchange(outputFilesUrl, HttpMethod.GET, null, responseType);
+		ResponseEntity<List<OutputFile>> outputFiles = call("listing release build output files",
+				client -> client.exchange(outputFilesUrl, HttpMethod.GET, null, responseType));
 		List<OutputFile> body = outputFiles.getBody();
 		if (body == null) {
 			throw new ServiceException("Failed to list download files for release build.");
@@ -411,6 +406,74 @@ public class ReleaseServiceClient {
 
 	private String getProductName(String shortName) {
 		return shortName.toLowerCase().replace("-", "").replace("_", "");
+	}
+
+	@FunctionalInterface
+	private interface SrsRequest<T> {
+		T run(RestTemplate client);
+	}
+
+	@FunctionalInterface
+	private interface SrsVoidRequest {
+		void run(RestTemplate client);
+	}
+
+	private <T> T call(String action, SrsRequest<T> request) throws ServiceException {
+		RestTemplate client = getClient();
+		try {
+			return request.run(client);
+		} catch (HttpClientErrorException.NotFound e) {
+			throw e;
+		} catch (HttpStatusCodeException e) {
+			throw toReleaseServiceException(e, action);
+		} catch (RestClientException e) {
+			throw unavailableWhile(action, e);
+		}
+	}
+
+	private void callVoid(String action, SrsVoidRequest request) throws ServiceException {
+		call(action, client -> {
+			request.run(client);
+			return null;
+		});
+	}
+
+	private ServiceExceptionWithStatusCode unavailableWhile(String action, Throwable cause) {
+		return new ServiceExceptionWithStatusCode(
+				format("Release Service is unavailable while %s. Check Release Service URL and Simplex credentials (snomed-release-service.*).", action),
+				HttpStatus.SERVICE_UNAVAILABLE,
+				cause);
+	}
+
+	private ServiceExceptionWithStatusCode toReleaseServiceException(HttpStatusCodeException e, String action) {
+		int status = e.getStatusCode().value();
+		String responseBody = e.getResponseBodyAsString(StandardCharsets.UTF_8);
+		if (logger.isWarnEnabled()) {
+			logger.warn("Release Service HTTP {} while {} | response: {}",
+					status, action, sanitizeResponseBodyForLog(responseBody));
+		}
+
+		String accessHint = (status == 401 || status == 403)
+				? " Access may be denied by Release Service or nginx; verify snomed-release-service.url, username, and password."
+				: "";
+		String message = format(
+				"Release Service is unavailable while %s.%s Check Release Service URL and Simplex credentials (snomed-release-service.*).",
+				action, accessHint);
+		return new ServiceExceptionWithStatusCode(message, HttpStatus.SERVICE_UNAVAILABLE, e);
+	}
+
+	static String sanitizeResponseBodyForLog(String body) {
+		if (body == null || body.isBlank()) {
+			return "(empty)";
+		}
+		String trimmed = body.strip();
+		if (trimmed.startsWith("<") && trimmed.toLowerCase(Locale.ROOT).contains("<html")) {
+			return "(HTML error page)";
+		}
+		if (trimmed.length() > 500) {
+			return trimmed.substring(0, 500) + "...";
+		}
+		return trimmed;
 	}
 
 	private RestTemplate getClient() throws ServiceException {

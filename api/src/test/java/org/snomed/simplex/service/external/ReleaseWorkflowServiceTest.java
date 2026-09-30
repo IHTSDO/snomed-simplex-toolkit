@@ -148,6 +148,28 @@ class ReleaseWorkflowServiceTest {
 	}
 
 	@Test
+	void startReleaseCandidate_getCreateProductServiceUnavailable_clearsBuildStatus() throws ServiceException {
+		CodeSystem codeSystem = releaseReadyCodeSystem();
+		PackageConfiguration packageConfiguration = new PackageConfiguration("Org", "contact@example.com");
+		when(snowstormClient.getCodeSystemOrThrow(CODE_SYSTEM_SHORT_NAME)).thenReturn(codeSystem);
+		when(codeSystemService.getPackageConfiguration(any())).thenReturn(packageConfiguration);
+		when(activityService.findLatestByCodeSystemAndActivityType(CODE_SYSTEM_SHORT_NAME, ActivityType.BUILD_RELEASE))
+				.thenReturn(null);
+		when(releaseCandidateJobService.getLatestJob(CODE_SYSTEM_SHORT_NAME)).thenReturn(null);
+		when(releaseServiceClient.getCreateProduct(codeSystem, packageConfiguration))
+				.thenThrow(new ServiceExceptionWithStatusCode(
+						"Release Service is unavailable while loading release product.",
+						HttpStatus.SERVICE_UNAVAILABLE));
+
+		assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> releaseWorkflowService.startReleaseCandidate(CODE_SYSTEM_SHORT_NAME, EFFECTIVE_TIME));
+
+		verify(snowstormClient).upsertBranchMetadata(codeSystem.getBranchPath(), Map.of(
+				Branch.BUILD_STATUS_METADATA_KEY, CodeSystemBuildStatus.TODO.name()));
+		verify(activityService, never()).startExternalServiceActivity(any(), any(), any(), any(), any());
+	}
+
+	@Test
 	void finalizeRelease_editionStatusPublishing_throwsConflict() throws ServiceException {
 		CodeSystem codeSystem = codeSystem();
 		codeSystem.setEditionStatus(EditionStatus.PUBLISHING);

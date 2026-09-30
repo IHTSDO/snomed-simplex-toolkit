@@ -83,6 +83,12 @@ public class ReleaseWorkflowService {
 		} catch (ServiceException e) {
 			clearBuildStatus(codeSystem, snowstormClient);
 			throw e;
+		} catch (Exception e) {
+			clearBuildStatus(codeSystem, snowstormClient);
+			if (e instanceof RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			throw new ServiceException("Release candidate build failed.", e);
 		}
 	}
 
