@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.snomed.simplex.client.rvf.ValidationReport;
+import org.snomed.simplex.client.rvf.ValidationReportKnownFalsePositiveFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
@@ -49,6 +50,16 @@ class ValidationServiceTest {
 			System.out.println(component.assertionText());
 			assertTrue(componentIds.add(component.componentId()), () -> String.format("Component id %s is not unique", component.componentId()));
 		}
+	}
+
+	@Test
+	void getValidationFixList_handlesImmutableAssertionListsAfterFalsePositiveFilter() throws IOException {
+		ValidationReport validationReport = objectMapper.readValue(getClass().getResourceAsStream("/rvf-report-for-fix-list.json"), ValidationReport.class);
+		ValidationReport filtered = ValidationReportKnownFalsePositiveFilter.apply(validationReport,
+				List.of(new ValidationReportKnownFalsePositiveFilter.FullComponentFalsePositiveRule("no-such-assertion", List.of("unused"))));
+		ValidationFixList validationFixList = validationService.getValidationFixList(filtered, false);
+		assertEquals(34, validationFixList.errorCount());
+		assertEquals(22, validationFixList.warningCount());
 	}
 
 }

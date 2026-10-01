@@ -84,11 +84,15 @@ public class ValidationService {
 	}
 
 	private void buildValidationFixMap(List<ValidationReport.Assertion> assertions, Map<String, ValidationFix> fixesRequired, Severity severity, Collection<String> assertionExclusions) {
+		if (assertions == null || assertions.isEmpty()) {
+			return;
+		}
 
 		// Sort assertions by order in validation fix map - this gives prioritisation when deduplicating component issues
-		assertions.sort(Comparator.comparingInt(assertion -> assertionSortOrderMap.getOrDefault(assertion.assertionUuid(), Integer.MAX_VALUE)));
+		List<ValidationReport.Assertion> sortedAssertions = new ArrayList<>(assertions);
+		sortedAssertions.sort(Comparator.comparingInt(assertion -> assertionSortOrderMap.getOrDefault(assertion.assertionUuid(), Integer.MAX_VALUE)));
 
-		for (ValidationReport.Assertion assertion : assertions) {
+		for (ValidationReport.Assertion assertion : sortedAssertions) {
 			if (assertion.firstNInstances() == null || assertionExclusions.contains(assertion.assertionUuid())) {
 				continue;
 			}

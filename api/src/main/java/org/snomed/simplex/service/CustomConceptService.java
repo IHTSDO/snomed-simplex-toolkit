@@ -72,13 +72,7 @@ public class CustomConceptService {
 	public CustomConceptDetail getCustomConceptDetail(CodeSystem codeSystem, SnowstormClient snowstormClient, String conceptId)
 			throws ServiceException {
 		String defaultModule = codeSystem.getDefaultModuleOrThrow();
-		CompletableFuture<Boolean> refsetMetadataFuture = CompletableFuture.supplyAsync(() -> {
-			try {
-				return isRefsetMetadataConcept(conceptId, codeSystem, snowstormClient);
-			} catch (ServiceException e) {
-				throw new CompletionException(e);
-			}
-		});
+		CompletableFuture<Boolean> refsetMetadataFuture = CompletableFuture.supplyAsync(() -> isRefsetMetadataConcept(conceptId, codeSystem, snowstormClient));
 		List<Concept> concepts = snowstormClient.loadBrowserFormatConcepts(List.of(Long.parseLong(conceptId)), codeSystem);
 		if (concepts.isEmpty()) {
 			throw new ServiceExceptionWithStatusCode("Concept not found.", HttpStatus.NOT_FOUND);
@@ -338,8 +332,7 @@ public class CustomConceptService {
 		}
 	}
 
-	private boolean isRefsetMetadataConcept(String conceptId, CodeSystem codeSystem, SnowstormClient snowstormClient)
-			throws ServiceException {
+	private boolean isRefsetMetadataConcept(String conceptId, CodeSystem codeSystem, SnowstormClient snowstormClient) {
 		return snowstormClient.isAncestorOf(Concepts.REFSET, conceptId, codeSystem);
 	}
 
