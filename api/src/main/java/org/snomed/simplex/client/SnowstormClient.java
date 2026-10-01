@@ -482,8 +482,7 @@ public class SnowstormClient {
 	 * Returns true if {@code ancestorConceptId} appears among ancestors of {@code conceptId} on the edition branch.
 	 * Uses ECL {@code >conceptId} with returnIdOnly and stops at the first matching ancestor.
 	 */
-	public boolean isAncestorOf(String ancestorConceptId, String conceptId, CodeSystem codeSystem)
-			throws ServiceExceptionWithStatusCode {
+	public boolean isAncestorOf(String ancestorConceptId, String conceptId, CodeSystem codeSystem) {
 		if (ancestorConceptId == null || conceptId == null || ancestorConceptId.isBlank() || conceptId.isBlank()) {
 			return false;
 		}
