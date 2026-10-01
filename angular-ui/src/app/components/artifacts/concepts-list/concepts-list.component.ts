@@ -24,7 +24,6 @@ export class ConceptsListComponent implements OnChanges {
   displayedColumns: string[] = ['conceptId', 'term', 'active', 'action'];
   concepts: any[] = [];
   loading = false;
-  inactivatingConceptId: string | null = null;
   loadingData = [];
   offset = 0;
   limit = 25;
@@ -113,37 +112,6 @@ export class ConceptsListComponent implements OnChanges {
         this.snackBar.open(conceptId ? 'Concept updated.' : 'Concept created.', 'Dismiss', { duration: 4000 });
       }
     });
-  }
-
-  confirmInactivate(concept: any): void {
-    if (!concept?.conceptId || !concept.active || this.inactivatingConceptId) {
-      return;
-    }
-    const term = concept.fsn?.term || concept.pt?.term || concept.conceptId;
-    if (!window.confirm(`Inactivate concept ${concept.conceptId} (${term})?`)) {
-      return;
-    }
-    this.inactivatingConceptId = concept.conceptId;
-    this.simplexService.updateCustomConcept(this.edition, concept.conceptId, {
-      active: false,
-      langRefsetTerms: {}
-    }).subscribe({
-      next: () => {
-        this.inactivatingConceptId = null;
-        this.loadConcepts();
-        this.conceptsChanged.emit();
-        this.snackBar.open('Concept inactivated.', 'Dismiss', { duration: 4000 });
-      },
-      error: (err) => {
-        this.inactivatingConceptId = null;
-        const message = err?.error?.message || err?.message || 'Failed to inactivate concept.';
-        this.snackBar.open(message, 'Dismiss', { duration: 8000 });
-      }
-    });
-  }
-
-  isInactivating(conceptId: string): boolean {
-    return this.inactivatingConceptId === conceptId;
   }
 
   browseToConcept(conceptId: string) {

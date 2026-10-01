@@ -55,12 +55,6 @@
         <button mat-button color="primary" type="button" *ngIf="editable" (click)="openEditDialog(element.conceptId)">
           Edit
         </button>
-        <button mat-button color="warn" type="button"
-          *ngIf="editable && element.active"
-          [disabled]="isInactivating(element.conceptId)"
-          (click)="confirmInactivate(element)">
-          Inactivate
-        </button>
         <a href="javascript:void(0);" (click)="browseToConcept(element.conceptId)">Open in Browser</a>
       </ng-container>
       <ng-template #loadingAction>
