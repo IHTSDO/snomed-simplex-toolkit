@@ -2,7 +2,7 @@ import { Component, Input, OnChanges, SimpleChanges, OnDestroy, OnInit, ViewChil
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom, Subject, Subscription, Observable } from 'rxjs';
-import { takeUntil, map, startWith } from 'rxjs/operators';
+import { takeUntil, map, startWith, distinctUntilChanged } from 'rxjs/operators';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { ConceptsListComponent } from './concepts-list/concepts-list.component';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
@@ -41,6 +41,7 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   updatingEdition = false;
   saving = false;
   private subscriptions: Subscription = new Subscription();
+  private languageCodeValueChangesSubscription?: Subscription;
   languageCodes: any[] = [];
   filteredLanguageCodes: Observable<any[]>;
 
@@ -100,21 +101,49 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
           );
         })
       );
+      this.languageCodeValueChangesSubscription?.unsubscribe();
+      this.languageCodeValueChangesSubscription = languageCodeControl.valueChanges.pipe(
+        distinctUntilChanged()
+      ).subscribe(code => this.autofillPreferredTermFromLanguageCode(code));
+    }
+  }
+
+  autofillPreferredTermFromLanguageCode(code: string) {
+    if (!code || !/^[a-z]{2}$/.test(code)) {
+      return;
+    }
+    const language = this.languageCodes.find(lang => lang.code === code);
+    if (!language) {
+      return;
+    }
+    const preferredTermControl = this.form.get('preferredTerm');
+    if (preferredTermControl) {
+      preferredTermControl.setValue(`${language.name} language reference set`);
     }
   }
 
   toggleFormControls(typeValue: string) {
     if (typeValue === 'concepts' || typeValue === 'usEnglishSynonyms' || typeValue === 'gbEnglishSynonyms') {
+        this.languageCodeValueChangesSubscription?.unsubscribe();
+        this.languageCodeValueChangesSubscription = undefined;
         this.form.removeControl('preferredTerm');
         this.form.removeControl('languageCode');
     } else if (typeValue == 'translation') {
-        this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
-        const languageCodeControl = this.fb.control('', [Validators.required, this.languageCodeValidator]);
-        this.form.addControl('languageCode', languageCodeControl);
+        if (!this.form.get('languageCode')) {
+            const languageCodeControl = this.fb.control('', [Validators.required, this.languageCodeValidator]);
+            this.form.addControl('languageCode', languageCodeControl);
+        }
+        if (!this.form.get('preferredTerm')) {
+            this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
+        }
         this.setupLanguageCodeFilter();
     } else {
+        this.languageCodeValueChangesSubscription?.unsubscribe();
+        this.languageCodeValueChangesSubscription = undefined;
         this.form.removeControl('languageCode');
-        this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
+        if (!this.form.get('preferredTerm')) {
+            this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
+        }
     }
   }
 
@@ -235,11 +264,19 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.cancelOngoingRequests$.next();
     this.cancelOngoingRequests$.complete();
+    this.languageCodeValueChangesSubscription?.unsubscribe();
     this.subscriptions.unsubscribe();
   }
 
   get formKeys(): string[] {
-    return Object.keys(this.form.controls);
+    const keys = Object.keys(this.form.controls);
+    if (this.form.get('languageCode')) {
+      return ['type', 'languageCode', 'preferredTerm'];
+    }
+    if (keys.includes('preferredTerm')) {
+      return ['type', 'preferredTerm'];
+    }
+    return keys;
   }
 
   onClick(item: any, type: string) {
