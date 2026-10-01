@@ -616,11 +616,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
         dialogRef.afterClosed().subscribe(result => {
             if (result?.action === 'import_started') {
-                this.handleImportJobStarted(
-                    result.jobId,
-                    target.refset ?? target.translationId,
-                    true
-                );
+                this.handleImportJobStarted(result.jobId, target, true);
             }
         });
     }
@@ -658,11 +654,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
         dialogRef.afterClosed().subscribe(result => {
             if (result?.action === 'update_started') {
-                this.handleImportJobStarted(
-                    result.jobId,
-                    target.refset ?? target.translationId,
-                    true
-                );
+                this.handleImportJobStarted(result.jobId, target, true);
             }
         });
     }
@@ -834,12 +826,44 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.resetConceptFilePreview();
     }
 
-    private handleImportJobStarted(jobId: string | undefined, refsetId: string, refreshSets: boolean): void {
+    private handleImportJobStarted(_jobId: string | undefined, labelSet: any, _refreshSets: boolean): void {
         this.snackBar.open('Import job created', 'Close', { duration: 3000 });
         this.listTabIndex = this.importJobsTabIndex;
         this.importJobsPanel?.refresh();
-        if (refreshSets) {
-            this.getTranslationSets();
+        this.onTranslationSetAsyncWorkStarted(labelSet);
+    }
+
+    private onTranslationSetAsyncWorkStarted(labelSet: any): void {
+        if (labelSet?.id) {
+            this.applyTranslationSetStatusPatch(labelSet.id, {
+                status: 'PROCESSING',
+                percentageProcessed: 5
+            });
+        }
+        this.ensureStatusPolling();
+        this.getTranslationSets({ silent: true });
+    }
+
+    private applyTranslationSetStatusPatch(
+        setId: string,
+        patch: { status: string; percentageProcessed: number }
+    ): void {
+        this.labelSets = this.labelSets.map((set: any) =>
+            set.id === setId ? { ...set, ...patch } : set
+        );
+        if (this.selectedLabelSet?.id === setId) {
+            this.selectedLabelSet = { ...this.selectedLabelSet, ...patch };
+            if (!isTranslationSetEditable(patch.status)) {
+                this.clearTranslatedTermsTable();
+                this.loadingLabelSetMembers = false;
+            }
+        }
+        this.refreshTranslationSetsTable();
+    }
+
+    private ensureStatusPolling(): void {
+        if (!this.isPolling) {
+            this.startPolling();
         }
     }
 
@@ -956,8 +980,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 this.snackBar.open(`AI translation batch started for ${result.batchSize} concepts`, 'Close', {
                     duration: 5000
                 });
-                // Reload the translation sets to show updated status
-                this.getTranslationSets();
+                this.onTranslationSetAsyncWorkStarted(target);
             }
         });
     }
@@ -1556,6 +1579,16 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         };
     }
 
+    /** Reload concept rows when async processing completes while the set detail view is open. */
+    private reloadMembersIfSelectedSetBecameEditable(previousStatus: string | null | undefined): void {
+        if (!this.translationSetRouteSelectionActive || !this.selectedLabelSet) {
+            return;
+        }
+        if (isTranslationSetBusy(previousStatus) && isTranslationSetEditable(this.selectedLabelSet.status)) {
+            this.finalizeLabelSetFromListAndLoadMembers(this.selectedLabelSet);
+        }
+    }
+
     private pollTranslationSets() {
         // Background status poll without showing loading state
         this.simplexService.getTranslationSetStatuses(this.selectedEdition.shortName).subscribe(
@@ -1584,7 +1617,9 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 if (this.selectedLabelSet) {
                     const statusUpdate = statusById.get(this.selectedLabelSet.id);
                     if (statusUpdate) {
+                        const previousStatus = this.selectedLabelSet.status;
                         this.selectedLabelSet = this.mergeTranslationSetStatus(this.selectedLabelSet, statusUpdate);
+                        this.reloadMembersIfSelectedSetBecameEditable(previousStatus);
                     }
                 }
 

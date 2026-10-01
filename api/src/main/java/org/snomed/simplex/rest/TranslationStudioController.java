@@ -212,10 +212,7 @@ public class TranslationStudioController {
 			throw new ServiceExceptionWithStatusCode(
 					"Concept list can only be updated for translation sets created from a file.", HttpStatus.BAD_REQUEST);
 		}
-		if (!translationSet.getStatus().isEditable()) {
-			throw new ServiceExceptionWithStatusCode(
-					"Concept list update is only available when set status is READY.", HttpStatus.BAD_REQUEST);
-		}
+		snolateSetService.requireEditableAndMarkProcessing(translationSet);
 
 		ServiceHelper.requiredParameter("conceptColumn", conceptColumn);
 		List<String> termColumnList = getOptionalTermColumnList(termColumns);
@@ -241,13 +238,32 @@ public class TranslationStudioController {
 		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION_STUDIO, ActivityType.UPDATE);
 		return jobService.queueContentJob(contentJob, refsetId, activity, job -> {
 			SnolateTranslationSet currentSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-			snolateSetService.runRefreshSet(currentSet);
+			try {
+				snolateSetService.runRefreshSet(currentSet);
+			} catch (Exception e) {
+				snolateSetService.markFailed(currentSet);
+				if (e instanceof ServiceException serviceException) {
+					throw serviceException;
+				}
+				throw new ServiceException("Concept list refresh failed.", e);
+			}
 			if (termColumnList.isEmpty()) {
 				return new ChangeSummary();
 			}
-			return snolateTranslationService.importTranslationSetFile(currentSet, job.getInputStream(),
-					job.getInputFileOriginalName(), conceptColumn, termColumnList, importStatus,
-					OutsideSetBehavior.SKIP, sheetName, headerRowIndex);
+			snolateSetService.requireEditableAndMarkProcessing(currentSet);
+			try {
+				ChangeSummary summary = snolateTranslationService.importTranslationSetFile(currentSet, job.getInputStream(),
+						job.getInputFileOriginalName(), conceptColumn, termColumnList, importStatus,
+						OutsideSetBehavior.SKIP, sheetName, headerRowIndex);
+				snolateSetService.markReady(currentSet);
+				return summary;
+			} catch (Exception e) {
+				snolateSetService.markFailed(currentSet);
+				if (e instanceof ServiceException serviceException) {
+					throw serviceException;
+				}
+				throw new ServiceException("Translation set file import failed.", e);
+			}
 		});
 	}
 
@@ -336,11 +352,7 @@ public class TranslationStudioController {
 			throws ServiceException, IOException {
 
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
-		if (!translationSet.getStatus().isEditable()) {
-			throw new ServiceExceptionWithStatusCode(
-					"Translation set file import is only available when set status is READY.",
-					HttpStatus.BAD_REQUEST);
-		}
+		snolateSetService.requireEditableAndMarkProcessing(translationSet);
 		TranslationStatus importStatus = parseImportTranslationStatus(status);
 		OutsideSetBehavior outsideSet = parseOutsideSetBehavior(outsideSetBehavior);
 		List<String> termColumnList = getTermColumnList(termColumns);
@@ -351,10 +363,22 @@ public class TranslationStudioController {
 		ContentJob contentJob = new TranslationStudioContentJob(theCodeSystem,
 				"Translation Studio set file import", refsetId)
 				.addUpload(file.getInputStream(), file.getOriginalFilename());
-		return jobService.queueContentJob(contentJob, refsetId, activity,
-				job -> snolateTranslationService.importTranslationSetFile(
-						translationSet, job.getInputStream(), job.getInputFileOriginalName(), conceptColumn,
-						termColumnList, importStatus, outsideSet, sheetName, headerRowIndex));
+		return jobService.queueContentJob(contentJob, refsetId, activity, job -> {
+			SnolateTranslationSet currentSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+			try {
+				ChangeSummary summary = snolateTranslationService.importTranslationSetFile(
+						currentSet, job.getInputStream(), job.getInputFileOriginalName(), conceptColumn,
+						termColumnList, importStatus, outsideSet, sheetName, headerRowIndex);
+				snolateSetService.markReady(currentSet);
+				return summary;
+			} catch (Exception e) {
+				snolateSetService.markFailed(currentSet);
+				if (e instanceof ServiceException serviceException) {
+					throw serviceException;
+				}
+				throw new ServiceException("Translation set file import failed.", e);
+			}
+		});
 	}
 
 	@GetMapping("{refsetId}/sets/{label}/units/{conceptId}")

@@ -7,20 +7,27 @@ import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
+import org.snomed.simplex.rest.pojos.BatchTranslateRequest;
 import org.snomed.simplex.rest.pojos.RefreshTranslationSetsAfterUpgradeResponse;
 import org.snomed.simplex.rest.pojos.RepairTranslationSetSizesResponse;
 import org.snomed.simplex.service.SupportRegister;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.tool.TranslationSetStatus;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
+import org.springframework.http.HttpStatus;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -35,6 +42,7 @@ class SnolateSetServiceTest {
 	private SnowstormClientFactory snowstormClientFactory;
 	private SnowstormClient snowstormClient;
 	private SnolateSetService snolateSetService;
+	private JmsTemplate jmsTemplate;
 
 	@BeforeEach
 	void setUp() throws Exception {
@@ -43,11 +51,49 @@ class SnolateSetServiceTest {
 		translationSearchService = mock();
 		snowstormClientFactory = mock();
 		snowstormClient = mock();
+		jmsTemplate = mock();
 		when(snowstormClientFactory.getClient()).thenReturn(snowstormClient);
 
 		snolateSetService = new SnolateSetService(snolateSetRepository, snolateSetRefsetCache, snowstormClientFactory,
 				mock(), mock(), mock(), translationSearchService, mock(TranslationLLMService.class), mock(SupportRegister.class),
-				mock(JmsTemplate.class), "test", 10, new ObjectMapper());
+				jmsTemplate, "test", 10, new ObjectMapper());
+	}
+
+	@Test
+	void requireEditableAndMarkProcessing_setsProcessingAndPersists() throws ServiceExceptionWithStatusCode {
+		SnolateTranslationSet set = createSet("ready", TranslationSetStatus.READY, 20240101);
+
+		snolateSetService.requireEditableAndMarkProcessing(set);
+
+		assertThat(set.getStatus()).isEqualTo(TranslationSetStatus.PROCESSING);
+		assertThat(set.getPercentageProcessed()).isEqualTo(SnolateSetService.PERCENTAGE_PROCESSED_START);
+		verify(snolateSetRepository).save(set);
+		verify(snolateSetRefsetCache).evictByCodeSystemAndRefset("SNOMEDCT-TEST", "100");
+	}
+
+	@Test
+	void requireEditableAndMarkProcessing_rejectsBusySet() {
+		SnolateTranslationSet set = createSet("busy", TranslationSetStatus.PROCESSING, 20240101);
+
+		assertThatThrownBy(() -> snolateSetService.requireEditableAndMarkProcessing(set))
+				.isInstanceOf(ServiceExceptionWithStatusCode.class)
+				.satisfies(e -> assertThat(((ServiceExceptionWithStatusCode) e).getStatusCode())
+						.isEqualTo(HttpStatus.CONFLICT.value()));
+		verify(snolateSetRepository, never()).save(any());
+	}
+
+	@Test
+	void runAiBatchTranslate_marksProcessingBeforeQueueingJms() throws ServiceException {
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("test-user", "n/a"));
+		SnolateTranslationSet set = createSet("batch", TranslationSetStatus.READY, 20240101);
+
+		snolateSetService.runAiBatchTranslate(set, new BatchTranslateRequest(10));
+
+		assertThat(set.getStatus()).isEqualTo(TranslationSetStatus.PROCESSING);
+		var inOrder = inOrder(snolateSetRepository, jmsTemplate);
+		inOrder.verify(snolateSetRepository).save(set);
+		inOrder.verify(jmsTemplate).convertAndSend(eq("test.snolate-translation-set.processing"), any(Map.class));
+		SecurityContextHolder.clearContext();
 	}
 
 	@Test

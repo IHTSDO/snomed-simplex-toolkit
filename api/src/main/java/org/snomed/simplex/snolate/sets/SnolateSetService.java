@@ -162,6 +162,28 @@ public class SnolateSetService {
 		snolateSetRefsetCache.evictByCodeSystemAndRefset(translationSet.getCodesystem(), translationSet.getRefset());
 	}
 
+	public void requireEditableAndMarkProcessing(SnolateTranslationSet translationSet) throws ServiceExceptionWithStatusCode {
+		if (!translationSet.getStatus().isEditable()) {
+			throw new ServiceExceptionWithStatusCode(
+					"Translation set is not available while status is %s.".formatted(translationSet.getStatus()),
+					HttpStatus.CONFLICT);
+		}
+		translationSet.setStatus(TranslationSetStatus.PROCESSING);
+		translationSet.setPercentageProcessed(PERCENTAGE_PROCESSED_START);
+		updateSet(translationSet);
+	}
+
+	public void markReady(SnolateTranslationSet translationSet) {
+		translationSet.setPercentageProcessed(100);
+		translationSet.setStatus(TranslationSetStatus.READY);
+		updateSet(translationSet);
+	}
+
+	public void markFailed(SnolateTranslationSet translationSet) {
+		translationSet.setStatus(TranslationSetStatus.FAILED);
+		updateSet(translationSet);
+	}
+
 	public void deleteSet(SnolateTranslationSet translationSet) throws ServiceException {
 		translationSet.setStatus(TranslationSetStatus.DELETING);
 		snolateSetRepository.save(translationSet);
@@ -170,6 +192,7 @@ public class SnolateSetService {
 	}
 
 	public void runAiBatchTranslate(SnolateTranslationSet translationSet, BatchTranslateRequest request) throws ServiceException {
+		requireEditableAndMarkProcessing(translationSet);
 		batchTranslationService.runAiBatchTranslate(translationSet, request);
 	}
 
