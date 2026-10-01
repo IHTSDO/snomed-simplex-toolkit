@@ -32,8 +32,8 @@ export class CustomConceptDialogComponent implements OnInit {
 	parentBinding: { ecl: string; branchPath: string } | null = null;
 	readonly isEditMode: boolean;
 	inactivationAllowed = true;
-	readonly artifactInactivationMessage =
-		'This concept is an edition artifact (translation, subset, or map). It cannot be inactivated here; manage it from Edition artifacts.';
+	readonly refsetMetadataInactivationMessage =
+		'This concept is a reference set metadata concept and cannot be inactivated here; manage it from Edition artifacts.';
 
 	get conceptsMaintainedExternally(): boolean {
 		return !!this.data.editionDetails?.conceptsMaintainedExternally;
@@ -105,6 +105,7 @@ export class CustomConceptDialogComponent implements OnInit {
 				if (this.isEditMode) {
 					this.form.get('conceptCode')?.disable();
 				}
+				this.applyInactivationAllowedState();
 				this.buildLangRefsetControls(detail.langRefsetTerms || {});
 				this.loading = false;
 			},
@@ -144,6 +145,18 @@ export class CustomConceptDialogComponent implements OnInit {
 
 	onParentSelectionChange(selection: { code?: string; display?: string }): void {
 		this.form.patchValue({ parentCode: selection?.code || '' });
+	}
+
+	private applyInactivationAllowedState(): void {
+		const activeControl = this.form.get('active');
+		if (!activeControl || !this.isEditMode) {
+			return;
+		}
+		if (this.inactivationAllowed) {
+			activeControl.enable({ emitEvent: false });
+		} else {
+			activeControl.disable({ emitEvent: false });
+		}
 	}
 
 	get dialogTitle(): string {

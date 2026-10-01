@@ -6,12 +6,11 @@
 		</div>
 
 		<ng-container *ngIf="!loading">
-			<mat-slide-toggle formControlName="active" *ngIf="isEditMode" class="active-toggle"
-				[disabled]="!inactivationAllowed">
+			<mat-slide-toggle formControlName="active" *ngIf="isEditMode" class="active-toggle">
 				Active
 			</mat-slide-toggle>
 			<p class="field-hint" *ngIf="isEditMode && !inactivationAllowed">
-				{{ artifactInactivationMessage }}
+				{{ refsetMetadataInactivationMessage }}
 			</p>
 
 			<div class="field-section" *ngIf="form.get('active')?.value">

@@ -15,6 +15,9 @@ public class Concepts {
 	// 900000000000443000 |Module (core metadata concept)|
 	public static final String MODULE = "900000000000443000";
 
+	// 900000000000455006 |Reference set (foundation metadata concept)|
+	public static final String REFSET = "900000000000455006";
+
 	// 446609009 |Simple type reference set (foundation metadata concept)|
 	public static final String SIMPLE_TYPE_REFSET = "446609009";
 

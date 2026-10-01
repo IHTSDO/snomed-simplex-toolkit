@@ -478,6 +478,26 @@ public class SnowstormClient {
 		return refsetConcepts;
 	}
 
+	/**
+	 * Returns true if {@code ancestorConceptId} appears among ancestors of {@code conceptId} on the edition branch.
+	 * Uses ECL {@code >conceptId} with returnIdOnly and stops at the first matching ancestor.
+	 */
+	public boolean isAncestorOf(String ancestorConceptId, String conceptId, CodeSystem codeSystem)
+			throws ServiceExceptionWithStatusCode {
+		if (ancestorConceptId == null || conceptId == null || ancestorConceptId.isBlank() || conceptId.isBlank()) {
+			return false;
+		}
+		String ecl = ">" + conceptId;
+		ConceptIdStream stream = getConceptIdStream(codeSystem.getWorkingBranchPath(), ecl);
+		String id;
+		while ((id = stream.get()) != null) {
+			if (ancestorConceptId.equals(id)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter) throws ServiceExceptionWithStatusCode {
 		return getConcepts(ecl, codeSystem, moduleFilter, 10_000);
 	}

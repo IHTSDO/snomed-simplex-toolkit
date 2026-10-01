@@ -8,7 +8,6 @@ import org.mockito.*;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concept;
-import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.client.domain.Description;
 import org.snomed.simplex.domain.ConceptIntent;
@@ -58,6 +57,8 @@ class CustomConceptServiceTest {
 		closeable = MockitoAnnotations.openMocks(this);
 		Mockito.when(mockSnowstormClient.getRefsets(Mockito.anyString(), Mockito.any(CodeSystem.class)))
 				.thenReturn(List.of());
+		Mockito.when(mockSnowstormClient.isAncestorOf(Mockito.anyString(), Mockito.anyString(), Mockito.any(CodeSystem.class)))
+				.thenReturn(false);
 	}
 
 	@AfterEach
@@ -340,9 +341,9 @@ class CustomConceptServiceTest {
 	}
 
 	@Test
-	void getCustomConceptDetail_disallowsInactivationForArtifactRefset() throws Exception {
+	void getCustomConceptDetail_disallowsInactivationForRefsetMetadataConcept() throws Exception {
 		String dummyModule = "101000003010";
-		String artifactConceptId = "429926006";
+		String refsetConceptId = "429926006";
 		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
 		codeSystem.setDefaultModule(dummyModule);
 		codeSystem.setTranslationLanguages(Map.of());
@@ -351,66 +352,41 @@ class CustomConceptServiceTest {
 		existingConcept.setModuleId(dummyModule);
 		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(List.of(429926006L), codeSystem))
 				.thenReturn(List.of(existingConcept));
+		Mockito.when(mockSnowstormClient.isAncestorOf(Concepts.REFSET, refsetConceptId, codeSystem)).thenReturn(true);
 
-		ConceptMini subsetArtifact = new ConceptMini(artifactConceptId, null);
-		Mockito.when(mockSnowstormClient.getRefsets(Mockito.anyString(), Mockito.eq(codeSystem)))
-				.thenAnswer(invocation -> {
-					String ecl = invocation.getArgument(0);
-					if (ecl.equals("<" + Concepts.SIMPLE_TYPE_REFSET)) {
-						return List.of(subsetArtifact);
-					}
-					return List.of();
-				});
-
-		CustomConceptDetail detail = customConceptService.getCustomConceptDetail(codeSystem, mockSnowstormClient, artifactConceptId);
+		CustomConceptDetail detail = customConceptService.getCustomConceptDetail(codeSystem, mockSnowstormClient, refsetConceptId);
 
 		assertFalse(detail.inactivationAllowed());
 	}
 
 	@Test
-	void updateCustomConcept_rejectsInactivationOfArtifactRefset() throws Exception {
+	void updateCustomConcept_rejectsInactivationOfRefsetMetadataConcept() throws Exception {
 		String dummyModule = "101000003010";
-		String artifactConceptId = "429926006";
+		String refsetConceptId = "429926006";
 		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
 		codeSystem.setDefaultModule(dummyModule);
 		codeSystem.setTranslationLanguages(Map.of());
 
-		ConceptMini subsetArtifact = new ConceptMini(artifactConceptId, null);
-		Mockito.when(mockSnowstormClient.getRefsets(Mockito.anyString(), Mockito.eq(codeSystem)))
-				.thenAnswer(invocation -> {
-					String ecl = invocation.getArgument(0);
-					if (ecl.equals("<" + Concepts.SIMPLE_TYPE_REFSET)) {
-						return List.of(subsetArtifact);
-					}
-					return List.of();
-				});
+		Mockito.when(mockSnowstormClient.isAncestorOf(Concepts.REFSET, refsetConceptId, codeSystem)).thenReturn(true);
 
 		CustomConceptRequest request = new CustomConceptRequest(null, false, null, Map.of());
 
 		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
-				() -> customConceptService.updateCustomConcept(codeSystem, mockSnowstormClient, artifactConceptId, request));
+				() -> customConceptService.updateCustomConcept(codeSystem, mockSnowstormClient, refsetConceptId, request));
 
-		assertTrue(exception.getMessage().contains(CustomConceptService.ARTIFACT_INACTIVATION_MESSAGE));
+		assertTrue(exception.getMessage().contains(CustomConceptService.REFSET_METADATA_INACTIVATION_MESSAGE));
 		Mockito.verify(mockSnowstormClient, never()).createUpdateBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem));
 	}
 
 	@Test
-	void createUpdateConcepts_rejectsSpreadsheetInactivationOfArtifactRefset() throws Exception {
+	void createUpdateConcepts_rejectsSpreadsheetInactivationOfRefsetMetadataConcept() throws Exception {
 		String dummyModule = "101000003010";
-		String artifactConceptId = "429926006";
+		String refsetConceptId = "429926006";
 		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
 		codeSystem.setDefaultModule(dummyModule);
 		codeSystem.setTranslationLanguages(Map.of());
 
-		ConceptMini subsetArtifact = new ConceptMini(artifactConceptId, null);
-		Mockito.when(mockSnowstormClient.getRefsets(Mockito.anyString(), Mockito.eq(codeSystem)))
-				.thenAnswer(invocation -> {
-					String ecl = invocation.getArgument(0);
-					if (ecl.equals("<" + Concepts.SIMPLE_TYPE_REFSET)) {
-						return List.of(subsetArtifact);
-					}
-					return List.of();
-				});
+		Mockito.when(mockSnowstormClient.isAncestorOf(Concepts.REFSET, refsetConceptId, codeSystem)).thenReturn(true);
 
 		Concept existingConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
 		existingConcept.setModuleId(dummyModule);
@@ -418,14 +394,14 @@ class CustomConceptServiceTest {
 				.thenReturn(List.of(existingConcept));
 
 		ConceptIntent intent = new ConceptIntent(null, 5);
-		intent.setConceptCode(artifactConceptId);
+		intent.setConceptCode(refsetConceptId);
 		intent.setInactive(true);
 
 		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
 				() -> customConceptService.createUpdateConcepts(codeSystem, List.of(intent), List.of(Concepts.US_LANG_REFSET),
 						new ContentJob(new CodeSystem(), "", null), mockSnowstormClient));
 
-		assertTrue(exception.getMessage().contains(CustomConceptService.ARTIFACT_INACTIVATION_MESSAGE));
+		assertTrue(exception.getMessage().contains(CustomConceptService.REFSET_METADATA_INACTIVATION_MESSAGE));
 		assertTrue(exception.getMessage().contains("row 5"));
 	}
 
