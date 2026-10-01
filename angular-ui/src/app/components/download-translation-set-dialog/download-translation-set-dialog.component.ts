@@ -17,6 +17,8 @@ export type TranslationSetDownloadStatusFilter =
 	| 'COMPLETE'
 	| 'ALL';
 
+export type TranslationSetDownloadFormat = 'excel' | 'tsv';
+
 export interface DownloadTranslationSetDialogData {
 	edition: string;
 	refsetId: string;
@@ -49,7 +51,13 @@ interface DownloadFilterOption {
 })
 export class DownloadTranslationSetDialogComponent {
 	loading = false;
+	selectedFormat: TranslationSetDownloadFormat = 'excel';
 	selectedFilter: TranslationSetDownloadStatusFilter = 'FOR_REVIEW';
+
+	readonly formatOptions: { value: TranslationSetDownloadFormat; label: string }[] = [
+		{ value: 'excel', label: 'Excel (.xlsx)' },
+		{ value: 'tsv', label: 'TSV (.tsv)' }
+	];
 
 	readonly filterOptions: DownloadFilterOption[] = [
 		{ value: 'FOR_REVIEW', label: translationStatusRadioLabel('FOR_REVIEW'), statusParam: 'FOR_REVIEW' },
@@ -85,14 +93,22 @@ export class DownloadTranslationSetDialogComponent {
 		}
 
 		this.loading = true;
-		this.simplexService
-			.downloadTranslationSetCsv(
-				this.data.edition,
-				this.data.refsetId,
-				this.data.label,
-				option.statusParam
-			)
-			.subscribe({
+		const download$ =
+			this.selectedFormat === 'excel'
+				? this.simplexService.downloadTranslationSetExcel(
+						this.data.edition,
+						this.data.refsetId,
+						this.data.label,
+						option.statusParam
+					)
+				: this.simplexService.downloadTranslationSetCsv(
+						this.data.edition,
+						this.data.refsetId,
+						this.data.label,
+						option.statusParam
+					);
+
+		download$.subscribe({
 				next: (blob) => {
 					const filename = this.buildFilename(option);
 					this.simplexService.triggerDownload(blob, filename);
@@ -100,10 +116,10 @@ export class DownloadTranslationSetDialogComponent {
 					this.dialogRef.close({ action: 'downloaded' });
 				},
 				error: (error) => {
-					console.error('Error downloading translation set CSV:', error);
+					console.error('Error exporting translation set:', error);
 					this.loading = false;
 
-					let errorMessage = 'Failed to export translation set CSV';
+					let errorMessage = 'Failed to export translation set';
 					if (error.error?.message) {
 						errorMessage = `${errorMessage}: ${error.error.message}`;
 					}
@@ -121,7 +137,8 @@ export class DownloadTranslationSetDialogComponent {
 			.replace(/\s+/g, '_')
 			.replace(/[^\w.-]+/g, '_');
 		const filterSlug = this.filterFilenameSlug(option);
-		return `${setSlug}-${filterSlug}.csv`;
+		const extension = this.selectedFormat === 'excel' ? 'xlsx' : 'tsv';
+		return `${setSlug}-${filterSlug}.${extension}`;
 	}
 
 	private filterFilenameSlug(option: DownloadFilterOption): string {

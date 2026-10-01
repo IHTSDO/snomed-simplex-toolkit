@@ -353,11 +353,30 @@ export class SimplexService {
     label: string,
     status?: string | null
   ): Observable<Blob> {
+    return this.downloadTranslationSetExport(edition, refsetId, label, 'csv', status);
+  }
+
+  public downloadTranslationSetExcel(
+    edition: string,
+    refsetId: string,
+    label: string,
+    status?: string | null
+  ): Observable<Blob> {
+    return this.downloadTranslationSetExport(edition, refsetId, label, 'excel', status);
+  }
+
+  private downloadTranslationSetExport(
+    edition: string,
+    refsetId: string,
+    label: string,
+    format: 'csv' | 'excel',
+    status?: string | null
+  ): Observable<Blob> {
     let params = new HttpParams();
     if (status) {
       params = params.set('status', status);
     }
-    const apiUrl = `api/${edition}/translation-studio/${refsetId}/sets/${label}/csv`;
+    const apiUrl = `api/${edition}/translation-studio/${refsetId}/sets/${label}/${format}`;
     return this.http.get(apiUrl, { params, responseType: 'blob' }).pipe(
       catchError(this.handleError.bind(this))
     );

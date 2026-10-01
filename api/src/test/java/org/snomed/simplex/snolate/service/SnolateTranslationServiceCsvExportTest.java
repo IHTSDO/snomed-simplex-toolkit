@@ -15,8 +15,12 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Sort;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -85,6 +89,36 @@ class SnolateTranslationServiceCsvExportTest {
 		assertThat(csv)
 				.startsWith("Concept Code\tEnglish Term\tSpanish Preferred Term\tOther Spanish Terms\tStatus\tURL\n")
 				.contains("100\tAsthma\tasma\tasma crónica\tReady for review\thttps://snomed.info/id/100\n");
+	}
+
+	@Test
+	void writeTranslationSetSpreadsheet_writesHeaderAndMappedRows() throws Exception {
+		TranslationUnit unit = unit("100", List.of("asma", "asma crónica"), TranslationStatus.FOR_REVIEW);
+		stubUnitStream(List.of(unit));
+		when(translationSourceRepository.findAllById(List.of("100")))
+				.thenReturn(List.of(new TranslationSource("100", "Asthma", 0)));
+
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		service.writeTranslationSetSpreadsheet(translationSet, TranslationStatus.FOR_REVIEW, "Spanish", out);
+
+		try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(out.toByteArray()))) {
+			Sheet sheet = workbook.getSheetAt(0);
+			Row headerRow = sheet.getRow(0);
+			assertThat(headerRow.getCell(0).getStringCellValue()).isEqualTo("Concept Code");
+			assertThat(headerRow.getCell(2).getStringCellValue()).isEqualTo("Spanish Preferred Term");
+
+			Row dataRow = sheet.getRow(1);
+			assertThat(dataRow.getCell(0).getStringCellValue()).isEqualTo("100");
+			assertThat(dataRow.getCell(1).getStringCellValue()).isEqualTo("Asthma");
+			assertThat(dataRow.getCell(2).getStringCellValue()).isEqualTo("asma");
+			assertThat(dataRow.getCell(3).getStringCellValue()).isEqualTo("asma crónica");
+			assertThat(dataRow.getCell(4).getStringCellValue()).isEqualTo("Ready for review");
+			assertThat(dataRow.getCell(5).getStringCellValue()).isEqualTo("https://snomed.info/id/100");
+
+			for (int col = 0; col < 6; col++) {
+				assertThat(sheet.getColumnWidth(col)).isEqualTo(SnolateTranslationService.TRANSLATION_SET_EXPORT_COLUMN_WIDTH);
+			}
+		}
 	}
 
 	@Test

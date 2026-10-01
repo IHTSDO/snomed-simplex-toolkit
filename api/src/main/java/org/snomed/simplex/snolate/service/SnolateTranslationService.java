@@ -1,8 +1,9 @@
 package org.snomed.simplex.snolate.service;
 
 import com.google.common.base.Strings;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,9 @@ public class SnolateTranslationService {
 	private static final int ELASTIC_IO_CHUNK_SIZE = 1_000;
 
 	private static final int CSV_EXPORT_BATCH_SIZE = 5_000;
+
+	/** Approximates 150px column width in Excel (default font), in POI {@code setColumnWidth} units. */
+	static final int TRANSLATION_SET_EXPORT_COLUMN_WIDTH = (int) Math.round((150 - 5) / 7.0 * 256);
 
 	private static final String DEFAULT_TRANSLATION_LABEL = "Translation";
 
@@ -694,52 +698,172 @@ public class SnolateTranslationService {
 
 	public void writeTranslationSetCsv(SnolateTranslationSet translationSet, TranslationStatus statusFilter,
 			String languageDisplayName, OutputStream out) throws ServiceException {
-		String dialect = languageDisplayName == null || languageDisplayName.isBlank()
-				? DEFAULT_TRANSLATION_LABEL
-				: languageDisplayName.trim();
+		String dialect = resolveExportDialect(languageDisplayName);
 		String setCode = translationSet.getCompositeSetCode();
 		String lang = translationSet.getLanguageCodeWithRefsetId();
 		try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
-			writeCsvLine(writer,
-					"Concept Code",
-					"English Term",
-					dialect + " Preferred Term",
-					"Other " + dialect + " Terms",
-					"Status",
-					"URL");
+			writeCsvLine(writer, exportHeaderColumns(dialect));
 			List<TranslationUnit> batch = new ArrayList<>(CSV_EXPORT_BATCH_SIZE);
 			translationSearchService.forEachUnitInSet(setCode, lang, statusFilter,
-					SnolateTranslationSearchService.UNITS_IN_SET_EXPORT_SORT, unit -> appendExportBatch(unit, batch, writer));
+					SnolateTranslationSearchService.UNITS_IN_SET_EXPORT_SORT, unit -> appendCsvExportBatch(unit, batch, writer));
 			if (!batch.isEmpty()) {
-				flushExportBatch(batch, writer);
+				flushCsvExportBatch(batch, writer);
 			}
 		} catch (UncheckedIOException e) {
-			throw new ServiceException("Failed to write translation set CSV.", e.getCause());
+			throw new ServiceException("Failed to write translation set export.", e.getCause());
 		} catch (IOException e) {
-			throw new ServiceException("Failed to write translation set CSV.", e);
+			throw new ServiceException("Failed to write translation set export.", e);
 		}
 	}
 
-	private void appendExportBatch(TranslationUnit unit, List<TranslationUnit> batch, BufferedWriter writer) {
+	public void writeTranslationSetSpreadsheet(SnolateTranslationSet translationSet, TranslationStatus statusFilter,
+			String languageDisplayName, OutputStream out) throws ServiceException {
+		String dialect = resolveExportDialect(languageDisplayName);
+		String setCode = translationSet.getCompositeSetCode();
+		String lang = translationSet.getLanguageCodeWithRefsetId();
+		try (XSSFWorkbook workbook = new XSSFWorkbook()) {
+			Sheet sheet = workbook.createSheet();
+			CellStyle textCellStyle = createExportTextCellStyle(workbook);
+			writeSpreadsheetHeaderRow(sheet, exportHeaderColumns(dialect));
+			int[] nextRowIndex = {1};
+			List<TranslationUnit> batch = new ArrayList<>(CSV_EXPORT_BATCH_SIZE);
+			translationSearchService.forEachUnitInSet(setCode, lang, statusFilter,
+					SnolateTranslationSearchService.UNITS_IN_SET_EXPORT_SORT,
+					unit -> appendSpreadsheetExportBatch(unit, batch, sheet, nextRowIndex, textCellStyle));
+			if (!batch.isEmpty()) {
+				flushSpreadsheetExportBatch(batch, sheet, nextRowIndex, textCellStyle);
+			}
+			applyTranslationSetExportColumnWidths(sheet, exportHeaderColumns(dialect).length);
+			workbook.write(out);
+		} catch (UncheckedIOException e) {
+			throw new ServiceException("Failed to write translation set export.", e.getCause());
+		} catch (IOException e) {
+			throw new ServiceException("Failed to write translation set export.", e);
+		}
+	}
+
+	private static String resolveExportDialect(String languageDisplayName) {
+		return languageDisplayName == null || languageDisplayName.isBlank()
+				? DEFAULT_TRANSLATION_LABEL
+				: languageDisplayName.trim();
+	}
+
+	private static String[] exportHeaderColumns(String dialect) {
+		return new String[]{
+				"Concept Code",
+				"English Term",
+				dialect + " Preferred Term",
+				"Other " + dialect + " Terms",
+				"Status",
+				"URL"
+		};
+	}
+
+	private void appendCsvExportBatch(TranslationUnit unit, List<TranslationUnit> batch, BufferedWriter writer) {
 		batch.add(unit);
 		if (batch.size() >= CSV_EXPORT_BATCH_SIZE) {
 			try {
-				flushExportBatch(batch, writer);
+				flushCsvExportBatch(batch, writer);
 			} catch (IOException e) {
 				throw new UncheckedIOException(e);
 			}
 		}
 	}
 
-	private void flushExportBatch(List<TranslationUnit> batch, BufferedWriter writer) throws IOException {
+	private void appendSpreadsheetExportBatch(TranslationUnit unit, List<TranslationUnit> batch, Sheet sheet,
+			int[] nextRowIndex, CellStyle textCellStyle) {
+		batch.add(unit);
+		if (batch.size() >= CSV_EXPORT_BATCH_SIZE) {
+			try {
+				flushSpreadsheetExportBatch(batch, sheet, nextRowIndex, textCellStyle);
+			} catch (IOException e) {
+				throw new UncheckedIOException(e);
+			}
+		}
+	}
+
+	private void flushCsvExportBatch(List<TranslationUnit> batch, BufferedWriter writer) throws IOException {
+		forEachExportRow(batch, row -> writeCsvLine(writer, row.conceptCode(), row.englishTerm(), row.preferredTerm(),
+				row.otherTerms(), row.statusLabel(), row.url()));
+		batch.clear();
+	}
+
+	private void flushSpreadsheetExportBatch(List<TranslationUnit> batch, Sheet sheet, int[] nextRowIndex,
+			CellStyle textCellStyle) throws IOException {
+		forEachExportRow(batch, row -> writeSpreadsheetDataRow(sheet, nextRowIndex[0]++, textCellStyle, row));
+		batch.clear();
+	}
+
+	private void forEachExportRow(List<TranslationUnit> batch, ExportRowConsumer consumer) throws IOException {
 		List<String> codes = batch.stream().map(TranslationUnit::getCode).toList();
 		Map<String, TranslationSource> sourceByCode = loadSourcesByCodes(codes);
 		for (TranslationUnit unit : batch) {
 			TranslationSource source = sourceByCode.get(unit.getCode());
 			String englishTerm = source != null ? source.getTerm() : "";
-			writeCsvDataRow(writer, unit, englishTerm);
+			consumer.accept(toExportRow(unit, englishTerm));
 		}
-		batch.clear();
+	}
+
+	@FunctionalInterface
+	private interface ExportRowConsumer {
+		void accept(TranslationSetExportRow row) throws IOException;
+	}
+
+	private record TranslationSetExportRow(String conceptCode, String englishTerm, String preferredTerm,
+			String otherTerms, String statusLabel, String url) {
+	}
+
+	private static TranslationSetExportRow toExportRow(TranslationUnit unit, String englishTerm) {
+		String conceptCode = unit.getCode() != null ? unit.getCode() : "";
+		List<String> targetTerms = unit.getTerms() != null ? unit.getTerms() : List.of();
+		String preferredTerm = targetTerms.isEmpty() ? "" : targetTerms.get(0);
+		String otherTerms = targetTerms.size() <= 1 ? "" : String.join("\n", targetTerms.subList(1, targetTerms.size()));
+		String statusLabel = TranslationStatusLabels.radioLabel(unit.getStatus());
+		String url = conceptCode.isEmpty() ? "" : "https://snomed.info/id/" + conceptCode;
+		return new TranslationSetExportRow(conceptCode, englishTerm, preferredTerm, otherTerms, statusLabel, url);
+	}
+
+	private static void applyTranslationSetExportColumnWidths(Sheet sheet, int columnCount) {
+		for (int col = 0; col < columnCount; col++) {
+			sheet.setColumnWidth(col, TRANSLATION_SET_EXPORT_COLUMN_WIDTH);
+		}
+	}
+
+	private static void writeSpreadsheetHeaderRow(Sheet sheet, String[] headers) {
+		Row headerRow = sheet.createRow(0);
+		XSSFFont boldFont = new XSSFFont();
+		boldFont.setBold(true);
+		for (int i = 0; i < headers.length; i++) {
+			Cell cell = headerRow.createCell(i);
+			XSSFRichTextString textString = new XSSFRichTextString(headers[i]);
+			textString.applyFont(boldFont);
+			cell.setCellValue(textString);
+		}
+	}
+
+	private static void writeSpreadsheetDataRow(Sheet sheet, int rowIndex, CellStyle textCellStyle,
+			TranslationSetExportRow row) {
+		Row dataRow = sheet.createRow(rowIndex);
+		setTextCell(dataRow, 0, textCellStyle, row.conceptCode());
+		setTextCell(dataRow, 1, textCellStyle, row.englishTerm());
+		setTextCell(dataRow, 2, textCellStyle, row.preferredTerm());
+		setTextCell(dataRow, 3, textCellStyle, row.otherTerms());
+		setTextCell(dataRow, 4, textCellStyle, row.statusLabel());
+		setTextCell(dataRow, 5, textCellStyle, row.url());
+	}
+
+	private static void setTextCell(Row row, int columnIndex, CellStyle textCellStyle, String value) {
+		Cell cell = row.createCell(columnIndex);
+		cell.setCellStyle(textCellStyle);
+		cell.setCellValue(value);
+	}
+
+	private static CellStyle createExportTextCellStyle(Workbook workbook) {
+		CellStyle cellStyle = workbook.createCellStyle();
+		cellStyle.setDataFormat((short) BuiltinFormats.getBuiltinFormat("@"));
+		cellStyle.setWrapText(true);
+		cellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+		return cellStyle;
 	}
 
 	private Map<String, TranslationSource> loadSourcesByCodes(Collection<String> codes) {
@@ -754,16 +878,6 @@ public class SnolateTranslationService {
 					.forEach(source -> sourcesByCode.put(source.getCode(), source));
 		}
 		return sourcesByCode;
-	}
-
-	private static void writeCsvDataRow(BufferedWriter writer, TranslationUnit unit, String englishTerm) throws IOException {
-		String conceptCode = unit.getCode() != null ? unit.getCode() : "";
-		List<String> targetTerms = unit.getTerms() != null ? unit.getTerms() : List.of();
-		String preferredTerm = targetTerms.isEmpty() ? "" : targetTerms.get(0);
-		String otherTerms = targetTerms.size() <= 1 ? "" : String.join("\n", targetTerms.subList(1, targetTerms.size()));
-		String statusLabel = TranslationStatusLabels.radioLabel(unit.getStatus());
-		String url = conceptCode.isEmpty() ? "" : "https://snomed.info/id/" + conceptCode;
-		writeCsvLine(writer, conceptCode, englishTerm, preferredTerm, otherTerms, statusLabel, url);
 	}
 
 	private static void writeCsvLine(BufferedWriter writer, String... fields) throws IOException {

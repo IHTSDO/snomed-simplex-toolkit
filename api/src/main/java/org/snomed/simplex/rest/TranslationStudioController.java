@@ -316,16 +316,39 @@ public class TranslationStudioController {
 		return result;
 	}
 
-	@GetMapping(path = "{refsetId}/sets/{label}/csv", produces = "text/csv")
+	@GetMapping(path = "{refsetId}/sets/{label}/csv", produces = "text/tab-separated-values")
 	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
 	public void downloadSetCsv(@PathVariable String codeSystem, @PathVariable String refsetId,
 			@PathVariable String label, @RequestParam(required = false) String status, HttpServletResponse response)
 			throws ServiceException, IOException {
 
+		TranslationSetExportContext export = prepareTranslationSetExport(codeSystem, refsetId, label, status);
+		String filename = export.filenameBase() + ".tsv";
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+		snolateTranslationService.writeTranslationSetCsv(export.translationSet(), export.statusFilter(),
+				export.languageDisplayName(), response.getOutputStream());
+	}
+
+	@GetMapping(path = "{refsetId}/sets/{label}/excel",
+			produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public void downloadSetExcel(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@PathVariable String label, @RequestParam(required = false) String status, HttpServletResponse response)
+			throws ServiceException, IOException {
+
+		TranslationSetExportContext export = prepareTranslationSetExport(codeSystem, refsetId, label, status);
+		String filename = export.filenameBase() + ".xlsx";
+		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+		snolateTranslationService.writeTranslationSetSpreadsheet(export.translationSet(), export.statusFilter(),
+				export.languageDisplayName(), response.getOutputStream());
+	}
+
+	private TranslationSetExportContext prepareTranslationSetExport(String codeSystem, String refsetId, String label,
+			String status) throws ServiceException {
 		SnolateTranslationSet translationSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 		if (!translationSet.getStatus().isEditable()) {
 			throw new ServiceExceptionWithStatusCode(
-					"Translation set CSV export is only available when set status is READY.",
+					"Translation set file export is only available when set status is READY.",
 					HttpStatus.BAD_REQUEST);
 		}
 		TranslationStatus statusFilter = parseOptionalTranslationStatus(status);
@@ -335,11 +358,13 @@ public class TranslationStudioController {
 		ConceptMini refset = snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
 		String languageDisplayName = SnolateTranslationService.displayLanguageDialect(refset.getPt().getTerm());
 
-		String filename = ControllerHelper.normaliseFilename(translationSet.getName()) + "-"
-				+ TranslationStatusLabels.exportFilenameSlug(statusFilter) + ".csv";
-		response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-		snolateTranslationService.writeTranslationSetCsv(translationSet, statusFilter, languageDisplayName,
-				response.getOutputStream());
+		String filenameBase = ControllerHelper.normaliseFilename(translationSet.getName()) + "-"
+				+ TranslationStatusLabels.exportFilenameSlug(statusFilter);
+		return new TranslationSetExportContext(translationSet, statusFilter, languageDisplayName, filenameBase);
+	}
+
+	private record TranslationSetExportContext(SnolateTranslationSet translationSet, TranslationStatus statusFilter,
+			String languageDisplayName, String filenameBase) {
 	}
 
 	@PutMapping(path = "{refsetId}/sets/{label}/csv", consumes = "multipart/form-data")

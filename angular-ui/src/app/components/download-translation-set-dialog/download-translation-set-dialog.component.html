@@ -2,12 +2,26 @@
 <mat-dialog-content>
     <div class="dialog-content">
         <p class="set-hint">
-            Export concepts from <strong>{{ data.setName }}</strong> as CSV.
+            Export concepts from <strong>{{ data.setName }}</strong>.
         </p>
         <p class="language-hint" *ngIf="data.languageDialect">
             Language/dialect: <strong>{{ data.languageDialect }}</strong>
         </p>
 
+        <p class="section-label">Format</p>
+        <mat-radio-group
+            class="format-options"
+            [(ngModel)]="selectedFormat"
+            [disabled]="loading">
+            <mat-radio-button
+                class="format-option"
+                *ngFor="let option of formatOptions"
+                [value]="option.value">
+                {{ option.label }}
+            </mat-radio-button>
+        </mat-radio-group>
+
+        <p class="section-label">Concepts to include</p>
         <mat-radio-group
             class="filter-options"
             [(ngModel)]="selectedFilter"

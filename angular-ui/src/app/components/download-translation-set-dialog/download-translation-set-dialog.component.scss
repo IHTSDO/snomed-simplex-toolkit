@@ -9,11 +9,21 @@
   color: rgba(0, 0, 0, 0.7);
 }
 
+.section-label {
+  margin: 16px 0 8px;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.87);
+}
+
+.format-options,
 .filter-options {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 16px;
+}
+
+.format-option {
+  display: block;
 }
 
 .filter-option {
