@@ -53,9 +53,6 @@
                 <span *ngIf="conceptPreviewDuplicateRows > 0">({{ conceptPreviewDuplicateRows }} duplicate{{ conceptPreviewDuplicateRows === 1 ? '' : 's' }} skipped)</span>
                 <span *ngIf="conceptPreviewInvalidRows > 0">({{ conceptPreviewInvalidRows }} invalid row{{ conceptPreviewInvalidRows === 1 ? '' : 's' }} skipped)</span>
             </p>
-            <p class="mapping-hint" *ngIf="isSpreadsheet">
-                Preview based on first rows of file; full validation runs on submit.
-            </p>
         </div>
 
         <mat-radio-group
