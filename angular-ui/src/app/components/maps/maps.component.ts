@@ -2,7 +2,11 @@ import { Component, Input, SimpleChanges } from '@angular/core';
 import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom } from 'rxjs';
-import { SimplexService } from 'src/app/services/simplex/simplex.service';
+import {
+  MAP_ARTIFACT_TYPE_LABELS,
+  MapArtifactType,
+  SimplexService
+} from 'src/app/services/simplex/simplex.service';
 
 @Component({
   selector: 'app-maps',
@@ -18,7 +22,11 @@ export class MapsComponent {
   mapFields = ["idAndFsnTerm", "active", "activeMemberCount", "moduleId"];
   saving = false;
 
+  readonly mapArtifactTypes: MapArtifactType[] = ['correlation', 'fromSnomed', 'toSnomed'];
+  readonly mapArtifactTypeLabels = MAP_ARTIFACT_TYPE_LABELS;
+
   form: FormGroup = this.fb.group({
+    mapType: ['correlation', Validators.required],
     preferredTerm: ['', Validators.required]
   });
 
@@ -52,7 +60,8 @@ export class MapsComponent {
     this.form.markAllAsTouched();
     if (this.form.valid) {
       const map = {
-        preferredTerm: this.form.value.preferredTerm
+        preferredTerm: this.form.value.preferredTerm,
+        mapType: this.form.value.mapType
       };
       this.saving = true;
       // Set the form to disabled

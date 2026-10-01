@@ -1,10 +1,18 @@
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Observable, of, throwError } from 'rxjs';
-import { catchError, delay, shareReplay, tap } from 'rxjs/operators';
-import { UiConfigurationService } from '../ui-configuration/ui-configuration.service';
-import { effectiveTranslationTermSearch } from 'src/app/utils/translation-studio-query-params';
+import {HttpClient, HttpErrorResponse, HttpParams} from '@angular/common/http';
+import {Injectable} from '@angular/core';
+import {MatSnackBar} from '@angular/material/snack-bar';
+import {forkJoin, Observable, of, throwError} from 'rxjs';
+import {catchError, delay, map, shareReplay, tap} from 'rxjs/operators';
+import {UiConfigurationService} from '../ui-configuration/ui-configuration.service';
+import {effectiveTranslationTermSearch} from 'src/app/utils/translation-studio-query-params';
+
+export type MapArtifactType = 'correlation' | 'fromSnomed' | 'toSnomed';
+
+export const MAP_ARTIFACT_TYPE_LABELS: Record<MapArtifactType, string> = {
+  correlation: 'Simple map with correlation to SNOMED CT (Snap2SNOMED)',
+  fromSnomed: 'Simple map from SNOMED CT',
+  toSnomed: 'Simple map to SNOMED CT',
+};
 
 @Injectable({
   providedIn: 'root'
@@ -134,8 +142,45 @@ export class SimplexService {
     return this.http.get(`api/${edition}/refsets/simple`).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public getSimpleMaps(edition: string): Observable<any> {
-    return this.http.get(`api/${edition}/refsets/simple-map-to-snomed-with-correlation`).pipe(catchError(this.handleError.bind(this)));
+  private mapRefsetApiPath(mapType: MapArtifactType): string {
+    switch (mapType) {
+      case 'correlation':
+        return 'simple-map-to-snomed-with-correlation';
+      case 'fromSnomed':
+        return 'simple-map-from-snomed-ct';
+      case 'toSnomed':
+        return 'simple-map-to-snomed-ct';
+    }
+  }
+
+  public getSimpleMaps(edition: string): Observable<any[]> {
+    const listMaps = (mapType: MapArtifactType) =>
+      this.http.get<any[]>(`api/${edition}/refsets/${this.mapRefsetApiPath(mapType)}`).pipe(
+        catchError(this.handleError.bind(this)),
+        map((items) => (items || []).map((item) => ({ ...item, mapType })))
+      );
+    return forkJoin({
+      correlation: listMaps('correlation'),
+      fromSnomed: listMaps('fromSnomed'),
+      toSnomed: listMaps('toSnomed'),
+    }).pipe(
+      map(({ correlation, fromSnomed, toSnomed }) => {
+        // Later lists overwrite earlier ones so a refset returned by multiple endpoints keeps the most specific type.
+        const byConceptId = new Map<string, any>();
+        for (const item of correlation) {
+          byConceptId.set(item.conceptId, item);
+        }
+        for (const item of fromSnomed) {
+          byConceptId.set(item.conceptId, item);
+        }
+        for (const item of toSnomed) {
+          byConceptId.set(item.conceptId, item);
+        }
+        const maps = Array.from(byConceptId.values());
+        maps.sort((a, b) => (a.pt?.term || a.fsn?.term || '').localeCompare(b.pt?.term || b.fsn?.term || ''));
+        return maps;
+      })
+    );
   }
 
   public getTranslations(edition: string): Observable<any> {
@@ -163,8 +208,12 @@ export class SimplexService {
     return this.http.post(`api/${edition}/refsets/simple`, simpleRefset).pipe(catchError(this.handleError.bind(this)));
   }
 
-  public createMap(edition: string, map: any): Observable<any> {
-    return this.http.post(`api/${edition}/refsets/simple-map-to-snomed-with-correlation`, map).pipe(catchError(this.handleError.bind(this)));
+  public createMap(edition: string, map: { preferredTerm: string; mapType?: MapArtifactType }): Observable<any> {
+    const mapType: MapArtifactType = map.mapType || 'correlation';
+    const body = { preferredTerm: map.preferredTerm };
+    return this.http.post(`api/${edition}/refsets/${this.mapRefsetApiPath(mapType)}`, body).pipe(
+      catchError(this.handleError.bind(this))
+    );
   }
 
   public createTranslations(edition: string, translation: any): Observable<any> {
@@ -251,10 +300,29 @@ export class SimplexService {
   }
 
   public uploadSpreadsheetMap(edition: string, refsetId: string, file: File): Observable<any> {
+    return this.uploadMapSpreadsheet(edition, refsetId, file, 'correlation');
+  }
+
+  public uploadMapSpreadsheet(
+    edition: string,
+    refsetId: string,
+    file: File,
+    mapType: MapArtifactType
+  ): Observable<any> {
     const formData: FormData = new FormData();
     formData.append('file', file, file.name);
-    const apiUrl = `api/${edition}/refsets/simple-map-to-snomed-with-correlation/${refsetId}/spreadsheet`;
+    const apiUrl = `api/${edition}/refsets/${this.mapRefsetApiPath(mapType)}/${refsetId}/spreadsheet`;
     return this.http.put(apiUrl, formData).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public downloadMapSpreadsheet(edition: string, refsetId: string, mapType: MapArtifactType): Observable<Blob> {
+    const apiUrl = `api/${edition}/refsets/${this.mapRefsetApiPath(mapType)}/${refsetId}/spreadsheet`;
+    return this.http.get(apiUrl, { responseType: 'blob' }).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public deleteMapRefset(edition: string, refsetId: string, mapType: MapArtifactType): Observable<void> {
+    const apiUrl = `api/${edition}/refsets/${this.mapRefsetApiPath(mapType)}/${refsetId}`;
+    return this.http.delete<void>(apiUrl).pipe(catchError(this.handleError.bind(this)));
   }
 
   public uploadConceptsSpreadsheet(edition: string, file: File): Observable<any> {

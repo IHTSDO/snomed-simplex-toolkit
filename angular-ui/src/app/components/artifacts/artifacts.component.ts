@@ -3,7 +3,11 @@ import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators }
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { lastValueFrom, Subject, Subscription, Observable } from 'rxjs';
 import { takeUntil, map, startWith, distinctUntilChanged } from 'rxjs/operators';
-import { SimplexService } from 'src/app/services/simplex/simplex.service';
+import {
+  MAP_ARTIFACT_TYPE_LABELS,
+  MapArtifactType,
+  SimplexService
+} from 'src/app/services/simplex/simplex.service';
 import { ConceptsListComponent } from './concepts-list/concepts-list.component';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { Router } from '@angular/router';
@@ -47,6 +51,8 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
 
 
   artifactTypes = ["subset", "map", "translation"];
+  readonly mapArtifactTypes: MapArtifactType[] = ['correlation', 'fromSnomed', 'toSnomed'];
+  readonly mapArtifactTypeLabels = MAP_ARTIFACT_TYPE_LABELS;
   form: FormGroup = this.fb.group({
     type: ['', Validators.required]
   });
@@ -128,7 +134,9 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
         this.languageCodeValueChangesSubscription = undefined;
         this.form.removeControl('preferredTerm');
         this.form.removeControl('languageCode');
+        this.form.removeControl('mapType');
     } else if (typeValue == 'translation') {
+        this.form.removeControl('mapType');
         if (!this.form.get('languageCode')) {
             const languageCodeControl = this.fb.control('', [Validators.required, this.languageCodeValidator]);
             this.form.addControl('languageCode', languageCodeControl);
@@ -137,10 +145,21 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
             this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
         }
         this.setupLanguageCodeFilter();
+    } else if (typeValue == 'map') {
+        this.languageCodeValueChangesSubscription?.unsubscribe();
+        this.languageCodeValueChangesSubscription = undefined;
+        this.form.removeControl('languageCode');
+        if (!this.form.get('mapType')) {
+            this.form.addControl('mapType', this.fb.control('correlation', Validators.required));
+        }
+        if (!this.form.get('preferredTerm')) {
+            this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
+        }
     } else {
         this.languageCodeValueChangesSubscription?.unsubscribe();
         this.languageCodeValueChangesSubscription = undefined;
         this.form.removeControl('languageCode');
+        this.form.removeControl('mapType');
         if (!this.form.get('preferredTerm')) {
             this.form.addControl('preferredTerm', this.fb.control('', Validators.required));
         }
@@ -183,9 +202,20 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
     this.loadArtifacts(this.edition);
   }
 
+  onMapDeleted(): void {
+    this.selectedArtifact = null;
+    this.refreshArtifacts();
+  }
+
   updateSelectedArtifact(artifact: any) {
     if (artifact.conceptId == this.selectedArtifact?.conceptId) {
-      this.selectedArtifact = artifact;
+      const mapEntry = this.maps.find((m) => m.conceptId === artifact.conceptId);
+      const mapType = mapEntry?.mapType ?? artifact.mapType ?? this.selectedArtifact?.mapType;
+      this.selectedArtifact = {
+        ...artifact,
+        type: this.selectedArtifact?.type ?? artifact.type,
+        ...(mapType != null ? { mapType } : {}),
+      };
       this.changeDetectorRef.detectChanges();
     }
   }
@@ -269,19 +299,43 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
   }
 
   get formKeys(): string[] {
-    const keys = Object.keys(this.form.controls);
     if (this.form.get('languageCode')) {
       return ['type', 'languageCode', 'preferredTerm'];
     }
-    if (keys.includes('preferredTerm')) {
+    if (this.form.get('mapType')) {
+      return ['type', 'mapType', 'preferredTerm'];
+    }
+    if (this.form.get('preferredTerm')) {
       return ['type', 'preferredTerm'];
     }
-    return keys;
+    return Object.keys(this.form.controls);
+  }
+
+  mapTypeLabel(mapType: MapArtifactType | string | undefined): string {
+    if (!mapType || !(mapType in MAP_ARTIFACT_TYPE_LABELS)) {
+      return '';
+    }
+    return MAP_ARTIFACT_TYPE_LABELS[mapType as MapArtifactType];
+  }
+
+  selectedMapType(): MapArtifactType | undefined {
+    if (this.selectedArtifact?.type !== 'map') {
+      return undefined;
+    }
+    const fromList = this.maps.find((m) => m.conceptId === this.selectedArtifact?.conceptId);
+    return (fromList?.mapType ?? this.selectedArtifact?.mapType) as MapArtifactType | undefined;
   }
 
   onClick(item: any, type: string) {
-    item.type = type;
-    this.selectedArtifact = item;
+    let artifact = item;
+    if (type === 'map') {
+      artifact = this.maps.find((m) => m.conceptId === item.conceptId) ?? item;
+    }
+    artifact.type = type;
+    if (type === 'map' && artifact.mapType == null && item.mapType != null) {
+      artifact.mapType = item.mapType;
+    }
+    this.selectedArtifact = artifact;
     this.changeDetectorRef.detectChanges();
   }
   submit() {
@@ -293,6 +347,9 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
       };
       if (type == 'translation') {
         subset.languageCode = this.form.value.languageCode;
+      }
+      if (type == 'map') {
+        subset.mapType = this.form.get('mapType')?.value;
       }
       this.saving = true;
       // Set the form to disabled
@@ -317,12 +374,16 @@ export class ArtifactsComponent implements OnInit, OnDestroy {
           );
           break;
         case 'map':
+          const createdMapType = subset.mapType as MapArtifactType;
           lastValueFrom(this.simplexService.createMap(this.edition, subset)).then(
-            (edition) => {
+            (created) => {
               this.saving = false;
               this.form.reset();
               this.form.enable();
               this.newArtifactMode = false;
+              if (created?.conceptId) {
+                this.selectedArtifact = { ...created, type: 'map', mapType: createdMapType };
+              }
               this.loadArtifacts(this.edition);
             },
             (error) => {

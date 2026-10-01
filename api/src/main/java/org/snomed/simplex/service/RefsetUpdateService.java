@@ -55,6 +55,7 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 		ConceptMini refset = getSnowstormClient().getRefsetOrThrow(contentJob.getRefsetId(), codeSystem);
 		List<T> sheetMembers = spreadsheetService.readComponentSpreadsheet(contentJob.getInputStream(), getInputSheetExpectedHeaders(),
 				getInputSheetMemberExtractor(), 0);
+		sheetMembers = filterSpreadsheetMembers(sheetMembers, codeSystem);
 		return update(refset, sheetMembers, codeSystem, contentJob);
 	}
 
@@ -241,7 +242,15 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 	 */
 	protected abstract boolean applyMember(RefsetMember wantedRefsetMember, RefsetMember storedMember);
 
-	private SnowstormClient getSnowstormClient() throws ServiceException {
+	protected List<T> filterSpreadsheetMembers(List<T> sheetMembers, CodeSystem codeSystem) throws ServiceException {
+		return sheetMembers;
+	}
+
+	protected SpreadsheetService getSpreadsheetService() {
+		return spreadsheetService;
+	}
+
+	protected SnowstormClient getSnowstormClient() throws ServiceException {
 		return snowstormClientFactory.getClient();
 	}
 

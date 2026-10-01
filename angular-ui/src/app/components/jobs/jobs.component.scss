@@ -238,3 +238,30 @@ mat-form-field:last-child {
     margin-left: 8px;
     vertical-align: middle;
   }
+
+.map-delete-section {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 2rem 2rem;
+}
+
+.map-delete-section .map-delete-button {
+  --mdc-filled-button-container-color: #e8e8e8;
+  --mdc-filled-button-label-text-color: rgba(0, 0, 0, 0.55);
+  background-color: #e8e8e8;
+  color: rgba(0, 0, 0, 0.55);
+
+  &:hover:not(:disabled) {
+    --mdc-filled-button-container-color: #ef5350;
+    --mdc-filled-button-label-text-color: #fff;
+    background-color: #ef5350;
+    color: #fff;
+  }
+
+  &:disabled {
+    --mdc-filled-button-container-color: #f0f0f0;
+    --mdc-filled-button-label-text-color: rgba(0, 0, 0, 0.26);
+    background-color: #f0f0f0;
+    color: rgba(0, 0, 0, 0.26);
+  }
+}

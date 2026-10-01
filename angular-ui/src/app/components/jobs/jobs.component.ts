@@ -2,7 +2,7 @@ import {ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnChanges
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {Router} from '@angular/router';
-import {SimplexService} from '../../services/simplex/simplex.service';
+import {MapArtifactType, SimplexService} from '../../services/simplex/simplex.service';
 import {ModalService} from '../../services/modal/modal.service';
 import {catchError, lastValueFrom, of, Subscription} from 'rxjs';
 import {animate, state, style, transition, trigger} from '@angular/animations';
@@ -34,6 +34,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   @Input() artifact: any;
 
   @Output() jobCompleted = new EventEmitter<any>();
+  @Output() mapDeleted = new EventEmitter<void>();
 
   @ViewChild('fileInput') fileInput: ElementRef;
   @ViewChild(EclSelectionComponent) eclSelection: EclSelectionComponent;
@@ -53,6 +54,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
   hasTranslationStudioActivity = false;
   hasTranslationStudioActivityFailed = false;
   saving = false;
+  deletingMap = false;
   private isPollingActivities = false;
 
   selectedFile: File = null;
@@ -78,6 +80,13 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       value: 'mapSpreadsheet',
       viewValue: 'Snap2SNOMED Map',
       artifactTypes: ['map'],
+      mapTypes: ['correlation'],
+    },
+    {
+      value: 'simpleMapSpreadsheet',
+      viewValue: 'Spreadsheet Map',
+      artifactTypes: ['map'],
+      mapTypes: ['fromSnomed', 'toSnomed'],
     },
     {
       value: 'refsetToolTranslation',
@@ -99,6 +108,7 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   downloadConceptFileDisabled = false;
   downloadRefsetFileDisabled = false;
+  downloadMapFileDisabled = false;
 
   private subscription: Subscription;
   private activitiesSubscription: Subscription;
@@ -131,6 +141,10 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       !changes['artifact'].previousValue ||
       changes['artifact'].previousValue?.conceptId !== changes['artifact'].currentValue?.conceptId
     );
+    const artifactMapTypeChanged = !!changes['artifact'] && (
+      !changes['artifact'].previousValue ||
+      changes['artifact'].previousValue?.mapType !== changes['artifact'].currentValue?.mapType
+    );
 
     if (refsetChanged || editionChanged || artifactIdChanged) {
       this.hasTranslationStudioActivity = false;
@@ -139,6 +153,10 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
       this.clearSelectedFile();
       this.loadJobs(true);
       this.loadActivities(true);
+      this.filterFileTypes();
+    } else if (artifactMapTypeChanged) {
+      this.selectedFileType = null;
+      this.clearSelectedFile();
       this.filterFileTypes();
     } else if (changes['artifact'] && !changes['artifact'].firstChange) {
       this.loadActivities(false);
@@ -371,6 +389,38 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     );
   }
 
+  downloadMapSpreadsheet() {
+    if (!this.artifact?.conceptId || !this.artifact?.mapType) {
+      return;
+    }
+    this.downloadMapFileDisabled = true;
+    this.snackBar.open(
+      `Requesting spreadsheet. The download will start soon.`,
+      'Dismiss',
+      {
+        duration: 5000,
+      }
+    );
+    this.simplexService
+      .downloadMapSpreadsheet(this.edition, this.artifact.conceptId, this.artifact.mapType)
+      .subscribe(
+        (fileBlob: Blob) => {
+          const filename = 'mapSpreadsheet.xlsx';
+          this.simplexService.triggerDownload(fileBlob, filename);
+          setTimeout(() => {
+            this.downloadMapFileDisabled = false;
+          }, 5000);
+        },
+        (error) => {
+          console.error('Download failed:', error);
+          this.snackBar.open(`Download failed`, 'Dismiss', {
+            duration: 5000,
+          });
+          this.downloadMapFileDisabled = false;
+        }
+      );
+  }
+
   downloadRefsetsSpreadsheet() {
     this.downloadRefsetFileDisabled = true;
     this.snackBar.open(
@@ -474,6 +524,19 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
           this.clearSelectedFile();
           this.loadJobs(false);
           this.alert('File import job created');
+        } else if (componentType === 'map' && fileType === 'simpleMapSpreadsheet') {
+          const mapType: MapArtifactType = this.artifact?.mapType || 'fromSnomed';
+          const response = await lastValueFrom(
+            this.simplexService.uploadMapSpreadsheet(
+              this.edition,
+              refsetId,
+              this.selectedFile,
+              mapType
+            )
+          );
+          this.clearSelectedFile();
+          this.loadJobs(false);
+          this.alert('File import job created');
         } else if (
           componentType === 'concepts' &&
           fileType === 'conceptsSpreadsheet'
@@ -507,17 +570,44 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
     });
   }
 
+  getMapType(): MapArtifactType {
+    return this.artifact?.mapType ?? 'correlation';
+  }
+
+  isCorrelationMap(): boolean {
+    return this.artifact?.type === 'map' && this.getMapType() === 'correlation';
+  }
+
+  isSimpleMapSpreadsheetMap(): boolean {
+    const mapType = this.getMapType();
+    return this.artifact?.type === 'map' && (mapType === 'fromSnomed' || mapType === 'toSnomed');
+  }
+
+  showFileTypeSelector(): boolean {
+    return this.filteredFileTypes.length > 1;
+  }
+
   filterFileTypes() {
     if (this.artifact && this.artifact.type) {
       if (this.artifact.type === 'translation' && this.isTranslationStudioLinked()) {
         this.filteredFileTypes = [];
         this.selectedFileType = null;
       } else {
-        this.filteredFileTypes = this.fileTypes.filter((type) =>
-          type.artifactTypes.includes(this.artifact.type)
-        );
-        if (this.filteredFileTypes.length === 1) {
-          this.selectedFileType = this.filteredFileTypes[0].value;
+        this.filteredFileTypes = this.fileTypes.filter((type) => {
+          if (!type.artifactTypes.includes(this.artifact.type)) {
+            return false;
+          }
+          if (type.mapTypes && this.artifact.type === 'map') {
+            return type.mapTypes.includes(this.getMapType());
+          }
+          return true;
+        });
+        const allowedValues = this.filteredFileTypes.map((type) => type.value);
+        const selectionStillValid =
+          this.selectedFileType != null && allowedValues.includes(this.selectedFileType);
+        if (!selectionStillValid) {
+          this.selectedFileType =
+            this.filteredFileTypes.length === 1 ? this.filteredFileTypes[0].value : null;
         }
       }
     }
@@ -593,6 +683,44 @@ export class JobsComponent implements OnChanges, OnInit, OnDestroy {
 
   closeTranslationStudioLinkConfirmation(): void {
     this.modalService.close('translation-studio-link-modal');
+  }
+
+  showMapDeleteSection(): boolean {
+    if (this.artifact?.type !== 'map' || this.shouldDisableEditing()) {
+      return false;
+    }
+    return (
+      (this.selectedFileType === 'simpleMapSpreadsheet' && this.isSimpleMapSpreadsheetMap()) ||
+      (this.selectedFileType === 'mapSpreadsheet' && this.isCorrelationMap())
+    );
+  }
+
+  openDeleteMapConfirmation(): void {
+    this.modalService.open('delete-map-modal');
+  }
+
+  closeDeleteMapConfirmation(): void {
+    this.modalService.close('delete-map-modal');
+  }
+
+  confirmDeleteMap(): void {
+    if (!this.edition || !this.artifact?.conceptId || this.artifact.type !== 'map') {
+      return;
+    }
+    this.closeDeleteMapConfirmation();
+    this.deletingMap = true;
+    this.simplexService
+      .deleteMapRefset(this.edition, this.artifact.conceptId, this.getMapType())
+      .subscribe({
+        next: () => {
+          this.snackBar.open('Map deleted', 'Dismiss', { duration: 5000 });
+          this.deletingMap = false;
+          this.mapDeleted.emit();
+        },
+        error: () => {
+          this.deletingMap = false;
+        },
+      });
   }
 
   confirmLinkToTranslationStudio(): void {

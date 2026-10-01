@@ -59,8 +59,9 @@ public abstract class AbstractRefsetController<T extends RefsetMemberIntent> {
 		SnowstormClient snowstormClient = getSnowstormClient();
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 
+		String refsetType = getRefsetType();
 		Concept concept = activityService.runActivity(codeSystem, getComponentType(), ActivityType.CREATE, () ->
-				snowstormClient.createSimpleMetadataConcept(getRefsetType(), createConceptRequest.getPreferredTerm(),
+				snowstormClient.createSimpleMetadataConcept(refsetType, createConceptRequest.getPreferredTerm(),
 						Concepts.FOUNDATION_METADATA_CONCEPT_TAG, theCodeSystem));
 		return snowstormClient.getRefset(concept.getConceptId(), theCodeSystem);
 	}

@@ -25,8 +25,9 @@
     
     <!-- Show radio buttons for non-translation artifacts -->
     <div *ngIf="artifact?.type !== 'translation' && !shouldDisableEditing() && !loadingActivities">
-        <p>Select source:</p>
-        <div class="row">
+        <p *ngIf="isSimpleMapSpreadsheetMap()">Edit map content using a spreadsheet (export and import).</p>
+        <p *ngIf="!isSimpleMapSpreadsheetMap()">Select source:</p>
+        <div class="row" *ngIf="showFileTypeSelector()">
             <mat-radio-group [value]="selectedFileType" (change)="onSelectedFileTypeChange($event)">
               <mat-radio-button *ngFor="let type of filteredFileTypes" [value]="type.value">
                 {{ type.viewValue }}
@@ -180,7 +181,40 @@
     </div>
 </div>
 
-<div *ngIf="selectedFileType == 'mapSpreadsheet' && !shouldDisableEditing()">
+<div *ngIf="selectedFileType == 'simpleMapSpreadsheet' && isSimpleMapSpreadsheetMap() && !shouldDisableEditing()">
+    <div class="step-row">
+        <span class="step-number">1</span>
+        Download spreadsheet with current content in the map
+        <button mat-flat-button color="primary" (click)="downloadMapSpreadsheet()" [disabled]="downloadMapFileDisabled">
+            <span>Download</span>
+        </button>
+    </div>
+    <div class="step-row">
+        <span class="step-number">2</span>
+        <ng-container *ngIf="getMapType() === 'fromSnomed'">
+            Edit map content in the spreadsheet. <strong>Source code</strong> = SNOMED CT concept id; <strong>Target code</strong> = map target code (non-SNOMED).
+        </ng-container>
+        <ng-container *ngIf="getMapType() === 'toSnomed'">
+            Edit map content in the spreadsheet. <strong>Source code</strong> = source / local code; <strong>Target code</strong> = SNOMED CT concept id.
+        </ng-container>
+    </div>
+    <div class="step-row">
+        <span class="step-number">3</span>
+        Upload the new version of the spreadsheet
+        <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;">
+        <div class="file-selection">
+            <button mat-flat-button color="primary" (click)="fileInput.click()">Choose File</button>
+            <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+        </div>
+        <div class="upload-btn">
+            <button mat-flat-button color="accent" (click)="uploadFile(artifact.conceptId, artifact.type, selectedFileType)" *ngIf="selectedFile">
+                Upload data
+            </button>
+        </div>
+    </div>
+</div>
+
+<div *ngIf="selectedFileType == 'mapSpreadsheet' && isCorrelationMap() && !shouldDisableEditing()">
     <div class="step-row">
         <span class="step-number">1</span>
         Edit maps in Snap2Snomed
@@ -218,6 +252,12 @@
             </button>
         </div>
     </div>
+</div>
+
+<div *ngIf="showMapDeleteSection()" class="map-delete-section">
+    <button mat-flat-button class="map-delete-button" (click)="openDeleteMapConfirmation()" [disabled]="deletingMap || hasInProgressJob">
+        Delete map
+    </button>
 </div>
 
 <div *ngIf="selectedFileType == 'refsetSpreadsheet' && !shouldDisableEditing()">
@@ -378,6 +418,17 @@
 <!-- <mat-spinner [diameter]="20" *ngIf="loading" class="loading-spinner"></mat-spinner> -->
 <p *ngIf="!loading && jobs.length == 0 && refsetId != 'external'" class="no-imports">There are no recent uploads for this component</p>
 <p *ngIf="!loading && jobs.length == 0 && refsetId == 'external'" class="no-imports">There are no recent tasks for this edition</p>
+
+<app-modal id="delete-map-modal" size="medium">
+    <div header><h4 class="m-0">Delete map</h4></div>
+    <div body>
+        <p>Delete map "{{ artifact?.pt?.term }}"? This removes the refset concept and all members. This cannot be undone.</p>
+    </div>
+    <div footer>
+        <button mat-button type="button" (click)="closeDeleteMapConfirmation()">Cancel</button>
+        <button mat-flat-button color="warn" type="button" (click)="confirmDeleteMap()" [disabled]="deletingMap">Delete</button>
+    </div>
+</app-modal>
 
 <app-modal id="translation-studio-link-modal" size="medium">
     <div header><h4 class="m-0">Add language to Translation Studio</h4></div>
