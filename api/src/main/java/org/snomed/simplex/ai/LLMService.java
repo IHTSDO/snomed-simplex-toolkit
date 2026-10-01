@@ -61,13 +61,17 @@ public class LLMService {
 		if (serviceTier != null && !serviceTier.isBlank()) {
 			modelBuilder.serviceTier(serviceTier);
 		}
-		if (!modelName.startsWith("gpt-5")) {
+		if (!usesReasoningModelDefaults(modelName)) {
 			modelBuilder
 					.maxTokens(500)
 					.temperature(0.0);
 		}
 
 		return modelBuilder.build();
+	}
+
+	private static boolean usesReasoningModelDefaults(String modelName) {
+		return modelName.startsWith("gpt-5") || modelName.startsWith("gpt-6");
 	}
 
 	private static ConfiguredChatModel configureModel(ChatModel model, String configuredModelName, String billingModelName) {

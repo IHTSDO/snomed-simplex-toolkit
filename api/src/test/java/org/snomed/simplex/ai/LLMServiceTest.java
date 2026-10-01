@@ -23,18 +23,18 @@ class LLMServiceTest {
 	void chatRecordsConfiguredBillingModelNameForFastTier() {
 		LlmUsageService llmUsageService = mock(LlmUsageService.class);
 		ChatModel chatModel = mock(ChatModel.class);
-		when(chatModel.chat(any(ChatRequest.class))).thenReturn(chatResponse("gpt-5.6-terra-2026-07-01", 130, 60));
+		when(chatModel.chat(any(ChatRequest.class))).thenReturn(chatResponse("gpt-6.1-sol-2026-07-01", 130, 60));
 
 		LLMService service = new LLMService(
 				llmUsageService,
-				new LLMService.ConfiguredChatModel(chatModel, "gpt-5.6-terra", "gpt-5.6-terra-fast", "openai"),
-				new LLMService.ConfiguredChatModel(chatModel, "gpt-5.6-terra", "gpt-5.6-terra", "openai"));
+				new LLMService.ConfiguredChatModel(chatModel, "gpt-6.1-sol", "gpt-6.1-sol-fast", "openai"),
+				new LLMService.ConfiguredChatModel(chatModel, "gpt-6.1-sol", "gpt-6.1-sol", "openai"));
 
 		service.chat("translate terms", true, new LlmCallContext("SNOMEDCT-ES", 2));
 
 		ArgumentCaptor<LlmUsageRecord> usageCaptor = ArgumentCaptor.forClass(LlmUsageRecord.class);
 		verify(llmUsageService).recordUsage(usageCaptor.capture());
-		assertEquals("gpt-5.6-terra-fast", usageCaptor.getValue().model());
+		assertEquals("gpt-6.1-sol-fast", usageCaptor.getValue().model());
 		assertEquals(130, usageCaptor.getValue().inputTokens());
 		assertEquals(60, usageCaptor.getValue().outputTokens());
 	}
@@ -43,18 +43,18 @@ class LLMServiceTest {
 	void chatRecordsConfiguredBillingModelNameForGoodTier() {
 		LlmUsageService llmUsageService = mock(LlmUsageService.class);
 		ChatModel chatModel = mock(ChatModel.class);
-		when(chatModel.chat(any(ChatRequest.class))).thenReturn(chatResponse("gpt-5.6-terra-2026-07-01", 200, 80));
+		when(chatModel.chat(any(ChatRequest.class))).thenReturn(chatResponse("gpt-6.1-sol-2026-07-01", 200, 80));
 
 		LLMService service = new LLMService(
 				llmUsageService,
-				new LLMService.ConfiguredChatModel(chatModel, "gpt-5.6-terra", "gpt-5.6-terra-fast", "openai"),
-				new LLMService.ConfiguredChatModel(chatModel, "gpt-5.6-terra", "gpt-5.6-terra", "openai"));
+				new LLMService.ConfiguredChatModel(chatModel, "gpt-6.1-sol", "gpt-6.1-sol-fast", "openai"),
+				new LLMService.ConfiguredChatModel(chatModel, "gpt-6.1-sol", "gpt-6.1-sol", "openai"));
 
 		service.chat("translate terms", false, new LlmCallContext("SNOMEDCT-ES", 5));
 
 		ArgumentCaptor<LlmUsageRecord> usageCaptor = ArgumentCaptor.forClass(LlmUsageRecord.class);
 		verify(llmUsageService).recordUsage(usageCaptor.capture());
-		assertEquals("gpt-5.6-terra", usageCaptor.getValue().model());
+		assertEquals("gpt-6.1-sol", usageCaptor.getValue().model());
 		assertEquals(200, usageCaptor.getValue().inputTokens());
 		assertEquals(80, usageCaptor.getValue().outputTokens());
 	}

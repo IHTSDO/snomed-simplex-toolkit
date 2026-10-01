@@ -29,7 +29,7 @@ public class TranslationLLMService {
 		- If a translation cannot be found output the line number and pipe but leave the translation blank.
 		- Preserve the original order of the lines; do not reorder, group, or summarize them.
 		- Preserve all modifiers, qualifiers, any body location descriptors.
-		- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.""";
+		- Set reasoning_effort = low; outputs should be terse, limited to the requested direct translations in plain text.""";
 
 	private static final String POLICY_REQUIRED_MESSAGE =
 			"Language translation policy with dialect name is required before running AI translation.";
@@ -229,7 +229,7 @@ public class TranslationLLMService {
 				- Provide X_TRANSLATIONS after each line number. If a translation cannot be found output the line number and pipe but leave the translation blank.
 				- Preserve the original order of the lines; do not reorder, group, or summarize them.
 				- Preserve all modifiers, qualifiers, any body location descriptors.
-				- Set reasoning_effort = minimal; outputs should be terse, limited to the requested direct translations in plain text.""";
+				- Set reasoning_effort = low; outputs should be terse, limited to the requested direct translations in plain text.""";
 
 		if (multipleSuggestions) {
 			guidelines = guidelines.replace("X_TRANSLATIONS", "two translations");
