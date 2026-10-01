@@ -31,6 +31,9 @@ export class CustomConceptDialogComponent implements OnInit {
 	parentTerm = '';
 	parentBinding: { ecl: string; branchPath: string } | null = null;
 	readonly isEditMode: boolean;
+	inactivationAllowed = true;
+	readonly artifactInactivationMessage =
+		'This concept is an edition artifact (translation, subset, or map). It cannot be inactivated here; manage it from Edition artifacts.';
 
 	get conceptsMaintainedExternally(): boolean {
 		return !!this.data.editionDetails?.conceptsMaintainedExternally;
@@ -90,6 +93,7 @@ export class CustomConceptDialogComponent implements OnInit {
 		this.simplexService.getCustomConcept(this.data.edition, this.data.conceptId!).subscribe({
 			next: (detail: any) => {
 				this.langRefsets = detail.langRefsets || [];
+				this.inactivationAllowed = detail.inactivationAllowed !== false;
 				this.parentTerm = detail.parentTerm
 					? `${detail.parentCode} |${detail.parentTerm}|`
 					: detail.parentCode || '';

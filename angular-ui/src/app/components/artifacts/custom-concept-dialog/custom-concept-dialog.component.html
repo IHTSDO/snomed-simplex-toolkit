@@ -6,9 +6,13 @@
 		</div>
 
 		<ng-container *ngIf="!loading">
-			<mat-slide-toggle formControlName="active" *ngIf="isEditMode" class="active-toggle">
+			<mat-slide-toggle formControlName="active" *ngIf="isEditMode" class="active-toggle"
+				[disabled]="!inactivationAllowed">
 				Active
 			</mat-slide-toggle>
+			<p class="field-hint" *ngIf="isEditMode && !inactivationAllowed">
+				{{ artifactInactivationMessage }}
+			</p>
 
 			<div class="field-section" *ngIf="form.get('active')?.value">
 				<h3>Parent concept</h3>
@@ -62,7 +66,7 @@
 				</div>
 			</ng-container>
 
-			<p class="field-hint" *ngIf="isEditMode && !form.get('active')?.value">
+			<p class="field-hint" *ngIf="isEditMode && inactivationAllowed && !form.get('active')?.value">
 				Saving will inactivate this concept.
 			</p>
 		</ng-container>

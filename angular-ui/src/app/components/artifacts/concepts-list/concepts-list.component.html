@@ -52,10 +52,17 @@
     <th mat-header-cell *matHeaderCellDef></th>
     <td mat-cell *matCellDef="let element">
       <ng-container *ngIf="!loading; else loadingAction">
-        <button mat-button color="primary" type="button" *ngIf="editable" (click)="openEditDialog(element.conceptId)">
-          Edit
-        </button>
-        <a href="javascript:void(0);" (click)="browseToConcept(element.conceptId)">Open in Browser</a>
+        <div class="concepts-list-actions">
+          <button mat-button color="primary" type="button" *ngIf="editable" (click)="openEditDialog(element.conceptId)">
+            Edit
+          </button>
+          <a mat-button color="primary" class="open-in-browser-btn" href="javascript:void(0);" (click)="browseToConcept(element.conceptId)">
+            <span class="open-in-browser-label">
+              <span class="open-in-browser-line">Open in</span>
+              <span class="open-in-browser-line">Browser</span>
+            </span>
+          </a>
+        </div>
       </ng-container>
       <ng-template #loadingAction>
         <div class="skeleton-loader" style="width: 50%;"></div>

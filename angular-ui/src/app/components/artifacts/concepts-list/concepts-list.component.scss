@@ -32,6 +32,30 @@
   background-color: rgb(222, 125, 123);
 }
 
+:host .mat-column-action {
+  white-space: nowrap;
+  min-width: 10rem;
+}
+
+.concepts-list-actions {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.open-in-browser-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+
+.open-in-browser-line {
+  display: block;
+  white-space: nowrap;
+}
+
 .concepts-list-toolbar {
   display: flex;
   flex-wrap: wrap;

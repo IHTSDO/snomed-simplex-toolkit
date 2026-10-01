@@ -8,6 +8,7 @@ import org.mockito.*;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.client.domain.Concept;
+import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.client.domain.Description;
 import org.snomed.simplex.domain.ConceptIntent;
@@ -53,8 +54,10 @@ class CustomConceptServiceTest {
 	private AutoCloseable closeable;
 
 	@BeforeEach
-	public void open() {
+	public void open() throws ServiceException {
 		closeable = MockitoAnnotations.openMocks(this);
+		Mockito.when(mockSnowstormClient.getRefsets(Mockito.anyString(), Mockito.any(CodeSystem.class)))
+				.thenReturn(List.of());
 	}
 
 	@AfterEach
@@ -274,6 +277,7 @@ class CustomConceptServiceTest {
 
 		assertEquals("429926006", detail.conceptId());
 		assertTrue(detail.active());
+		assertTrue(detail.inactivationAllowed());
 		assertNotNull(detail.langRefsetTerms().get(Concepts.US_LANG_REFSET));
 		assertFalse(detail.langRefsets().isEmpty());
 	}
@@ -333,6 +337,96 @@ class CustomConceptServiceTest {
 		Mockito.verify(mockSnowstormClient).createUpdateBrowserFormatConcepts(conceptListCaptor.capture(), Mockito.eq(codeSystem));
 		assertFalse(conceptListCaptor.getValue().get(0).isActive());
 		assertEquals(1, response.changeSummary().getRemoved());
+	}
+
+	@Test
+	void getCustomConceptDetail_disallowsInactivationForArtifactRefset() throws Exception {
+		String dummyModule = "101000003010";
+		String artifactConceptId = "429926006";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+
+		Concept existingConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
+		existingConcept.setModuleId(dummyModule);
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(List.of(429926006L), codeSystem))
+				.thenReturn(List.of(existingConcept));
+
+		ConceptMini subsetArtifact = new ConceptMini(artifactConceptId, null);
+		Mockito.when(mockSnowstormClient.getRefsets(Mockito.anyString(), Mockito.eq(codeSystem)))
+				.thenAnswer(invocation -> {
+					String ecl = invocation.getArgument(0);
+					if (ecl.equals("<" + Concepts.SIMPLE_TYPE_REFSET)) {
+						return List.of(subsetArtifact);
+					}
+					return List.of();
+				});
+
+		CustomConceptDetail detail = customConceptService.getCustomConceptDetail(codeSystem, mockSnowstormClient, artifactConceptId);
+
+		assertFalse(detail.inactivationAllowed());
+	}
+
+	@Test
+	void updateCustomConcept_rejectsInactivationOfArtifactRefset() throws Exception {
+		String dummyModule = "101000003010";
+		String artifactConceptId = "429926006";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+
+		ConceptMini subsetArtifact = new ConceptMini(artifactConceptId, null);
+		Mockito.when(mockSnowstormClient.getRefsets(Mockito.anyString(), Mockito.eq(codeSystem)))
+				.thenAnswer(invocation -> {
+					String ecl = invocation.getArgument(0);
+					if (ecl.equals("<" + Concepts.SIMPLE_TYPE_REFSET)) {
+						return List.of(subsetArtifact);
+					}
+					return List.of();
+				});
+
+		CustomConceptRequest request = new CustomConceptRequest(null, false, null, Map.of());
+
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> customConceptService.updateCustomConcept(codeSystem, mockSnowstormClient, artifactConceptId, request));
+
+		assertTrue(exception.getMessage().contains(CustomConceptService.ARTIFACT_INACTIVATION_MESSAGE));
+		Mockito.verify(mockSnowstormClient, never()).createUpdateBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem));
+	}
+
+	@Test
+	void createUpdateConcepts_rejectsSpreadsheetInactivationOfArtifactRefset() throws Exception {
+		String dummyModule = "101000003010";
+		String artifactConceptId = "429926006";
+		CodeSystem codeSystem = new CodeSystem("test", "SNOMEDCT-TEST", "MAIN/SNOMEDCT-TEST");
+		codeSystem.setDefaultModule(dummyModule);
+		codeSystem.setTranslationLanguages(Map.of());
+
+		ConceptMini subsetArtifact = new ConceptMini(artifactConceptId, null);
+		Mockito.when(mockSnowstormClient.getRefsets(Mockito.anyString(), Mockito.eq(codeSystem)))
+				.thenAnswer(invocation -> {
+					String ecl = invocation.getArgument(0);
+					if (ecl.equals("<" + Concepts.SIMPLE_TYPE_REFSET)) {
+						return List.of(subsetArtifact);
+					}
+					return List.of();
+				});
+
+		Concept existingConcept = objectMapper.readValue(getClass().getResourceAsStream("/dummy-concepts/429926006.json"), Concept.class);
+		existingConcept.setModuleId(dummyModule);
+		Mockito.when(mockSnowstormClient.loadBrowserFormatConcepts(Mockito.anyList(), Mockito.eq(codeSystem)))
+				.thenReturn(List.of(existingConcept));
+
+		ConceptIntent intent = new ConceptIntent(null, 5);
+		intent.setConceptCode(artifactConceptId);
+		intent.setInactive(true);
+
+		ServiceExceptionWithStatusCode exception = assertThrows(ServiceExceptionWithStatusCode.class,
+				() -> customConceptService.createUpdateConcepts(codeSystem, List.of(intent), List.of(Concepts.US_LANG_REFSET),
+						new ContentJob(new CodeSystem(), "", null), mockSnowstormClient));
+
+		assertTrue(exception.getMessage().contains(CustomConceptService.ARTIFACT_INACTIVATION_MESSAGE));
+		assertTrue(exception.getMessage().contains("row 5"));
 	}
 
 	@Test

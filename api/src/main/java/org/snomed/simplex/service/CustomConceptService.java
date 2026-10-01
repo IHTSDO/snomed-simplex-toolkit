@@ -46,6 +46,8 @@ import static org.snomed.simplex.client.domain.Concepts.US_LANG_REFSET;
 public class CustomConceptService {
 
 	private static final String CONCEPT_NOT_FOUND_MESSAGE = "Concept with code '%s' on row %s could not be found.";
+	static final String ARTIFACT_INACTIVATION_MESSAGE =
+			"This concept is an edition artifact (translation, subset, or map). It cannot be inactivated here; manage it from Edition artifacts.";
 
 	private final TranslationService translationService;
 	private final SpreadsheetService spreadsheetService;
@@ -83,13 +85,16 @@ public class CustomConceptService {
 		SpreadsheetService.ParentConceptReference parent = spreadsheetService.extractStatedParent(concept);
 		Map<String, List<String>> langRefsetTerms = spreadsheetService.mapDescriptionsPerLangRefset(
 				concept.getDescriptions(), langRefsetIds);
+		Set<String> editionArtifactRefsetConceptIds = collectEditionArtifactRefsetConceptIds(codeSystem, snowstormClient);
+		boolean inactivationAllowed = !editionArtifactRefsetConceptIds.contains(concept.getConceptId());
 		return new CustomConceptDetail(
 				concept.getConceptId(),
 				concept.isActive(),
 				parent.parentCode(),
 				parent.parentTerm(),
 				langRefsetTerms,
-				buildLangRefsetMetadata(langRefsets));
+				buildLangRefsetMetadata(langRefsets),
+				inactivationAllowed);
 	}
 
 	public CustomConceptSaveResponse createCustomConcept(CodeSystem codeSystem, SnowstormClient snowstormClient,
@@ -106,6 +111,9 @@ public class CustomConceptService {
 	public CustomConceptSaveResponse updateCustomConcept(CodeSystem codeSystem, SnowstormClient snowstormClient,
 			String conceptId, CustomConceptRequest request) throws ServiceException {
 		validateCustomConceptRequest(codeSystem, request, conceptId);
+		if (!request.active()) {
+			assertCustomConceptInactivationAllowed(conceptId, codeSystem, snowstormClient);
+		}
 		ConceptIntent intent = toConceptIntent(request, 1);
 		intent.setConceptCode(conceptId);
 		ChangeSummary changeSummary = saveConceptIntent(codeSystem, snowstormClient, intent);
@@ -216,6 +224,7 @@ public class CustomConceptService {
 	protected ChangeSummary createUpdateConcepts(CodeSystem codeSystem, List<ConceptIntent> conceptIntents, Collection<String> langRefsetIds,
 			ContentJob asyncJob, SnowstormClient snowstormClient) throws ServiceException {
 
+		Set<String> editionArtifactRefsetConceptIds = collectEditionArtifactRefsetConceptIds(codeSystem, snowstormClient);
 		ChangeSummary changeSummary = new ChangeSummary();
 		changeSummary.setNewTotal(conceptIntents.size());
 		asyncJob.setRecordsTotal(conceptIntents.size());
@@ -240,7 +249,8 @@ public class CustomConceptService {
 
 			List<Concept> conceptsToSave = new ArrayList<>();
 			for (ConceptIntent intent : intents) {
-				processConceptIntent(codeSystem, langRefsetIds, asyncJob, intent, parentConceptMap, existingConceptMap, defaultModule, changeSummary, conceptsToSave);
+				processConceptIntent(codeSystem, langRefsetIds, asyncJob, intent, parentConceptMap, existingConceptMap, defaultModule,
+						changeSummary, conceptsToSave, editionArtifactRefsetConceptIds);
 			}
 			if (!conceptsToSave.isEmpty()) {
 				logger.info("Create/Update {} concepts on {}, Job:{}", conceptsToSave.size(), codeSystem.getWorkingBranchPath(), jobId);
@@ -253,12 +263,16 @@ public class CustomConceptService {
 	}
 
 	private void processConceptIntent(CodeSystem codeSystem, Collection<String> langRefsetIds, ContentJob asyncJob, ConceptIntent intent, Map<String, Concept> parentConceptMap,
-			Map<String, Concept> existingConceptMap, String defaultModule, ChangeSummary changeSummary, List<Concept> conceptsToSave) throws ServiceException {
+			Map<String, Concept> existingConceptMap, String defaultModule, ChangeSummary changeSummary, List<Concept> conceptsToSave,
+			Set<String> editionArtifactRefsetConceptIds) throws ServiceException {
 
 		Concept concept;
 		String conceptCode = intent.getConceptCode();
 		Concept parentConcept = null;
 		boolean changed = false;
+		if (intent.isInactive() && conceptCode != null && editionArtifactRefsetConceptIds.contains(conceptCode)) {
+			throw artifactInactivationNotAllowed(conceptCode, intent.getRowNumber());
+		}
 		if (conceptCode != null) {
 			concept = existingConceptMap.get(conceptCode);
 			if (concept != null) {
@@ -302,6 +316,35 @@ public class CustomConceptService {
 
 	private static ServiceException conceptNotFound(String conceptCode, int row) {
 		return new ServiceException(format(CONCEPT_NOT_FOUND_MESSAGE, conceptCode, row));
+	}
+
+	private Set<String> collectEditionArtifactRefsetConceptIds(CodeSystem codeSystem, SnowstormClient snowstormClient)
+			throws ServiceException {
+		Set<String> ids = new HashSet<>();
+		for (ConceptMini translation : translationService.listTranslations(codeSystem, snowstormClient)) {
+			ids.add(translation.getConceptId());
+		}
+		for (ConceptMini subset : snowstormClient.getRefsets("<" + Concepts.SIMPLE_TYPE_REFSET, codeSystem)) {
+			ids.add(subset.getConceptId());
+		}
+		for (ConceptMini map : snowstormClient.getRefsets("<" + Concepts.SIMPLE_MAP_WITH_CORRELATION_TO_SNOMEDCT_REFSET, codeSystem)) {
+			ids.add(map.getConceptId());
+		}
+		return ids;
+	}
+
+	private void assertCustomConceptInactivationAllowed(String conceptId, CodeSystem codeSystem, SnowstormClient snowstormClient)
+			throws ServiceException {
+		if (collectEditionArtifactRefsetConceptIds(codeSystem, snowstormClient).contains(conceptId)) {
+			throw artifactInactivationNotAllowed(conceptId, 1);
+		}
+	}
+
+	private static ServiceExceptionWithStatusCode artifactInactivationNotAllowed(String conceptCode, int row) {
+		String message = row > 1
+				? format("%s Concept '%s' on row %s.", ARTIFACT_INACTIVATION_MESSAGE, conceptCode, row)
+				: ARTIFACT_INACTIVATION_MESSAGE;
+		return new ServiceExceptionWithStatusCode(message, HttpStatus.BAD_REQUEST);
 	}
 
 	private boolean updateExistingConcept(ConceptIntent intent, String defaultModule, ChangeSummary changeSummary, Concept concept, String conceptCode, boolean changed, Concept parentConcept) throws ServiceException {

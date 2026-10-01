@@ -9,6 +9,7 @@ public record CustomConceptDetail(
 		String parentCode,
 		String parentTerm,
 		Map<String, List<String>> langRefsetTerms,
-		List<CustomConceptLangRefset> langRefsets
+		List<CustomConceptLangRefset> langRefsets,
+		boolean inactivationAllowed
 ) {
 }
