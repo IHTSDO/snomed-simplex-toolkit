@@ -65,6 +65,7 @@ public class SnolateTranslationService {
 	public static final String CONCEPT_COLUMN = "Concept column";
 	public static final String SPREADSHEET_HAS_NO_HEADER_ROW = "Spreadsheet has no header row.";
 	public static final String SKIPPING_CONCEPT_NOT_FOUND_FOR_LANGUAGE = "Skipping concept {} not found for language {}";
+	public static final String FAILED_TO_WRITE_TRANSLATION_SET_EXPORT = "Failed to write translation set export.";
 
 	private final SnolateTranslationSourceRepository translationSourceRepository;
 	private final SnolateTranslationSearchService translationSearchService;
@@ -332,8 +333,6 @@ public class SnolateTranslationService {
 			return dedupeConceptIds(rawIds);
 		} catch (IOException e) {
 			throw new ServiceException("Failed to read concept list CSV.", e);
-		} catch (ServiceExceptionWithStatusCode e) {
-			throw e;
 		}
 	}
 
@@ -710,9 +709,9 @@ public class SnolateTranslationService {
 				flushCsvExportBatch(batch, writer);
 			}
 		} catch (UncheckedIOException e) {
-			throw new ServiceException("Failed to write translation set export.", e.getCause());
+			throw new ServiceException(FAILED_TO_WRITE_TRANSLATION_SET_EXPORT, e.getCause());
 		} catch (IOException e) {
-			throw new ServiceException("Failed to write translation set export.", e);
+			throw new ServiceException(FAILED_TO_WRITE_TRANSLATION_SET_EXPORT, e);
 		}
 	}
 
@@ -736,9 +735,9 @@ public class SnolateTranslationService {
 			applyTranslationSetExportColumnWidths(sheet, exportHeaderColumns(dialect).length);
 			workbook.write(out);
 		} catch (UncheckedIOException e) {
-			throw new ServiceException("Failed to write translation set export.", e.getCause());
+			throw new ServiceException(FAILED_TO_WRITE_TRANSLATION_SET_EXPORT, e.getCause());
 		} catch (IOException e) {
-			throw new ServiceException("Failed to write translation set export.", e);
+			throw new ServiceException(FAILED_TO_WRITE_TRANSLATION_SET_EXPORT, e);
 		}
 	}
 
