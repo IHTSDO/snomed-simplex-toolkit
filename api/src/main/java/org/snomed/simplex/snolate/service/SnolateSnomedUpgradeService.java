@@ -148,22 +148,26 @@ public class SnolateSnomedUpgradeService {
 		return new TranslationToolUpdatePlan(previousVersion, newVersionDate, newVersion, codeSystem);
 	}
 
-	int insertNewConceptStubsIntoSnolate(TranslationToolUpdatePlan updatePlan) throws ServiceExceptionWithStatusCode {
+	record SourcePersistResult(int added, int termsUpdated) {
+	}
+
+	SourcePersistResult insertNewConceptStubsIntoSnolate(TranslationToolUpdatePlan updatePlan) throws ServiceExceptionWithStatusCode {
 		File releaseFile = null;
 		try {
 			logger.info("Loading existing SNOMED CT concept list from persistence.");
 			List<Long> workingList = getCurrentConceptListFromPersistence();
 			Map<Long, String> newRows = new Long2ObjectOpenHashMap<>();
+			Map<Long, String> releasePtByConceptId = new Long2ObjectOpenHashMap<>();
 
 			logger.info("Downloading target release.");
 			Pair<String, File> releaseFileNameAndFile = codeSystemService.downloadVersionPackage(updatePlan.codeSystem(), updatePlan.newVersion());
 			releaseFile = releaseFileNameAndFile.getRight();
 			logger.info("Loading hierarchy-sorted list from release file.");
-			gatherNewRows(releaseFile, workingList, newRows);
+			gatherNewRows(releaseFile, workingList, newRows, releasePtByConceptId);
 
 			logger.info("Saving new list of SNOMED CT concepts to persistence.");
-			persistTranslationSources(workingList, newRows);
-			return newRows.size();
+			int termsUpdated = persistTranslationSources(workingList, newRows, releasePtByConceptId);
+			return new SourcePersistResult(newRows.size(), termsUpdated);
 		} finally {
 			FileUtils.deleteOrLogWarning(releaseFile);
 		}
@@ -173,9 +177,12 @@ public class SnolateSnomedUpgradeService {
 		return new LongArrayList(translationSearchService.listAllSourceCodesByOrder());
 	}
 
-	private void persistTranslationSources(List<Long> workingList, Map<Long, String> newRows) throws ServiceExceptionWithStatusCode {
+	int persistTranslationSources(List<Long> workingList, Map<Long, String> newRows, Map<Long, String> releasePtByConceptId)
+			throws ServiceExceptionWithStatusCode {
+
 		Map<String, TranslationSource> existingByCode = translationSearchService.mapAllTranslationSourcesByCode();
 		List<TranslationSource> toSave = new ArrayList<>();
+		int termsUpdated = 0;
 		int order = 0;
 		for (Long code : workingList) {
 			String codeStr = code.toString();
@@ -187,6 +194,9 @@ public class SnolateSnomedUpgradeService {
 					throw new ServiceExceptionWithStatusCode("Expected existing TranslationSource for code %s".formatted(codeStr), HttpStatus.INTERNAL_SERVER_ERROR);
 				}
 				row.setOrder(order);
+				if (applyReleaseTerm(row, releasePtByConceptId.get(code))) {
+					termsUpdated++;
+				}
 				toSave.add(row);
 			}
 			order++;
@@ -200,9 +210,22 @@ public class SnolateSnomedUpgradeService {
 				logger.info("Persisted {} of {} translation sources.", nf.format(end), nf.format(total));
 			}
 		}
+		return termsUpdated;
 	}
 
-	private void gatherNewRows(File releaseFile, List<Long> workingList, Map<Long, String> newRows) throws ServiceExceptionWithStatusCode {
+	static boolean applyReleaseTerm(TranslationSource row, String releasePt) {
+		if (releasePt == null) {
+			return false;
+		}
+		if (Objects.equals(row.getTerm(), releasePt)) {
+			return false;
+		}
+		row.setTerm(releasePt);
+		return true;
+	}
+
+	private void gatherNewRows(File releaseFile, List<Long> workingList, Map<Long, String> newRows,
+			Map<Long, String> releasePtByConceptId) throws ServiceExceptionWithStatusCode {
 		ComponentStore componentStore = new ComponentStore();
 		LoadingProfile loadingProfile = LoadingProfile.light;
 
@@ -226,10 +249,12 @@ public class SnolateSnomedUpgradeService {
 		while (!nextConcepts.isEmpty()) {
 			ConceptImpl currentConcept = nextConcepts.remove();
 			if (coveredConcepts.add(currentConcept.getId())) {
+				String pt = componentFactory.getPt(currentConcept);
+				releasePtByConceptId.put(currentConcept.getId(), pt);
 				if (!workingList.contains(currentConcept.getId())) {
 					int i = workingList.indexOf(previousConceptId);
 					workingList.add(i + 1, currentConcept.getId());
-					newRows.put(currentConcept.getId(), componentFactory.getPt(currentConcept));
+					newRows.put(currentConcept.getId(), pt);
 				}
 
 				addSortedChildren(currentConcept, componentFactory, nextConcepts);
@@ -265,14 +290,15 @@ public class SnolateSnomedUpgradeService {
 		logger.info("Starting update of SNOMED CT concepts in Snolate. Current version:{}, New version:{}.",
 				updatePlan.currentVersion(), updatePlan.newVersionDate());
 
-		int added = insertNewConceptStubsIntoSnolate(updatePlan);
+		SourcePersistResult persistResult = insertNewConceptStubsIntoSnolate(updatePlan);
 		int newTotal = (int) translationSourceRepository.count();
 		TranslationUnitOrderSync.syncAllUnits(translationSearchService, translationSourceRepository, translationUnitStore);
 		contentJob.setRecordsProcessed(100);
-		logger.info("Snolate SNOMED CT source updated. {} new concepts persisted.", added);
+		logger.info("Snolate SNOMED CT source updated. {} new concepts persisted, {} English terms updated.",
+				persistResult.added(), persistResult.termsUpdated());
 
 		snowstormClient.upsertBranchMetadata(MAIN_BRANCH, Map.of(TRANSLATION_TOOL_DEPENDENCY, updatePlan.newVersionDate().toString()));
 
-		return new ChangeSummary(added, 0, 0, newTotal);
+		return new ChangeSummary(persistResult.added(), persistResult.termsUpdated(), 0, newTotal);
 	}
 }
