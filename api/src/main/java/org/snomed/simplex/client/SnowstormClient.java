@@ -480,7 +480,7 @@ public class SnowstormClient {
 
 	/**
 	 * Returns true if {@code ancestorConceptId} appears among ancestors of {@code conceptId} on the edition branch.
-	 * Uses ECL {@code >conceptId} with returnIdOnly and stops at the first matching ancestor.
+	 * Uses ECL {@code >conceptId} via concept search (returnIdOnly) and stops at the first matching ancestor.
 	 */
 	public boolean isAncestorOf(String ancestorConceptId, String conceptId, CodeSystem codeSystem) {
 		if (ancestorConceptId == null || conceptId == null || ancestorConceptId.isBlank() || conceptId.isBlank()) {
@@ -503,8 +503,13 @@ public class SnowstormClient {
 
 	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter, int limit) throws ServiceExceptionWithStatusCode {
 		try {
-			String url = format("/%s/concepts?ecl=%s%s&limit=%s", codeSystem.getWorkingBranchPath(), ecl,
-					moduleFilter != null ? String.format("&module=%s", moduleFilter) : "", limit);
+			UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
+					.queryParam("ecl", ecl)
+					.queryParam(QUERY_PARAM_LIMIT, limit);
+			if (moduleFilter != null) {
+				urlBuilder.queryParam(QUERY_PARAM_MODULE, moduleFilter);
+			}
+			String url = urlBuilder.toUriString();
 			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(url, HttpMethod.GET, null, responseTypeConceptMiniPage);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
@@ -897,7 +902,7 @@ public class SnowstormClient {
 		private boolean lastPage;
 		private int total;
 
-		private final ParameterizedTypeReference<Page<String>> listOfConceptIdsType = new ParameterizedTypeReference<>() {};
+		private final ParameterizedTypeReference<Page<Long>> listOfConceptIdsType = new ParameterizedTypeReference<>() {};
 
 		public ConceptIdStream(String branch, String ecl, RestTemplate restTemplate, int maxFetches) {
 			this.branch = branch;
@@ -917,14 +922,22 @@ public class SnowstormClient {
 				} catch (ServiceException e) {
 					throw new RuntimeServiceException(e.getMessage(), e);
 				}
-				String url = format("/%s/concepts?ecl=%s&form=inferred&returnIdOnly=true&limit=%s&searchAfter=%s", branch, ecl, MAX_PAGE_SIZE, searchAfter);
-				ResponseEntity<Page<String>> pageResponse = restTemplate.exchange(url, HttpMethod.GET, null, listOfConceptIdsType);
-				Page<String> page = pageResponse.getBody();
+				Map<String, Object> searchRequest = new HashMap<>();
+				searchRequest.put("form", "inferred");
+				searchRequest.put("eclFilter", ecl);
+				searchRequest.put(QUERY_PARAM_RETURN_ID_ONLY, true);
+				searchRequest.put(QUERY_PARAM_LIMIT, MAX_PAGE_SIZE);
+				searchRequest.put("searchAfter", searchAfter);
+
+				String url = format("/%s/concepts/search", branch);
+				ResponseEntity<Page<Long>> pageResponse = restTemplate.exchange(url, HttpMethod.POST,
+						new HttpEntity<>(searchRequest), listOfConceptIdsType);
+				Page<Long> page = pageResponse.getBody();
 				if (page == null) {
 					return null;
 				}
 				total = page.getTotal().intValue();
-				items = page.getItems();
+				items = page.getItems() == null ? List.of() : page.getItems().stream().map(String::valueOf).toList();
 				itemOffset = 0;
 				if (items.isEmpty()) {
 					return null;
