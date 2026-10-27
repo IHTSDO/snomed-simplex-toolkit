@@ -104,7 +104,7 @@ public class AdminConceptEditorService {
 		}
 
 		concept.setDescriptions(updatedDescriptions);
-		snowstormClient.updateConcept(concept, codeSystem);
+		snowstormClient.createUpdateBrowserFormatConcepts(List.of(concept), codeSystem);
 
 		Concept reloaded = loadConceptOrThrow(codeSystem, snowstormClient, conceptId);
 		List<AdminConceptLangRefsetDto> langRefsets = buildLangRefsetMetadata(codeSystem, snowstormClient, reloaded);

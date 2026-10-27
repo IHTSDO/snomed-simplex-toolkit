@@ -13,6 +13,7 @@ import org.snomed.simplex.client.domain.ConceptMini;
 import org.snomed.simplex.client.domain.Concepts;
 import org.snomed.simplex.client.domain.Description;
 import org.snomed.simplex.client.domain.DescriptionMini;
+import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.AdminConceptDescriptionDto;
 import org.snomed.simplex.rest.pojos.AdminConceptEditorDetail;
@@ -27,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -105,10 +108,33 @@ class AdminConceptEditorServiceTest {
 
 		service.applyDescriptionEdits(codeSystem, snowstormClient, "123456789", request);
 
-		ArgumentCaptor<Concept> conceptCaptor = ArgumentCaptor.forClass(Concept.class);
-		verify(snowstormClient).updateConcept(conceptCaptor.capture(), eq(codeSystem));
-		Description saved = conceptCaptor.getValue().getDescriptions().get(0);
-		assertEquals(Description.Acceptability.ACCEPTABLE, saved.getAcceptabilityMap().get(Concepts.US_LANG_REFSET));
+		Concept saved = captureSavedConcept();
+		assertEquals(Description.Acceptability.ACCEPTABLE, saved.getDescriptions().get(0).getAcceptabilityMap().get(Concepts.US_LANG_REFSET));
+	}
+
+	@Test
+	void applyDescriptionEdits_marksUnreleasedInactiveDescriptionForRemoval() throws Exception {
+		Description fsn = description("1", "Finding (finding)", Description.Type.FSN, true, true);
+		fsn.addAcceptability(Concepts.US_LANG_REFSET, Description.Acceptability.PREFERRED);
+		Description unreleasedSynonym = description("2", "Stale synonym", Description.Type.SYNONYM, true, false);
+		unreleasedSynonym.addAcceptability(Concepts.US_LANG_REFSET, Description.Acceptability.ACCEPTABLE);
+		Concept concept = conceptWithDescriptions(fsn, unreleasedSynonym);
+		when(snowstormClient.loadBrowserFormatConcepts(any(), eq(codeSystem))).thenReturn(List.of(concept));
+		when(translationService.listTranslations(codeSystem, snowstormClient)).thenReturn(List.of());
+
+		AdminConceptUpdateRequest request = new AdminConceptUpdateRequest(List.of(
+				new AdminConceptDescriptionDto("1", "Finding (finding)", "FSN", "en", true, true,
+						"101000003010", null, Map.of(Concepts.US_LANG_REFSET, "PREFERRED")),
+				new AdminConceptDescriptionDto("2", "Stale synonym", "SYNONYM", "en", false, false,
+						"101000003010", null, Map.of())
+		));
+
+		service.applyDescriptionEdits(codeSystem, snowstormClient, "123456789", request);
+
+		Concept saved = captureSavedConcept();
+		Description removed = saved.getDescriptions().stream().filter(d -> "2".equals(d.getDescriptionId())).findFirst().orElseThrow();
+		assertFalse(removed.isActive());
+		assertTrue(removed.isRemove());
 	}
 
 	@Test
@@ -129,9 +155,8 @@ class AdminConceptEditorServiceTest {
 
 		service.applyDescriptionEdits(codeSystem, snowstormClient, "123456789", request);
 
-		ArgumentCaptor<Concept> conceptCaptor = ArgumentCaptor.forClass(Concept.class);
-		verify(snowstormClient).updateConcept(conceptCaptor.capture(), eq(codeSystem));
-		Description added = conceptCaptor.getValue().getDescriptions().stream()
+		Concept savedConcept = captureSavedConcept();
+		Description added = savedConcept.getDescriptions().stream()
 				.filter(d -> "New synonym".equals(d.getTerm()))
 				.findFirst()
 				.orElseThrow();
@@ -156,10 +181,15 @@ class AdminConceptEditorServiceTest {
 		service.applyDescriptionEdits(codeSystem, snowstormClient, "123456789", request);
 
 		verify(translationService).guessCaseSignificance(eq("New term (finding)"), any());
-		ArgumentCaptor<Concept> conceptCaptor = ArgumentCaptor.forClass(Concept.class);
-		verify(snowstormClient).updateConcept(conceptCaptor.capture(), eq(codeSystem));
-		Description saved = conceptCaptor.getValue().getDescriptions().get(0);
-		assertEquals(Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE, saved.getCaseSignificance());
+		Concept saved = captureSavedConcept();
+		assertEquals(Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE, saved.getDescriptions().get(0).getCaseSignificance());
+	}
+
+	@SuppressWarnings("unchecked")
+	private Concept captureSavedConcept() throws ServiceException {
+		ArgumentCaptor<List<Concept>> conceptCaptor = ArgumentCaptor.forClass(List.class);
+		verify(snowstormClient).createUpdateBrowserFormatConcepts(conceptCaptor.capture(), eq(codeSystem));
+		return conceptCaptor.getValue().get(0);
 	}
 
 	private static Concept conceptWithDescriptions(Description... descriptions) {
