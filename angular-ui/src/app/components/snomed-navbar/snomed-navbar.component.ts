@@ -53,6 +53,7 @@ export class SnomedNavbarComponent implements OnInit, OnDestroy {
     editions = [];
     loading = false;
     private readonly SELECTED_EDITION_COOKIE_NAME = 'selectedEdition';
+    private loadEditionsGeneration = 0;
 
     apps: LauncherApp[] = [];
     authoringPlatformMode: boolean;
@@ -98,20 +99,9 @@ export class SnomedNavbarComponent implements OnInit, OnDestroy {
             filter(event => event instanceof NavigationEnd)
         ).subscribe(() => {
             this.updateNavSuiteTitle();
-            const url = this.router.url;
-            // Do nothing if the current route is /admin
-            if (url === '/admin') {
-                return;
-            }
-            const editionParam = this.route.firstChild?.snapshot.paramMap.get('edition');
-            // Load editions if the edition parameter is defined
-            if (editionParam) {
-                this.loadEditions(editionParam);
-            } else if (!url.includes('/home')) {
-                // Load editions if the edition parameter is not defined
-                this.loadEditions(null);
-            }
+            this.syncEditionSelectionFromRoute();
         });
+        this.syncEditionSelectionFromRoute();
     }
 
     ngOnDestroy() {
@@ -144,42 +134,95 @@ export class SnomedNavbarComponent implements OnInit, OnDestroy {
         document.body.classList.add('app-drawer-open');
     }
 
-    loadEditions(editionParam: string | null) {
+    private syncEditionSelectionFromRoute(): void {
+        const url = this.router.url.split('?')[0];
+        if (url === '/admin') {
+            return;
+        }
+        const urlEdition = this.getEditionShortNameFromRoute();
+        if (urlEdition) {
+            if (urlEdition === this.selectedEdition?.shortName && this.editions.length > 0) {
+                this.saveEditionToCookie(urlEdition);
+                return;
+            }
+            this.loadEditions();
+            return;
+        }
+        if (!url.includes('/home')) {
+            if (this.selectedEdition && this.editions.length > 0) {
+                return;
+            }
+            this.loadEditions();
+        }
+    }
+
+    loadEditions() {
         if (!this.uiConfigurationService.getConfiguration()) {
             this.initialize();
         }
+        const generation = ++this.loadEditionsGeneration;
         this.editions = [];
         this.loading = true;
 
         lastValueFrom(this.simplexService.getEditions()).then(
             (editions) => {
-                // Remove editions with empty names
+                if (generation !== this.loadEditionsGeneration) {
+                    return;
+                }
                 editions.items = editions.items.filter((item) => item.name);
                 this.editions = editions.items;
+                if (this.editions.length === 0) {
+                    this.loading = false;
+                    return;
+                }
 
-                // Find the edition that matches the 'edition' parameter, if available
-                const matchedEdition = this.editions.find((item) => item.shortName === editionParam);
-
-                // Select the matched edition or fall back to the first one
-                if (editionParam && matchedEdition) {
-                    this.selectEdition(matchedEdition);
+                const urlEdition = this.getEditionShortNameFromRoute();
+                if (urlEdition) {
+                    this.saveEditionToCookie(urlEdition);
+                    const matchedEdition = this.editions.find((item) => item.shortName === urlEdition);
+                    this.applyEditionSelection(matchedEdition ?? this.editions[0], { updateUrl: false });
                 } else {
-                    // Check for saved edition in cookie
                     const savedEditionShortName = this.getSavedEdition();
                     const savedEdition = this.editions.find((item) => item.shortName === savedEditionShortName);
-
-                    if (savedEdition) {
-                        this.selectEdition(savedEdition);
-                    } else {
-                        this.selectEdition(this.editions[0]);
-                    }
+                    this.applyEditionSelection(savedEdition ?? this.editions[0]);
                 }
                 this.loading = false;
             },
             (error) => {
+                if (generation === this.loadEditionsGeneration) {
+                    this.loading = false;
+                }
                 console.error(error);
             }
         );
+    }
+
+    /** Edition shortName from route params or URL segments (e.g. /artifact/:edition). */
+    private getEditionShortNameFromRoute(): string | null {
+        let child = this.route.snapshot.firstChild;
+        while (child) {
+            const edition = child.paramMap.get('edition');
+            if (edition) {
+                return edition;
+            }
+            child = child.firstChild;
+        }
+        const path = this.router.url.split('?')[0];
+        const patterns = [
+            /^\/artifact\/([^/]+)/,
+            /^\/manage\/([^/]+)/,
+            /^\/info\/([^/]+)/,
+            /^\/releases\/([^/]+)/,
+            /^\/translation-studio\/([^/]+)/,
+            /^\/translation-dashboard\/([^/]+)/
+        ];
+        for (const pattern of patterns) {
+            const match = path.match(pattern);
+            if (match) {
+                return match[1];
+            }
+        }
+        return null;
     }
 
 
@@ -196,11 +239,22 @@ export class SnomedNavbarComponent implements OnInit, OnDestroy {
     }
 
     selectEdition(item: any) {
+        this.loadEditionsGeneration++;
+        this.applyEditionSelection(item);
+    }
+
+    private applyEditionSelection(item: any, options?: { updateUrl?: boolean }): void {
+        if (!item) {
+            return;
+        }
         this.selectedEdition = item;
         this.uiConfigurationService.setSelectedEdition(item);
         this.saveEditionToCookie(item.shortName);
         this.loadDependencyLabel(item);
-        const editionInPath = this.route.firstChild?.snapshot.paramMap.get('edition');
+        if (options?.updateUrl === false) {
+            return;
+        }
+        const editionInPath = this.getEditionShortNameFromRoute();
         if (editionInPath === item.shortName) {
             return;
         }
@@ -258,12 +312,26 @@ export class SnomedNavbarComponent implements OnInit, OnDestroy {
 
     private saveEditionToCookie(editionShortName: string): void {
         try {
-            // Set cookie to expire in 1 year
             const expiryDate = new Date();
             expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-            this.cookieService.set(this.SELECTED_EDITION_COOKIE_NAME, editionShortName, expiryDate);
+            const path = this.getAppCookiePath();
+            this.cookieService.set(this.SELECTED_EDITION_COOKIE_NAME, editionShortName, expiryDate, path);
         } catch (error) {
             console.error('Error saving edition cookie:', error);
+        }
+    }
+
+    /** Cookie path scoped to the app base href so the value is readable from /artifacts and sibling routes. */
+    private getAppCookiePath(): string {
+        const baseHref = document.querySelector('base')?.getAttribute('href') ?? '/simplex/';
+        try {
+            const pathname = new URL(baseHref, window.location.origin).pathname;
+            if (pathname.endsWith('/') && pathname.length > 1) {
+                return pathname.slice(0, -1);
+            }
+            return pathname || '/';
+        } catch {
+            return '/simplex';
         }
     }
 
