@@ -534,20 +534,33 @@ public class SnowstormClient {
 
 	public List<RefsetMember> loadAllRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly) throws ServiceException {
 		List<RefsetMember> refsetMembers = new ArrayList<>();
+		forEachRefsetMemberPage(refsetId, codeSystem, activeOnly, refsetMembers::addAll);
+		return refsetMembers;
+	}
+
+	@FunctionalInterface
+	public interface RefsetMemberPageHandler {
+		void accept(List<RefsetMember> page) throws ServiceException;
+	}
+
+	public void forEachRefsetMemberPage(String refsetId, CodeSystem codeSystem, boolean activeOnly,
+			RefsetMemberPageHandler pageHandler) throws ServiceException {
+
 		String searchAfter = null;
 		Page<RefsetMember> page;
 		SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
 		do {
 			guard.beforeFetch(searchAfter);
 			page = getRefsetMembers(refsetId, codeSystem, activeOnly, MAX_PAGE_SIZE, searchAfter);
-			refsetMembers.addAll(page.getItems());
-			if (page.getItems().size() == MAX_PAGE_SIZE) {
+			List<RefsetMember> items = page.getItems() != null ? page.getItems() : List.of();
+			if (!items.isEmpty()) {
+				pageHandler.accept(items);
+			}
+			if (items.size() == MAX_PAGE_SIZE) {
 				guard.afterFullPage(searchAfter, page.getSearchAfter());
 				searchAfter = page.getSearchAfter();
 			}
-		} while (page.getItems().size() == MAX_PAGE_SIZE);
-
-		return refsetMembers;
+		} while (page.getItems() != null && page.getItems().size() == MAX_PAGE_SIZE);
 	}
 
 	public int countAllActiveRefsetMembers(String refsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
@@ -581,6 +594,9 @@ public class SnowstormClient {
 	}
 
 	public void createUpdateRefsetMembers(List<RefsetMember> membersToCreateUpdate, CodeSystem codeSystem) throws ServiceException {
+		if (membersToCreateUpdate == null || membersToCreateUpdate.isEmpty()) {
+			return;
+		}
 
 		List<String> memberIds = membersToCreateUpdate.stream().map(RefsetMember::getMemberId).toList();
 		Set<String> memberIdSet = new HashSet<>();
@@ -589,6 +605,13 @@ public class SnowstormClient {
 				throw new IllegalArgumentException("create/update request contains a duplicate member id " + memberId);
 			}
 		}
+
+		for (List<RefsetMember> batch : Iterables.partition(membersToCreateUpdate, 1_000)) {
+			createUpdateRefsetMembersBatch(batch, codeSystem);
+		}
+	}
+
+	private void createUpdateRefsetMembersBatch(List<RefsetMember> membersToCreateUpdate, CodeSystem codeSystem) throws ServiceException {
 
 		URI bulkJobUri;
 		try {
@@ -964,8 +987,44 @@ public class SnowstormClient {
 	public List<Concept> loadBrowserFormatConcepts(List<Long> conceptIds, CodeSystem codeSystem) {
 		ParameterizedTypeReference<List<Concept>> listOfConcepts = new ParameterizedTypeReference<>(){};
 		ResponseEntity<List<Concept>> response = restTemplate.exchange(format("/browser/%s/concepts/bulk-load", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
-				new HttpEntity<>(ConceptBulkLoadRequest.of(conceptIds)), listOfConcepts);
+				new HttpEntity<>(ConceptBulkLoadRequest.ofConceptIds(conceptIds)), listOfConcepts);
 		return response.getBody();
+	}
+
+	public List<Concept> loadBrowserFormatConceptsByDescriptionIds(Collection<String> descriptionIds, CodeSystem codeSystem) {
+		if (descriptionIds.isEmpty()) {
+			return List.of();
+		}
+		ParameterizedTypeReference<List<Concept>> listOfConcepts = new ParameterizedTypeReference<>(){};
+		List<Concept> results = new ArrayList<>();
+		for (List<String> batch : Lists.partition(new ArrayList<>(descriptionIds), 200)) {
+			ResponseEntity<List<Concept>> response = restTemplate.exchange(
+					format("/browser/%s/concepts/bulk-load", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
+					new HttpEntity<>(ConceptBulkLoadRequest.ofDescriptionIds(batch)), listOfConcepts);
+			if (response.getBody() != null) {
+				results.addAll(response.getBody());
+			}
+		}
+		return results;
+	}
+
+	public Map<String, Boolean> loadDescriptionActiveFlags(Collection<String> descriptionIds, CodeSystem codeSystem) {
+		if (descriptionIds.isEmpty()) {
+			return Map.of();
+		}
+		Set<String> requested = new HashSet<>(descriptionIds);
+		Map<String, Boolean> flags = new HashMap<>();
+		for (List<String> batch : Lists.partition(new ArrayList<>(requested), 200)) {
+			for (Concept concept : CollectionUtils.orEmpty(loadBrowserFormatConceptsByDescriptionIds(batch, codeSystem))) {
+				for (Description description : CollectionUtils.orEmpty(concept.getDescriptions())) {
+					String descriptionId = description.getDescriptionId();
+					if (requested.contains(descriptionId)) {
+						flags.put(descriptionId, description.isActive());
+					}
+				}
+			}
+		}
+		return flags;
 	}
 
 	public List<Concept> loadBrowserFormatConceptsUsingGet(List<Long> conceptIds, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
@@ -1404,11 +1463,16 @@ public class SnowstormClient {
 		return response.getBody();
 	}
 
-	private record ConceptBulkLoadRequest(Set<String> conceptIds) {
+	private record ConceptBulkLoadRequest(Set<String> conceptIds, Set<String> descriptionIds) {
 
-			public static ConceptBulkLoadRequest of(Collection<Long> conceptIds) {
-				return new ConceptBulkLoadRequest(conceptIds.stream().map(Objects::toString).collect(Collectors.toSet()));
-			}
+		static ConceptBulkLoadRequest ofConceptIds(Collection<Long> conceptIds) {
+			return new ConceptBulkLoadRequest(
+					conceptIds.stream().map(Objects::toString).collect(Collectors.toSet()), Set.of());
+		}
+
+		static ConceptBulkLoadRequest ofDescriptionIds(Collection<String> descriptionIds) {
+			return new ConceptBulkLoadRequest(Set.of(), new HashSet<>(descriptionIds));
+		}
 
 	}
 

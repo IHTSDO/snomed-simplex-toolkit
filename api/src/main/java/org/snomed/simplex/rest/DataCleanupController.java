@@ -10,8 +10,10 @@ import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.domain.activity.ActivityType;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.rest.pojos.DeleteFsnDescriptionsResult;
+import org.snomed.simplex.rest.pojos.LanguageRefsetInactiveDescriptionCleanupResult;
 import org.snomed.simplex.service.ActivityService;
 import org.snomed.simplex.service.AdminFsnDeletionService;
+import org.snomed.simplex.service.LanguageRefsetInactiveDescriptionCleanupService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,13 +30,16 @@ import static org.snomed.simplex.domain.activity.ComponentType.CODE_SYSTEM;
 public class DataCleanupController {
 
 	private final AdminFsnDeletionService adminFsnDeletionService;
+	private final LanguageRefsetInactiveDescriptionCleanupService languageRefsetInactiveDescriptionCleanupService;
 	private final ActivityService activityService;
 	private final SnowstormClientFactory snowstormClientFactory;
 
 	public DataCleanupController(AdminFsnDeletionService adminFsnDeletionService,
+			LanguageRefsetInactiveDescriptionCleanupService languageRefsetInactiveDescriptionCleanupService,
 			ActivityService activityService,
 			SnowstormClientFactory snowstormClientFactory) {
 		this.adminFsnDeletionService = adminFsnDeletionService;
+		this.languageRefsetInactiveDescriptionCleanupService = languageRefsetInactiveDescriptionCleanupService;
 		this.activityService = activityService;
 		this.snowstormClientFactory = snowstormClientFactory;
 	}
@@ -71,5 +76,20 @@ public class DataCleanupController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		return activityService.runActivity(codeSystem, CODE_SYSTEM, ActivityType.UPDATE, () ->
 				adminFsnDeletionService.deleteAllFsnDescriptions(theCodeSystem, snowstormClient, dryRun, language));
+	}
+
+	@PostMapping("/language-refset-inactive-descriptions")
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	@Operation(summary = "Inactivate language refset members whose referenced description is inactive",
+			description = "Pages through active members of the given language refset, batch-loads referenced descriptions from Snowstorm, "
+					+ "and inactivates members when the description is inactive or missing.")
+	public LanguageRefsetInactiveDescriptionCleanupResult cleanupLanguageRefsetInactiveDescriptions(
+			@PathVariable String codeSystem,
+			@RequestParam String refsetId) throws ServiceException {
+
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		return activityService.runActivity(codeSystem, CODE_SYSTEM, ActivityType.UPDATE, () ->
+				languageRefsetInactiveDescriptionCleanupService.cleanup(theCodeSystem, snowstormClient, refsetId));
 	}
 }
