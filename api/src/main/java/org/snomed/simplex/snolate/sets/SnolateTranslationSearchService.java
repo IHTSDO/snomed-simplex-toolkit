@@ -422,6 +422,14 @@ public class SnolateTranslationSearchService {
 	}
 
 	/**
+	 * Visits every translation unit in the set matching {@code statusFilter}, in default order,
+	 * using {@code search_after} paging.
+	 */
+	public void forEachUnitInSet(String compositeSetCode, String compositeLanguageCode, TranslationStatus statusFilter, Consumer<TranslationUnit> consumer) {
+		forEachUnitInSet(compositeSetCode, compositeLanguageCode, statusFilter, UNITS_IN_SET_STREAM_SORT, consumer);
+	}
+
+	/**
 	 * Visits every translation unit in the set matching optional {@code statusFilter}, in {@code sort} order,
 	 * using {@code search_after} paging.
 	 */
