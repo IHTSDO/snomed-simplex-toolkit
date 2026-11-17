@@ -288,6 +288,7 @@ public class CodeSystemController {
 		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
 		activityService.runActivity(codeSystem, CODE_SYSTEM, UPDATE_CONFIGURATION, () -> {
 			snowstormClient.setCodeSystemWorkingBranch(theCodeSystem, request.getBranchPath());
+			codeSystemService.refreshCache(codeSystem);
 			return null;
 		});
 	}
