@@ -10,6 +10,9 @@ export function translationStatusLabel(status: string | null | undefined): strin
 			return 'For review';
 		case 'APPROVED':
 			return 'Approved';
+		// PROMOTED_TO_TASK is a hidden intermediate state: looks identical to COMPLETE to users.
+		// Only distinguished internally so a Managed Service task rejection can revert it to APPROVED.
+		case 'PROMOTED_TO_TASK':
 		case 'COMPLETE':
 			return 'Promoted';
 		case 'NOT_STARTED':
@@ -64,6 +67,7 @@ export function translationStatusRadioLabel(status: string): string {
 			return 'Ready for review';
 		case 'APPROVED':
 			return 'Approved';
+		case 'PROMOTED_TO_TASK':
 		case 'COMPLETE':
 			return 'Promoted';
 		case 'NOT_STARTED':
