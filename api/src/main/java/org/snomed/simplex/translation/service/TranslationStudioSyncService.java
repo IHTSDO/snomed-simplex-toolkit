@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.config.SimplexMode;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.service.ProgressMonitor;
@@ -21,6 +22,7 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.domain.TranslationIntent;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.repository.TranslationStateRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -46,6 +48,9 @@ public class TranslationStudioSyncService {
 	private final SnolateTranslationUnitStore translationUnitStore;
 	private final SnolateTranslationSearchService translationSearchService;
 	private final SnolateTranslationSourceRepository translationSourceRepository;
+
+	@Value("${simplex.mode:SIMPLEX}")
+	private SimplexMode simplexMode;
 
 	public TranslationStudioSyncService(TranslationService translationService,
 			TranslationSyncService translationSyncService,
@@ -126,12 +131,16 @@ public class TranslationStudioSyncService {
 	}
 
 	void markPulledUnitsComplete(SnolateTranslationSet translationSet, boolean includeReadyForReview) {
+		// AUTHORING_PLATFORM pushes land on a Managed Service translation task branch, not the code system
+		// branch directly, so the unit isn't really "complete" until that task is promoted (see
+		// docs/managed-service-integration.md §4.2/§4.3).
+		TranslationStatus pushedStatus = simplexMode == SimplexMode.AUTHORING_PLATFORM ? TranslationStatus.PROMOTED_TO_TASK : TranslationStatus.COMPLETE;
 		String compositeLanguageCode = translationSet.getLanguageCodeWithRefsetId();
 		String setCode = translationSet.getCompositeSetCode();
 		List<TranslationUnit> saveBuffer = new ArrayList<>();
 		translationSearchService.forEachUnitInSet(setCode, compositeLanguageCode, unit -> {
 			if (unit.hasTermContent() && (includeReadyForReview || unit.getStatus() != TranslationStatus.FOR_REVIEW)) {
-				unit.setStatus(TranslationStatus.COMPLETE);
+				unit.setStatus(pushedStatus);
 				saveBuffer.add(unit);
 				flushStatusSaveBufferIfNeeded(saveBuffer);
 			}

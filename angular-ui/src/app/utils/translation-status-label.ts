@@ -9,9 +9,9 @@ export function translationStatusLabel(status: string | null | undefined): strin
 		case 'FOR_REVIEW':
 			return 'For review';
 		case 'APPROVED':
-			return 'Ready to push';
+			return 'Approved';
 		case 'COMPLETE':
-			return 'Pushed';
+			return 'Promoted';
 		case 'NOT_STARTED':
 			return 'Not started';
 		default:
@@ -63,9 +63,9 @@ export function translationStatusRadioLabel(status: string): string {
 		case 'FOR_REVIEW':
 			return 'Ready for review';
 		case 'APPROVED':
-			return 'Ready to push';
+			return 'Approved';
 		case 'COMPLETE':
-			return 'Pushed';
+			return 'Promoted';
 		case 'NOT_STARTED':
 			return 'Not started';
 		default:

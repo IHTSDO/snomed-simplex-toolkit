@@ -17,8 +17,9 @@ public final class TranslationStatusLabels {
 		return switch (status) {
 			case NEEDS_EDIT -> "Needs editing";
 			case FOR_REVIEW -> "Ready for review";
-			case APPROVED -> "Ready to push";
-			case COMPLETE -> "Pushed";
+			case APPROVED -> "Approved";
+			case PROMOTED_TO_TASK -> "Pushed to task";
+			case COMPLETE -> "Promoted";
 			case NOT_STARTED -> NOT_STARTED_LABEL;
 		};
 	}
@@ -43,6 +44,7 @@ public final class TranslationStatusLabels {
 			case NEEDS_EDIT -> "needs-editing";
 			case FOR_REVIEW -> "ready-for-review";
 			case APPROVED -> "ready-to-push";
+			case PROMOTED_TO_TASK -> "pushed-to-task";
 			case COMPLETE -> "pushed";
 		};
 	}

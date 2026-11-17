@@ -164,8 +164,8 @@ class SnolateTranslationServiceCsvExportTest {
 		assertThat(TranslationStatusLabels.radioLabel(TranslationStatus.FOR_REVIEW)).isEqualTo("Ready for review");
 		assertThat(TranslationStatusLabels.radioLabel(TranslationStatus.NOT_STARTED)).isEqualTo("Not started");
 		assertThat(TranslationStatusLabels.radioLabel(TranslationStatus.NEEDS_EDIT)).isEqualTo("Needs editing");
-		assertThat(TranslationStatusLabels.radioLabel(TranslationStatus.APPROVED)).isEqualTo("Ready to push");
-		assertThat(TranslationStatusLabels.radioLabel(TranslationStatus.COMPLETE)).isEqualTo("Pushed");
+		assertThat(TranslationStatusLabels.radioLabel(TranslationStatus.APPROVED)).isEqualTo("Approved");
+		assertThat(TranslationStatusLabels.radioLabel(TranslationStatus.COMPLETE)).isEqualTo("Promoted");
 		assertThat(TranslationStatusLabels.exportFilenameSlug(TranslationStatus.FOR_REVIEW)).isEqualTo("ready-for-review");
 		assertThat(TranslationStatusLabels.exportFilenameSlug(null)).isEqualTo("all-concepts");
 	}

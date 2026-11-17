@@ -137,7 +137,8 @@ public final class TranslationUnitMerger {
 			return 0;
 		}
 		return switch (status) {
-			case COMPLETE -> 5;
+			case COMPLETE -> 6;
+			case PROMOTED_TO_TASK -> 5;
 			case APPROVED -> 4;
 			case FOR_REVIEW -> 3;
 			case NEEDS_EDIT -> 2;

@@ -10,14 +10,15 @@ public final class TranslationStatuses {
 
 	public static int sortOrdinal(TranslationStatus status) {
 		if (status == null) {
-			return 4;
+			return 5;
 		}
 		return switch (status) {
 			case NEEDS_EDIT -> 0;
 			case FOR_REVIEW -> 1;
 			case APPROVED -> 2;
-			case COMPLETE -> 3;
-			case NOT_STARTED -> 4;
+			case PROMOTED_TO_TASK -> 3;
+			case COMPLETE -> 4;
+			case NOT_STARTED -> 5;
 		};
 	}
 
@@ -33,6 +34,6 @@ public final class TranslationStatuses {
 			return false;
 		}
 		TranslationStatus status = unit.getStatus();
-		return status == TranslationStatus.APPROVED || status == TranslationStatus.COMPLETE;
+		return status == TranslationStatus.APPROVED || status == TranslationStatus.PROMOTED_TO_TASK || status == TranslationStatus.COMPLETE;
 	}
 }
