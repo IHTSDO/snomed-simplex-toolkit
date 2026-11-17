@@ -16,6 +16,7 @@ import org.snomed.simplex.client.authoringservices.APProject;
 import org.snomed.simplex.client.authoringservices.APTask;
 import org.snomed.simplex.client.authoringservices.AuthoringServicesClient;
 import org.snomed.simplex.client.domain.*;
+import org.snomed.simplex.config.SimplexMode;
 import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.domain.Page;
 import org.snomed.simplex.exceptions.RuntimeServiceException;
@@ -72,8 +73,8 @@ public class TranslationService {
 
 	private final Map<String, List<ConceptMini>> languageRefsetCache = new ConcurrentHashMap<>();
 
-	@Value("${simplex.mode:standard}")
-	private String simplexMode;
+	@Value("${simplex.mode:SIMPLEX}")
+	private SimplexMode simplexMode;
 
 	public TranslationService(SimpleRefsetService refsetService, SnowstormClientFactory snowstormClientFactory,
 			AuthoringServicesClient authoringServicesClient) {
@@ -85,6 +86,8 @@ public class TranslationService {
 
 	@PostConstruct
 	public void init() throws ServiceException {
+		logger.info("Simplex mode: {}", simplexMode);
+
 		InputStream inputStream = getClass().getResourceAsStream(LANGUAGE_CODES_ISO_639_1_TXT);
 		if (inputStream == null) {
 			throw new ServiceException(format("Language codes file '%s' missing within application.", LANGUAGE_CODES_ISO_639_1_TXT));
@@ -459,7 +462,7 @@ public class TranslationService {
 	}
 
 	public @Nullable APTask getTranslationTask(CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		if ("standard".equalsIgnoreCase(simplexMode)) {
+		if (simplexMode == SimplexMode.SIMPLEX) {
 			return null;
 		}
 
@@ -468,7 +471,7 @@ public class TranslationService {
 	}
 
 	public String getCreateTranslationTask(CodeSystem codeSystem, String assigneeUsername, String taskTitle) throws ServiceExceptionWithStatusCode {
-		if ("standard".equalsIgnoreCase(simplexMode)) {
+		if (simplexMode == SimplexMode.SIMPLEX) {
 			return codeSystem.getWorkingBranchPath();
 		}
 
