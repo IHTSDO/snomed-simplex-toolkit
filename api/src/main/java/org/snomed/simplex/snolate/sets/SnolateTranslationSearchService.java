@@ -36,11 +36,14 @@ public class SnolateTranslationSearchService {
 			Sort.Order.asc(TranslationUnit.Fields.ORDER),
 			Sort.Order.asc(TranslationUnit.Fields.CODE));
 
+	/**
+	 * Stable ordering for {@code search_after} scans of translation sources.
+	 * {@code order} is unique per source, so it is the real sort key. The {@code _doc} tie-breaker is only a
+	 * formality: on its own {@code _doc} is NOT safe for {@code search_after} without a point-in-time, because
+	 * doc ids differ between the primary and replica shard copies and pages may be served by either.
+	 */
 	private static final Sort TRANSLATION_SOURCE_ORDER_STREAM_SORT = Sort.by(
 			Sort.Order.asc(TranslationSource.Fields.ORDER),
-			Sort.Order.asc("_doc"));
-
-	private static final Sort DEFAULT_STREAM_SORT = Sort.by(
 			Sort.Order.asc("_doc"));
 
 	private static final int STREAM_PAGE_SIZE = 5_000;
@@ -524,10 +527,12 @@ public class SnolateTranslationSearchService {
 	}
 
 	/**
-	 * Visits every translation source ordered by concept id using {@code search_after} paging.
+	 * Visits every translation source using {@code search_after} paging.
+	 * Pages by the unique {@code order} field; sorting on {@code _doc} alone skips and repeats documents
+	 * when the index has replicas.
 	 */
 	public void forEachTranslationSourceByCode(Consumer<TranslationSource> consumer) {
-		forEachTranslationSource(new Criteria(), DEFAULT_STREAM_SORT,
+		forEachTranslationSource(new Criteria(), TRANSLATION_SOURCE_ORDER_STREAM_SORT,
 				"cannot continue streaming translation sources by code", consumer);
 	}
 
