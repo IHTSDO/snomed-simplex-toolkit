@@ -36,8 +36,11 @@ public class TranslationStudioManagementController {
 
 	@PostMapping("snomed-initialise")
 	@PreAuthorize("hasPermission('ADMIN', '')")
-	public TranslationToolUpdatePlan snomedInitialise() throws ServiceExceptionWithStatusCode {
-		return snolateSnomedUpgradeService.runUpdate(true, "Initialise SNOMED CT in Snolate", null);
+	@Operation(summary = "Initialise SNOMED CT in Snolate.",
+			description = "Optionally initialise using an older version by giving its effective time (yyyymmdd). "
+					+ "Defaults to the latest version. Use snomed-upgrade later to move to a newer version.")
+	public TranslationToolUpdatePlan snomedInitialise(@RequestParam(required = false) Integer effectiveTime) throws ServiceExceptionWithStatusCode {
+		return snolateSnomedUpgradeService.runUpdate(true, "Initialise SNOMED CT in Snolate", effectiveTime);
 	}
 
 	@PostMapping("snomed-upgrade")
