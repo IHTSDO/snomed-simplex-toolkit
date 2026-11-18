@@ -2,9 +2,6 @@ package org.snomed.simplex.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snomed.simplex.client.domain.*;
@@ -13,8 +10,6 @@ import org.snomed.simplex.exceptions.RuntimeServiceException;
 import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.CodeSystemUpgradeRequest;
-import org.snomed.simplex.service.StreamUtils;
-import org.snomed.simplex.util.CollectionUtils;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -24,26 +19,19 @@ import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.OutputStream;
 import java.net.URI;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
-import static org.snomed.simplex.client.domain.Description.Acceptability.PREFERRED;
-import static org.snomed.simplex.client.domain.Description.CaseSignificance.CASE_INSENSITIVE;
-import static org.snomed.simplex.client.domain.Description.CaseSignificance.ENTIRE_TERM_CASE_SENSITIVE;
-import static org.snomed.simplex.client.domain.Description.Type.FSN;
-import static org.snomed.simplex.client.domain.Description.Type.SYNONYM;
+import static org.snomed.simplex.client.SnowstormClientSupport.getServiceException;
+import static org.snomed.simplex.client.SnowstormClientSupport.requireBody;
 
 public class SnowstormClient {
 
@@ -70,16 +58,16 @@ public class SnowstormClient {
 	 */
 	private static final long CACHE_TTL_MS = Duration.ofMinutes(10).toMillis();
 
-	private final ParameterizedTypeReference<Page<RefsetMember>> responseTypeRefsetPage = new ParameterizedTypeReference<>(){};
 	private final ParameterizedTypeReference<Page<CodeSystem>> responseTypeCodeSystemPage = new ParameterizedTypeReference<>(){};
-	private final ParameterizedTypeReference<Page<ConceptMini>> responseTypeConceptMiniPage = new ParameterizedTypeReference<>(){};
-	private final ParameterizedTypeReference<Page<Long>> responseTypeSCTIDPage = new ParameterizedTypeReference<>(){};
-	private final ParameterizedTypeReference<Page<String>> responseTypeConceptIdPage = new ParameterizedTypeReference<>(){};
 
 	private final RestTemplate restTemplate;
 	private final String rootUri;
-	private final RestTemplate restTemplateRf2Export;
-	private final ObjectMapper objectMapper;
+	private final SnowstormRefsetMemberClient refsetMemberClient;
+	private final SnowstormConceptSearchClient conceptSearchClient;
+	private final SnowstormJobClient jobClient;
+	private final SnowstormEclClient eclClient;
+	private final SnowstormConceptClient conceptClient;
+	private final SnowstormExportClient exportClient;
 	private final Map<String, String> workingBranches;
 	private final Map<String, CachedCodeSystem> codeSystemCache;
 	private final DependantEditionLookup dependantEditionLookup;
@@ -89,38 +77,46 @@ public class SnowstormClient {
 
 	public SnowstormClient(String snowstormUrl, String authenticationToken, String userAgent, ObjectMapper objectMapper, int maxFetches) {
 		this.maxFetches = maxFetches;
-		this.objectMapper = objectMapper;
 		this.workingBranches = new HashMap<>();
 		this.codeSystemCache = new ConcurrentHashMap<>();
 		this.dependantEditionLookup = new DependantEditionLookup();
 
-		if (Strings.isBlank(snowstormUrl)) {
+		if (isBlank(snowstormUrl)) {
 			throw new IllegalStateException("Snowstorm URL is not yet configured");
 		}
 		this.rootUri = snowstormUrl;
 		RestTemplateBuilder builder = new RestTemplateBuilder()
 				.rootUri(snowstormUrl)
 				.messageConverters(new StringHttpMessageConverter(), new MappingJackson2HttpMessageConverter());
-		if (!Strings.isBlank(authenticationToken)) {
+		if (!isBlank(authenticationToken)) {
 			builder = builder.defaultHeader("Cookie", authenticationToken);
 		}
-		if (!Strings.isBlank(userAgent)) {
+		if (!isBlank(userAgent)) {
 			builder = builder.defaultHeader("User-Agent", userAgent);
 		}
 		restTemplate = builder.build();
 		ClientHttpRequestFactorySettings exportHttpSettings = ClientHttpRequestFactorySettings.defaults()
 				.withReadTimeout(RF2_EXPORT_READ_TIMEOUT);
-		restTemplateRf2Export = builder
+		RestTemplate restTemplateRf2Export = builder
 				.requestFactory(() -> ClientHttpRequestFactoryBuilder.detect().build(exportHttpSettings))
 				.build();
+		this.refsetMemberClient = new SnowstormRefsetMemberClient(restTemplate, maxFetches);
+		this.conceptSearchClient = new SnowstormConceptSearchClient(restTemplate, rootUri, maxFetches);
+		this.jobClient = new SnowstormJobClient(restTemplate);
+		this.eclClient = new SnowstormEclClient(restTemplate);
+		this.conceptClient = new SnowstormConceptClient(restTemplate, jobClient);
+		this.exportClient = new SnowstormExportClient(restTemplateRf2Export, objectMapper);
+	}
+
+	private static boolean isBlank(String value) {
+		return value == null || value.isBlank();
 	}
 
 	public List<CodeSystem> getCodeSystems(boolean includeDetails) throws ServiceException {
 		try {
 			ResponseEntity<Page<CodeSystem>> response = restTemplate.exchange(CODESYSTEMS_ENDPOINT, HttpMethod.GET, null, responseTypeCodeSystemPage);
 			List<CodeSystem> items = new ArrayList<>();
-			Page<CodeSystem> body = response.getBody();
-			throwIfNull(body, "CodeSystem list");
+			Page<CodeSystem> body = requireBody(response.getBody(), "CodeSystem list");
 			for (CodeSystem codeSystem : body.getItems()) {
 				if (!codeSystem.isPostcoordinated()) {
 					if (includeDetails) {
@@ -137,12 +133,6 @@ public class SnowstormClient {
 			return items;
 		} catch (HttpStatusCodeException e) {
 			throw getServiceException(e, "list code systems");
-		}
-	}
-
-	private static void throwIfNull(Object object, String type) throws ServiceExceptionWithStatusCode {
-		if (object == null) {
-			throw new ServiceExceptionWithStatusCode("Failed to fetch %s from Snowstorm.".formatted(type), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -251,10 +241,7 @@ public class SnowstormClient {
 
 	private DependantEditionLookup.DependantEdition loadDependantEdition(String parentBranch) {
 		try {
-			String url = UriComponentsBuilder.fromPath(CODESYSTEMS_ENDPOINT)
-					.queryParam("forBranch", parentBranch)
-					.build()
-					.toUriString();
+			String url = format("%s?forBranch=%s", CODESYSTEMS_ENDPOINT, parentBranch);
 			ResponseEntity<Page<CodeSystem>> response = restTemplate.exchange(
 					url,
 					HttpMethod.GET,
@@ -298,7 +285,7 @@ public class SnowstormClient {
 	}
 
 	private static EditionStatus getEditionStatus(String editionStatus) {
-		if (Strings.isBlank(editionStatus) || !EditionStatus.getNames().contains(editionStatus)) {
+		if (isBlank(editionStatus) || !EditionStatus.getNames().contains(editionStatus)) {
 			editionStatus = EditionStatus.AUTHORING.name();
 		}
 		return EditionStatus.valueOf(editionStatus);
@@ -334,7 +321,7 @@ public class SnowstormClient {
 	}
 
 	public void setCodeSystemWorkingBranch(CodeSystem codeSystem, String workingBranch) {
-		if (!Strings.isBlank(workingBranch)) {
+		if (!isBlank(workingBranch)) {
 			if (!workingBranch.startsWith(codeSystem.getBranchPath())) {
 				logger.info("Failed to set working branch path '{}', not within codesystem {}.", workingBranch, codeSystem.getBranchPath());
 				workingBranch = null;
@@ -432,7 +419,7 @@ public class SnowstormClient {
 	public void deleteBranchAndChildren(String branchPath) {
 		ResponseEntity<List<Branch>> children = restTemplate.exchange(format("/branches/%s/children?immediateChildren=true", branchPath), HttpMethod.GET,
 				new HttpEntity<>(Void.class), new ParameterizedTypeReference<>() {});
-		for (Branch childBranch : CollectionUtils.orEmpty(children.getBody())) {
+		for (Branch childBranch : children.getBody() != null ? children.getBody() : List.<Branch>of()) {
 			deleteBranchAndChildren(childBranch.getPath());
 		}
 
@@ -440,127 +427,57 @@ public class SnowstormClient {
 	}
 
 	public ConceptMini getRefsetOrThrow(String refsetId, CodeSystem codeSystem) throws ServiceException {
-		ConceptMini refset = getRefset(refsetId, codeSystem);
-		if (refset == null) {
-			throw new IllegalArgumentException("Refset not found.");
-		}
-		return refset;
+		return conceptSearchClient.getRefsetOrThrow(refsetId, codeSystem);
 	}
 
 	public ConceptMini getRefset(String refsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		List<ConceptMini> refsets = getRefsets(refsetId, codeSystem);
-		if (!refsets.isEmpty()) {
-			return refsets.get(0);
-		}
-		return null;
+		return conceptSearchClient.getRefset(refsetId, codeSystem);
 	}
 
 	public List<ConceptMini> getRefsets(String refsetEcl, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		// Get refset concepts from code system branch and module
-		Map<String, ConceptMini> refsetConceptMap = getConcepts(refsetEcl, codeSystem, codeSystem.getDefaultModuleOrThrow()).getItems().stream()
-				.collect(Collectors.toMap(ConceptMini::getConceptId, Function.identity()));
-		refsetConceptMap.values().forEach(conceptMini -> conceptMini.setActiveMemberCount(0L));
-
-		// Join active refset counts
-		URI url = buildUriWithEcl(
-				UriComponentsBuilder.fromPath(format("/browser/%s/members", codeSystem.getWorkingBranchPath())).queryParam("active", true),
-				"referenceSet", refsetEcl);
-		try {
-			ResponseEntity<RefsetAggregationPage> response = restTemplate.exchange(url, HttpMethod.GET, null, RefsetAggregationPage.class);
-			RefsetAggregationPage body = response.getBody();
-			throwIfNull(body, REFSET_DATA);
-			List<ConceptMini> refsetsWithActiveMemberCount = body.getRefsetsWithActiveMemberCount();
-			for (ConceptMini refset : refsetsWithActiveMemberCount) {
-				if (refsetConceptMap.containsKey(refset.getConceptId())) {
-					refsetConceptMap.get(refset.getConceptId()).setActiveMemberCount(refset.getActiveMemberCount());
-				}
-			}
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "fetch refset list");
-		}
-
-		ArrayList<ConceptMini> refsetConcepts = new ArrayList<>(refsetConceptMap.values());
-		refsetConcepts.sort(Comparator.comparing(ConceptMini::getPtOrFsnOrConceptId));
-		return refsetConcepts;
+		return conceptSearchClient.getRefsets(refsetEcl, codeSystem);
 	}
 
-	/**
-	 * Returns true if {@code ancestorConceptId} appears among ancestors of {@code conceptId} on the edition branch.
-	 * Uses ECL {@code >conceptId} via concept search (returnIdOnly) and stops at the first matching ancestor.
-	 */
 	public boolean isAncestorOf(String ancestorConceptId, String conceptId, CodeSystem codeSystem) {
-		if (ancestorConceptId == null || conceptId == null || ancestorConceptId.isBlank() || conceptId.isBlank()) {
-			return false;
-		}
-		String ecl = ">" + conceptId;
-		ConceptIdStream stream = getConceptIdStream(codeSystem.getWorkingBranchPath(), ecl);
-		String id;
-		while ((id = stream.get()) != null) {
-			if (ancestorConceptId.equals(id)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Builds a request URI with an ECL expression as a query parameter.
-	 * <p>
-	 * The ECL is expanded as a URI variable, which encodes strictly: spaces, braces ({@code {{ +HISTORY }}}),
-	 * {@code +}, {@code ^}, {@code <} and {@code >} are all percent-encoded, so Snowstorm decodes exactly the ECL we sent.
-	 * Always send the result to RestTemplate as a {@link URI}; a String would be template-expanded and encoded a second time.
-	 * Use this for every GET that carries ECL.
-	 * <p>
-	 * RestTemplate only applies its root URI to String URLs, so the Snowstorm root URI is prepended here.
-	 */
-	private URI buildUriWithEcl(UriComponentsBuilder builder, String eclParamName, String ecl) {
-		return buildUriWithEcl(rootUri, builder, eclParamName, ecl);
-	}
-
-	static URI buildUriWithEcl(String rootUri, UriComponentsBuilder builder, String eclParamName, String ecl) {
-		URI relative = builder.queryParam(eclParamName, "{ecl}").encode().buildAndExpand(Map.of("ecl", ecl)).toUri();
-		// The relative URI is already fully encoded, so concatenate rather than re-encode
-		return URI.create(rootUri + relative.toASCIIString());
+		return conceptSearchClient.isAncestorOf(ancestorConceptId, conceptId, codeSystem);
 	}
 
 	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter) throws ServiceExceptionWithStatusCode {
-		return getConcepts(ecl, codeSystem, moduleFilter, 10_000);
+		return conceptSearchClient.getConcepts(ecl, codeSystem, moduleFilter);
 	}
 
 	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter, int limit) throws ServiceExceptionWithStatusCode {
-		try {
-			UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
-					.queryParam(QUERY_PARAM_LIMIT, limit);
-			if (moduleFilter != null) {
-				urlBuilder.queryParam(QUERY_PARAM_MODULE, moduleFilter);
-			}
-			URI url = buildUriWithEcl(urlBuilder, "ecl", ecl);
-			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(url, HttpMethod.GET, null, responseTypeConceptMiniPage);
-			return response.getBody();
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "fetch concepts");
-		}
+		return conceptSearchClient.getConcepts(ecl, codeSystem, moduleFilter, limit);
 	}
 
 	public Page<RefsetMember> getRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly,
 			int limit, String searchAfter) throws ServiceExceptionWithStatusCode {
-
-		try {
-			ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&limit=%s%s&searchAfter=%s",
-							codeSystem.getWorkingBranchPath(), refsetId, limit,
-							activeOnly ? "&active=true" : "",
-							searchAfter != null ? searchAfter : ""),
-					HttpMethod.GET, null, responseTypeRefsetPage);
-			return response.getBody();
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "load refset");
-		}
+		return refsetMemberClient.getRefsetMembers(refsetId, codeSystem, activeOnly, limit, searchAfter);
 	}
 
 	public List<RefsetMember> loadAllRefsetMembers(String refsetId, CodeSystem codeSystem, boolean activeOnly) throws ServiceException {
-		List<RefsetMember> refsetMembers = new ArrayList<>();
-		forEachRefsetMemberPage(refsetId, codeSystem, activeOnly, refsetMembers::addAll);
-		return refsetMembers;
+		return refsetMemberClient.loadAllRefsetMembers(refsetId, codeSystem, activeOnly);
+	}
+
+	public void forEachRefsetMemberPage(String refsetId, CodeSystem codeSystem, boolean activeOnly,
+			RefsetMemberPageHandler pageHandler) throws ServiceException {
+		refsetMemberClient.forEachRefsetMemberPage(refsetId, codeSystem, activeOnly, pageHandler);
+	}
+
+	public int countAllActiveRefsetMembers(String refsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		return refsetMemberClient.countAllActiveRefsetMembers(refsetId, codeSystem);
+	}
+
+	public int countActiveRefsetMembers(String refsetId, CodeSystem codeSystem, String moduleId) throws ServiceExceptionWithStatusCode {
+		return refsetMemberClient.countActiveRefsetMembers(refsetId, codeSystem, moduleId);
+	}
+
+	public void createUpdateRefsetMembers(List<RefsetMember> membersToCreateUpdate, CodeSystem codeSystem) throws ServiceException {
+		refsetMemberClient.createUpdateRefsetMembers(membersToCreateUpdate, codeSystem);
+	}
+
+	public void deleteRefsetMembers(List<RefsetMember> membersToDelete, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
+		refsetMemberClient.deleteRefsetMembers(membersToDelete, codeSystem);
 	}
 
 	@FunctionalInterface
@@ -568,188 +485,32 @@ public class SnowstormClient {
 		void accept(List<RefsetMember> page) throws ServiceException;
 	}
 
-	public void forEachRefsetMemberPage(String refsetId, CodeSystem codeSystem, boolean activeOnly,
-			RefsetMemberPageHandler pageHandler) throws ServiceException {
-
-		String searchAfter = null;
-		Page<RefsetMember> page;
-		SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
-		do {
-			guard.beforeFetch(searchAfter);
-			page = getRefsetMembers(refsetId, codeSystem, activeOnly, MAX_PAGE_SIZE, searchAfter);
-			List<RefsetMember> items = page.getItems() != null ? page.getItems() : List.of();
-			if (!items.isEmpty()) {
-				pageHandler.accept(items);
-			}
-			if (items.size() == MAX_PAGE_SIZE) {
-				guard.afterFullPage(searchAfter, page.getSearchAfter());
-				searchAfter = page.getSearchAfter();
-			}
-		} while (page.getItems() != null && page.getItems().size() == MAX_PAGE_SIZE);
-	}
-
-	public int countAllActiveRefsetMembers(String refsetId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(format("/%s/members?referenceSet=%s&active=true&limit=1", codeSystem.getWorkingBranchPath(), refsetId),
-				HttpMethod.GET,null, responseTypeRefsetPage);
-		Page<RefsetMember> page = response.getBody();
-		throwIfNull(page, REFSET_DATA);
-		return Math.toIntExact(page.getTotal());
-	}
-
-	public int countActiveRefsetMembers(String refsetId, CodeSystem codeSystem, String moduleId) throws ServiceExceptionWithStatusCode {
-		String moduleParam = moduleId != null ? format("&module=%s", moduleId) : "";
-		ResponseEntity<Page<RefsetMember>> response = restTemplate.exchange(
-				format("/%s/members?referenceSet=%s&active=true&limit=1%s", codeSystem.getWorkingBranchPath(), refsetId, moduleParam),
-				HttpMethod.GET, null, responseTypeRefsetPage);
-		Page<RefsetMember> page = response.getBody();
-		throwIfNull(page, REFSET_DATA);
-		return Math.toIntExact(page.getTotal());
-	}
-
 	public ConceptMini getConceptMini(String conceptId, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		try {
-			ResponseEntity<ConceptMini> response = restTemplate.getForEntity(
-					format(CONCEPT_ENDPOINT, codeSystem.getWorkingBranchPath(), conceptId), ConceptMini.class);
-			return response.getBody();
-		} catch (HttpClientErrorException.NotFound e) {
-			throw new ServiceExceptionWithStatusCode("Concept not found: %s".formatted(conceptId), HttpStatus.NOT_FOUND);
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "fetch concept");
-		}
-	}
-
-	public void createUpdateRefsetMembers(List<RefsetMember> membersToCreateUpdate, CodeSystem codeSystem) throws ServiceException {
-		if (membersToCreateUpdate == null || membersToCreateUpdate.isEmpty()) {
-			return;
-		}
-
-		List<String> memberIds = membersToCreateUpdate.stream().map(RefsetMember::getMemberId).toList();
-		Set<String> memberIdSet = new HashSet<>();
-		for (String memberId : memberIds) {
-			if (!memberIdSet.add(memberId)) {
-				throw new IllegalArgumentException("create/update request contains a duplicate member id " + memberId);
-			}
-		}
-
-		for (List<RefsetMember> batch : Iterables.partition(membersToCreateUpdate, 1_000)) {
-			createUpdateRefsetMembersBatch(batch, codeSystem);
-		}
-	}
-
-	private void createUpdateRefsetMembersBatch(List<RefsetMember> membersToCreateUpdate, CodeSystem codeSystem) throws ServiceException {
-
-		URI bulkJobUri;
-		try {
-			bulkJobUri = restTemplate.postForLocation(format("/%s/members/bulk", codeSystem.getWorkingBranchPath()), membersToCreateUpdate);
-			if (bulkJobUri == null) {
-				throw new ServiceException("Failed to start bulk create/update refset member job - response location is null.");
-			}
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "start bulk create/update refset member job");
-		}
-		try {
-			while (true) {
-				ResponseEntity<StatusHolder> response = restTemplate.getForEntity(bulkJobUri, StatusHolder.class);
-				StatusHolder statusHolder = response.getBody();
-				throwIfNull(statusHolder, "Refset bulk update job");
-				String status = statusHolder.getStatus();
-				if ("RUNNING".equals(status)) {
-					System.out.print(".");
-				} else if ("COMPLETED".equals(status)) {
-					return;
-				} else {
-					throw new ServiceException(format("Bulk create/update refset member job failed - %s", statusHolder.getMessage()));
-				}
-				Thread.sleep(1_000);// One second
-			}
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "fetch status of bulk create/update refset member job");
-		} catch (InterruptedException e) {
-			throw new RuntimeServiceException("Thread interrupted while waiting for bulk create/update refset member job to complete.", e);
-		}
-	}
-
-	public void deleteRefsetMembers(List<RefsetMember> membersToDelete, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		List<String> memberIds = membersToDelete.stream().map(RefsetMember::getMemberId).toList();
-		for (List<String> batch : Iterables.partition(memberIds, 1_000)) {
-			Map<String, List<String>> bulkDeleteRequest = new HashMap<>();
-			bulkDeleteRequest.put("memberIds", batch);
-			try {
-				restTemplate.exchange(format("/%s/members", codeSystem.getWorkingBranchPath()), HttpMethod.DELETE, new HttpEntity<>(bulkDeleteRequest), Void.class);
-			} catch (HttpStatusCodeException e) {
-				throw getServiceException(e, "bulk delete refset members");
-			}
-		}
+		return conceptClient.getConceptMini(conceptId, codeSystem);
 	}
 
 	public Concept createSimpleMetadataConcept(String parentConceptId, String preferredTerm, String tag, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		Concept concept = newSimpleMetadataConceptWithoutSave(parentConceptId, preferredTerm, tag);
-		return createConcept(concept, codeSystem);
+		return conceptClient.createSimpleMetadataConcept(parentConceptId, preferredTerm, tag, codeSystem);
 	}
 
 	public Concept createConcept(Concept concept, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		try {
-			ResponseEntity<Concept> response = restTemplate.exchange(format("/browser/%s/concepts", codeSystem.getWorkingBranchPath()), HttpMethod.POST, new HttpEntity<>(concept), Concept.class);
-			return response.getBody();
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "create concept");
-		}
+		return conceptClient.createConcept(concept, codeSystem);
 	}
 
 	public Concept newSimpleMetadataConceptWithoutSave(String parentConceptId, String preferredTerm, String tag) {
-		Description.CaseSignificance caseSens = guessCaseSensitivity(preferredTerm);
-		return new Concept(null)
-				.addDescription(new Description(FSN, "en", format("%s (%s)", preferredTerm, tag), caseSens, Concepts.US_LANG_REFSET, PREFERRED))
-				.addDescription(new Description(SYNONYM, "en", preferredTerm, caseSens, Concepts.US_LANG_REFSET, PREFERRED))
-				.addAxiom(new Axiom("PRIMITIVE", Collections.singletonList(Relationship.stated(Concepts.IS_A, parentConceptId, 0))))
-				.addRelationship(Relationship.inferred(Concepts.IS_A, parentConceptId, 0));
+		return conceptClient.newSimpleMetadataConceptWithoutSave(parentConceptId, preferredTerm, tag);
 	}
 
 	public void deleteConcept(String conceptId, CodeSystem codeSystem) {
-		restTemplate.delete(format(CONCEPT_ENDPOINT, codeSystem.getWorkingBranchPath(), conceptId));
+		conceptClient.deleteConcept(conceptId, codeSystem);
 	}
 
 	public Concept updateConcept(Concept concept, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		try {
-			ResponseEntity<Concept> response = restTemplate.exchange(format("/browser/%s/concepts/%s", codeSystem.getWorkingBranchPath(), concept.getConceptId()),
-					HttpMethod.PUT, new HttpEntity<>(concept), Concept.class);
-			return response.getBody();
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "update concept");
-		}
+		return conceptClient.updateConcept(concept, codeSystem);
 	}
 
 	public List<Long> getConceptIds(Collection<String> conceptIds, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		if (conceptIds.isEmpty()) {
-			return new ArrayList<>();
-		}
-
-		try {
-			List<Long> results = null;
-			for (List<String> conceptIdBatch : Iterables.partition(conceptIds, MAX_PAGE_SIZE)) {
-				ConceptSearchRequest searchRequest = new ConceptSearchRequest(conceptIdBatch);
-				searchRequest.setReturnIdOnly(true);
-				searchRequest.setActiveFilter(true);
-				searchRequest.setLimit(MAX_PAGE_SIZE);
-
-				ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(format(CONCEPTS_SEARCH_ENDPOINT, codeSystem.getWorkingBranchPath()), HttpMethod.POST,
-						new HttpEntity<>(searchRequest), responseTypeSCTIDPage);
-				Page<Long> page = pageOfIds.getBody();
-				throwIfNull(page, "concept search results");
-				if (results == null) {
-					results = new ArrayList<>(page.getItems());
-				} else {
-					results.addAll(page.getItems());
-				}
-			}
-			return results;
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "fetch concept ids");
-		}
-	}
-
-	private ServiceExceptionWithStatusCode getServiceException(HttpStatusCodeException e, String action) {
-		return new ServiceExceptionWithStatusCode(format("Failed to %s", action), HttpStatus.resolve(e.getStatusCode().value()), e);
+		return conceptClient.getConceptIds(conceptIds, codeSystem);
 	}
 
 	public enum ExportType {
@@ -757,98 +518,29 @@ public class SnowstormClient {
 	}
 
 	public void exportRF2(OutputStream outputStream, SnowstormExportConfiguration exportConfiguration) throws ServiceException {
-		Map<String, Object> requestBody = new HashMap<>();
-		requestBody.put("branchPath", exportConfiguration.getCodeSystem().getWorkingBranchPath());
-		requestBody.put("type", exportConfiguration.getExportType().name());
-		if (exportConfiguration.getTransientEffectiveTime() != null) {
-			requestBody.put("transientEffectiveTime", exportConfiguration.getTransientEffectiveTime());
-		}
-		if (exportConfiguration.getModuleIds() != null) {
-			requestBody.put("moduleIds", exportConfiguration.getModuleIds());
-		}
-		if (exportConfiguration.isLanguageOnly()) {
-			requestBody.put("languageOnly", true);
-		}
-		URI location = restTemplateRf2Export.execute("/exports", HttpMethod.POST,
-				httpRequest -> {
-					httpRequest.getHeaders().add("Content-Type", "application/json");
-					objectMapper.writeValue(httpRequest.getBody(), requestBody);
-				},
-				httpResponse -> httpResponse.getHeaders().getLocation());
-		if (location == null) {
-			throw new ServiceException("Snowstorm did not return a location header for the RF2 export.");
-		}
-		String archiveLocation = location + "/archive";
-		logger.info("Downloading export from {}", archiveLocation);
-		restTemplateRf2Export.execute(archiveLocation, HttpMethod.GET,
-				httpRequest -> httpRequest.getHeaders().add("Accept", "application/zip"), httpResponse -> {
-			StreamUtils.copyViaTempFile(httpResponse.getBody(), outputStream, false);
-			return null;
-		});
-	}
-
-	private Description.CaseSignificance guessCaseSensitivity(String name) {
-		String termWithoutFirstChar = name.substring(1);
-		return termWithoutFirstChar.equals(termWithoutFirstChar.toLowerCase(Locale.ROOT)) ? CASE_INSENSITIVE : ENTIRE_TERM_CASE_SENSITIVE;
+		exportClient.exportRF2(outputStream, exportConfiguration);
 	}
 
 	public List<ConceptMini> findAllConceptsByModule(CodeSystem codeSystem, String module) throws ServiceException {
-		List<ConceptMini> completeList = new ArrayList<>();
-		String searchAfter = null;
-		SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
-		List<ConceptMini> pageItems;
-		do {
-			guard.beforeFetch(searchAfter);
-			Page<ConceptMini> page = findConceptsByModulePage(codeSystem, module, searchAfter, MAX_PAGE_SIZE);
-			pageItems = page.getItems() != null ? page.getItems() : List.of();
-			completeList.addAll(pageItems);
-			if (pageItems.size() < MAX_PAGE_SIZE) {
-				break;
-			}
-			guard.afterFullPage(searchAfter, page.getSearchAfter());
-			searchAfter = page.getSearchAfter();
-		} while (!Strings.isBlank(searchAfter));
-		return completeList;
+		return conceptSearchClient.findAllConceptsByModule(codeSystem, module);
 	}
 
 	public Page<ConceptMini> findConceptsByModule(CodeSystem codeSystem, String module, int offset, int limit) throws ServiceExceptionWithStatusCode {
-		try {
-			String url = UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
-					.queryParam(QUERY_PARAM_MODULE, module)
-					.queryParam("offset", offset)
-					.queryParam(QUERY_PARAM_LIMIT, limit)
-					.toUriString();
-			ResponseEntity<Page<ConceptMini>> exchange = restTemplate.exchange(
-					url, HttpMethod.GET, null, responseTypeConceptMiniPage);
-			return exchange.getBody();
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "fetch concepts by module");
-		}
-	}
-
-	private Page<ConceptMini> findConceptsByModulePage(CodeSystem codeSystem, String module, String searchAfter, int limit)
-			throws ServiceExceptionWithStatusCode {
-		UriComponentsBuilder builder = UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
-				.queryParam(QUERY_PARAM_MODULE, module)
-				.queryParam(QUERY_PARAM_LIMIT, limit);
-		appendConceptSearchPagination(builder, searchAfter);
-		return fetchConceptMiniPage(builder);
+		return conceptSearchClient.findConceptsByModule(codeSystem, module, offset, limit);
 	}
 
 	public Set<String> collectConceptIdsInModule(CodeSystem codeSystem, String moduleId) throws ServiceException {
-		return collectAllConceptIds(() -> UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
-				.queryParam(QUERY_PARAM_MODULE, moduleId)
-				.queryParam(QUERY_PARAM_RETURN_ID_ONLY, true));
+		return conceptSearchClient.collectConceptIdsInModule(codeSystem, moduleId);
 	}
 
 	public Set<String> collectConceptIdsWithUsPreferredActiveEnFsn(CodeSystem codeSystem, String conceptModuleId)
 			throws ServiceException {
-		return collectAllConceptIds(() -> UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
-				.queryParam(QUERY_PARAM_MODULE, conceptModuleId)
-				.queryParam(QUERY_PARAM_RETURN_ID_ONLY, true)
-				.queryParam("termActive", true)
-				.queryParam("descriptionType", FSN.getConceptId())
-				.queryParam("language", "en"));
+		return conceptSearchClient.collectConceptIdsWithUsPreferredActiveEnFsn(codeSystem, conceptModuleId);
+	}
+
+	public Set<Long> collectActiveFsnConceptIds(CodeSystem codeSystem, String moduleId, String languageCode)
+			throws ServiceException {
+		return conceptSearchClient.collectActiveFsnConceptIds(codeSystem, moduleId, languageCode);
 	}
 
 	public Supplier<ConceptMini> getConceptSortedHierarchyStream(String branch, String focusConcept) {
@@ -856,14 +548,7 @@ public class SnowstormClient {
 	}
 
 	public List<Long> getConceptChangeReport(String branchPath, int changedSince) throws ServiceExceptionWithStatusCode {
-		ParameterizedTypeReference<Page<String>> listOfConceptIds = new ParameterizedTypeReference<>() {};
-		ResponseEntity<Page<String>> response = restTemplate.exchange("/%s/concepts/change-report?changedSince=%s".formatted(branchPath, changedSince), HttpMethod.GET, null,
-			listOfConceptIds);
-		Page<String> body = response.getBody();
-		if (body == null) {
-			throw new ServiceExceptionWithStatusCode("Concept change report failed.", HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-		return body.getItems().stream().map(Long::parseLong).toList();
+		return conceptSearchClient.getConceptChangeReport(branchPath, changedSince);
 	}
 
 	protected List<ConceptMini> getConceptList(String branch, String ecl) {
@@ -877,60 +562,7 @@ public class SnowstormClient {
 	}
 
 	public Supplier<ConceptMini> getConceptStream(String branch, String ecl) {
-		return new Supplier<>() {
-
-			private List<ConceptMini> items;
-			private int itemOffset = 0;
-			private String searchAfter = "";
-			private boolean lastPage;
-			private final SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
-
-			private final ParameterizedTypeReference<Page<ConceptMini>> listOfConceptMinisType = new ParameterizedTypeReference<>() {};
-
-			@Override
-			public ConceptMini get() {
-				if (items == null || itemOffset == items.size()) {
-					if (lastPage) {
-						return null;
-					}
-					try {
-						guard.beforeFetch(searchAfter);
-					} catch (ServiceException e) {
-						throw new RuntimeServiceException(e.getMessage(), e);
-					}
-					Map<String, Object> searchRequest = new HashMap<>();
-					searchRequest.put("form", "inferred");
-					searchRequest.put("eclFilter", ecl);
-					searchRequest.put(QUERY_PARAM_LIMIT, MAX_PAGE_SIZE);
-					searchRequest.put(SEARCH_AFTER, searchAfter);
-					searchRequest.put("includeLeafFlag", true);
-
-					String url = format(CONCEPTS_SEARCH_ENDPOINT, branch);
-					ResponseEntity<Page<ConceptMini>> pageResponse = restTemplate.exchange(url,
-						HttpMethod.POST, new HttpEntity<>(searchRequest), listOfConceptMinisType);
-					Page<ConceptMini> page = pageResponse.getBody();
-					if (page == null) {
-						return null;
-					}
-					items = page.getItems();
-					itemOffset = 0;
-					if (items.isEmpty()) {
-						return null;
-					}
-					if (items.size() < MAX_PAGE_SIZE) {
-						lastPage = true;
-					} else {
-						try {
-							guard.afterFullPage(searchAfter, page.getSearchAfter());
-						} catch (ServiceException e) {
-							throw new RuntimeServiceException(e.getMessage(), e);
-						}
-						searchAfter = page.getSearchAfter();
-					}
-				}
-				return items.get(itemOffset++);
-			}
-		};
+		return conceptSearchClient.getConceptStream(branch, ecl);
 	}
 
 	public ConceptIdStream getConceptIdStream(String branch, String ecl) {
@@ -1010,90 +642,23 @@ public class SnowstormClient {
 	}
 
 	public List<Concept> loadBrowserFormatConcepts(List<Long> conceptIds, CodeSystem codeSystem) {
-		ParameterizedTypeReference<List<Concept>> listOfConcepts = new ParameterizedTypeReference<>(){};
-		ResponseEntity<List<Concept>> response = restTemplate.exchange(format("/browser/%s/concepts/bulk-load", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
-				new HttpEntity<>(ConceptBulkLoadRequest.ofConceptIds(conceptIds)), listOfConcepts);
-		return response.getBody();
+		return conceptClient.loadBrowserFormatConcepts(conceptIds, codeSystem);
 	}
 
 	public List<Concept> loadBrowserFormatConceptsByDescriptionIds(Collection<String> descriptionIds, CodeSystem codeSystem) {
-		if (descriptionIds.isEmpty()) {
-			return List.of();
-		}
-		ParameterizedTypeReference<List<Concept>> listOfConcepts = new ParameterizedTypeReference<>(){};
-		List<Concept> results = new ArrayList<>();
-		for (List<String> batch : Lists.partition(new ArrayList<>(descriptionIds), 200)) {
-			ResponseEntity<List<Concept>> response = restTemplate.exchange(
-					format("/browser/%s/concepts/bulk-load", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
-					new HttpEntity<>(ConceptBulkLoadRequest.ofDescriptionIds(batch)), listOfConcepts);
-			if (response.getBody() != null) {
-				results.addAll(response.getBody());
-			}
-		}
-		return results;
+		return conceptClient.loadBrowserFormatConceptsByDescriptionIds(descriptionIds, codeSystem);
 	}
 
 	public Map<String, Boolean> loadDescriptionActiveFlags(Collection<String> descriptionIds, CodeSystem codeSystem) {
-		if (descriptionIds.isEmpty()) {
-			return Map.of();
-		}
-		Set<String> requested = new HashSet<>(descriptionIds);
-		Map<String, Boolean> flags = new HashMap<>();
-		for (List<String> batch : Lists.partition(new ArrayList<>(requested), 200)) {
-			for (Concept concept : CollectionUtils.orEmpty(loadBrowserFormatConceptsByDescriptionIds(batch, codeSystem))) {
-				for (Description description : CollectionUtils.orEmpty(concept.getDescriptions())) {
-					String descriptionId = description.getDescriptionId();
-					if (requested.contains(descriptionId)) {
-						flags.put(descriptionId, description.isActive());
-					}
-				}
-			}
-		}
-		return flags;
+		return conceptClient.loadDescriptionActiveFlags(descriptionIds, codeSystem);
 	}
 
 	public List<Concept> loadBrowserFormatConceptsUsingGet(List<Long> conceptIds, CodeSystem codeSystem) throws ServiceExceptionWithStatusCode {
-		ParameterizedTypeReference<Page<Concept>> pageOfConcepts = new ParameterizedTypeReference<>(){};
-		Map<String, String> params = new HashMap<>();
-		params.put("conceptIds", Strings.join(conceptIds, ','));
-		ResponseEntity<Page<Concept>> response = restTemplate.exchange(format("/browser/%s/concepts?conceptIds={conceptIds}", codeSystem.getWorkingBranchPath()), HttpMethod.GET,
-				null, pageOfConcepts, params);
-		Page<Concept> body = response.getBody();
-		throwIfNull(body, "concepts");
-		return body.getItems();
+		return conceptClient.loadBrowserFormatConceptsUsingGet(conceptIds, codeSystem);
 	}
 
 	public void createUpdateBrowserFormatConcepts(List<Concept> conceptsToUpdate, CodeSystem codeSystem) throws ServiceException {
-		String branchPath = codeSystem.getWorkingBranchPath();
-		if (conceptsToUpdate == null || conceptsToUpdate.isEmpty()) {
-			return;
-		}
-
-		List<Concept> conceptsToDelete = new ArrayList<>();
-		List<Concept> conceptsForBulkUpdate = new ArrayList<>();
-		for (Concept concept : conceptsToUpdate) {
-			if (!concept.isActive() && !concept.isReleased()) {
-				conceptsToDelete.add(concept);
-			} else {
-				concept.setDescriptions(getNewDescriptionSet(concept));
-				conceptsForBulkUpdate.add(concept);
-			}
-		}
-
-		deleteConcepts(conceptsToDelete, branchPath);
-
-		// Start an async bulk update job
-		if (!conceptsForBulkUpdate.isEmpty()) {
-			logger.info("Starting bulk create/update on {}", branchPath);
-			ResponseEntity<Void> response = restTemplate.exchange(format("/browser/%s/concepts/bulk", branchPath), HttpMethod.POST,
-					new HttpEntity<>(conceptsForBulkUpdate), Void.class);
-			URI location = response.getHeaders().getLocation();
-			if (location == null) {
-				throw new ServiceException("Bulk update did not return location header.");
-			}
-			waitForAsyncJob(location, "COMPLETED", "FAILED");
-			logger.info("Completed bulk create/update on {}", branchPath);
-		}
+		conceptClient.createUpdateBrowserFormatConcepts(conceptsToUpdate, codeSystem);
 	}
 
 	public Branch setAuthorFlag(String branchPath, String name, String value) {
@@ -1114,272 +679,38 @@ public class SnowstormClient {
 		}
 	}
 
-	private void deleteConcepts(List<Concept> conceptsToDelete, String branchPath) {
-		for (Concept conceptToDelete : conceptsToDelete) {
-			String conceptId = conceptToDelete.getConceptId();
-			logger.info("Deleting concept {} on {}", conceptId, branchPath);
-			restTemplate.delete(format(CONCEPT_ENDPOINT, branchPath, conceptId));
-		}
-	}
-
-	private static List<Description> getNewDescriptionSet(Concept concept) {
-		List<Description> newDescriptionSet = new ArrayList<>();
-		for (Description description : concept.getDescriptions()) {
-			if (description.isRemove()) {
-				if (description.isReleased()) {
-					description.setActive(false);
-					newDescriptionSet.add(description);
-				}
-				// else don't retain description
-			} else {
-				newDescriptionSet.add(description);
-			}
-		}
-		return newDescriptionSet;
-	}
-
 	public void bulkChangeDescriptions(Map<Long, Set<String>> conceptDescriptionIdMap,
 			CodeSystem codeSystem, Predicate<Description> processDescription, String changeForLogMessage) throws ServiceException {
-
-		List<Long> conceptIds = new ArrayList<>(conceptDescriptionIdMap.keySet());
-		for (List<Long> conceptIdBatch : Lists.partition(conceptIds, 200)) {
-			List<Concept> concepts = loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
-			bulkChangeDescriptionBatch(conceptDescriptionIdMap, codeSystem, processDescription, changeForLogMessage, concepts);
-		}
-	}
-
-	public Set<Long> collectActiveFsnConceptIds(CodeSystem codeSystem, String moduleId, String languageCode)
-			throws ServiceException {
-
-		String normalizedLanguage = normalizeLanguageCode(languageCode);
-		LinkedHashSet<Long> conceptIds = new LinkedHashSet<>();
-		for (String conceptId : collectAllConceptIds(() -> {
-			UriComponentsBuilder builder = UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
-					.queryParam(QUERY_PARAM_MODULE, moduleId)
-					.queryParam(QUERY_PARAM_RETURN_ID_ONLY, true)
-					.queryParam("activeFilter", true)
-					.queryParam("termActive", true)
-					.queryParam("descriptionType", FSN.getConceptId());
-			if (normalizedLanguage != null) {
-				builder.queryParam("language", normalizedLanguage);
-			}
-			return builder;
-		})) {
-			conceptIds.add(Long.parseLong(conceptId));
-		}
-		return conceptIds;
-	}
-
-	private Set<String> collectAllConceptIds(Supplier<UriComponentsBuilder> queryFactory) throws ServiceException {
-		LinkedHashSet<String> conceptIds = new LinkedHashSet<>();
-		String searchAfter = null;
-		SearchAfterPaginationGuard guard = new SearchAfterPaginationGuard(maxFetches);
-		List<String> pageItems;
-		do {
-			guard.beforeFetch(searchAfter);
-			Page<String> page = fetchConceptIdPage(queryFactory, searchAfter, MAX_PAGE_SIZE);
-			pageItems = page.getItems() != null ? page.getItems() : List.of();
-			conceptIds.addAll(pageItems);
-			if (pageItems.size() < MAX_PAGE_SIZE) {
-				break;
-			}
-			guard.afterFullPage(searchAfter, page.getSearchAfter());
-			searchAfter = page.getSearchAfter();
-		} while (!Strings.isBlank(searchAfter));
-		return conceptIds;
-	}
-
-	private Page<String> fetchConceptIdPage(Supplier<UriComponentsBuilder> queryFactory, String searchAfter, int limit)
-			throws ServiceExceptionWithStatusCode {
-
-		UriComponentsBuilder builder = queryFactory.get();
-		builder.queryParam(QUERY_PARAM_LIMIT, limit);
-		appendConceptSearchPagination(builder, searchAfter);
-		try {
-			ResponseEntity<Page<String>> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, responseTypeConceptIdPage);
-			Page<String> body = response.getBody();
-			throwIfNull(body, "concept id search");
-			return body;
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "fetch concept ids");
-		}
-	}
-
-	private Page<ConceptMini> fetchConceptMiniPage(UriComponentsBuilder builder) throws ServiceExceptionWithStatusCode {
-		try {
-			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(builder.toUriString(), HttpMethod.GET, null, responseTypeConceptMiniPage);
-			Page<ConceptMini> body = response.getBody();
-			throwIfNull(body, "concept search");
-			return body;
-		} catch (HttpStatusCodeException e) {
-			throw getServiceException(e, "fetch concepts");
-		}
-	}
-
-	private static String conceptsCollectionPath(CodeSystem codeSystem) {
-		return format(CONCEPTS_COLLECTION_ENDPOINT, codeSystem.getWorkingBranchPath());
-	}
-
-	private static void appendConceptSearchPagination(UriComponentsBuilder builder, String searchAfter) {
-		if (!Strings.isBlank(searchAfter)) {
-			builder.queryParam(SEARCH_AFTER, searchAfter);
-		} else {
-			builder.queryParam("offset", 0);
-		}
-	}
-
-	private static String normalizeLanguageCode(String languageCode) {
-		if (languageCode == null || languageCode.isBlank()) {
-			return null;
-		}
-		return languageCode.trim().toLowerCase();
+		conceptClient.bulkChangeDescriptions(conceptDescriptionIdMap, codeSystem, processDescription, changeForLogMessage);
 	}
 
 	public FsnBulkRemovalStats bulkRemoveDescriptionsMatching(CodeSystem codeSystem, Collection<Long> conceptIds,
 			Predicate<Description> shouldRemove, String changeForLogMessage) throws ServiceException {
-
-		FsnBulkRemovalStats totalStats = new FsnBulkRemovalStats();
-		if (conceptIds == null || conceptIds.isEmpty()) {
-			return totalStats;
-		}
-		List<Long> conceptIdList = conceptIds instanceof List<Long> list ? list : new ArrayList<>(conceptIds);
-		for (List<Long> conceptIdBatch : Lists.partition(conceptIdList, 200)) {
-			totalStats.add(bulkRemoveDescriptionsBatch(codeSystem, conceptIdBatch, shouldRemove, changeForLogMessage));
-		}
-		return totalStats;
-	}
-
-	private FsnBulkRemovalStats bulkRemoveDescriptionsBatch(CodeSystem codeSystem, List<Long> conceptIdBatch,
-			Predicate<Description> shouldRemove, String changeForLogMessage) throws ServiceException {
-
-		FsnBulkRemovalStats batchStats = new FsnBulkRemovalStats();
-		List<Concept> concepts = loadBrowserFormatConcepts(conceptIdBatch, codeSystem);
-		List<Concept> conceptsToSave = new ArrayList<>();
-		for (Concept concept : concepts) {
-			boolean conceptChanged = false;
-			for (Description description : concept.getDescriptions()) {
-				if (!shouldRemove.test(description)) {
-					continue;
-				}
-				DescriptionRemoval.Outcome outcome = DescriptionRemoval.markForRemoval(description);
-				switch (outcome) {
-					case INACTIVATED -> batchStats.incrementFsnInactivated();
-					case DELETED -> batchStats.incrementFsnDeleted();
-					case UNCHANGED -> batchStats.incrementFsnSkipped();
-				}
-				if (outcome != DescriptionRemoval.Outcome.UNCHANGED) {
-					conceptChanged = true;
-				}
-			}
-			if (conceptChanged) {
-				conceptsToSave.add(concept);
-				batchStats.incrementConceptsUpdated();
-			}
-		}
-		if (!conceptsToSave.isEmpty()) {
-			logger.info("{} on {} concepts.", changeForLogMessage, conceptsToSave.size());
-			createUpdateBrowserFormatConcepts(conceptsToSave, codeSystem);
-		}
-		return batchStats;
-	}
-
-	private void bulkChangeDescriptionBatch(Map<Long, Set<String>> conceptDescriptionIdMap, CodeSystem codeSystem,
-			Predicate<Description> processDescription, String changeForLogMessage,
-			List<Concept> concepts) throws ServiceException {
-
-		Map<Long, Concept> conceptsToSave = new HashMap<>();
-		for (Concept concept : concepts) {
-			Set<String> conceptDescriptionIds = conceptDescriptionIdMap.get(concept.getConceptIdAsLong());
-			for (Description description : concept.getDescriptions()) {
-				if (conceptDescriptionIds.contains(description.getDescriptionId())
-						&& processDescription.test(description)) {
-					conceptsToSave.put(concept.getConceptIdAsLong(), concept);
-				}
-			}
-		}
-		if (!conceptsToSave.isEmpty()) {
-			logger.info("{} on {} concepts.", changeForLogMessage, conceptsToSave.size());
-			createUpdateBrowserFormatConcepts(new ArrayList<>(conceptsToSave.values()), codeSystem);
-		}
+		return conceptClient.bulkRemoveDescriptionsMatching(codeSystem, conceptIds, shouldRemove, changeForLogMessage);
 	}
 
 	public String createClassification(String branch) throws ServiceException {
-		try {
-			URI location = restTemplate.postForLocation(format("/%s/classifications", branch), null);
-			if (location != null) {
-				String url = location.toString();
-				return url.substring(url.lastIndexOf("/") + 1);
-			} else {
-				throw new ServiceException("Failed to create classification. API response location header is missing.");
-			}
-		} catch (RestClientException e) {
-			throw new ServiceException("Failed to create classification. Rest client error.", e);
-		}
+		return jobClient.createClassification(branch);
 	}
 
 	public SnowstormClassificationJob getClassificationJob(String branch, String classificationId) throws ServiceException {
-		try {
-			return restTemplate.getForEntity(format("/%s/classifications/%s", branch, classificationId), SnowstormClassificationJob.class).getBody();
-		} catch (RestClientException e) {
-			throw new ServiceException("Failed to fetch classification status.");
-		}
+		return jobClient.getClassificationJob(branch, classificationId);
 	}
 
 	public void startClassificationSave(String branch, String classificationId) throws ServiceException {
-		try {
-			Map<String, String> statusChangeRequest = new HashMap<>();
-			statusChangeRequest.put("status", "SAVED");
-			restTemplate.exchange(format("/%s/classifications/%s", branch, classificationId), HttpMethod.PUT, new HttpEntity<>(statusChangeRequest), Void.class);
-		} catch (RestClientException e) {
-			throw new ServiceException("Failed to start classification save.", e);
-		}
+		jobClient.startClassificationSave(branch, classificationId);
 	}
 
 	public URI createUpgradeJob(CodeSystem codeSystem, CodeSystemUpgradeRequest upgradeRequest) throws ServiceException {
-		try {
-			return restTemplate.postForLocation(format("/codesystems/%s/upgrade", codeSystem.getShortName()), new HttpEntity<>(upgradeRequest));
-		} catch (RestClientException e) {
-			throw new ServiceException("Failed to upgrade codesystem. Rest client error.", e);
-		}
+		return jobClient.createUpgradeJob(codeSystem, upgradeRequest);
 	}
 
 	public SnowstormUpgradeJob getUpgradeJob(String jobLocation) throws ServiceException {
-		try {
-			return restTemplate.getForEntity(jobLocation, SnowstormUpgradeJob.class).getBody();
-		} catch (RestClientException e) {
-			throw new ServiceException("Failed to fetch upgrade status.");
-		}
+		return jobClient.getUpgradeJob(jobLocation);
 	}
 
 	public Map<String, ConceptMini> getCodeSystemRefsetsWithTypeInformation(CodeSystem codeSystem, boolean filterByModule) throws ServiceExceptionWithStatusCode {
-		String url = format("/browser/%s/members?limit=1&module=%s", codeSystem.getBranchPath(), filterByModule ? codeSystem.getDefaultModule() : "");
-		ResponseEntity<RefsetAggregationPage> refsetAggregationResponse = restTemplate.getForEntity(url, RefsetAggregationPage.class);
-		RefsetAggregationPage body = refsetAggregationResponse.getBody();
-		throwIfNull(body, "refset type data");
-		return body.getReferenceSets();
-	}
-
-	private void waitForAsyncJob(URI location, String completed, String failed) throws ServiceException {
-		int anHour = 1_000 * 60 * 60;
-		Date start = new Date();
-		Date timeoutDate = new Date(start.getTime() + anHour);
-		while (new Date().before(timeoutDate)) {
-			try {
-				ResponseEntity<StatusHolder> statusResponse = restTemplate.getForEntity(location, StatusHolder.class);
-				StatusHolder statusHolder = statusResponse.getBody();
-				throwIfNull(statusHolder, "job status");
-				if (completed.equals(statusHolder.getStatus())) {
-					return;
-				} else if (failed.equals(statusHolder.getStatus())) {
-					throw new ServiceException(format("Async job failed: %s. URL: %s", statusHolder.getMessage(), location));
-				}
-				//noinspection BusyWait
-				Thread.sleep(3_000);
-			} catch (InterruptedException e) {
-				throw new ServiceException(format("Thread interrupted while waiting for async job to complete. URL: %s", location));
-			}
-		}
-		throw new ServiceException(format("Timed out while waiting for async job. URL: %s", location));
+		return conceptSearchClient.getCodeSystemRefsetsWithTypeInformation(codeSystem, filterByModule);
 	}
 
 	public void setVersionReleasePackage(CodeSystem codeSystem, String effectiveTime, String releasePackageFilename) {
@@ -1449,56 +780,15 @@ public class SnowstormClient {
 	}
 
 	public JsonNode eclStringToModel(String eclString) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.TEXT_PLAIN);
-		ResponseEntity<JsonNode> response = restTemplate.exchange(
-				"/util/ecl-string-to-model",
-				HttpMethod.POST,
-				new HttpEntity<>(eclString, headers),
-				JsonNode.class);
-		return response.getBody();
+		return eclClient.eclStringToModel(eclString);
 	}
 
 	public Map<String, String> eclModelToString(Object eclModel) {
-		sanitizeEclModelForSerialization(eclModel);
-		ResponseEntity<Map<String, String>> response = restTemplate.exchange(
-				"/util/ecl-model-to-string",
-				HttpMethod.POST,
-				new HttpEntity<>(eclModel),
-				new ParameterizedTypeReference<>() {});
-		return response.getBody();
-	}
-
-	private void sanitizeEclModelForSerialization(Object node) {
-		if (node instanceof Map<?, ?> map) {
-			map.keySet().removeIf(key -> "altIdentifier".equals(key) || "returnAllMemberFields".equals(key) || "uiId".equals(key));
-			map.values().forEach(this::sanitizeEclModelForSerialization);
-		} else if (node instanceof List<?> list) {
-			list.forEach(this::sanitizeEclModelForSerialization);
-		}
+		return eclClient.eclModelToString(eclModel);
 	}
 
 	public Map<String, Object> getMrcmDomainAttributes(String branchPath, String parentIds, String acceptLanguage) {
-		String url = format("/mrcm/%s/domain-attributes?proximalPrimitiveModeling=false&parentIds=%s", branchPath, parentIds);
-		HttpHeaders headers = new HttpHeaders();
-		if (!Strings.isBlank(acceptLanguage)) {
-			headers.set(HttpHeaders.ACCEPT_LANGUAGE, acceptLanguage);
-		}
-		ResponseEntity<Map<String, Object>> response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), new ParameterizedTypeReference<>() {});
-		return response.getBody();
-	}
-
-	private record ConceptBulkLoadRequest(Set<String> conceptIds, Set<String> descriptionIds) {
-
-		static ConceptBulkLoadRequest ofConceptIds(Collection<Long> conceptIds) {
-			return new ConceptBulkLoadRequest(
-					conceptIds.stream().map(Objects::toString).collect(Collectors.toSet()), Set.of());
-		}
-
-		static ConceptBulkLoadRequest ofDescriptionIds(Collection<String> descriptionIds) {
-			return new ConceptBulkLoadRequest(Set.of(), new HashSet<>(descriptionIds));
-		}
-
+		return eclClient.getMrcmDomainAttributes(branchPath, parentIds, acceptLanguage);
 	}
 
 	private boolean isCacheValid(CachedCodeSystem cached) {
@@ -1508,17 +798,4 @@ public class SnowstormClient {
 	private record CachedCodeSystem(CodeSystem codeSystem, long timestamp) {
 	}
 
-	private static final class StatusHolder {
-
-		private String status;
-		private String message;
-
-		public String getStatus() {
-			return status;
-		}
-
-		public String getMessage() {
-			return message;
-		}
-	}
 }

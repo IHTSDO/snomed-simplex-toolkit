@@ -52,7 +52,7 @@ class SnowstormClientEclUriTest {
 
 	@Test
 	void otherParametersAndPathAreKept() {
-		URI uri = SnowstormClient.buildUriWithEcl(ROOT,
+		URI uri = SnowstormClientSupport.buildUriWithEcl(ROOT,
 				UriComponentsBuilder.fromPath("/browser/MAIN/SNOMEDCT-BE/members").queryParam("active", true).queryParam("limit", 10),
 				"referenceSet", "<900000000000506000");
 
@@ -70,7 +70,7 @@ class SnowstormClientEclUriTest {
 	}
 
 	private static URI build(String ecl) {
-		return SnowstormClient.buildUriWithEcl(ROOT,
+		return SnowstormClientSupport.buildUriWithEcl(ROOT,
 				UriComponentsBuilder.fromPath("/MAIN/SNOMEDCT-BE/concepts").queryParam("limit", 10), "ecl", ecl);
 	}
 

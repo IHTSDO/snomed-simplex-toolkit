@@ -237,15 +237,7 @@ public class ReleaseServiceClient {
 			}
 			logger.info("Exported RF2 delta");
 
-			File deltaReleaseDirectory;
-			ReleaseImporter releaseImporter = new ReleaseImporter();
-			try (FileInputStream releaseZipStream = new FileInputStream(tempFile)) {
-				deltaReleaseDirectory = releaseImporter.unzipRelease(releaseZipStream, ReleaseImporter.ImportType.DELTA);
-				logger.info("Unzipped export");
-			} catch (ReleaseImportException e) {
-				throw new ServiceException(format("Failed to extract RF2 archive for code system %s during build preparation.", codeSystem.getShortName()), e);
-			}
-
+			File deltaReleaseDirectory = unzipDelta(tempFile, codeSystem);
 			uploadDeltaFiles(deltaReleaseDirectory, build, codeSystem);
 			logger.info("All input files uploaded");
 			prepareInputFiles(build, codeSystem);
@@ -254,6 +246,17 @@ public class ReleaseServiceClient {
 			return build;
 		} catch (IOException e) {
 			throw new ServiceException(format("Failed to export code system %s during build preparation.", codeSystem.getShortName()), e);
+		}
+	}
+
+	private File unzipDelta(File tempFile, CodeSystem codeSystem) throws IOException, ServiceException {
+		ReleaseImporter releaseImporter = new ReleaseImporter();
+		try (FileInputStream releaseZipStream = new FileInputStream(tempFile)) {
+			File deltaReleaseDirectory = releaseImporter.unzipRelease(releaseZipStream, ReleaseImporter.ImportType.DELTA);
+			logger.info("Unzipped export");
+			return deltaReleaseDirectory;
+		} catch (ReleaseImportException e) {
+			throw new ServiceException(format("Failed to extract RF2 archive for code system %s during build preparation.", codeSystem.getShortName()), e);
 		}
 	}
 
