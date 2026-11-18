@@ -1443,6 +1443,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                     unit.target = [];
                 }
                 unit.target[0] = normalizedSuggestion;
+                this.moveStatusCount(unit.status || 'NOT_STARTED', 'FOR_REVIEW');
                 unit.status = 'FOR_REVIEW';
                 this.acceptingSuggestionContext = null;
             },
@@ -1454,6 +1455,16 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     }
 
     /** Snolate {@code TranslationStatus} name from API, or empty when no unit row exists. */
+    /** Optimistically shift one concept between status totals on the selected set. */
+    private moveStatusCount(from: string, to: string): void {
+        const counts = this.selectedLabelSet?.statusCounts;
+        if (!counts || from === to) {
+            return;
+        }
+        counts[from] = Math.max(0, (counts[from] ?? 0) - 1);
+        counts[to] = (counts[to] ?? 0) + 1;
+    }
+
     formatTranslationRowStatus(status: string | null | undefined): string {
         return translationStatusLabel(status);
     }
