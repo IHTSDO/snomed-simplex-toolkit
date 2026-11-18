@@ -75,6 +75,7 @@ public class SnowstormClient {
 	private final ParameterizedTypeReference<Page<String>> responseTypeConceptIdPage = new ParameterizedTypeReference<>(){};
 
 	private final RestTemplate restTemplate;
+	private final String rootUri;
 	private final RestTemplate restTemplateRf2Export;
 	private final ObjectMapper objectMapper;
 	private final Map<String, String> workingBranches;
@@ -94,6 +95,7 @@ public class SnowstormClient {
 		if (Strings.isBlank(snowstormUrl)) {
 			throw new IllegalStateException("Snowstorm URL is not yet configured");
 		}
+		this.rootUri = snowstormUrl;
 		RestTemplateBuilder builder = new RestTemplateBuilder()
 				.rootUri(snowstormUrl)
 				.messageConverters(new StringHttpMessageConverter(), new MappingJackson2HttpMessageConverter());
@@ -458,7 +460,9 @@ public class SnowstormClient {
 		refsetConceptMap.values().forEach(conceptMini -> conceptMini.setActiveMemberCount(0L));
 
 		// Join active refset counts
-		String url = format("/browser/%s/members?active=true&referenceSet=%s", codeSystem.getWorkingBranchPath(), refsetEcl);
+		URI url = buildUriWithEcl(
+				UriComponentsBuilder.fromPath(format("/browser/%s/members", codeSystem.getWorkingBranchPath())).queryParam("active", true),
+				"referenceSet", refsetEcl);
 		try {
 			ResponseEntity<RefsetAggregationPage> response = restTemplate.exchange(url, HttpMethod.GET, null, RefsetAggregationPage.class);
 			RefsetAggregationPage body = response.getBody();
@@ -497,6 +501,26 @@ public class SnowstormClient {
 		return false;
 	}
 
+	/**
+	 * Builds a request URI with an ECL expression as a query parameter.
+	 * <p>
+	 * The ECL is expanded as a URI variable, which encodes strictly: spaces, braces ({@code {{ +HISTORY }}}),
+	 * {@code +}, {@code ^}, {@code <} and {@code >} are all percent-encoded, so Snowstorm decodes exactly the ECL we sent.
+	 * Always send the result to RestTemplate as a {@link URI}; a String would be template-expanded and encoded a second time.
+	 * Use this for every GET that carries ECL.
+	 * <p>
+	 * RestTemplate only applies its root URI to String URLs, so the Snowstorm root URI is prepended here.
+	 */
+	private URI buildUriWithEcl(UriComponentsBuilder builder, String eclParamName, String ecl) {
+		return buildUriWithEcl(rootUri, builder, eclParamName, ecl);
+	}
+
+	static URI buildUriWithEcl(String rootUri, UriComponentsBuilder builder, String eclParamName, String ecl) {
+		URI relative = builder.queryParam(eclParamName, "{ecl}").encode().buildAndExpand(Map.of("ecl", ecl)).toUri();
+		// The relative URI is already fully encoded, so concatenate rather than re-encode
+		return URI.create(rootUri + relative.toASCIIString());
+	}
+
 	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter) throws ServiceExceptionWithStatusCode {
 		return getConcepts(ecl, codeSystem, moduleFilter, 10_000);
 	}
@@ -504,12 +528,11 @@ public class SnowstormClient {
 	public Page<ConceptMini> getConcepts(String ecl, CodeSystem codeSystem, String moduleFilter, int limit) throws ServiceExceptionWithStatusCode {
 		try {
 			UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromPath(conceptsCollectionPath(codeSystem))
-					.queryParam("ecl", ecl)
 					.queryParam(QUERY_PARAM_LIMIT, limit);
 			if (moduleFilter != null) {
 				urlBuilder.queryParam(QUERY_PARAM_MODULE, moduleFilter);
 			}
-			String url = urlBuilder.toUriString();
+			URI url = buildUriWithEcl(urlBuilder, "ecl", ecl);
 			ResponseEntity<Page<ConceptMini>> response = restTemplate.exchange(url, HttpMethod.GET, null, responseTypeConceptMiniPage);
 			return response.getBody();
 		} catch (HttpStatusCodeException e) {
