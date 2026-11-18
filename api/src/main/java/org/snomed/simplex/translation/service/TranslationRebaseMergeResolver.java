@@ -15,7 +15,7 @@ import java.util.Set;
  * baseline, the same 3-way comparison already used by {@link TranslationStateDiff} for the push direction
  * ({@link TranslationSyncService}).
  * <p>
- * Decided policy (docs/managed-service-integration.md §5, 2026-11-17): auto-merge everything, no manual
+ * Decided policy (2026-11-17): auto-merge everything, no manual
  * resolution. Per concept:
  * <ul>
  *   <li>Only one side changed the concept (relative to baseline) &rarr; that side's terms win. Not a conflict.</li>

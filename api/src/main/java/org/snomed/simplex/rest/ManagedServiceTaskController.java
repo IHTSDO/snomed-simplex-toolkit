@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
  * JMS signal yet - currently just task rejection/deletion. There is no branch-deletion event anywhere in
  * Snowstorm or authoring-services today, so this controller is the way to trigger (and test) the
  * {@code PROMOTED_TO_TASK} -&gt; {@code APPROVED} revert until the Managed Service team adds a real event.
- * See docs/managed-service-integration.md §4.3/§6.2.
  */
 @RestController
 @RequestMapping("api/admin/{codeSystem}/managed-service")

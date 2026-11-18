@@ -40,3 +40,6 @@ weblate-setup/weblate_setup_files
 tmp
 scripts
 .*
+
+# Local-only planning doc
+/docs/managed-service-integration.md

@@ -22,8 +22,7 @@ import java.util.Optional;
  * today - see {@code ManagedServiceTaskController} for the interim rejection path.
  * <p>
  * Payload shape mirrors Snowstorm's {@code branch.change} topic (confirmed from the {@code snowstorm} and
- * {@code authoring-services} source): a flat {@code {branch, sourceBranch?}} object per commit. See
- * docs/managed-service-integration.md §4.3.
+ * {@code authoring-services} source): a flat {@code {branch, sourceBranch?}} object per commit.
  */
 @Component
 public class ManagedServiceBranchEventListener {
@@ -55,7 +54,7 @@ public class ManagedServiceBranchEventListener {
 		if (!isPromotion) {
 			// Rebase of the translation project branch from the code system branch.
 			// REBASE handling (content pull-in, international content upgrade, translation set refresh)
-			// is not yet implemented - see docs/managed-service-integration.md §4.3.
+			// is not yet implemented.
 			logger.info("Managed Service REBASE event received for project branch {} from {} - handling not yet implemented", branch, sourceBranch);
 			return;
 		}

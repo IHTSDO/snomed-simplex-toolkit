@@ -132,8 +132,7 @@ public class TranslationStudioSyncService {
 
 	void markPulledUnitsComplete(SnolateTranslationSet translationSet, boolean includeReadyForReview) {
 		// AUTHORING_PLATFORM pushes land on a Managed Service translation task branch, not the code system
-		// branch directly, so the unit isn't really "complete" until that task is promoted (see
-		// docs/managed-service-integration.md §4.2/§4.3).
+		// branch directly, so the unit isn't really "complete" until that task is promoted.
 		TranslationStatus pushedStatus = simplexMode == SimplexMode.AUTHORING_PLATFORM ? TranslationStatus.PROMOTED_TO_TASK : TranslationStatus.COMPLETE;
 		String compositeLanguageCode = translationSet.getLanguageCodeWithRefsetId();
 		String setCode = translationSet.getCompositeSetCode();

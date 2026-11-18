@@ -9,7 +9,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Enumerates the merge scenarios for docs/managed-service-integration.md §5 (REBASE vs. unsynced local edit),
+ * Enumerates the merge scenarios for a REBASE vs. unsynced local edit,
  * concept by concept. Each test is independent so the scenario matrix is reviewable test-by-test.
  */
 class TranslationRebaseMergeResolverTest {

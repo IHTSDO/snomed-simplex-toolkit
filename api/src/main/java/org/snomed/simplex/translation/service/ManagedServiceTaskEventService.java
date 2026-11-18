@@ -21,7 +21,6 @@ import java.util.List;
  * <p>
  * There is only ever zero or one open translation task per translation project at a time, so affected units are
  * found by {@link TranslationStatus#PROMOTED_TO_TASK} status alone - no unit-to-task-branch mapping is needed.
- * See docs/managed-service-integration.md §4.3/§6.3.
  */
 @Service
 public class ManagedServiceTaskEventService {
