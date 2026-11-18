@@ -5,6 +5,9 @@ import org.springframework.data.domain.Sort;
 
 public class ControllerHelper {
 
+	private ControllerHelper() {
+	}
+
 	public static String normaliseFilename(String term) {
 		return term.replace(" ", "_");
 	}

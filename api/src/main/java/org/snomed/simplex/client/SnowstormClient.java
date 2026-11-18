@@ -50,6 +50,8 @@ public class SnowstormClient {
 	public static final int MAX_PAGE_SIZE = 10_000;
 	public static final String CONCEPT_ENDPOINT = "/%s/concepts/%s";
 	public static final String CONCEPTS_COLLECTION_ENDPOINT = "/%s/concepts";
+	public static final String CONCEPTS_SEARCH_ENDPOINT = "/%s/concepts/search";
+	public static final String SEARCH_AFTER = "searchAfter";
 	public static final String QUERY_PARAM_MODULE = "module";
 	public static final String QUERY_PARAM_LIMIT = "limit";
 	public static final String QUERY_PARAM_RETURN_ID_ONLY = "returnIdOnly";
@@ -730,7 +732,7 @@ public class SnowstormClient {
 				searchRequest.setActiveFilter(true);
 				searchRequest.setLimit(MAX_PAGE_SIZE);
 
-				ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(format("/%s/concepts/search", codeSystem.getWorkingBranchPath()), HttpMethod.POST,
+				ResponseEntity<Page<Long>> pageOfIds = restTemplate.exchange(format(CONCEPTS_SEARCH_ENDPOINT, codeSystem.getWorkingBranchPath()), HttpMethod.POST,
 						new HttpEntity<>(searchRequest), responseTypeSCTIDPage);
 				Page<Long> page = pageOfIds.getBody();
 				throwIfNull(page, "concept search results");
@@ -900,10 +902,10 @@ public class SnowstormClient {
 					searchRequest.put("form", "inferred");
 					searchRequest.put("eclFilter", ecl);
 					searchRequest.put(QUERY_PARAM_LIMIT, MAX_PAGE_SIZE);
-					searchRequest.put("searchAfter", searchAfter);
+					searchRequest.put(SEARCH_AFTER, searchAfter);
 					searchRequest.put("includeLeafFlag", true);
 
-					String url = format("/%s/concepts/search", branch);
+					String url = format(CONCEPTS_SEARCH_ENDPOINT, branch);
 					ResponseEntity<Page<ConceptMini>> pageResponse = restTemplate.exchange(url,
 						HttpMethod.POST, new HttpEntity<>(searchRequest), listOfConceptMinisType);
 					Page<ConceptMini> page = pageResponse.getBody();
@@ -973,9 +975,9 @@ public class SnowstormClient {
 				searchRequest.put("eclFilter", ecl);
 				searchRequest.put(QUERY_PARAM_RETURN_ID_ONLY, true);
 				searchRequest.put(QUERY_PARAM_LIMIT, MAX_PAGE_SIZE);
-				searchRequest.put("searchAfter", searchAfter);
+				searchRequest.put(SEARCH_AFTER, searchAfter);
 
-				String url = format("/%s/concepts/search", branch);
+				String url = format(CONCEPTS_SEARCH_ENDPOINT, branch);
 				ResponseEntity<Page<Long>> pageResponse = restTemplate.exchange(url, HttpMethod.POST,
 						new HttpEntity<>(searchRequest), listOfConceptIdsType);
 				Page<Long> page = pageResponse.getBody();
@@ -1220,7 +1222,7 @@ public class SnowstormClient {
 
 	private static void appendConceptSearchPagination(UriComponentsBuilder builder, String searchAfter) {
 		if (!Strings.isBlank(searchAfter)) {
-			builder.queryParam("searchAfter", searchAfter);
+			builder.queryParam(SEARCH_AFTER, searchAfter);
 		} else {
 			builder.queryParam("offset", 0);
 		}

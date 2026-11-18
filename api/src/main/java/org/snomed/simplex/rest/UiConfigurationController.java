@@ -2,11 +2,10 @@ package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.snomed.simplex.config.UiConfiguration;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -21,8 +20,8 @@ public class UiConfigurationController {
 	}
 
 	@Operation(summary="Retrieve configuration for the UI.")
-	@ApiResponses({@ApiResponse(responseCode = "200", description = "OK")})
-	@RequestMapping(value="/ui-configuration", method= RequestMethod.GET)
+	@ApiResponse(responseCode = "200", description = "OK")
+	@GetMapping(value="/ui-configuration")
 	public UiConfiguration retrieveUiConfiguration() {
 		return uiConfiguration;
 	}

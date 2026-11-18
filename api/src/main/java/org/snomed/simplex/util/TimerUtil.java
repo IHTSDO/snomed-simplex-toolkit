@@ -56,7 +56,7 @@ public class TimerUtil {
 		checkpoint(() -> name);
 	}
 
-	public void checkpoint(Supplier nameSupplier) {
+	public void checkpoint(Supplier<String> nameSupplier) {
 		final long now = new Date().getTime();
 		float secondsTaken = getDuration(lastCheck, now);
 		lastCheck = now;
@@ -80,7 +80,7 @@ public class TimerUtil {
 	}
 
 	public static float getDuration(long startMilliseconds, long endMilliseconds) {
-		float millisTaken = endMilliseconds - startMilliseconds;
+		float millisTaken = (float) endMilliseconds - startMilliseconds;
 		return millisTaken / 1000f;
 	}
 

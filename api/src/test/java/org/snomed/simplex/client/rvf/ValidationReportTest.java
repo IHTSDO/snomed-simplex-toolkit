@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ValidationReportTest {
 
 	@Test
-	public void testDeserialization() throws IOException {
+	void testDeserialization() throws IOException {
 		ObjectMapper objectMapper = Jackson2ObjectMapperBuilder.json().featuresToDisable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
 
 		ValidationReport report = objectMapper.readValue(getClass().getResourceAsStream("/rvf-report-example.json"), ValidationReport.class);

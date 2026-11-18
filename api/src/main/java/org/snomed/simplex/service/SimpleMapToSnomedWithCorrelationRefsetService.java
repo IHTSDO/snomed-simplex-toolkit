@@ -63,7 +63,6 @@ public class SimpleMapToSnomedWithCorrelationRefsetService extends RefsetUpdateS
 			// Convert accepted correlation
 			MapCorrelation correlation = snap2snomedRelationshipTypeToCorrelationOrThrow(relationshipType, noMapFlag, rowNumber);
 			if (correlation == MapCorrelation.TARGET_NOT_MAPPABLE) {
-//				targetCode = NO_SCT_MAP_TARGET_CONCEPT;
 				return null;
 			}
 			return new RefsetMemberIntentSimpleMapToSnomedWithCorrelation(sourceCode, targetCode, correlation);

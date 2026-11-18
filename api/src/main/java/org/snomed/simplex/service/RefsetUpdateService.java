@@ -102,6 +102,36 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 		return snowstormClient.getConceptIdStream(selectionCodeSystem.getBranchPath(), ecl);
 	}
 
+	private List<? extends RefsetMemberIntent> filterMembersWithExistingConcepts(List<? extends RefsetMemberIntent> inputMembers,
+			SnowstormClient snowstormClient, CodeSystem codeSystem) throws ServiceException {
+
+		Set<String> inputMemberConceptIds = inputMembers.stream().map(RefsetMemberIntent::getReferenceComponentId).collect(Collectors.toSet());
+		List<String> conceptsExist = snowstormClient.getConceptIds(inputMemberConceptIds, codeSystem).stream().map(Object::toString).toList();
+		List<String> conceptsDoNotExist = new ArrayList<>(inputMemberConceptIds);
+		conceptsDoNotExist.removeAll(conceptsExist);
+		if (conceptsDoNotExist.isEmpty()) {
+			return inputMembers;
+		}
+		logger.error("{} concepts do not exist: {}", conceptsDoNotExist.size(), conceptsDoNotExist);
+		return inputMembers.stream().filter(sheetMember -> conceptsExist.contains(sheetMember.getReferenceComponentId())).toList();
+	}
+
+	private void classifyMember(RefsetMember wantedRefsetMember, List<RefsetMember> storedMembers,
+			List<RefsetMember> membersToCreate, List<RefsetMember> membersToUpdate, List<RefsetMember> membersToKeep) {
+
+		for (RefsetMember storedMember : storedMembers) {
+			if (matchMember(wantedRefsetMember, storedMember)) {
+				if (applyMember(wantedRefsetMember, storedMember)) {
+					membersToUpdate.add(storedMember);
+				} else {
+					membersToKeep.add(storedMember);
+				}
+				return;
+			}
+		}
+		membersToCreate.add(wantedRefsetMember);
+	}
+
 	private ChangeSummary update(ConceptMini refset, List<? extends RefsetMemberIntent> inputMembers, CodeSystem codeSystem, ProgressMonitor progressMonitor) throws ServiceException {
 		String refsetId = refset.getConceptId();
 		String refsetTerm = refset.getPtOrFsnOrConceptId();
@@ -117,15 +147,7 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 			progressMonitor.setProgressPercentageInsteadOfNumber(25);
 
 			// Ignore sheet members where concept does not exist
-			Set<String> inputMemberConceptIds = inputMembers.stream().map(RefsetMemberIntent::getReferenceComponentId).collect(Collectors.toSet());
-			List<String> conceptsExist = snowstormClient.getConceptIds(inputMemberConceptIds, codeSystem).stream().map(Object::toString).toList();
-			List<String> conceptsDoNotExist = new ArrayList<>(inputMemberConceptIds);
-			conceptsDoNotExist.removeAll(conceptsExist);
-			if (!conceptsDoNotExist.isEmpty()) {
-				logger.error("{} concepts do not exist: {}", conceptsDoNotExist.size(), conceptsDoNotExist);
-				// TODO: Should we alert the user?
-				inputMembers = inputMembers.stream().filter(sheetMember -> conceptsExist.contains(sheetMember.getReferenceComponentId())).collect(Collectors.toList());
-			}
+			inputMembers = filterMembersWithExistingConcepts(inputMembers, snowstormClient, codeSystem);
 
 			// Create map of existing members
 			Map<String, List<RefsetMember>> storedMemberMap = new HashMap<>();
@@ -145,21 +167,7 @@ public abstract class RefsetUpdateService<T extends RefsetMemberIntent> {
 				// Lookup existing member(s)
 				List<RefsetMember> storedMembers = storedMemberMap.getOrDefault(inputMember.getReferenceComponentId(), Collections.emptyList());
 				storedMembers.sort(Comparator.comparing(RefsetMember::isReleased).thenComparing(RefsetMember::isActive));
-				boolean found = false;
-				for (RefsetMember storedMember : storedMembers) {
-					if (matchMember(wantedRefsetMember, storedMember)) {
-						found = true;
-						if (applyMember(wantedRefsetMember, storedMember)) {
-							membersToUpdate.add(storedMember);
-						} else {
-							membersToKeep.add(storedMember);
-						}
-						break;
-					}
-				}
-				if (!found) {
-					membersToCreate.add(wantedRefsetMember);
-				}
+				classifyMember(wantedRefsetMember, storedMembers, membersToCreate, membersToUpdate, membersToKeep);
 			}
 
 			List<RefsetMember> membersToRemove = allStoredMembers.stream()

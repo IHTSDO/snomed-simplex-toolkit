@@ -246,14 +246,7 @@ public class ReleaseServiceClient {
 				throw new ServiceException(format("Failed to extract RF2 archive for code system %s during build preparation.", codeSystem.getShortName()), e);
 			}
 
-			try (Stream<Path> deltaPathStream = Files.find(deltaReleaseDirectory.toPath(), 10,
-					(filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.toFile().getName().endsWith(".txt"))) {
-
-				for (Path file : deltaPathStream.toList()) {
-					uploadDeltaFile(file, build, codeSystem);
-					logger.info("Uploaded {}", file.getFileName());
-				}
-			}
+			uploadDeltaFiles(deltaReleaseDirectory, build, codeSystem);
 			logger.info("All input files uploaded");
 			prepareInputFiles(build, codeSystem);
 			logger.info("Input files prepared");
@@ -261,6 +254,17 @@ public class ReleaseServiceClient {
 			return build;
 		} catch (IOException e) {
 			throw new ServiceException(format("Failed to export code system %s during build preparation.", codeSystem.getShortName()), e);
+		}
+	}
+
+	private void uploadDeltaFiles(File deltaReleaseDirectory, SRSBuild build, CodeSystem codeSystem) throws IOException, ServiceException {
+		try (Stream<Path> deltaPathStream = Files.find(deltaReleaseDirectory.toPath(), 10,
+				(filePath, fileAttr) -> fileAttr.isRegularFile() && filePath.toFile().getName().endsWith(".txt"))) {
+
+			for (Path file : deltaPathStream.toList()) {
+				uploadDeltaFile(file, build, codeSystem);
+				logger.info("Uploaded {}", file.getFileName());
+			}
 		}
 	}
 

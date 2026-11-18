@@ -265,28 +265,32 @@ public class SpreadsheetService {
 			for (ValidationReport.AssertionIssue failureInstance : CollectionUtils.orEmpty(assertion.firstNInstances())) {
 				failureRow.createCell(1).setCellValue(failureInstance.conceptId());
 
-				StringBuilder detailMessage = new StringBuilder();
-				String detail = failureInstance.detail();
-				// Only add detail if it's different to the overall assertion text
-				if (detail != null && !detail.equals(assertionText)) {
-					detailMessage.append(detail);
-				}
-
-				if (failureInstance.conceptFsn() != null) {
-					if (!detailMessage.isEmpty()) {
-						detailMessage.append(NEW_LINE);
-					}
-					detailMessage.append(failureInstance.conceptFsn());
-				}
-
+				String detailMessage = buildFailureDetail(failureInstance, assertionText);
 				if (!detailMessage.isEmpty()) {
-					failureRow.createCell(2).setCellValue(detailMessage.toString());
+					failureRow.createCell(2).setCellValue(detailMessage);
 				}
 
 				failureRow = sheet.createRow(rowOffset.getAndIncrement());// may be left blank if no failures left
 			}
 			rowOffset.getAndIncrement();
 		}
+	}
+
+	private static String buildFailureDetail(ValidationReport.AssertionIssue failureInstance, String assertionText) {
+		StringBuilder detailMessage = new StringBuilder();
+		String detail = failureInstance.detail();
+		// Only add detail if it's different to the overall assertion text
+		if (detail != null && !detail.equals(assertionText)) {
+			detailMessage.append(detail);
+		}
+
+		if (failureInstance.conceptFsn() != null) {
+			if (!detailMessage.isEmpty()) {
+				detailMessage.append(NEW_LINE);
+			}
+			detailMessage.append(failureInstance.conceptFsn());
+		}
+		return detailMessage.toString();
 	}
 
 	private static String getValidationSummaryMessage(int errors, int warnings) {
@@ -446,7 +450,7 @@ public class SpreadsheetService {
 		HeaderConfiguration headerConfiguration = new HeaderConfiguration();
 
 		Map<String, SheetHeader> expectedHeadersRemaining =
-				expectedHeaders.stream().collect(Collectors.toMap((header) -> header.getName().toLowerCase().trim(), Function.identity()));
+				expectedHeaders.stream().collect(Collectors.toMap(header -> header.getName().toLowerCase().trim(), Function.identity()));
 
 		for (int i = 0; i < 50; i++) {
 			Cell actualHeaderCell = actualHeaderRow.getCell(i);
@@ -609,7 +613,7 @@ public class SpreadsheetService {
 
 	protected static String fixConceptCode(String rawValue, int column, int row) throws ServiceException {
 		String cellValue;
-		Pattern pattern = Pattern.compile("([0-9.]+)E(\\+?)([0-9]+)");
+		Pattern pattern = Pattern.compile("([\\d.]+)E(\\+?)(\\d+)");
 		Matcher matcher = pattern.matcher(rawValue);
 		if (matcher.matches()) {
 			// Replace segment and checksum. This method works in all tested cases up to max permitted length of 16 digits.

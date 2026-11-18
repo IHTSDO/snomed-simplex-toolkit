@@ -9,7 +9,7 @@ public class HTTPClientException extends ServiceException {
 	}
 
 	@Override
-	public HttpStatusCodeException getCause() {
+	public synchronized HttpStatusCodeException getCause() {
 		return (HttpStatusCodeException) super.getCause();
 	}
 }

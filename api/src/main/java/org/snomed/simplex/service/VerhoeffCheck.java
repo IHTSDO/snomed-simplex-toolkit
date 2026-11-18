@@ -2,6 +2,9 @@ package org.snomed.simplex.service;
 
 public class VerhoeffCheck {
 
+	private VerhoeffCheck() {
+	}
+
 	/**
 	 * Represents the multiplication table.
 	 */

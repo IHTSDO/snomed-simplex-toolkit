@@ -570,11 +570,11 @@ public class CustomConceptService {
 
 	protected List<SheetHeader> getInputSheetHeaders(List<ConceptMini> langRefsets) {
 		List<SheetHeader> headers = new ArrayList<>();
-		headers.add(new SheetHeader("Parent Concept Identifier").setSubtitle("Only one can be given per concept."));
+		headers.add(new SheetHeader(ConceptIntentSheetRowToComponentIntentExtractor.PARENT_CODE).setSubtitle("Only one can be given per concept."));
 		headers.add(new SheetHeader("Parent Concept Term").setSubtitle("This is just for reference."));
-		headers.add(new SheetHeader("Concept Identifier").setSubtitle("Do not change this column. \r\n" +
+		headers.add(new SheetHeader(ConceptIntentSheetRowToComponentIntentExtractor.CONCEPT_CODE).setSubtitle("Do not change this column. \r\n" +
 				"Concept identifiers will be generated."));
-		headers.add(new SheetHeader("Active").setSubtitle("Enter true for active concepts or false to inactivate a concept."));
+		headers.add(new SheetHeader(ConceptIntentSheetRowToComponentIntentExtractor.ACTIVE).setSubtitle("Enter true for active concepts or false to inactivate a concept."));
 		String termSubtitle = "The first term will be the preferred term. \r\n" +
 				"Each additional synonym should use a new row. There is no need to repeat the values in columns A to D.";
 		headers.add(new SheetHeader("Terms in English, US dialect. This term is required.").setSubtitle(termSubtitle));

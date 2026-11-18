@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class RequiredRoleFilter extends OncePerRequestFilter {
 
@@ -27,7 +26,7 @@ public class RequiredRoleFilter extends OncePerRequestFilter {
 
 	private final Set<String> excludedUrlPatterns = new HashSet<>();
 
-	private final static Logger LOGGER = LoggerFactory.getLogger(RequiredRoleFilter.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(RequiredRoleFilter.class);
 
 	public RequiredRoleFilter(String requiredRole, String... excludedUrlPatterns) {
 		this.requiredRole = requiredRole;
@@ -49,7 +48,7 @@ public class RequiredRoleFilter extends OncePerRequestFilter {
 
 		List<String> roles = authentication.getAuthorities().stream()
 				.map(GrantedAuthority::getAuthority)
-				.collect(Collectors.toList());
+				.toList();
 
 		if (!roles.contains(requiredRole)) {
 			LOGGER.info("User '{}' with roles '{}' does not have permission to access this resource: {}", SecurityUtil.getUsername(), roles, request.getRequestURI());
