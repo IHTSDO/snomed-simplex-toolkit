@@ -1,5 +1,9 @@
 package org.snomed.simplex.rest.pojos;
 
+import org.snomed.simplex.snolate.domain.TranslationStatus;
+
+import java.util.Set;
+
 public class APTaskRequest {
 	public static final String ASSIGNEE_USERNAME = "assigneeUsername";
 	public static final String TASK_TITLE = "taskTitle";
@@ -8,6 +12,7 @@ public class APTaskRequest {
 	private String taskTitle;
 	private String assigneeUsername;
 	private Boolean includeReadyForReview;
+	private Set<TranslationStatus> statuses;
 
 	public String getTaskTitle() {
 		return taskTitle;
@@ -35,5 +40,16 @@ public class APTaskRequest {
 
 	public boolean isIncludeReadyForReviewOrDefault() {
 		return includeReadyForReview == null || includeReadyForReview;
+	}
+
+	/**
+	 * Translation unit statuses to promote. When set this takes precedence over {@code includeReadyForReview}.
+	 */
+	public Set<TranslationStatus> getStatuses() {
+		return statuses;
+	}
+
+	public void setStatuses(Set<TranslationStatus> statuses) {
+		this.statuses = statuses;
 	}
 }

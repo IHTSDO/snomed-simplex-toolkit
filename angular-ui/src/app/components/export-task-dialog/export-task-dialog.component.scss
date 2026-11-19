@@ -56,3 +56,27 @@ mat-dialog-content {
   max-height: 600px;
   overflow-y: auto;
 }
+
+.status-selection {
+  margin: 16px 0;
+}
+
+.status-selection-title {
+  margin: 0 0 4px;
+  font-weight: 500;
+}
+
+.status-option {
+  display: block;
+}
+
+.unit-count {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9em;
+}
+
+.helper-text {
+  margin: 4px 0 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.9em;
+}

@@ -1,0 +1,31 @@
+<div class="promote-progress" [ngClass]="'promote-progress--' + phase" role="status" aria-live="polite">
+    @if (phase === 'working') {
+        <div class="promote-progress__clock">
+            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
+                <circle fill="none" stroke="#fff" stroke-width="4" stroke-miterlimit="10" cx="50" cy="50" r="48"/>
+                <line fill="none" stroke-linecap="round" stroke="#fff" stroke-width="4" stroke-miterlimit="10" x1="50" y1="50" x2="85" y2="50.5">
+                    <animateTransform attributeName="transform" dur="2s" type="rotate" from="0 50 50" to="360 50 50" repeatCount="indefinite"/>
+                </line>
+                <line fill="none" stroke-linecap="round" stroke="#fff" stroke-width="4" stroke-miterlimit="10" x1="50" y1="50" x2="49.5" y2="74">
+                    <animateTransform attributeName="transform" dur="15s" type="rotate" from="0 50 50" to="360 50 50" repeatCount="indefinite"/>
+                </line>
+            </svg>
+        </div>
+    } @else {
+        <mat-icon class="promote-progress__icon">
+            {{ phase === 'success' ? 'done' : 'error_outline' }}
+        </mat-icon>
+    }
+
+    <h3>{{ heading }}</h3>
+    <h3 class="promote-progress__detail">{{ detail }}</h3>
+
+    @if (phase !== 'working') {
+        <button mat-stroked-button class="promote-progress__button" (click)="close()">
+            {{ phase === 'success' ? 'Done' : 'Close' }}
+        </button>
+        @if (phase === 'success') {
+            <p class="promote-progress__hint">Closing automatically in a few seconds...</p>
+        }
+    }
+</div>

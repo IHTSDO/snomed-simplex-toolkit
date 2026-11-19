@@ -1,7 +1,7 @@
-<h2 mat-dialog-title>Export to Authoring Platform</h2>
+<h2 mat-dialog-title>Promote to Task</h2>
 <mat-dialog-content>
     <div class="dialog-content">
-        <p>Export to task in the Authoring Platform for: <strong>{{ data.labelSetName }}</strong></p>
+        <p>Promote translations to a task in the Authoring Platform for: <strong>{{ data.labelSetName }}</strong></p>
 
         @if(checkingForTask) {
         <mat-spinner diameter="20"></mat-spinner>
@@ -26,7 +26,7 @@
                     <div class="info-section">
                         <mat-icon class="info-icon">info</mat-icon>
                         <div class="info-text">
-                            <p>This will pull the latest translations from Translation Studio into the above task.</p>
+                            <p>This will promote the selected translations from Translation Studio into the above task.</p>
                         </div>
                     </div>
                 } @else {
@@ -47,19 +47,36 @@
                     </div>
                 }
             }
+
+            @if (!multipleTasksDetected) {
+                <div class="status-selection">
+                    <p class="status-selection-title">Translation statuses to promote</p>
+                    @for (option of statusOptions; track option.status) {
+                        <mat-checkbox class="status-option" [(ngModel)]="option.selected" [disabled]="loading">
+                            {{ option.label }}
+                            <span class="unit-count">({{ option.count | number:'1.0-0' }})</span>
+                        </mat-checkbox>
+                    }
+                    @if (selectedStatuses().length === 0) {
+                        <p class="helper-text">Select at least one status to promote.</p>
+                    } @else if (selectedUnitCount() === 0) {
+                        <p class="helper-text">There are no translations with the selected statuses to promote.</p>
+                    }
+                </div>
+            }
         }
 
     </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-    <button mat-button (click)="onCancel()">Cancel</button>
-    <button mat-raised-button color="primary" [disabled]="loading || (!currentApTask && exportForm.invalid)"
-        (click)="onExport()">
+    <button mat-button [disabled]="loading" (click)="onCancel()">Cancel</button>
+    <button mat-raised-button color="primary" [disabled]="!canPromote() || multipleTasksDetected || checkingForTask"
+        (click)="onPromote()">
         <span *ngIf="loading" class="loading-content">
             <mat-spinner diameter="20"></mat-spinner>
-            Exporting...
+            Promoting...
         </span>
-        <span *ngIf="!loading">Export</span>
+        <span *ngIf="!loading">Promote</span>
     </button>
 </mat-dialog-actions>

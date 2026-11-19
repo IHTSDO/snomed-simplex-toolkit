@@ -33,6 +33,7 @@ import org.snomed.simplex.snolate.sets.SnolateSetCreationService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
 import org.snomed.simplex.translation.TranslationLLMService;
+import org.snomed.simplex.translation.service.SnolateSubsetTranslationSource;
 import org.snomed.simplex.translation.service.TranslationService;
 import org.snomed.simplex.translation.service.TranslationStudioSyncService;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
@@ -45,6 +46,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.snomed.simplex.rest.TranslationStudioRequestSupport.*;
 
@@ -501,13 +503,21 @@ public class TranslationStudioController {
 		}
 		String assigneeUsername = apTaskRequest.getAssigneeUsername();
 		String taskTitle = apTaskRequest.getTaskTitle();
-		boolean includeReadyForReview = apTaskRequest.isIncludeReadyForReviewOrDefault();
+		Set<TranslationStatus> includedStatuses;
+		if (apTaskRequest.getStatuses() != null) {
+			if (apTaskRequest.getStatuses().isEmpty()) {
+				throw new ServiceExceptionWithStatusCode("At least one translation status must be selected.", HttpStatus.BAD_REQUEST);
+			}
+			includedStatuses = apTaskRequest.getStatuses();
+		} else {
+			includedStatuses = SnolateSubsetTranslationSource.statusesForReadyForReviewFlag(apTaskRequest.isIncludeReadyForReviewOrDefault());
+		}
 		pushJob.setTaskCreationCallable(() -> translationService.getCreateTranslationTask(theCodeSystem, assigneeUsername, taskTitle));
 
 		return jobService.queueContentJob(pushJob, refsetId, activity, job -> {
 			SnolateTranslationSet set = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
 			ChangeSummary summary = translationStudioSyncService.synchroniseSnolateSubsetToSnowstorm(
-					theCodeSystem, snowstormClient, set, job, job.getTaskCreationCallable(), includeReadyForReview);
+					theCodeSystem, snowstormClient, set, job, job.getTaskCreationCallable(), includedStatuses);
 			set.setLastPulled(new Date());
 			snolateSetService.updateSet(set);
 			return summary;

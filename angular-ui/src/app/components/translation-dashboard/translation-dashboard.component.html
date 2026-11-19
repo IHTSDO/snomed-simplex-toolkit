@@ -334,8 +334,8 @@
                                     </button>
                                     @if(authoringPlatformMode && selectedLabelSet.status !== 'FAILED') {
                                         <button mat-menu-item (click)="export()">
-                                            <mat-icon class="large-icon">file_download</mat-icon>
-                                            <span>Export to Authoring Platform</span>
+                                            <mat-icon class="large-icon">publish</mat-icon>
+                                            <span>Promote to Task</span>
                                         </button>
                                     }
                                 </mat-menu>
@@ -812,8 +812,8 @@
         </button>
         @if(authoringPlatformMode && set.status !== 'FAILED') {
             <button mat-menu-item (click)="export(set)">
-                <mat-icon class="large-icon">file_download</mat-icon>
-                <span>Export to Authoring Platform</span>
+                <mat-icon class="large-icon">publish</mat-icon>
+                <span>Promote to Task</span>
             </button>
         }
     </ng-template>

@@ -546,13 +546,14 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 edition: this.selectedEdition.shortName,
                 refsetId: target.translationId,
                 labelSetName: target.name,
-                label: target.label
+                label: target.label,
+                statusCounts: target.statusCounts
             }
         });
 
         dialogRef.afterClosed().subscribe(result => {
             if (result && result.action === 'export_started') {
-                console.log('Export to Authoring Platform started:', result);
+                console.log('Promote to Task completed:', result);
                 // Refresh members to show any changed translations (though they won't change yet as the task is starting)
                 this.getLabelSetMembers(target, false);
             }
@@ -1361,7 +1362,6 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         return `translation-status-badge--${key}`;
     }
 
-    workflowStatusCssSuffix(status: string): string {
     /** PROMOTED_TO_TASK only exists in Authoring Platform mode. */
     private isStatusVisible(status: string): boolean {
         return status !== 'PROMOTED_TO_TASK' || this.authoringPlatformMode;
@@ -1371,6 +1371,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         return this.translationConceptStatusFilterValues.filter((status) => this.isStatusVisible(status));
     }
 
+    workflowStatusCssSuffix(status: string): string {
         return status.toLowerCase().replace(/_/g, '-');
     }
 

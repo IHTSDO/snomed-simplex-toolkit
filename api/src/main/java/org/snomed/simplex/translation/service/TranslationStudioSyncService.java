@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -95,6 +96,14 @@ public class TranslationStudioSyncService {
 			SnolateTranslationSet translationSet, ProgressMonitor progressMonitor, APTaskCreationCallable taskCreationCallable,
 			boolean includeReadyForReview)
 			throws ServiceException {
+		return synchroniseSnolateSubsetToSnowstorm(codeSystem, snowstormClient, translationSet, progressMonitor, taskCreationCallable,
+				SnolateSubsetTranslationSource.statusesForReadyForReviewFlag(includeReadyForReview));
+	}
+
+	public ChangeSummary synchroniseSnolateSubsetToSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient,
+			SnolateTranslationSet translationSet, ProgressMonitor progressMonitor, APTaskCreationCallable taskCreationCallable,
+			Set<TranslationStatus> includedStatuses)
+			throws ServiceException {
 
 		String languageCode = translationSet.getLanguageCode();
 		String refsetId = translationSet.getRefset();
@@ -102,7 +111,7 @@ public class TranslationStudioSyncService {
 		SnowstormTranslationSource snowstormTranslationSource = new SnowstormTranslationSource(snowstormClient, codeSystem, languageCode, refsetId);
 		SnolateTranslationSource snolateTranslationSource = new SnolateTranslationSource(translationUnitStore, translationSearchService, languageCode, refsetId);
 		SnolateSubsetTranslationSource subsetSource = new SnolateSubsetTranslationSource(translationSearchService, languageCode, refsetId, translationSet.getCompositeSetCode(),
-			includeReadyForReview);
+			includedStatuses);
 
 		TranslationState currentSnowstorm = snowstormTranslationSource.readTranslation();
 		TranslationState previousSnowstorm = translationStateRepository.loadSnowstormSnapshot(refsetId);
@@ -126,11 +135,15 @@ public class TranslationStudioSyncService {
 		}
 
 		translationStateRepository.saveSnowstormSnapshot(refsetId, plan.postPushSnapshot());
-		markPulledUnitsComplete(translationSet, includeReadyForReview);
+		markPulledUnitsComplete(translationSet, includedStatuses);
 		return changeSummary;
 	}
 
 	void markPulledUnitsComplete(SnolateTranslationSet translationSet, boolean includeReadyForReview) {
+		markPulledUnitsComplete(translationSet, SnolateSubsetTranslationSource.statusesForReadyForReviewFlag(includeReadyForReview));
+	}
+
+	void markPulledUnitsComplete(SnolateTranslationSet translationSet, Set<TranslationStatus> includedStatuses) {
 		// AUTHORING_PLATFORM pushes land on a Managed Service translation task branch, not the code system
 		// branch directly, so the unit isn't really "complete" until that task is promoted.
 		TranslationStatus pushedStatus = simplexMode == SimplexMode.AUTHORING_PLATFORM ? TranslationStatus.PROMOTED_TO_TASK : TranslationStatus.COMPLETE;
@@ -138,7 +151,7 @@ public class TranslationStudioSyncService {
 		String setCode = translationSet.getCompositeSetCode();
 		List<TranslationUnit> saveBuffer = new ArrayList<>();
 		translationSearchService.forEachUnitInSet(setCode, compositeLanguageCode, unit -> {
-			if (unit.hasTermContent() && (includeReadyForReview || unit.getStatus() != TranslationStatus.FOR_REVIEW)) {
+			if (unit.hasTermContent() && includedStatuses.contains(unit.getStatus() != null ? unit.getStatus() : TranslationStatus.NOT_STARTED)) {
 				unit.setStatus(pushedStatus);
 				saveBuffer.add(unit);
 				flushStatusSaveBufferIfNeeded(saveBuffer);

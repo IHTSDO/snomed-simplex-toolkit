@@ -8,8 +8,10 @@ import org.snomed.simplex.translation.domain.TranslationState;
 import org.springframework.http.HttpStatus;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Read-only Snolate translation state for concepts in a translation set.
@@ -19,14 +21,31 @@ public class SnolateSubsetTranslationSource {
 	private final SnolateTranslationSearchService translationSearchService;
 	private final String compositeLanguageCode;
 	private final String compositeSetCode;
-	private final boolean includeReadyForReview;
+	private final Set<TranslationStatus> includedStatuses;
 
 	public SnolateSubsetTranslationSource(SnolateTranslationSearchService translationSearchService, String languageCode, String refsetId,
 			String compositeSetCode, boolean includeReadyForReview) {
+		this(translationSearchService, languageCode, refsetId, compositeSetCode, statusesForReadyForReviewFlag(includeReadyForReview));
+	}
+
+	public SnolateSubsetTranslationSource(SnolateTranslationSearchService translationSearchService, String languageCode, String refsetId,
+			String compositeSetCode, Set<TranslationStatus> includedStatuses) {
 		this.translationSearchService = translationSearchService;
 		this.compositeLanguageCode = "%s-%s".formatted(languageCode, refsetId);
 		this.compositeSetCode = compositeSetCode;
-		this.includeReadyForReview = includeReadyForReview;
+		this.includedStatuses = EnumSet.noneOf(TranslationStatus.class);
+		this.includedStatuses.addAll(includedStatuses);
+	}
+
+	/**
+	 * Legacy rule: every status is included, optionally excluding {@link TranslationStatus#FOR_REVIEW}.
+	 */
+	public static Set<TranslationStatus> statusesForReadyForReviewFlag(boolean includeReadyForReview) {
+		EnumSet<TranslationStatus> statuses = EnumSet.allOf(TranslationStatus.class);
+		if (!includeReadyForReview) {
+			statuses.remove(TranslationStatus.FOR_REVIEW);
+		}
+		return statuses;
 	}
 
 	public TranslationState readTranslation() throws ServiceExceptionWithStatusCode {
@@ -49,6 +68,7 @@ public class SnolateSubsetTranslationSource {
 	}
 
 	private boolean shouldIncludeUnit(TranslationUnit unit) {
-		return includeReadyForReview || unit.getStatus() != TranslationStatus.FOR_REVIEW;
+		TranslationStatus status = unit.getStatus() != null ? unit.getStatus() : TranslationStatus.NOT_STARTED;
+		return includedStatuses.contains(status);
 	}
 }

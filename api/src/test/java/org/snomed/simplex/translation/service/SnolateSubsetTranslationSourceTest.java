@@ -56,6 +56,21 @@ class SnolateSubsetTranslationSourceTest {
 		assertThat(state.getConceptTerms().get(100L)).containsExactly("approved");
 	}
 
+	@Test
+	void readTranslation_includesOnlySelectedStatuses() throws Exception {
+		SnolateSubsetTranslationSource source = new SnolateSubsetTranslationSource(
+				translationSearchService, LANG, REFSET, SET_CODE, java.util.EnumSet.of(TranslationStatus.FOR_REVIEW));
+		when(translationSearchService.listAllUnitsInSet(SET_CODE, LANG + "-" + REFSET))
+				.thenReturn(List.of(
+						unit("100", List.of("approved"), TranslationStatus.APPROVED),
+						unit("200", List.of("for review"), TranslationStatus.FOR_REVIEW),
+						unit("300", List.of("needs edit"), TranslationStatus.NEEDS_EDIT)));
+
+		TranslationState state = source.readTranslation();
+
+		assertThat(state.getConceptTerms()).containsOnlyKeys(200L);
+	}
+
 	private TranslationUnit unit(String code, List<String> terms, TranslationStatus status) {
 		return new TranslationUnit(
 				new TranslationUnit.MembershipKey(code, REFSET, LANG, LANG + "-" + REFSET, 0),
