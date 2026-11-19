@@ -10,9 +10,9 @@ export function translationStatusLabel(status: string | null | undefined): strin
 			return 'For review';
 		case 'APPROVED':
 			return 'Approved';
-		// PROMOTED_TO_TASK is a hidden intermediate state: looks identical to COMPLETE to users.
-		// Only distinguished internally so a Managed Service task rejection can revert it to APPROVED.
+		// PROMOTED_TO_TASK (Authoring Platform mode only): on a task, awaiting task promotion or rejection.
 		case 'PROMOTED_TO_TASK':
+			return 'Promoted to task';
 		case 'COMPLETE':
 			return 'Promoted';
 		case 'NOT_STARTED':
@@ -29,6 +29,7 @@ export const TRANSLATION_STATUS_VALUES = [
 	'NEEDS_EDIT',
 	'FOR_REVIEW',
 	'APPROVED',
+	'PROMOTED_TO_TASK',
 	'COMPLETE',
 	'NOT_STARTED'
 ] as const;
@@ -47,6 +48,7 @@ export const TRANSLATION_SET_STATUS_SUMMARY_ORDER: readonly (typeof TRANSLATION_
 	'NEEDS_EDIT',
 	'FOR_REVIEW',
 	'APPROVED',
+	'PROMOTED_TO_TASK',
 	'COMPLETE'
 ];
 
@@ -56,6 +58,7 @@ export const TRANSLATION_CONCEPT_STATUS_FILTER_ORDER: readonly (typeof TRANSLATI
 	'NEEDS_EDIT',
 	'FOR_REVIEW',
 	'APPROVED',
+	'PROMOTED_TO_TASK',
 	'COMPLETE'
 ];
 
@@ -68,6 +71,7 @@ export function translationStatusRadioLabel(status: string): string {
 		case 'APPROVED':
 			return 'Approved';
 		case 'PROMOTED_TO_TASK':
+			return 'Promoted to task';
 		case 'COMPLETE':
 			return 'Promoted';
 		case 'NOT_STARTED':

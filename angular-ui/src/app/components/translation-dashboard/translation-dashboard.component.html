@@ -448,7 +448,7 @@
                                     (selectionChange)="onTranslationConceptStatusFilterChange($event.value)">
                                     <mat-option [value]="null">All statuses</mat-option>
                                     <mat-option
-                                        *ngFor="let status of translationConceptStatusFilterValues"
+                                        *ngFor="let status of visibleConceptStatusFilterValues"
                                         [value]="status">
                                         {{ translationConceptStatusFilterLabel(status) }}
                                     </mat-option>

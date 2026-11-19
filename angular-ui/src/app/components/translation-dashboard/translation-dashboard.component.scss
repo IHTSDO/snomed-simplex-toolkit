@@ -958,13 +958,17 @@ mat-list-item:not(:last-child) {
     background: #26a69a;
 }
 
+.workflow-pipeline__segment--promoted-to-task {
+    background: #9ccc65;
+}
+
 .workflow-pipeline__segment--complete {
     background: #66bb6a;
 }
 
 .workflow-status-cards {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
     gap: 0.75rem;
 }
 
@@ -1019,6 +1023,10 @@ mat-list-item:not(:last-child) {
     background: #00897b;
 }
 
+.workflow-status-card__dot--promoted-to-task {
+    background: #7cb342;
+}
+
 .workflow-status-card__dot--complete {
     background: #43a047;
 }
@@ -1066,6 +1074,11 @@ mat-list-item:not(:last-child) {
 .translation-status-badge--approved {
     background: rgba(0, 137, 123, 0.12);
     color: #00695c;
+}
+
+.translation-status-badge--promoted-to-task {
+    background: rgba(124, 179, 66, 0.14);
+    color: #558b2f;
 }
 
 .translation-status-badge--complete {

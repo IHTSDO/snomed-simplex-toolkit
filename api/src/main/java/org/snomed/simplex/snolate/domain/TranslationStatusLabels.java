@@ -18,9 +18,8 @@ public final class TranslationStatusLabels {
 			case NEEDS_EDIT -> "Needs editing";
 			case FOR_REVIEW -> "Ready for review";
 			case APPROVED -> "Approved";
-			// Hidden intermediate state: looks identical to COMPLETE to users. Only distinguished
-			// internally so a Managed Service task rejection can revert it back to APPROVED.
-			case PROMOTED_TO_TASK, COMPLETE -> "Promoted";
+			case PROMOTED_TO_TASK -> "Promoted to task";
+			case COMPLETE -> "Promoted";
 			case NOT_STARTED -> NOT_STARTED_LABEL;
 		};
 	}
@@ -45,7 +44,8 @@ public final class TranslationStatusLabels {
 			case NEEDS_EDIT -> "needs-editing";
 			case FOR_REVIEW -> "ready-for-review";
 			case APPROVED -> "ready-to-push";
-			case PROMOTED_TO_TASK, COMPLETE -> "pushed";
+			case PROMOTED_TO_TASK -> "promoted-to-task";
+			case COMPLETE -> "pushed";
 		};
 	}
 }

@@ -1294,7 +1294,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     }
 
     translationSetStatusRows(set: any): { status: string; label: string; count: number }[] {
-        return TRANSLATION_SET_STATUS_SUMMARY_ORDER.map((status) => ({
+        return TRANSLATION_SET_STATUS_SUMMARY_ORDER.filter((status) => this.isStatusVisible(status)).map((status) => ({
             status,
             label: translationStatusRadioLabel(status),
             count: set?.statusCounts?.[status] ?? 0
@@ -1309,7 +1309,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     }
 
     workflowStatusCards(set: any): { status: string; label: string; count: number }[] {
-        return TRANSLATION_CONCEPT_STATUS_FILTER_ORDER.map((status) => ({
+        return TRANSLATION_CONCEPT_STATUS_FILTER_ORDER.filter((status) => this.isStatusVisible(status)).map((status) => ({
             status,
             label: this.translationConceptStatusFilterLabel(status),
             count: this.workflowStatusCount(set, status)
@@ -1362,6 +1362,15 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     }
 
     workflowStatusCssSuffix(status: string): string {
+    /** PROMOTED_TO_TASK only exists in Authoring Platform mode. */
+    private isStatusVisible(status: string): boolean {
+        return status !== 'PROMOTED_TO_TASK' || this.authoringPlatformMode;
+    }
+
+    get visibleConceptStatusFilterValues(): string[] {
+        return this.translationConceptStatusFilterValues.filter((status) => this.isStatusVisible(status));
+    }
+
         return status.toLowerCase().replace(/_/g, '-');
     }
 
