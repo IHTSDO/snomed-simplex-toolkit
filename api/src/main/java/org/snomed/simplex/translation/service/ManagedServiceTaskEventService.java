@@ -2,6 +2,9 @@ package org.snomed.simplex.translation.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snomed.simplex.client.SnowstormClient;
+import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
 import org.snomed.simplex.snolate.sets.SnolateSetRepository;
@@ -12,12 +15,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Reacts to Managed Service (SI Authoring Platform) task lifecycle events for translation project branches:
- * a task <b>promotion</b> (confirmed by a Snowstorm JMS event, see {@link ManagedServiceBranchEventListener})
- * or a task <b>rejection</b> (no JMS signal for this exists yet, so it's driven by
- * {@code ManagedServiceTaskController} in the short term).
+ * a task <b>promotion</b> or a task <b>deletion</b> (both signalled by JMS events, see {@link ManagedServiceBranchEventListener};
+ * {@code ManagedServiceTaskController} remains as a manual trigger), and a project <b>rebase</b>.
  * <p>
  * There is only ever zero or one open translation task per translation project at a time, so affected units are
  * found by {@link TranslationStatus#PROMOTED_TO_TASK} status alone - no unit-to-task-branch mapping is needed.
@@ -32,14 +35,46 @@ public class ManagedServiceTaskEventService {
 	private final SnolateSetRepository snolateSetRepository;
 	private final SnolateTranslationSearchService translationSearchService;
 	private final SnolateTranslationUnitStore translationUnitStore;
+	private final TranslationStudioSyncService translationStudioSyncService;
 
 	public ManagedServiceTaskEventService(SnolateSetRepository snolateSetRepository,
 			SnolateTranslationSearchService translationSearchService,
-			SnolateTranslationUnitStore translationUnitStore) {
+			SnolateTranslationUnitStore translationUnitStore,
+			TranslationStudioSyncService translationStudioSyncService) {
 
 		this.snolateSetRepository = snolateSetRepository;
 		this.translationSearchService = translationSearchService;
 		this.translationUnitStore = translationUnitStore;
+		this.translationStudioSyncService = translationStudioSyncService;
+	}
+
+	/**
+	 * The Managed Service translation project was rebased: content from the code system may have come into the
+	 * project branch, so pull the translation content of every language refset from Snowstorm into Translation Studio.
+	 * A failure on one refset is logged and does not stop the others.
+	 *
+	 * @return the number of language refsets synchronised
+	 */
+	public int handleProjectRebased(CodeSystem codeSystem, SnowstormClient snowstormClient) {
+		Map<String, String> translationLanguages = codeSystem.getTranslationLanguages();
+		if (translationLanguages == null || translationLanguages.isEmpty()) {
+			return 0;
+		}
+		int synchronised = 0;
+		for (Map.Entry<String, String> entry : translationLanguages.entrySet()) {
+			String refsetId = entry.getKey();
+			if (TranslationService.isFoundationEnglishLangRefset(refsetId)) {
+				continue;
+			}
+			try {
+				translationStudioSyncService.synchroniseWholeTranslationFromSnowstormToSnolate(codeSystem, snowstormClient, entry.getValue(), refsetId);
+				synchronised++;
+			} catch (ServiceException e) {
+				logger.error("Managed Service rebase: failed to pull {}/{} from Snowstorm: {}", codeSystem.getShortName(), refsetId, e.getMessage(), e);
+			}
+		}
+		logger.info("Managed Service rebase: pulled {} language refset(s) from Snowstorm for code system {}", synchronised, codeSystem.getShortName());
+		return synchronised;
 	}
 
 	/** The Managed Service task was promoted: units pushed to it are now in sync with the code system. */
