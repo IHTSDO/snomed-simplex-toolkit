@@ -113,11 +113,25 @@ public class TranslationStudioSyncService {
 		SnolateSubsetTranslationSource subsetSource = new SnolateSubsetTranslationSource(translationSearchService, languageCode, refsetId, translationSet.getCompositeSetCode(),
 			includedStatuses);
 
-		TranslationState currentSnowstorm = snowstormTranslationSource.readTranslation();
 		TranslationState previousSnowstorm = translationStateRepository.loadSnowstormSnapshot(refsetId);
-		TranslationIntent delta = TranslationStateDiff.diff(previousSnowstorm, currentSnowstorm);
-		if (TranslationStateDiff.hasAdditionsOrRemovals(delta)) {
-			snolateTranslationSource.applyDelta(delta);
+
+		// In AUTHORING_PLATFORM mode the stored snapshot is "the translation project branch as of the last pull", kept up to
+		// date by Managed Service REBASE and PROMOTE events, so there is no need to export the RF2 again for every push.
+		// Fall back to an export when there is no snapshot yet (first use, or events were missed).
+		boolean useStoredSnapshot = simplexMode == SimplexMode.AUTHORING_PLATFORM && !previousSnowstorm.getConceptTerms().isEmpty();
+
+		TranslationState currentSnowstorm;
+		TranslationIntent delta;
+		if (useStoredSnapshot) {
+			logger.info("TranslationSync {}-{} Using stored Snowstorm snapshot, skipping RF2 export", languageCode, refsetId);
+			currentSnowstorm = previousSnowstorm;
+			delta = new TranslationIntent();
+		} else {
+			currentSnowstorm = snowstormTranslationSource.readTranslation();
+			delta = TranslationStateDiff.diff(previousSnowstorm, currentSnowstorm);
+			if (TranslationStateDiff.hasAdditionsOrRemovals(delta)) {
+				snolateTranslationSource.applyDelta(delta);
+			}
 		}
 
 		TranslationState snolateSubset = subsetSource.readTranslation();
@@ -134,7 +148,13 @@ public class TranslationStudioSyncService {
 			changeSummary = new ChangeSummary(0, 0, 0, activeRefsetMembers);
 		}
 
-		translationStateRepository.saveSnowstormSnapshot(refsetId, plan.postPushSnapshot());
+		if (simplexMode != SimplexMode.AUTHORING_PLATFORM) {
+			translationStateRepository.saveSnowstormSnapshot(refsetId, plan.postPushSnapshot());
+		} else if (!useStoredSnapshot) {
+			// Pushed content lands on a task branch, not the project, so the snapshot must stay "project only": the task
+			// may be rejected, and content only joins the project on promotion (which refreshes the snapshot).
+			translationStateRepository.saveSnowstormSnapshot(refsetId, currentSnowstorm);
+		}
 		markPulledUnitsComplete(translationSet, includedStatuses);
 		return changeSummary;
 	}

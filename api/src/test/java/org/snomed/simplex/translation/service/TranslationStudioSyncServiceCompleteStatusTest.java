@@ -6,6 +6,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.snomed.simplex.client.SnowstormClient;
+import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.config.SimplexMode;
+import org.snomed.simplex.service.ProgressMonitor;
 import org.snomed.simplex.snolate.domain.TranslationSource;
 import org.snomed.simplex.snolate.domain.TranslationStatus;
 import org.snomed.simplex.snolate.domain.TranslationUnit;
@@ -16,6 +20,7 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
 import org.snomed.simplex.translation.domain.TranslationState;
 import org.snomed.simplex.translation.service.repository.TranslationStateRepository;
 import org.snomed.simplex.translation.tool.TranslationSubsetType;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -58,6 +63,27 @@ class TranslationStudioSyncServiceCompleteStatusTest {
 		translationSet = new SnolateTranslationSet("SNOMEDCT-TEST", REFSET, "Test set", "test-set", "<< 138875005",
 				TranslationSubsetType.SUB_TYPE, "SNOMEDCT-TEST");
 		translationSet.setLanguageCode(LANG);
+	}
+
+	@Test
+	void authoringPlatformPush_usesStoredSnapshotWithoutExportAndKeepsSnapshotProjectOnly() throws Exception {
+		ReflectionTestUtils.setField(syncService, "simplexMode", SimplexMode.AUTHORING_PLATFORM);
+		SnowstormClient snowstormClient = org.mockito.Mockito.mock(SnowstormClient.class);
+		CodeSystem codeSystem = org.mockito.Mockito.mock(CodeSystem.class);
+		ProgressMonitor progressMonitor = org.mockito.Mockito.mock(ProgressMonitor.class);
+		TranslationState snapshot = new TranslationState();
+		snapshot.getConceptTerms().put(100L, List.of("project term"));
+		when(translationStateRepository.loadSnowstormSnapshot(REFSET)).thenReturn(snapshot);
+		when(translationSearchService.listAllUnitsInSet(translationSet.getCompositeSetCode(), COMPOSITE)).thenReturn(List.of());
+		TranslationState upload = new TranslationState();
+		when(translationSyncService.planPushUpload(any(), any(), any(), any(), any()))
+				.thenReturn(new TranslationSyncService.PushPlan(upload, snapshot, false));
+
+		syncService.synchroniseSnolateSubsetToSnowstorm(codeSystem, snowstormClient, translationSet, progressMonitor, null,
+				Set.of(TranslationStatus.APPROVED));
+
+		verify(snowstormClient, never()).exportRF2(any(), any());
+		verify(translationStateRepository, never()).saveSnowstormSnapshot(any(), any());
 	}
 
 	@Test

@@ -55,16 +55,17 @@ class ManagedServiceBranchEventListenerTest {
 
 		listener.receiveBranchEvents(MESSAGE.formatted("REBASE", "MAIN/SNOMEDCT-TEST/translation"));
 
-		verify(taskEventService).handleProjectRebased(codeSystem, snowstormClient);
+		verify(taskEventService).pullTranslationContentFromSnowstorm(codeSystem, snowstormClient);
 	}
 
 	@Test
-	void promotionTransitionsUnitsToPromoted() throws Exception {
+	void promotionTransitionsUnitsToPromotedAndPullsProjectContent() throws Exception {
 		knownCodeSystem();
 
 		listener.receiveBranchEvents(MESSAGE.formatted("PROMOTE", "MAIN/SNOMEDCT-TEST/translation"));
 
 		verify(taskEventService).handleTaskPromoted("SNOMEDCT-TEST");
+		verify(taskEventService).pullTranslationContentFromSnowstorm(codeSystem, snowstormClient);
 	}
 
 	@Test

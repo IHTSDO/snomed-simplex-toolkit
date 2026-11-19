@@ -49,13 +49,14 @@ public class ManagedServiceTaskEventService {
 	}
 
 	/**
-	 * The Managed Service translation project was rebased: content from the code system may have come into the
-	 * project branch, so pull the translation content of every language refset from Snowstorm into Translation Studio.
+	 * Pull the translation content of every language refset from the translation project branch in Snowstorm into
+	 * Translation Studio, and refresh the stored snapshot of the project. Called when the project was rebased (content
+	 * may have come in from the code system) and when a task was promoted (any edits made in the task are now in the project).
 	 * A failure on one refset is logged and does not stop the others.
 	 *
 	 * @return the number of language refsets synchronised
 	 */
-	public int handleProjectRebased(CodeSystem codeSystem, SnowstormClient snowstormClient) {
+	public int pullTranslationContentFromSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient) {
 		Map<String, String> translationLanguages = codeSystem.getTranslationLanguages();
 		if (translationLanguages == null || translationLanguages.isEmpty()) {
 			return 0;
@@ -70,10 +71,10 @@ public class ManagedServiceTaskEventService {
 				translationStudioSyncService.synchroniseWholeTranslationFromSnowstormToSnolate(codeSystem, snowstormClient, entry.getValue(), refsetId);
 				synchronised++;
 			} catch (ServiceException e) {
-				logger.error("Managed Service rebase: failed to pull {}/{} from Snowstorm: {}", codeSystem.getShortName(), refsetId, e.getMessage(), e);
+				logger.error("Managed Service event: failed to pull {}/{} from Snowstorm: {}", codeSystem.getShortName(), refsetId, e.getMessage(), e);
 			}
 		}
-		logger.info("Managed Service rebase: pulled {} language refset(s) from Snowstorm for code system {}", synchronised, codeSystem.getShortName());
+		logger.info("Managed Service event: pulled {} language refset(s) from Snowstorm for code system {}", synchronised, codeSystem.getShortName());
 		return synchronised;
 	}
 

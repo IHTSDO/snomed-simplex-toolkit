@@ -29,7 +29,8 @@ import java.util.Optional;
  * <ul>
  *   <li>{@code REBASE} of the translation project branch: content may have come in from the code system, so
  *       translation content is pulled from Snowstorm.</li>
- *   <li>{@code PROMOTE} of a task into the project: units {@code PROMOTED_TO_TASK} become {@code COMPLETE}.</li>
+ *   <li>{@code PROMOTE} of a task into the project: units {@code PROMOTED_TO_TASK} become {@code COMPLETE}, then content
+ *       (including any edits made in the task) is pulled from Snowstorm.</li>
  *   <li>{@code DELETE} of a task branch: units {@code PROMOTED_TO_TASK} revert to {@code APPROVED}.</li>
  * </ul>
  * There is no logged-in user on a listener thread, so Snowstorm is called as the configured service account.
@@ -104,12 +105,14 @@ public class ManagedServiceBranchEventListener {
 			switch (event.type()) {
 				case REBASE -> {
 					logger.info("Managed Service REBASE event: project branch {} rebased from {}", event.branchPath(), event.sourceBranchPath());
-					taskEventService.handleProjectRebased(codeSystem.get(), snowstormClientFactory.getClient());
+					taskEventService.pullTranslationContentFromSnowstorm(codeSystem.get(), snowstormClientFactory.getClient());
 				}
 				case PROMOTE -> {
 					int updated = taskEventService.handleTaskPromoted(shortName);
 					logger.info("Managed Service PROMOTE event: project branch {} (task {}) promoted, transitioned {} unit(s)",
 							event.branchPath(), event.sourceBranchPath(), updated);
+					// Edits made directly in the task are now in the project: pull them and refresh the project snapshot.
+					taskEventService.pullTranslationContentFromSnowstorm(codeSystem.get(), snowstormClientFactory.getClient());
 				}
 				case DELETE -> {
 					int updated = taskEventService.handleTaskRejected(shortName);
