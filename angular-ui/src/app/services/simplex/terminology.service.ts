@@ -639,15 +639,24 @@ export class TerminologyService {
    * @param limit Optional limit for pagination
    * @returns Observable with the ECL query results
    */
-  runECL(branchPath: string, ecl: string, terms?: string, offset: number = 0, limit: number = 50): Observable<any> {
-    console.log('runECL', branchPath, ecl, terms, offset, limit);
+  runECL(branchPath: string, ecl: string | undefined, terms?: string, offset: number = 0, limit: number = 50, activeOnly: boolean = false): Observable<any> {
+    console.log('runECL', branchPath, ecl, terms, offset, limit, activeOnly);
 
     // Encode the branch path and ECL for URL
     const encodedBranchPath = encodeURIComponent(branchPath);
     const encodedEcl = encodeURIComponent(ecl);
     
     // Construct the native API URL
-    let requestUrl = `/snowstorm/snomed-ct/${encodedBranchPath}/concepts?ecl=${encodedEcl}&includeLeafFlag=false&form=inferred&offset=${offset}&limit=${limit}`;
+    // When only active concepts are needed, use activeFilter instead of an ECL like "<< 138875005".
+    // A term search combined with ECL makes Snowstorm fetch and cache every concept id for the ECL,
+    // which is expired on each commit. Without ECL it is a plain, uncached concept search.
+    let requestUrl = `/snowstorm/snomed-ct/${encodedBranchPath}/concepts?includeLeafFlag=false&form=inferred&offset=${offset}&limit=${limit}`;
+    if (activeOnly) {
+      requestUrl += '&activeFilter=true&termActive=true';
+    }
+    if (ecl && ecl.trim()) {
+      requestUrl += `&ecl=${encodedEcl}`;
+    }
     
     // Add term parameter if provided (using 'term' not 'termFilter' per API docs)
     if (terms && terms.trim()) {

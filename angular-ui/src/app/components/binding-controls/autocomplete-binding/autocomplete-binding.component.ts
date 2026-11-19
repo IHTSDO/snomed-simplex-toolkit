@@ -9,7 +9,8 @@ import { MatFormFieldAppearance, MatFormFieldControl } from '@angular/material/f
  * Interface for the binding object passed to the autocomplete binding component
  */
 interface AutocompleteBinding {
-  ecl: string;           // The ECL query to execute
+  ecl?: string;          // The ECL query to execute (omit when activeOnly is set)
+  activeOnly?: boolean;  // Search all active concepts without ECL (avoids the Snowstorm ECL cache)
   branchPath: string;    // The branch path for the edition
   title?: string;        // Optional title for the form field
   note?: string;         // Optional hint text
@@ -134,7 +135,7 @@ export class AutocompleteBindingComponent implements OnInit, OnChanges, ControlV
             return concat(
               of([]),                                                   // clears the panel
               this.terminologyService
-                  .runECL(this.binding.branchPath, this.binding.ecl, term, 0, 50)
+                  .runECL(this.binding.branchPath, this.binding.ecl, term, 0, 50, !!this.binding.activeOnly)
                   .pipe(
                     map(r => {
                       // Transform native API response to expected format

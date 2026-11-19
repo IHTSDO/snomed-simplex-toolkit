@@ -29,7 +29,7 @@ export class CustomConceptDialogComponent implements OnInit {
 	saving = false;
 	langRefsets: CustomConceptLangRefset[] = [];
 	parentTerm = '';
-	parentBinding: { ecl: string; branchPath: string } | null = null;
+	parentBinding: { ecl?: string; activeOnly?: boolean; branchPath: string } | null = null;
 	readonly isEditMode: boolean;
 	inactivationAllowed = true;
 	readonly refsetMetadataInactivationMessage =
@@ -58,7 +58,7 @@ export class CustomConceptDialogComponent implements OnInit {
 	ngOnInit(): void {
 		const branchPath = this.data.editionDetails?.branchPath || this.data.editionDetails?.simplexWorkingBranch;
 		if (branchPath) {
-			this.parentBinding = { ecl: '<< 138875005', branchPath };
+			this.parentBinding = { activeOnly: true, branchPath };
 		}
 		if (this.isEditMode) {
 			this.loadConcept();
