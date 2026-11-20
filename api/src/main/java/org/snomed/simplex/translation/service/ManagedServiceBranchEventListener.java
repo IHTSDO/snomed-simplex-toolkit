@@ -8,7 +8,11 @@ import org.snomed.simplex.client.AuthenticationClient;
 import org.snomed.simplex.client.SnowstormClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
+import org.snomed.simplex.domain.JobStatus;
 import org.snomed.simplex.exceptions.ServiceException;
+import org.snomed.simplex.service.EditionEventService;
+import org.snomed.simplex.service.job.TranslationStudioContentJob;
+import org.snomed.simplex.snolate.service.TranslationStudioImportJobRecordService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.security.core.context.SecurityContext;
@@ -19,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -38,28 +43,39 @@ import java.util.Optional;
 @Component
 public class ManagedServiceBranchEventListener {
 
+	private static final String JOB_USERNAME = "Managed Service";
+
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
 	private final ManagedServiceTaskEventService taskEventService;
 	private final SnowstormClientFactory snowstormClientFactory;
 	private final AuthenticationClient authenticationClient;
 	private final ObjectMapper objectMapper;
+	private final TranslationStudioImportJobRecordService jobRecordService;
+	private final EditionEventService editionEventService;
 	private final String serviceAccountUsername;
 	private final String serviceAccountPassword;
+	private final String devWorkaroundImsToken;
 
 	public ManagedServiceBranchEventListener(ManagedServiceTaskEventService taskEventService,
 			SnowstormClientFactory snowstormClientFactory,
 			AuthenticationClient authenticationClient,
 			ObjectMapper objectMapper,
+			TranslationStudioImportJobRecordService jobRecordService,
+			EditionEventService editionEventService,
 			@Value("${managed-service.service-account.username:}") String serviceAccountUsername,
-			@Value("${managed-service.service-account.password:}") String serviceAccountPassword) {
+			@Value("${managed-service.service-account.password:}") String serviceAccountPassword,
+			@Value("${managed-service.service-account.dev-workaround-ims-token:}") String devWorkaroundImsToken) {
 
 		this.taskEventService = taskEventService;
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.authenticationClient = authenticationClient;
 		this.objectMapper = objectMapper;
+		this.jobRecordService = jobRecordService;
+		this.editionEventService = editionEventService;
 		this.serviceAccountUsername = serviceAccountUsername;
 		this.serviceAccountPassword = serviceAccountPassword;
+		this.devWorkaroundImsToken = devWorkaroundImsToken;
 	}
 
 	@JmsListener(destination = "${managed-service.jms.branch-events-destination}")
@@ -75,8 +91,9 @@ public class ManagedServiceBranchEventListener {
 		if (events.isEmpty()) {
 			return;
 		}
-		if (!StringUtils.hasLength(serviceAccountUsername)) {
-			logger.warn("Ignoring {} Managed Service branch event(s): managed-service.service-account.username is not configured", events.size());
+		if (!hasCredentials() && !StringUtils.hasLength(devWorkaroundImsToken)) {
+			logger.warn("Ignoring {} Managed Service branch event(s): neither managed-service.service-account.username/password nor "
+					+ "managed-service.service-account.dev-workaround-ims-token is configured", events.size());
 			return;
 		}
 
@@ -105,14 +122,14 @@ public class ManagedServiceBranchEventListener {
 			switch (event.type()) {
 				case REBASE -> {
 					logger.info("Managed Service REBASE event: project branch {} rebased from {}", event.branchPath(), event.sourceBranchPath());
-					taskEventService.pullTranslationContentFromSnowstorm(codeSystem.get(), snowstormClientFactory.getClient());
+					pullAndRecord(codeSystem.get(), "project rebase");
 				}
 				case PROMOTE -> {
 					int updated = taskEventService.handleTaskPromoted(shortName);
 					logger.info("Managed Service PROMOTE event: project branch {} (task {}) promoted, transitioned {} unit(s)",
 							event.branchPath(), event.sourceBranchPath(), updated);
 					// Edits made directly in the task are now in the project: pull them and refresh the project snapshot.
-					taskEventService.pullTranslationContentFromSnowstorm(codeSystem.get(), snowstormClientFactory.getClient());
+					pullAndRecord(codeSystem.get(), "task promoted");
 				}
 				case DELETE -> {
 					int updated = taskEventService.handleTaskRejected(shortName);
@@ -124,10 +141,58 @@ public class ManagedServiceBranchEventListener {
 		}
 	}
 
+	/**
+	 * Pull translation content from Snowstorm, leave a record in the Translation Studio jobs log
+	 * and tell any browsers viewing the edition.
+	 */
+	private void pullAndRecord(CodeSystem codeSystem, String trigger) {
+		String shortName = codeSystem.getShortName();
+		TranslationStudioContentJob job = new TranslationStudioContentJob(codeSystem,
+				"Translation Studio sync from Snowstorm (%s)".formatted(trigger), null);
+		job.setUsername(JOB_USERNAME);
+		job.setStatus(JobStatus.IN_PROGRESS);
+		try {
+			ManagedServiceTaskEventService.PullResult result = taskEventService.pullTranslationContentFromSnowstorm(codeSystem, snowstormClientFactory.getClient());
+			if (result.hasFailures()) {
+				job.setStatus(JobStatus.SYSTEM_ERROR);
+				job.setErrorMessage("Failed to sync %d language refset(s): %s".formatted(result.failures().size(), String.join("; ", result.failures())));
+			} else {
+				job.setStatus(JobStatus.COMPLETE);
+			}
+		} catch (Exception e) {
+			logger.error("Snowstorm sync after {} failed for {}: {}", trigger, shortName, e.getMessage(), e);
+			job.setStatus(JobStatus.SYSTEM_ERROR);
+			job.setErrorMessage(e.getMessage());
+		}
+		try {
+			jobRecordService.saveFromJob(job);
+		} catch (Exception e) {
+			logger.error("Could not save sync job record for {}: {}", shortName, e.getMessage(), e);
+		}
+		editionEventService.publish(shortName, EditionEventService.EVENT_TRANSLATION_SYNC, Map.of(
+				"trigger", trigger,
+				"status", job.getStatus().name(),
+				"jobId", job.getId(),
+				"errorMessage", job.getErrorMessage() != null ? job.getErrorMessage() : ""));
+	}
+
+	private boolean hasCredentials() {
+		return StringUtils.hasLength(serviceAccountUsername) && StringUtils.hasLength(serviceAccountPassword);
+	}
+
 	private void authenticateAsServiceAccount() throws ServiceException {
-		String token = authenticationClient.fetchAuthenticationToken(serviceAccountUsername, serviceAccountPassword);
+		String principal = serviceAccountUsername;
+		String token;
+		if (hasCredentials()) {
+			token = authenticationClient.fetchAuthenticationToken(serviceAccountUsername, serviceAccountPassword);
+		} else {
+			// Temporary workaround: no username/password configured, use the fixed IMS token.
+			logger.warn("Using managed-service.service-account.dev-workaround-ims-token to authenticate; this is a temporary workaround");
+			token = devWorkaroundImsToken;
+			principal = StringUtils.hasLength(principal) ? principal : JOB_USERNAME;
+		}
 		SecurityContext context = new SecurityContextImpl(
-				new PreAuthenticatedAuthenticationToken(serviceAccountUsername, token, List.of()));
+				new PreAuthenticatedAuthenticationToken(principal, token, List.of()));
 		SecurityContextHolder.setContext(context);
 	}
 

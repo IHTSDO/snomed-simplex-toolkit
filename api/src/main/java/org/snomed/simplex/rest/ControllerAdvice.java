@@ -1,5 +1,6 @@
 package org.snomed.simplex.rest;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.catalina.connector.ClientAbortException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,6 +10,7 @@ import org.snomed.simplex.util.ElasticsearchExceptionSupport;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
@@ -133,12 +135,17 @@ public class ControllerAdvice {
 			result.put(MESSAGE, "An unexpected error occurred.");
 			return result;
 		}
-		return handleException(exception);
+		return handleException(exception, null);
 	}
 
 	@ExceptionHandler(Exception.class)
 	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-	public Map<String,Object> handleException(Exception exception) {
+	public Map<String,Object> handleException(Exception exception, HttpServletResponse response) {
+		if (response != null && response.getContentType() != null && response.getContentType().startsWith(MediaType.TEXT_EVENT_STREAM_VALUE)) {
+			// An event stream (e.g. interrupted by shutdown) cannot carry a JSON error body.
+			logger.debug("Event stream ended with exception: {}", exception.getMessage());
+			return null;
+		}
 		logger.error(exception.getMessage(), exception);
 		HashMap<String, Object> result = new HashMap<>();
 		result.put(ERROR, HttpStatus.INTERNAL_SERVER_ERROR);

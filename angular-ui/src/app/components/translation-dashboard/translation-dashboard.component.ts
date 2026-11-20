@@ -6,7 +6,8 @@ import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { PageEvent } from '@angular/material/paginator';
 import { lastValueFrom, Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs/operators';
+import { EditionEventsService } from 'src/app/services/simplex/edition-events.service';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { TerminologyService } from 'src/app/services/simplex/terminology.service';
@@ -245,6 +246,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         private route: ActivatedRoute,
         private router: Router,
         private dialog: MatDialog,
+        private editionEvents: EditionEventsService,
         private eclBuilderDialog: EclBuilderDialogService) {
     }
 
@@ -273,6 +275,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             this.authoringPlatformMode = data;
             this.changeDetectorRef.detectChanges();
         });
+        this.subscribeToTranslationSyncEvents();
         if (!this.isSubscribedToEdition) {
             const editionSubscription = this.uiConfigurationService.getSelectedEdition().subscribe(edition => {
                 if (edition && !this.isInitialized) {
@@ -376,6 +379,29 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.subscriptions.unsubscribe();
         this.isInitialized = false; // Reset initialization flag
         this.isSubscribedToEdition = false; // Reset subscription flag
+    }
+
+    /** Reload when translation content is synchronised from Snowstorm, e.g. after a project rebase. */
+    private subscribeToTranslationSyncEvents(): void {
+        const syncSubscription = this.uiConfigurationService.getSelectedEdition().pipe(
+            map(edition => edition?.shortName as string | undefined),
+            distinctUntilChanged(),
+            filter((shortName): shortName is string => !!shortName),
+            switchMap(shortName => this.editionEvents.translationSync(shortName))
+        ).subscribe(event => {
+            if (event.status === 'COMPLETE') {
+                this.snackBar.open(`Translations synchronised from Snowstorm (${event.trigger}).`, 'Dismiss', { duration: 8000 });
+            } else {
+                this.snackBar.open(`Synchronising translations from Snowstorm failed (${event.trigger}). See the Import jobs tab.`,
+                    'Dismiss', { duration: 15000 });
+            }
+            this.getTranslationSets({ silent: true });
+            this.importJobsPanel?.refresh();
+            if (this.selectedLabelSet) {
+                this.getLabelSetMembers(this.selectedLabelSet, false);
+            }
+        });
+        this.subscriptions.add(syncSubscription);
     }
 
     // Method to handle component reuse when navigating to the same route
@@ -553,8 +579,8 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
         dialogRef.afterClosed().subscribe(result => {
             if (result && result.action === 'export_started') {
-                console.log('Promote to Task completed:', result);
-                // Refresh members to show any changed translations (though they won't change yet as the task is starting)
+                // Promotion changes translation statuses, so reload the sets (status counts) and members.
+                this.getTranslationSets({ silent: true });
                 this.getLabelSetMembers(target, false);
             }
         });

@@ -54,14 +54,15 @@ public class ManagedServiceTaskEventService {
 	 * may have come in from the code system) and when a task was promoted (any edits made in the task are now in the project).
 	 * A failure on one refset is logged and does not stop the others.
 	 *
-	 * @return the number of language refsets synchronised
+	 * @return the number of language refsets synchronised, and the refsets that failed
 	 */
-	public int pullTranslationContentFromSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient) {
+	public PullResult pullTranslationContentFromSnowstorm(CodeSystem codeSystem, SnowstormClient snowstormClient) {
 		Map<String, String> translationLanguages = codeSystem.getTranslationLanguages();
 		if (translationLanguages == null || translationLanguages.isEmpty()) {
-			return 0;
+			return new PullResult(0, List.of());
 		}
 		int synchronised = 0;
+		List<String> failures = new ArrayList<>();
 		for (Map.Entry<String, String> entry : translationLanguages.entrySet()) {
 			String refsetId = entry.getKey();
 			if (TranslationService.isFoundationEnglishLangRefset(refsetId)) {
@@ -72,10 +73,18 @@ public class ManagedServiceTaskEventService {
 				synchronised++;
 			} catch (ServiceException e) {
 				logger.error("Managed Service event: failed to pull {}/{} from Snowstorm: {}", codeSystem.getShortName(), refsetId, e.getMessage(), e);
+				failures.add("%s: %s".formatted(refsetId, e.getMessage()));
 			}
 		}
 		logger.info("Managed Service event: pulled {} language refset(s) from Snowstorm for code system {}", synchronised, codeSystem.getShortName());
-		return synchronised;
+		return new PullResult(synchronised, failures);
+	}
+
+	/** Outcome of {@link #pullTranslationContentFromSnowstorm}. */
+	public record PullResult(int synchronised, List<String> failures) {
+		public boolean hasFailures() {
+			return !failures.isEmpty();
+		}
 	}
 
 	/** The Managed Service task was promoted: units pushed to it are now in sync with the code system. */

@@ -1,5 +1,6 @@
 package org.snomed.simplex.config.security;
 
+import jakarta.servlet.DispatcherType;
 import org.ihtsdo.sso.integration.RequestHeaderAuthenticationDecorator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -46,6 +47,11 @@ public class HttpSecurityConfig {
 		if (rolesEnabled) {
 			http.addFilterBefore(new RequestHeaderAuthenticationDecorator(), AuthorizationFilter.class);
 			http.addFilterAt(new RequiredRoleFilter(requiredRole, excludedUrlPatterns), AuthorizationFilter.class);
+
+			// An async dispatch (e.g. an SseEmitter completing) only finishes a request that was already authorized on its
+			// initial dispatch. The authentication filters above skip async dispatches, so without this the request is
+			// treated as anonymous and denied after the response has been committed.
+			http.authorizeHttpRequests(auth -> auth.dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll());
 
 			for (String pattern : excludedUrlPatterns) {
 				http.authorizeHttpRequests(auth -> auth.requestMatchers(PathPatternRequestMatcher.withDefaults().matcher(pattern)).permitAll());

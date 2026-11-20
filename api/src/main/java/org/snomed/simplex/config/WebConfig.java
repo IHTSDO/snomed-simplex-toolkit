@@ -18,6 +18,7 @@ public class WebConfig implements WebMvcConfigurer {
 			List.of(
 					MediaType.APPLICATION_JSON,
 					MediaType.parseMediaType("text/plain"),
+					MediaType.TEXT_EVENT_STREAM,
 					MediaType.parseMediaType("text/csv"),
 					MediaType.parseMediaType("application/zip"),
 					MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
