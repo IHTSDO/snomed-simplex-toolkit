@@ -7,7 +7,7 @@ import { MatSort } from '@angular/material/sort';
 import { PageEvent } from '@angular/material/paginator';
 import { lastValueFrom, Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs/operators';
-import { EditionEventsService } from 'src/app/services/simplex/edition-events.service';
+import { EditionEventsService, TranslationEvent } from 'src/app/services/simplex/edition-events.service';
 import { SimplexService } from 'src/app/services/simplex/simplex.service';
 import { UiConfigurationService } from 'src/app/services/ui-configuration/ui-configuration.service';
 import { TerminologyService } from 'src/app/services/simplex/terminology.service';
@@ -381,20 +381,16 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.isSubscribedToEdition = false; // Reset subscription flag
     }
 
-    /** Reload when translation content is synchronised from Snowstorm, e.g. after a project rebase. */
+    /** Reload when translation content is synchronised from Snowstorm or a task is deleted. */
     private subscribeToTranslationSyncEvents(): void {
         const syncSubscription = this.uiConfigurationService.getSelectedEdition().pipe(
             map(edition => edition?.shortName as string | undefined),
             distinctUntilChanged(),
             filter((shortName): shortName is string => !!shortName),
-            switchMap(shortName => this.editionEvents.translationSync(shortName))
+            switchMap(shortName => this.editionEvents.translationEvents(shortName))
         ).subscribe(event => {
-            if (event.status === 'COMPLETE') {
-                this.snackBar.open(`Translations synchronised from Snowstorm (${event.trigger}).`, 'Dismiss', { duration: 8000 });
-            } else {
-                this.snackBar.open(`Synchronising translations from Snowstorm failed (${event.trigger}). See the Import jobs tab.`,
-                    'Dismiss', { duration: 15000 });
-            }
+            const message = this.translationEventMessage(event);
+            this.snackBar.open(message.text, 'Dismiss', { duration: message.duration });
             this.getTranslationSets({ silent: true });
             this.importJobsPanel?.refresh();
             if (this.selectedLabelSet) {
@@ -402,6 +398,30 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             }
         });
         this.subscriptions.add(syncSubscription);
+    }
+
+    /** User-facing wording for Authoring Platform events: what happened there, then what Simplex did about it. */
+    private translationEventMessage(event: TranslationEvent): { text: string; duration: number } {
+        if (event.type === 'translation-task-reverted') {
+            return {
+                text: `Authoring Platform task deleted. ${event.data.unitsReverted} translation unit(s) reverted to Approved.`,
+                duration: 8000
+            };
+        }
+        const data = event.data;
+        const happened = data.trigger === 'TASK_PROMOTED' ? 'task promoted' : 'project rebased';
+        if (data.status !== 'COMPLETE') {
+            return {
+                text: `Authoring Platform ${happened}, but synchronising translation content failed. See the Import jobs tab.`,
+                duration: 15000
+            };
+        }
+        const completed = data.unitsCompleted != null ? ` ${data.unitsCompleted} translation unit(s) completed.` : '';
+        return {
+            text: `Authoring Platform ${happened}.${completed} Translation content has now been synchronised`
+                + ` (${data.refsetsSynchronised} language refset(s)).`,
+            duration: 8000
+        };
     }
 
     // Method to handle component reuse when navigating to the same route

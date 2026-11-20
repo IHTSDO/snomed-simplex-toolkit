@@ -77,7 +77,7 @@ public class ControllerAdvice {
 	@ExceptionHandler({ClientAbortException.class, AsyncRequestNotUsableException.class})
 	@ResponseStatus(HttpStatus.OK)
 	public void handleClientAbortException(Exception exception) {
-		logger.info("A client aborted an HTTP connection, probably a page refresh during loading.");
+		logger.debug("A client aborted an HTTP connection, probably a page refresh during loading.");
 		logger.debug(exception.getClass().getSimpleName(), exception);
 	}
 

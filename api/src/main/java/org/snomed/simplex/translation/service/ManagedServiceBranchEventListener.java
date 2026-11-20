@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,7 +44,7 @@ import java.util.Optional;
 @Component
 public class ManagedServiceBranchEventListener {
 
-	private static final String JOB_USERNAME = "Managed Service";
+	private static final String JOB_USERNAME = "Authoring Platform";
 
 	private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -85,14 +86,14 @@ public class ManagedServiceBranchEventListener {
 			JsonNode message = objectMapper.readTree(messageBody);
 			events = ManagedServiceBranchEvent.parse(message);
 		} catch (Exception e) {
-			logger.error("Could not parse Managed Service branch event message: {}", e.getMessage(), e);
+			logger.error("Could not parse Authoring Platform branch event message: {}", e.getMessage(), e);
 			return;
 		}
 		if (events.isEmpty()) {
 			return;
 		}
 		if (!hasCredentials() && !StringUtils.hasLength(devWorkaroundImsToken)) {
-			logger.warn("Ignoring {} Managed Service branch event(s): neither managed-service.service-account.username/password nor "
+			logger.warn("Ignoring {} Authoring Platform branch event(s): neither managed-service.service-account.username/password nor "
 					+ "managed-service.service-account.dev-workaround-ims-token is configured", events.size());
 			return;
 		}
@@ -103,7 +104,7 @@ public class ManagedServiceBranchEventListener {
 				handleEvent(event);
 			}
 		} catch (Exception e) {
-			logger.error("Error while processing Managed Service branch event(s): {}", e.getMessage(), e);
+			logger.error("Error while processing Authoring Platform branch event(s): {}", e.getMessage(), e);
 		} finally {
 			SecurityContextHolder.clearContext();
 		}
@@ -115,29 +116,32 @@ public class ManagedServiceBranchEventListener {
 			String projectBranch = event.type() == ManagedServiceBranchEvent.Type.DELETE ? parentBranch(event.branchPath()) : event.branchPath();
 			Optional<CodeSystem> codeSystem = projectBranch == null ? Optional.empty() : findCodeSystemForProjectBranch(projectBranch);
 			if (codeSystem.isEmpty()) {
-				logger.warn("Managed Service {} event for branch {} did not match a known code system", event.type(), event.branchPath());
+				logger.warn("Authoring Platform {} event for branch {} did not match a known code system", event.type(), event.branchPath());
 				return;
 			}
 			String shortName = codeSystem.get().getShortName();
 			switch (event.type()) {
 				case REBASE -> {
-					logger.info("Managed Service REBASE event: project branch {} rebased from {}", event.branchPath(), event.sourceBranchPath());
-					pullAndRecord(codeSystem.get(), "project rebase");
+					logger.info("Authoring Platform REBASE event: project branch {} rebased from {}", event.branchPath(), event.sourceBranchPath());
+					pullAndRecord(codeSystem.get(), TranslationSyncTrigger.PROJECT_REBASED, null);
 				}
 				case PROMOTE -> {
 					int updated = taskEventService.handleTaskPromoted(shortName);
-					logger.info("Managed Service PROMOTE event: project branch {} (task {}) promoted, transitioned {} unit(s)",
+					logger.info("Authoring Platform PROMOTE event: project branch {} (task {}) promoted, transitioned {} unit(s)",
 							event.branchPath(), event.sourceBranchPath(), updated);
 					// Edits made directly in the task are now in the project: pull them and refresh the project snapshot.
-					pullAndRecord(codeSystem.get(), "task promoted");
+					pullAndRecord(codeSystem.get(), TranslationSyncTrigger.TASK_PROMOTED, updated);
 				}
 				case DELETE -> {
 					int updated = taskEventService.handleTaskRejected(shortName);
-					logger.info("Managed Service DELETE event: task branch {} deleted, reverted {} unit(s)", event.branchPath(), updated);
+					logger.info("Authoring Platform DELETE event: task branch {} deleted, reverted {} unit(s)", event.branchPath(), updated);
+					editionEventService.publish(shortName, EditionEventService.EVENT_TRANSLATION_TASK_REVERTED, Map.of(
+							"taskBranch", event.branchPath(),
+							"unitsReverted", updated));
 				}
 			}
 		} catch (ServiceException e) {
-			logger.error("Error while processing Managed Service {} event for branch {}: {}", event.type(), event.branchPath(), e.getMessage(), e);
+			logger.error("Error while processing Authoring Platform {} event for branch {}: {}", event.type(), event.branchPath(), e.getMessage(), e);
 		}
 	}
 
@@ -145,14 +149,16 @@ public class ManagedServiceBranchEventListener {
 	 * Pull translation content from Snowstorm, leave a record in the Translation Studio jobs log
 	 * and tell any browsers viewing the edition.
 	 */
-	private void pullAndRecord(CodeSystem codeSystem, String trigger) {
+	private void pullAndRecord(CodeSystem codeSystem, TranslationSyncTrigger trigger, Integer unitsCompleted) {
 		String shortName = codeSystem.getShortName();
 		TranslationStudioContentJob job = new TranslationStudioContentJob(codeSystem,
-				"Translation Studio sync from Snowstorm (%s)".formatted(trigger), null);
+				"Translation Studio sync from Snowstorm (%s)".formatted(trigger.getLabel()), null);
 		job.setUsername(JOB_USERNAME);
 		job.setStatus(JobStatus.IN_PROGRESS);
+		int refsetsSynchronised = 0;
 		try {
 			ManagedServiceTaskEventService.PullResult result = taskEventService.pullTranslationContentFromSnowstorm(codeSystem, snowstormClientFactory.getClient());
+			refsetsSynchronised = result.synchronised();
 			if (result.hasFailures()) {
 				job.setStatus(JobStatus.SYSTEM_ERROR);
 				job.setErrorMessage("Failed to sync %d language refset(s): %s".formatted(result.failures().size(), String.join("; ", result.failures())));
@@ -160,7 +166,7 @@ public class ManagedServiceBranchEventListener {
 				job.setStatus(JobStatus.COMPLETE);
 			}
 		} catch (Exception e) {
-			logger.error("Snowstorm sync after {} failed for {}: {}", trigger, shortName, e.getMessage(), e);
+			logger.error("Snowstorm sync after {} failed for {}: {}", trigger.getLabel(), shortName, e.getMessage(), e);
 			job.setStatus(JobStatus.SYSTEM_ERROR);
 			job.setErrorMessage(e.getMessage());
 		}
@@ -169,11 +175,16 @@ public class ManagedServiceBranchEventListener {
 		} catch (Exception e) {
 			logger.error("Could not save sync job record for {}: {}", shortName, e.getMessage(), e);
 		}
-		editionEventService.publish(shortName, EditionEventService.EVENT_TRANSLATION_SYNC, Map.of(
-				"trigger", trigger,
-				"status", job.getStatus().name(),
-				"jobId", job.getId(),
-				"errorMessage", job.getErrorMessage() != null ? job.getErrorMessage() : ""));
+		Map<String, Object> eventData = new HashMap<>();
+		eventData.put("trigger", trigger.name());
+		eventData.put("status", job.getStatus().name());
+		eventData.put("jobId", job.getId());
+		eventData.put("errorMessage", job.getErrorMessage() != null ? job.getErrorMessage() : "");
+		eventData.put("refsetsSynchronised", refsetsSynchronised);
+		if (unitsCompleted != null) {
+			eventData.put("unitsCompleted", unitsCompleted);
+		}
+		editionEventService.publish(shortName, EditionEventService.EVENT_TRANSLATION_SYNC, eventData);
 	}
 
 	private boolean hasCredentials() {

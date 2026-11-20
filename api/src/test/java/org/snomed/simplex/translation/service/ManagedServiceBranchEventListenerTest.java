@@ -17,8 +17,10 @@ import org.snomed.simplex.service.job.AsyncJob;
 import org.snomed.simplex.snolate.service.TranslationStudioImportJobRecordService;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -74,7 +76,10 @@ class ManagedServiceBranchEventListenerTest {
 		ArgumentCaptor<AsyncJob> job = ArgumentCaptor.forClass(AsyncJob.class);
 		verify(jobRecordService).saveFromJob(job.capture());
 		assertEquals(JobStatus.COMPLETE, job.getValue().getStatus());
-		verify(editionEventService).publish(eq("SNOMEDCT-TEST"), eq(EditionEventService.EVENT_TRANSLATION_SYNC), any());
+		Map<String, Object> event = capturePublishedEvent(EditionEventService.EVENT_TRANSLATION_SYNC);
+		assertEquals("PROJECT_REBASED", event.get("trigger"));
+		assertEquals("COMPLETE", event.get("status"));
+		assertFalse(event.containsKey("unitsCompleted"));
 	}
 
 	@Test
@@ -95,10 +100,15 @@ class ManagedServiceBranchEventListenerTest {
 	void promotionTransitionsUnitsToPromotedAndPullsProjectContent() throws Exception {
 		knownCodeSystem();
 
+		when(taskEventService.handleTaskPromoted("SNOMEDCT-TEST")).thenReturn(9);
+
 		listener.receiveBranchEvents(MESSAGE.formatted("PROMOTE", "MAIN/SNOMEDCT-TEST/translation"));
 
 		verify(taskEventService).handleTaskPromoted("SNOMEDCT-TEST");
 		verify(taskEventService).pullTranslationContentFromSnowstorm(codeSystem, snowstormClient);
+		Map<String, Object> event = capturePublishedEvent(EditionEventService.EVENT_TRANSLATION_SYNC);
+		assertEquals("TASK_PROMOTED", event.get("trigger"));
+		assertEquals(9, event.get("unitsCompleted"));
 	}
 
 	@Test
@@ -108,6 +118,15 @@ class ManagedServiceBranchEventListenerTest {
 		listener.receiveBranchEvents(MESSAGE.formatted("DELETE", "MAIN/SNOMEDCT-TEST/translation/translation-12"));
 
 		verify(taskEventService).handleTaskRejected("SNOMEDCT-TEST");
+		Map<String, Object> event = capturePublishedEvent(EditionEventService.EVENT_TRANSLATION_TASK_REVERTED);
+		assertEquals("MAIN/SNOMEDCT-TEST/translation/translation-12", event.get("taskBranch"));
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> capturePublishedEvent(String eventName) {
+		ArgumentCaptor<Object> data = ArgumentCaptor.forClass(Object.class);
+		verify(editionEventService).publish(eq("SNOMEDCT-TEST"), eq(eventName), data.capture());
+		return (Map<String, Object>) data.getValue();
 	}
 
 	@Test

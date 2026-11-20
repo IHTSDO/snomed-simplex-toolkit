@@ -24,6 +24,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class EditionEventService implements SmartLifecycle {
 
 	public static final String EVENT_TRANSLATION_SYNC = "translation-sync";
+	public static final String EVENT_TRANSLATION_TASK_REVERTED = "translation-task-reverted";
 
 	private static final long NO_TIMEOUT = 0L;
 

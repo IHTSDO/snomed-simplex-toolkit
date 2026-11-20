@@ -72,11 +72,11 @@ public class ManagedServiceTaskEventService {
 				translationStudioSyncService.synchroniseWholeTranslationFromSnowstormToSnolate(codeSystem, snowstormClient, entry.getValue(), refsetId);
 				synchronised++;
 			} catch (ServiceException e) {
-				logger.error("Managed Service event: failed to pull {}/{} from Snowstorm: {}", codeSystem.getShortName(), refsetId, e.getMessage(), e);
+				logger.error("Authoring Platform event: failed to pull {}/{} from Snowstorm: {}", codeSystem.getShortName(), refsetId, e.getMessage(), e);
 				failures.add("%s: %s".formatted(refsetId, e.getMessage()));
 			}
 		}
-		logger.info("Managed Service event: pulled {} language refset(s) from Snowstorm for code system {}", synchronised, codeSystem.getShortName());
+		logger.info("Authoring Platform event: pulled {} language refset(s) from Snowstorm for code system {}", synchronised, codeSystem.getShortName());
 		return new PullResult(synchronised, failures);
 	}
 
@@ -111,7 +111,7 @@ public class ManagedServiceTaskEventService {
 					});
 			flushRemainder(saveBuffer);
 		}
-		logger.info("Managed Service task event: transitioned {} translation unit(s) for code system {} from {} to {}",
+		logger.info("Authoring Platform task event: transitioned {} translation unit(s) for code system {} from {} to {}",
 				totalUpdated[0], codeSystemShortName, TranslationStatus.PROMOTED_TO_TASK, newStatus);
 		return totalUpdated[0];
 	}
