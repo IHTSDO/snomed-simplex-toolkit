@@ -22,6 +22,8 @@ public record ManagedServiceBranchEvent(Type type, String branchPath, String sou
 
 	public static final String TRANSLATION_LABEL = "translation";
 
+	private static final String BRANCH_FIELD = "branch";
+
 	public enum Type {
 		REBASE, PROMOTE, DELETE
 	}
@@ -41,7 +43,8 @@ public record ManagedServiceBranchEvent(Type type, String branchPath, String sou
 	}
 
 	private static java.util.Optional<ManagedServiceBranchEvent> parseOne(JsonNode node) {
-		JsonNode branch = node.has("branch") && node.get("branch").isObject() ? node.get("branch") : node;
+		JsonNode wrapped = node.get(BRANCH_FIELD);
+		JsonNode branch = wrapped != null && wrapped.isObject() ? wrapped : node;
 		String eventName = text(node, "event");
 		if (eventName == null) {
 			eventName = switch (String.valueOf(text(branch, "commitType"))) {
