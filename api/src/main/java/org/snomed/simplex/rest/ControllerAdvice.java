@@ -135,22 +135,21 @@ public class ControllerAdvice {
 			result.put(MESSAGE, "An unexpected error occurred.");
 			return result;
 		}
-		return handleException(exception, null);
+		return handleException(exception, null).getBody();
 	}
 
 	@ExceptionHandler(Exception.class)
-	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-	public Map<String,Object> handleException(Exception exception, HttpServletResponse response) {
+	public ResponseEntity<Map<String, Object>> handleException(Exception exception, HttpServletResponse response) {
 		if (response != null && response.getContentType() != null && response.getContentType().startsWith(MediaType.TEXT_EVENT_STREAM_VALUE)) {
 			// An event stream (e.g. interrupted by shutdown) cannot carry a JSON error body.
 			logger.debug("Event stream ended with exception: {}", exception.getMessage());
-			return null;
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
 		}
 		logger.error(exception.getMessage(), exception);
 		HashMap<String, Object> result = new HashMap<>();
 		result.put(ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
 		result.put(MESSAGE, exception.getMessage());
-		return result;
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
 	}
 
 }
