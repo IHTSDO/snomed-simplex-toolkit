@@ -67,7 +67,10 @@ public class StandardCodeListRepository {
 		List<String> codes = new ArrayList<>();
 		try (InputStream inputStream = resourceManager.readResourceStream(catalogueId + "/" + tsvFilename);
 				BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-			reader.readLine(); // header
+			String header = reader.readLine();
+			if (header == null) {
+				return codes;
+			}
 			String line;
 			while ((line = reader.readLine()) != null) {
 				if (line.isBlank()) {
