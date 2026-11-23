@@ -716,6 +716,25 @@ export class SimplexService {
     );
   }
 
+  public getStandardCodeListCatalogues(): Observable<any> {
+    return this.http.get('api/standard-code-lists').pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public getStandardCodeListCatalogue(catalogueId: string): Observable<any> {
+    return this.http.get(`api/standard-code-lists/${catalogueId}`).pipe(catchError(this.handleError.bind(this)));
+  }
+
+  public createTranslationSetFromStandardCodeList(
+    edition: string,
+    refsetId: string,
+    data: { name: string; label: string; description?: string; standardCodeListId: string; valueSetName: string }
+  ): Observable<any> {
+    return this.http.post(`api/${edition}/translation-studio/${refsetId}/sets/from-standard-code-list`, data).pipe(
+      tap(() => this.clearTranslationsCache(edition)),
+      catchError(this.handleError.bind(this))
+    );
+  }
+
   public updateTranslationSetConceptList(
     edition: string,
     refsetId: string,

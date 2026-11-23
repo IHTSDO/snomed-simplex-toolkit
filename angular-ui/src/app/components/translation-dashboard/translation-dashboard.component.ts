@@ -104,17 +104,25 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
 
 
     // ECL input method properties
-    eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' | 'file' = 'subtype';
-    readonly eclInputMethodOptions: Array<{ value: 'manual' | 'refset' | 'derivative' | 'subtype' | 'file'; label: string }> = [
+    eclInputMethod: 'manual' | 'refset' | 'derivative' | 'subtype' | 'file' | 'standardCodeList' = 'subtype';
+    readonly eclInputMethodOptions: Array<{ value: 'manual' | 'refset' | 'derivative' | 'subtype' | 'file' | 'standardCodeList'; label: string }> = [
         { value: 'subtype', label: 'Select a concept and all subtypes (hierarchy descendants)' },
         { value: 'refset', label: 'Select concepts from a Subset in this extension' },
         { value: 'derivative', label: 'Select concepts from a SNOMED CT Derivative' },
         { value: 'manual', label: 'Select concepts using ECL' },
         { value: 'file', label: 'Upload a file of concept codes (CSV or spreadsheet)' },
+        { value: 'standardCodeList', label: 'EHDS Master Value Set Catalogue - version 10.0.0' },
     ];
     selectedRefsetCode: string = '';
     selectedDerivativeCode: string = '';
     selectedSubtype: any = null;
+
+    // Standard code list (e.g. EHDS Master Value Set Catalogue) selection properties
+    readonly standardCodeListId = 'EHDS_MVC_10.0.0';
+    standardCodeListValueSets: Array<{ name: string; description?: string; conceptCount: number }> = [];
+    loadingStandardCodeListValueSets = false;
+    standardCodeListValueSetsLoaded = false;
+    selectedStandardCodeListValueSet = '';
 
     @ViewChild('conceptFileInput') conceptFileInput?: ElementRef<HTMLInputElement>;
     selectedConceptFile: File | null = null;
@@ -167,6 +175,12 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 && (this.conceptFileTermColumns.length === 0 || !!this.conceptFileImportStatus)
                 && !this.parsingConceptFile
                 && !this.previewingConceptFile;
+        }
+        if (this.eclInputMethod === 'standardCodeList') {
+            return !!this.form.get('translation')?.valid
+                && !!this.form.get('name')?.valid
+                && !!this.form.get('label')?.value
+                && !!this.selectedStandardCodeListValueSet;
         }
         return this.form.valid;
     }
@@ -873,6 +887,44 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.resetConceptFilePreview();
     }
 
+    private clearStandardCodeListState(): void {
+        this.selectedStandardCodeListValueSet = '';
+    }
+
+    loadStandardCodeListValueSets(): void {
+        if (this.standardCodeListValueSetsLoaded || this.loadingStandardCodeListValueSets) {
+            return;
+        }
+        this.loadingStandardCodeListValueSets = true;
+        this.simplexService.getStandardCodeListCatalogue(this.standardCodeListId).subscribe(
+            (catalogue: any) => {
+                this.standardCodeListValueSets = (catalogue?.valueSets || [])
+                    .slice()
+                    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+                this.standardCodeListValueSetsLoaded = true;
+                this.loadingStandardCodeListValueSets = false;
+            },
+            (error) => {
+                console.error(error);
+                this.loadingStandardCodeListValueSets = false;
+                this.snackBar.open('Failed to load standard code list value sets', 'Dismiss', {
+                    duration: 5000
+                });
+            }
+        );
+    }
+
+    onStandardCodeListValueSetChange(valueSetName: string): void {
+        this.selectedStandardCodeListValueSet = valueSetName;
+        const valueSet = this.standardCodeListValueSets.find((vs) => vs.name === valueSetName);
+        if (valueSet) {
+            this.form.patchValue({
+                name: valueSet.name,
+                ...(valueSet.description ? { description: valueSet.description } : {})
+            });
+        }
+    }
+
     private handleImportJobStarted(_jobId: string | undefined, labelSet: any, _refreshSets: boolean): void {
         this.snackBar.open('Import job created', 'Close', { duration: 3000 });
         this.listTabIndex = this.importJobsTabIndex;
@@ -1080,6 +1132,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             return;
         }
 
+        if (this.eclInputMethod === 'standardCodeList') {
+            this.submitCreateFromStandardCodeList();
+            return;
+        }
+
         if (this.form.valid) {
             this.saving = true;
             const formData = this.form.value;
@@ -1170,6 +1227,51 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
             (error) => {
                 console.error(error);
                 let errorMessage = 'Failed to create translation set from file';
+                if (error.error && error.error.message) {
+                    errorMessage = `${errorMessage}: ${error.error.message}`;
+                }
+                this.snackBar.open(errorMessage, 'Dismiss', {
+                    duration: 8000
+                });
+                this.saving = false;
+            }
+        );
+    }
+
+    private submitCreateFromStandardCodeList(): void {
+        if (!this.selectedStandardCodeListValueSet || !this.selectedEdition) {
+            return;
+        }
+
+        this.saving = true;
+        const formData = this.form.value;
+        const label = this.form.get('label')?.value;
+        const description = formData.description?.trim() || undefined;
+
+        this.simplexService.createTranslationSetFromStandardCodeList(
+            this.selectedEdition.shortName,
+            formData.translation,
+            {
+                name: formData.name,
+                label,
+                description,
+                standardCodeListId: this.standardCodeListId,
+                valueSetName: this.selectedStandardCodeListValueSet
+            }
+        ).subscribe(
+            () => {
+                this.snackBar.open('Translation set is being created', 'Dismiss', {
+                    duration: 5000
+                });
+                this.form.reset();
+                this.clearStandardCodeListState();
+                this.mode = 'view';
+                this.saving = false;
+                this.getTranslationSets();
+            },
+            (error) => {
+                console.error(error);
+                let errorMessage = 'Failed to create translation set from standard code list';
                 if (error.error && error.error.message) {
                     errorMessage = `${errorMessage}: ${error.error.message}`;
                 }
@@ -1964,13 +2066,19 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.selectedDerivativeCode = '';
         this.selectedSubtype = null; // Clear subtype on method change
         this.clearConceptFileState();
+        this.clearStandardCodeListState();
 
-        if (this.eclInputMethod === 'file') {
+        if (this.eclInputMethod === 'file' || this.eclInputMethod === 'standardCodeList') {
             this.form.get('ecl')?.clearValidators();
             this.form.get('ecl')?.updateValueAndValidity({ emitEvent: false });
         } else {
             this.form.get('ecl')?.setValidators(Validators.required);
             this.form.get('ecl')?.updateValueAndValidity({ emitEvent: false });
+        }
+
+        // Load standard code list value sets when that option is selected (only if not already loaded)
+        if (this.eclInputMethod === 'standardCodeList') {
+            this.loadStandardCodeListValueSets();
         }
 
         // Load refsets from server when refset option is selected (only if not already loaded)

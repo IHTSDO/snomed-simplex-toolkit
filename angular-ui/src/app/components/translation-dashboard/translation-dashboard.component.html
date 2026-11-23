@@ -190,6 +190,25 @@
                             </mat-radio-button>
                         </mat-radio-group>
                     </div>
+
+                    <div *ngIf="eclInputMethod === 'standardCodeList'" class="selection-method-input">
+                        <h4>Select Value Set</h4>
+                        <mat-form-field>
+                            <mat-select
+                                [ngModel]="selectedStandardCodeListValueSet"
+                                [ngModelOptions]="{standalone: true}"
+                                [disabled]="loadingStandardCodeListValueSets"
+                                (selectionChange)="onStandardCodeListValueSetChange($event.value)">
+                                <mat-option *ngFor="let valueSet of standardCodeListValueSets" [value]="valueSet.name">
+                                    {{ valueSet.name }} ({{ valueSet.conceptCount }} concept{{ valueSet.conceptCount === 1 ? '' : 's' }})
+                                </mat-option>
+                                <mat-option *ngIf="!loadingStandardCodeListValueSets && standardCodeListValueSets.length === 0" disabled>
+                                    No value sets available
+                                </mat-option>
+                            </mat-select>
+                            <mat-spinner *ngIf="loadingStandardCodeListValueSets" matSuffix [diameter]="20"></mat-spinner>
+                        </mat-form-field>
+                    </div>
                 </div>
 
                 <div class="translation-set-form-section">

@@ -32,6 +32,7 @@ import org.snomed.simplex.snolate.service.SnolateTranslationService;
 import org.snomed.simplex.snolate.sets.SnolateSetCreationService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSet;
+import org.snomed.simplex.standardcodelist.StandardCodeListService;
 import org.snomed.simplex.translation.TranslationLLMService;
 import org.snomed.simplex.translation.service.SnolateSubsetTranslationSource;
 import org.snomed.simplex.translation.service.TranslationService;
@@ -64,13 +65,15 @@ public class TranslationStudioController {
 	private final TranslationLLMService translationLLMService;
 	private final LanguageTranslationPolicyService languageTranslationPolicyService;
 	private final LanguagePolicyQuestionnaireService languagePolicyQuestionnaireService;
+	private final StandardCodeListService standardCodeListService;
 
 	public TranslationStudioController(SnowstormClientFactory snowstormClientFactory, TranslationService translationService,
 			TranslationStudioSyncService translationStudioSyncService, ContentProcessingJobService jobService,
 			SnolateSetService snolateSetService,
 			SnolateTranslationService snolateTranslationService, TranslationLLMService translationLLMService,
 			LanguageTranslationPolicyService languageTranslationPolicyService,
-			LanguagePolicyQuestionnaireService languagePolicyQuestionnaireService) {
+			LanguagePolicyQuestionnaireService languagePolicyQuestionnaireService,
+			StandardCodeListService standardCodeListService) {
 
 		this.snowstormClientFactory = snowstormClientFactory;
 		this.translationService = translationService;
@@ -81,6 +84,7 @@ public class TranslationStudioController {
 		this.translationLLMService = translationLLMService;
 		this.languageTranslationPolicyService = languageTranslationPolicyService;
 		this.languagePolicyQuestionnaireService = languagePolicyQuestionnaireService;
+		this.standardCodeListService = standardCodeListService;
 	}
 
 	@GetMapping("sets/status")
@@ -194,6 +198,48 @@ public class TranslationStudioController {
 						OutsideSetBehavior.SKIP, sheetName, headerRowIndex);
 			}
 			return changeSummary;
+		});
+
+		return set;
+	}
+
+	@PostMapping(path = "{refsetId}/sets/from-standard-code-list")
+	@Operation(summary = "Create a translation set from a value set in a standard code list catalogue.",
+			description = "E.g. a value set from the EHDS Master Value Set Catalogue. Only SNOMED CT concepts are supported.")
+	@PreAuthorize("hasPermission('AUTHOR', #codeSystem)")
+	public SnolateTranslationSet createSetFromStandardCodeList(@PathVariable String codeSystem, @PathVariable String refsetId,
+			@RequestBody CreateSnolateTranslationSetFromStandardCodeList createRequest) throws ServiceException {
+
+		rejectFoundationEnglishLangRefset(refsetId);
+		SnowstormClient snowstormClient = snowstormClientFactory.getClient();
+		CodeSystem theCodeSystem = snowstormClient.getCodeSystemOrThrow(codeSystem);
+		snowstormClient.getRefsetOrThrow(refsetId, theCodeSystem);
+
+		String label = createRequest.getLabel();
+		validateTranslationSetLabel(label);
+		validateDescriptionLength(createRequest.getDescription());
+		ServiceHelper.requiredParameter("name", createRequest.getName());
+		ServiceHelper.requiredParameter("standardCodeListId", createRequest.getStandardCodeListId());
+		ServiceHelper.requiredParameter("valueSetName", createRequest.getValueSetName());
+
+		List<String> conceptIds = standardCodeListService.getConceptIds(createRequest.getStandardCodeListId(), createRequest.getValueSetName());
+		if (conceptIds.isEmpty()) {
+			throw new ServiceExceptionWithStatusCode("Selected standard code list value set contains no concept codes.", HttpStatus.BAD_REQUEST);
+		}
+
+		SnolateTranslationSet set = new SnolateTranslationSet(codeSystem, refsetId, createRequest.getName(), label,
+				SnolateSetCreationService.CONCEPT_LIST_ECL_PLACEHOLDER, TranslationSubsetType.CONCEPT_LIST, codeSystem);
+		set.setDescription(normaliseDescription(createRequest.getDescription()));
+		set.setConceptList(ConceptListSupport.joinConceptList(conceptIds));
+		snolateSetService.prepareConceptListSet(set);
+
+		ContentJob contentJob = new TranslationStudioContentJob(theCodeSystem,
+				"Translation Studio set creation from standard code list", refsetId);
+		Activity activity = new Activity(codeSystem, ComponentType.TRANSLATION_STUDIO, ActivityType.CREATE);
+		jobService.queueContentJob(contentJob, refsetId, activity, job -> {
+			SnolateTranslationSet currentSet = snolateSetService.findSubsetOrThrow(codeSystem, refsetId, label);
+			snolateSetService.runCreateSet(currentSet);
+			return new ChangeSummary();
 		});
 
 		return set;
