@@ -120,6 +120,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
     // Standard code list (e.g. EHDS Master Value Set Catalogue) selection properties
     readonly standardCodeListId = 'EHDS_MVC_10.0.0';
     standardCodeListValueSets: Array<{ name: string; description?: string; conceptCount: number }> = [];
+    standardCodeListValueSetNamePrefix = '';
     loadingStandardCodeListValueSets = false;
     standardCodeListValueSetsLoaded = false;
     selectedStandardCodeListValueSet = '';
@@ -901,6 +902,7 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
                 this.standardCodeListValueSets = (catalogue?.valueSets || [])
                     .slice()
                     .sort((a: any, b: any) => a.name.localeCompare(b.name));
+                this.standardCodeListValueSetNamePrefix = catalogue?.valueSetNamePrefix || '';
                 this.standardCodeListValueSetsLoaded = true;
                 this.loadingStandardCodeListValueSets = false;
             },
@@ -918,8 +920,11 @@ export class TranslationDashboardComponent implements OnInit, OnDestroy, AfterVi
         this.selectedStandardCodeListValueSet = valueSetName;
         const valueSet = this.standardCodeListValueSets.find((vs) => vs.name === valueSetName);
         if (valueSet) {
+            const name = this.standardCodeListValueSetNamePrefix
+                ? `${this.standardCodeListValueSetNamePrefix} - ${valueSet.name}`
+                : valueSet.name;
             this.form.patchValue({
-                name: valueSet.name,
+                name,
                 ...(valueSet.description ? { description: valueSet.description } : {})
             });
         }

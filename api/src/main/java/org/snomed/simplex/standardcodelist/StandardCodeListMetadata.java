@@ -14,6 +14,7 @@ public class StandardCodeListMetadata {
 	private String sourceFile;
 	private String codeSystem;
 	private String notes;
+	private String valueSetNamePrefix;
 	private List<StandardCodeListValueSetMetadata> valueSets = new ArrayList<>();
 
 	public String getId() {
@@ -78,6 +79,14 @@ public class StandardCodeListMetadata {
 
 	public void setNotes(String notes) {
 		this.notes = notes;
+	}
+
+	public String getValueSetNamePrefix() {
+		return valueSetNamePrefix;
+	}
+
+	public void setValueSetNamePrefix(String valueSetNamePrefix) {
+		this.valueSetNamePrefix = valueSetNamePrefix;
 	}
 
 	public List<StandardCodeListValueSetMetadata> getValueSets() {
