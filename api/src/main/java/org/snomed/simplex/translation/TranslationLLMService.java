@@ -29,6 +29,7 @@ public class TranslationLLMService {
 		- If a translation cannot be found output the line number and pipe but leave the translation blank.
 		- Preserve the original order of the lines; do not reorder, group, or summarize them.
 		- Preserve all modifiers, qualifiers, any body location descriptors.
+		- Use identical wording for the same recurring English phrase or concept throughout this response, matching the wording already used in the Examples and in any "English → translation" lines shown above, so terminology stays consistent across the whole batch.
 		- Set reasoning_effort = low; outputs should be terse, limited to the requested direct translations in plain text.""";
 
 	private static final String POLICY_REQUIRED_MESSAGE =
