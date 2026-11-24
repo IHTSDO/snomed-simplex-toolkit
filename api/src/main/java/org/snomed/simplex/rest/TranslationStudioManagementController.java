@@ -2,6 +2,7 @@ package org.snomed.simplex.rest;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.snomed.simplex.exceptions.ServiceException;
 import org.snomed.simplex.exceptions.ServiceExceptionWithStatusCode;
 import org.snomed.simplex.rest.pojos.DeleteEmptyShellUnitsResponse;
 import org.snomed.simplex.rest.pojos.RepairTranslationSetSizesResponse;
@@ -11,6 +12,8 @@ import org.snomed.simplex.service.ServiceHelper;
 import org.snomed.simplex.snolate.service.SnolateSnomedUpgradeService;
 import org.snomed.simplex.snolate.sets.SnolateSetService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitMigrationService;
+import org.snomed.simplex.translation.service.TranslationCopyPathMigrationService;
+import org.snomed.simplex.translation.service.TranslationCopyPathMigrationService.MigrationResult;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,13 +28,16 @@ public class TranslationStudioManagementController {
 	private final SnolateSnomedUpgradeService snolateSnomedUpgradeService;
 	private final SnolateSetService snolateSetService;
 	private final SnolateTranslationUnitMigrationService translationUnitMigrationService;
+	private final TranslationCopyPathMigrationService translationCopyPathMigrationService;
 
 	public TranslationStudioManagementController(SnolateSnomedUpgradeService snolateSnomedUpgradeService,
 			SnolateSetService snolateSetService,
-			SnolateTranslationUnitMigrationService translationUnitMigrationService) {
+			SnolateTranslationUnitMigrationService translationUnitMigrationService,
+			TranslationCopyPathMigrationService translationCopyPathMigrationService) {
 		this.snolateSnomedUpgradeService = snolateSnomedUpgradeService;
 		this.snolateSetService = snolateSetService;
 		this.translationUnitMigrationService = translationUnitMigrationService;
+		this.translationCopyPathMigrationService = translationCopyPathMigrationService;
 	}
 
 	@PostMapping("snomed-initialise")
@@ -75,5 +81,15 @@ public class TranslationStudioManagementController {
 			throws ServiceExceptionWithStatusCode {
 		ServiceHelper.requiredParameter("codeSystem", codeSystem);
 		return translationUnitMigrationService.deleteEmptyShellUnits(codeSystem);
+	}
+
+	@PostMapping("migrate-translation-copy")
+	@Operation(summary = "Migrate translation-copy snapshots from the old flat storage path to the new code-system-prefixed path.",
+			description = "Runs the same migration performed automatically on startup (see TranslationCopyPathMigrationService), "
+					+ "but on demand and using the caller's own authentication token rather than the managed-service account. "
+					+ "Safe to run repeatedly; already-migrated or never-existing files are left alone.")
+	@PreAuthorize("hasPermission('ADMIN', '')")
+	public MigrationResult migrateTranslationCopy() throws ServiceException {
+		return translationCopyPathMigrationService.migrateOnDemand();
 	}
 }

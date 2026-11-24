@@ -88,7 +88,16 @@ public class TranslationCopyPathMigrationService implements ApplicationRunner {
 		}
 	}
 
-	private void migrate() throws ServiceException {
+	/**
+	 * Runs the migration using the caller's own (already authenticated) security context, for example when
+	 * triggered on demand via the admin REST API. See {@link #run(ApplicationArguments)} for the startup path,
+	 * which authenticates as the managed-service account first.
+	 */
+	public MigrationResult migrateOnDemand() throws ServiceException {
+		return migrate();
+	}
+
+	private MigrationResult migrate() throws ServiceException {
 		List<CodeSystem> codeSystems = snowstormClientFactory.getClient().getCodeSystems(true);
 		int migrated = 0;
 		int skipped = 0;
@@ -112,6 +121,10 @@ public class TranslationCopyPathMigrationService implements ApplicationRunner {
 			}
 		}
 		logger.info("Translation-copy storage path migration complete: moved {} file(s), skipped {} (already migrated or not present).", migrated, skipped);
+		return new MigrationResult(migrated, skipped);
+	}
+
+	public record MigrationResult(int migrated, int skipped) {
 	}
 
 	private boolean migrateFile(String codeSystemShortName, String langRefsetId, TranslationSourceType source) {
