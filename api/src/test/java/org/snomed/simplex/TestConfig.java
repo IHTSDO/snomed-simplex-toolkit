@@ -10,6 +10,7 @@ import org.snomed.simplex.snolate.sets.SnolateTranslationSearchService;
 import org.snomed.simplex.snolate.sets.SnolateTranslationSourceRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitRepository;
 import org.snomed.simplex.snolate.sets.SnolateTranslationUnitStore;
+import org.snomed.simplex.translation.service.TranslationCopyPathMigrationService;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration;
 import org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration;
@@ -71,6 +72,11 @@ public class TestConfig extends ApplicationConfig {
 	@Bean
 	public LlmUsageDailyRepository llmUsageDailyRepository() {
 		return mock(LlmUsageDailyRepository.class);
+	}
+
+	@Bean
+	public TranslationCopyPathMigrationService translationCopyPathMigrationService() {
+		return mock(TranslationCopyPathMigrationService.class);
 	}
 
 }
