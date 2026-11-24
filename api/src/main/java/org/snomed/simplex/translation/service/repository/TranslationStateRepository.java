@@ -26,9 +26,11 @@ public class TranslationStateRepository {
 	public static final String TAB = "\t";
 	public static final String LINE_BREAK = "\n";
 	private final ResourceManager resourceManager;
+	private final TranslationCopyResourceManagerConfiguration resourceManagerConfiguration;
 	public static final Logger LOGGER = LoggerFactory.getLogger(TranslationStateRepository.class);
 
 	public TranslationStateRepository(TranslationCopyResourceManagerConfiguration resourceManagerConfiguration, ResourceLoader resourceLoader) {
+		this.resourceManagerConfiguration = resourceManagerConfiguration;
 		resourceManager = new ResourceManager(resourceManagerConfiguration, resourceLoader);
 		if (!resourceManagerConfiguration.isUseCloud()) {
 			String path = resourceManagerConfiguration.getLocal().getPath();
@@ -71,7 +73,7 @@ public class TranslationStateRepository {
 	public TranslationState loadStateOrBlank(String codeSystemShortName, String langRefsetId, TranslationSourceType source) throws ServiceExceptionWithStatusCode {
 		try {
 			String path = getPath(codeSystemShortName, langRefsetId, source);
-			if (resourceManager.doesObjectExist(path)) {
+			if (doesResourceExist(path)) {
 				try (InputStream inputStream = resourceManager.readResourceStream(path)) {
 					return readFromStream(inputStream);
 				}
@@ -85,6 +87,19 @@ public class TranslationStateRepository {
 
 	private static String getPath(String codeSystemShortName, String langRefsetId, TranslationSourceType source) {
 		return "%s/%s_%s.tsv".formatted(codeSystemShortName, langRefsetId, source.toString());
+	}
+
+	/**
+	 * {@link ResourceManager#doesObjectExist(String)} lists only the top-level filenames of the local storage
+	 * directory, so it never matches a nested resourcePath (e.g. {@code <codeSystemShortName>/<file>}) when not
+	 * using cloud storage. Check the local filesystem directly in that case.
+	 */
+	private boolean doesResourceExist(String resourcePath) {
+		if (resourceManagerConfiguration.isUseCloud()) {
+			return resourceManager.doesObjectExist(resourcePath);
+		}
+		String localPath = resourceManagerConfiguration.getLocal().getPath();
+		return !StringUtils.isEmpty(localPath) && new File(localPath, resourcePath).isFile();
 	}
 
 	private void writeToTsv(TranslationState translationState, File file) throws IOException {
