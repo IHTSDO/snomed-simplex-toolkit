@@ -73,7 +73,7 @@ class TranslationStudioSyncServiceCompleteStatusTest {
 		ProgressMonitor progressMonitor = org.mockito.Mockito.mock(ProgressMonitor.class);
 		TranslationState snapshot = new TranslationState();
 		snapshot.getConceptTerms().put(100L, List.of("project term"));
-		when(translationStateRepository.loadSnowstormSnapshot(REFSET)).thenReturn(snapshot);
+		when(translationStateRepository.loadSnowstormSnapshot(any(), eq(REFSET))).thenReturn(snapshot);
 		when(translationSearchService.listAllUnitsInSet(translationSet.getCompositeSetCode(), COMPOSITE)).thenReturn(List.of());
 		TranslationState upload = new TranslationState();
 		when(translationSyncService.planPushUpload(any(), any(), any(), any(), any()))
@@ -83,7 +83,7 @@ class TranslationStudioSyncServiceCompleteStatusTest {
 				Set.of(TranslationStatus.APPROVED));
 
 		verify(snowstormClient, never()).exportRF2(any(), any());
-		verify(translationStateRepository, never()).saveSnowstormSnapshot(any(), any());
+		verify(translationStateRepository, never()).saveSnowstormSnapshot(any(), any(), any());
 	}
 
 	@Test

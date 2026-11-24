@@ -41,20 +41,20 @@ public class TranslationStateRepository {
 		}
 	}
 
-	public void saveSnowstormSnapshot(String langRefsetId, TranslationState translationState) throws ServiceExceptionWithStatusCode {
-		saveState(langRefsetId, TranslationSourceType.TERMINOLOGY_SERVER, translationState);
+	public void saveSnowstormSnapshot(String codeSystemShortName, String langRefsetId, TranslationState translationState) throws ServiceExceptionWithStatusCode {
+		saveState(codeSystemShortName, langRefsetId, TranslationSourceType.TERMINOLOGY_SERVER, translationState);
 	}
 
-	public TranslationState loadSnowstormSnapshot(String langRefsetId) throws ServiceExceptionWithStatusCode {
-		return loadStateOrBlank(langRefsetId, TranslationSourceType.TERMINOLOGY_SERVER);
+	public TranslationState loadSnowstormSnapshot(String codeSystemShortName, String langRefsetId) throws ServiceExceptionWithStatusCode {
+		return loadStateOrBlank(codeSystemShortName, langRefsetId, TranslationSourceType.TERMINOLOGY_SERVER);
 	}
 
-	public void saveState(String langRefsetId, TranslationSourceType source, TranslationState translationState) throws ServiceExceptionWithStatusCode {
+	public void saveState(String codeSystemShortName, String langRefsetId, TranslationSourceType source, TranslationState translationState) throws ServiceExceptionWithStatusCode {
 		File tempFile = null;
 		try {
 			tempFile = File.createTempFile(UUID.randomUUID().toString(), ".txt");
 			writeToTsv(translationState, tempFile);
-			writeResource(tempFile, getPath(langRefsetId, source));
+			writeResource(tempFile, getPath(codeSystemShortName, langRefsetId, source));
 		} catch (IOException e) {
 			throw new ServiceExceptionWithStatusCode("Failed to save translation state", HttpStatus.INTERNAL_SERVER_ERROR, e);
 		} finally {
@@ -68,9 +68,9 @@ public class TranslationStateRepository {
 		}
 	}
 
-	public TranslationState loadStateOrBlank(String langRefsetId, TranslationSourceType source) throws ServiceExceptionWithStatusCode {
+	public TranslationState loadStateOrBlank(String codeSystemShortName, String langRefsetId, TranslationSourceType source) throws ServiceExceptionWithStatusCode {
 		try {
-			String path = getPath(langRefsetId, source);
+			String path = getPath(codeSystemShortName, langRefsetId, source);
 			if (resourceManager.doesObjectExist(path)) {
 				try (InputStream inputStream = resourceManager.readResourceStream(path)) {
 					return readFromStream(inputStream);
@@ -83,8 +83,8 @@ public class TranslationStateRepository {
 		}
 	}
 
-	private static String getPath(String langRefsetId, TranslationSourceType source) {
-		return "%s_%s.tsv".formatted(langRefsetId, source.toString());
+	private static String getPath(String codeSystemShortName, String langRefsetId, TranslationSourceType source) {
+		return "%s/%s_%s.tsv".formatted(codeSystemShortName, langRefsetId, source.toString());
 	}
 
 	private void writeToTsv(TranslationState translationState, File file) throws IOException {
