@@ -8,6 +8,7 @@ import org.snomed.simplex.client.AuthenticationClient;
 import org.snomed.simplex.client.SnowstormClientFactory;
 import org.snomed.simplex.client.domain.CodeSystem;
 import org.snomed.simplex.config.TranslationCopyResourceManagerConfiguration;
+import org.snomed.simplex.exceptions.ServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -87,7 +88,7 @@ public class TranslationCopyPathMigrationService implements ApplicationRunner {
 		}
 	}
 
-	private void migrate() throws Exception {
+	private void migrate() throws ServiceException {
 		List<CodeSystem> codeSystems = snowstormClientFactory.getClient().getCodeSystems(true);
 		int migrated = 0;
 		int skipped = 0;
@@ -164,7 +165,7 @@ public class TranslationCopyPathMigrationService implements ApplicationRunner {
 		return StringUtils.isNotEmpty(serviceAccountUsername) && StringUtils.isNotEmpty(serviceAccountPassword);
 	}
 
-	private void authenticateAsServiceAccount() throws Exception {
+	private void authenticateAsServiceAccount() throws ServiceException {
 		String principal = serviceAccountUsername;
 		String token;
 		if (hasCredentials()) {
